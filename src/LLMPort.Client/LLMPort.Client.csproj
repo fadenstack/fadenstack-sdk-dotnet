@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LLMPort.Client</RootNamespace>
+    <PackageId>LLMPort.Client</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Sachith Liyanagama</Authors>
+    <Description>Official .NET SDK for LLM.port — wraps the OpenAI client with session, tool routing, memory, and attachment APIs.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenAI" Version="2.*" />
+  </ItemGroup>
+
+</Project>
