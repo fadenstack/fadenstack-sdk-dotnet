@@ -1,17 +1,17 @@
-using LLMPort.Client;
-using LLMPort.Client.Resources;
+using Faden.Client;
+using Faden.Client.Resources;
 using Xunit;
 
-namespace LLMPort.Client.Tests;
+namespace Faden.Client.Tests;
 
 public class ClientTests
 {
     [Fact]
     public void Client_Has_All_Resources()
     {
-        var client = new LLMPortClient(new LLMPortClientOptions
+        var client = new FadenClient(new FadenClientOptions
         {
-            BaseUrl = "https://llmport.test",
+            BaseUrl = "https://faden.test",
             ApiKey = "test-token",
         });
 
@@ -35,9 +35,9 @@ public class ClientTests
     [Fact]
     public void Client_Creates_ChatClient()
     {
-        var client = new LLMPortClient(new LLMPortClientOptions
+        var client = new FadenClient(new FadenClientOptions
         {
-            BaseUrl = "https://llmport.test",
+            BaseUrl = "https://faden.test",
             ApiKey = "test-token",
         });
 

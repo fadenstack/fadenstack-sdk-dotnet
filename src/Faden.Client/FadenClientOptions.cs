@@ -1,9 +1,9 @@
-namespace LLMPort.Client;
+namespace Faden.Client;
 
-/// <summary>Configuration for <see cref="LLMPortClient"/>.</summary>
-public sealed class LLMPortClientOptions
+/// <summary>Configuration for <see cref="FadenClient"/>.</summary>
+public sealed class FadenClientOptions
 {
-    /// <summary>Base URL of the LLM.port instance (e.g. "https://llmport.example.com").</summary>
+    /// <summary>Base URL of the Fadenstack instance (e.g. "https://faden.example.com").</summary>
     public required string BaseUrl { get; init; }
 
     /// <summary>JWT bearer token for authentication.</summary>

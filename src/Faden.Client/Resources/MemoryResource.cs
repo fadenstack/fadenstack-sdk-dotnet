@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using LLMPort.Client.Models;
+using Faden.Client.Models;
 
-namespace LLMPort.Client.Resources;
+namespace Faden.Client.Resources;
 
 /// <summary>Memory facts CRUD.</summary>
 public sealed class MemoryResource

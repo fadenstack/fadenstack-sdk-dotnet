@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using LLMPort.Client.Models;
+using Faden.Client.Models;
 
-namespace LLMPort.Client.Resources;
+namespace Faden.Client.Resources;
 
 /// <summary>Attachment upload, list, delete for sessions and projects.</summary>
 public sealed class AttachmentsResource

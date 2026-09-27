@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\LLMPort.Client\LLMPort.Client.csproj" />
+    <ProjectReference Include="..\..\src\Faden.Client\Faden.Client.csproj" />
   </ItemGroup>
 
 </Project>

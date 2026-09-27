@@ -1,15 +1,15 @@
 using System.Net.Http.Headers;
-using LLMPort.Client.Resources;
+using Faden.Client.Resources;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace LLMPort.Client;
+namespace Faden.Client;
 
 /// <summary>
-/// LLM.port client — wraps the OpenAI .NET SDK with LLM.port-specific resources
+/// Fadenstack client — wraps the OpenAI .NET SDK with Fadenstack-specific resources
 /// (sessions, projects, tools, memory, attachments, services).
 /// </summary>
-public sealed class LLMPortClient : IDisposable
+public sealed class FadenClient : IDisposable
 {
     private readonly HttpClient _http;
     private readonly OpenAIClient _openAiClient;
@@ -32,13 +32,13 @@ public sealed class LLMPortClient : IDisposable
     /// <summary>Health check and service discovery.</summary>
     public ServicesResource Services { get; }
 
-    public LLMPortClient(LLMPortClientOptions options)
+    public FadenClient(FadenClientOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         var baseUrl = options.BaseUrl.TrimEnd('/');
 
-        // HttpClient for LLM.port extension endpoints
+        // HttpClient for Fadenstack extension endpoints
         _http = new HttpClient
         {
             BaseAddress = new Uri(baseUrl),
@@ -46,7 +46,7 @@ public sealed class LLMPortClient : IDisposable
         };
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
 
-        // OpenAI client pointed at LLM.port gateway
+        // OpenAI client pointed at Fadenstack gateway
         var openAiOptions = new OpenAIClientOptions { Endpoint = new Uri($"{baseUrl}/v1") };
         var credential = new System.ClientModel.ApiKeyCredential(options.ApiKey);
         _openAiClient = new OpenAIClient(credential, openAiOptions);
@@ -60,7 +60,7 @@ public sealed class LLMPortClient : IDisposable
         Services = new ServicesResource(_http);
     }
 
-    /// <summary>Get an OpenAI <see cref="ChatClient"/> for chat completions against the LLM.port gateway.</summary>
+    /// <summary>Get an OpenAI <see cref="ChatClient"/> for chat completions against the Fadenstack gateway.</summary>
     public ChatClient GetChatClient(string model) => _openAiClient.GetChatClient(model);
 
     public void Dispose()

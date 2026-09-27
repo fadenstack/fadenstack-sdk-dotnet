@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace LLMPort.Client.Models;
+namespace Faden.Client.Models;
 
 public sealed record Session
 {

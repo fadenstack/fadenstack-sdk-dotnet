@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using LLMPort.Client.Models;
+using Faden.Client.Models;
 
-namespace LLMPort.Client.Resources;
+namespace Faden.Client.Resources;
 
 /// <summary>Tool availability catalog and session tool policy.</summary>
 public sealed class ToolsResource
