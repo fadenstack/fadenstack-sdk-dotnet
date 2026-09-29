@@ -55,6 +55,11 @@ public sealed class TurnViewModel : ObservableObject
 
     public string UserText { get; }
 
+    /// <summary>What went with the message.</summary>
+    public IReadOnlyList<AttachmentChip> Attachments { get; internal set; } = Array.Empty<AttachmentChip>();
+
+    public bool HasAttachments => Attachments.Count > 0;
+
     public DateTimeOffset Timestamp { get; }
 
     public ObservableCollection<ResponsePart> Parts { get; } = new();

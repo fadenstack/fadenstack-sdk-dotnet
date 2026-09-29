@@ -56,10 +56,15 @@ public sealed class AgentSession
     public IReadOnlyCollection<string> ApprovedForSession => _approvedForSession;
 
     /// <summary>Sends a message and waits for the turn to end.</summary>
-    public async Task<AgentResult> SendAsync(string message, CancellationToken cancellationToken = default)
+    public Task<AgentResult> SendAsync(string message, CancellationToken cancellationToken = default) =>
+        SendAsync(message, Array.Empty<MessageAttachment>(), cancellationToken);
+
+    /// <summary>Sends a message with attached context and waits for the turn to end.</summary>
+    public async Task<AgentResult> SendAsync(string message, IReadOnlyList<MessageAttachment> attachments,
+        CancellationToken cancellationToken = default)
     {
         AgentResult? result = null;
-        await foreach (var e in StreamAsync(message, cancellationToken).ConfigureAwait(false))
+        await foreach (var e in StreamAsync(message, attachments, cancellationToken).ConfigureAwait(false))
         {
             if (e is TurnCompleted completed)
             {
@@ -70,7 +75,11 @@ public sealed class AgentSession
     }
 
     /// <summary>Sends a message and streams what happens. Leaving the stream early cancels the turn.</summary>
-    public async IAsyncEnumerable<AgentEvent> StreamAsync(string message,
+    public IAsyncEnumerable<AgentEvent> StreamAsync(string message, CancellationToken cancellationToken = default) =>
+        StreamAsync(message, Array.Empty<MessageAttachment>(), cancellationToken);
+
+    /// <summary>Sends a message with attached context and streams what happens.</summary>
+    public async IAsyncEnumerable<AgentEvent> StreamAsync(string message, IReadOnlyList<MessageAttachment> attachments,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (!await _turn.WaitAsync(0, cancellationToken).ConfigureAwait(false))
@@ -79,7 +88,7 @@ public sealed class AgentSession
         }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var channel = Channel.CreateUnbounded<AgentEvent>(new UnboundedChannelOptions { SingleReader = true });
-        var run = RunAsync(message, channel.Writer, stop.Token);
+        var run = RunAsync(message, attachments ?? Array.Empty<MessageAttachment>(), channel.Writer, stop.Token);
         try
         {
             while (await channel.Reader.WaitToReadAsync(CancellationToken.None).ConfigureAwait(false))
@@ -142,13 +151,14 @@ public sealed class AgentSession
         return null;
     }
 
-    private async Task RunAsync(string message, ChannelWriter<AgentEvent> writer, CancellationToken cancellationToken)
+    private async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, ChannelWriter<AgentEvent> writer,
+        CancellationToken cancellationToken)
     {
         try
         {
             await Task.Yield(); // the caller gets the stream before the first request goes out
             var turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
-            await turn.RunAsync(message, cancellationToken).ConfigureAwait(false);
+            await turn.RunAsync(message, attachments, cancellationToken).ConfigureAwait(false);
             writer.TryComplete();
         }
         catch (Exception e)
@@ -203,10 +213,18 @@ public sealed class AgentSession
 
         private FadenAgent Agent => _session._agent;
 
-        public async Task RunAsync(string message, CancellationToken cancellationToken)
+        public async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
-            await _session.AppendAsync(EntryTypes.UserMessage, _id, new { text = message }).ConfigureAwait(false);
+            object user = attachments.Count == 0 ? new { text = message } : new
+            {
+                text = message,
+                attachments = attachments.Select(a => new
+                {
+                    title = a.Title, content = a.Content, source = a.Source, kind = a.Kind, reference = a.Reference, media_type = a.MediaType,
+                }).ToList(),
+            };
+            await _session.AppendAsync(EntryTypes.UserMessage, _id, user).ConfigureAwait(false);
             await _session.AppendAsync(EntryTypes.TurnStart, _id, new
             {
                 tool_mode = _session.ToolMode.ToWire(),

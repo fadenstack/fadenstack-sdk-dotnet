@@ -372,3 +372,30 @@ public class AgentLoopTests
         }
     }
 }
+
+/// <summary>Context attached to a message goes with it, and stays with it in later turns.</summary>
+public class AttachmentTests
+{
+    [Fact]
+    public async Task Attachments_reach_the_model_before_the_question_and_stay_in_the_history()
+    {
+        var gateway = new Gateway().Says("It sums to 42.").Says("Yes.");
+        using var agent = gateway.Builder().Build();
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("What does this sum to?", [new MessageAttachment
+        {
+            Title = "Sheet1!A1:A3", Content = "| A |\n|---|\n| 40 |\n| 2 |", Source = "excel", Kind = "range", Reference = "excel:range:Sheet1!A1:A3",
+        }]);
+        await session.SendAsync("Sure?");
+
+        var first = gateway.ChatRequests[0].Json.GetProperty("messages")[0].GetProperty("content").GetString()!;
+        Assert.StartsWith("<attachment title=\"Sheet1!A1:A3\" kind=\"range\" source=\"excel\" reference=\"excel:range:Sheet1!A1:A3\">\n| A |", first);
+        Assert.EndsWith("</attachment>\n\nWhat does this sum to?", first);
+        var again = gateway.ChatRequests[1].Json.GetProperty("messages")[0].GetProperty("content").GetString()!;
+        Assert.Equal(first, again);
+        var stored = session.Transcript.First(e => e.Type == Faden.Agents.Sessions.EntryTypes.UserMessage).Data;
+        Assert.Equal(("What does this sum to?", "Sheet1!A1:A3"), (stored.GetProperty("text").GetString(),
+            stored.GetProperty("attachments")[0].GetProperty("title").GetString()));
+        Assert.Equal("What does this sum to?", Assert.Single(await agent.ListSessionsAsync()).Title);
+    }
+}

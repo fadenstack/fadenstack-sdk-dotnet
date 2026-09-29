@@ -21,6 +21,10 @@ public partial class ChatView : UserControl
     public static readonly DependencyProperty ThemeProperty = DependencyProperty.Register(
         nameof(Theme), typeof(ChatTheme), typeof(ChatView), new PropertyMetadata(ChatTheme.System, (d, _) => ((ChatView)d).ApplyTheme()));
 
+    /// <summary>Extra content at the composer's bottom left, for the host's own buttons (e.g. "Add context").</summary>
+    public static readonly DependencyProperty ComposerToolbarProperty = DependencyProperty.Register(
+        nameof(ComposerToolbar), typeof(object), typeof(ChatView), new PropertyMetadata(null));
+
     public ChatView()
     {
         InitializeComponent();
@@ -31,6 +35,12 @@ public partial class ChatView : UserControl
     {
         get => (ChatTheme)GetValue(ThemeProperty);
         set => SetValue(ThemeProperty, value);
+    }
+
+    public object? ComposerToolbar
+    {
+        get => GetValue(ComposerToolbarProperty);
+        set => SetValue(ComposerToolbarProperty, value);
     }
 
     private void ApplyTheme()

@@ -329,3 +329,60 @@ public class ChatViewModelTests
         }
     }
 }
+
+public class AttachmentTrayTests
+{
+    [Fact]
+    public async Task Attached_context_is_read_when_sent_explicit_chips_go_and_the_implicit_one_stays()
+    {
+        var gateway = new Gateway().Says("Ok.").Says("Ok again.");
+        var broker = new ApprovalBroker();
+        using var agent = gateway.Builder(new MemorySessionStore()).UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
+        await chat.InitializeAsync();
+        var selection = "A1:B2";
+        var reads = 0;
+        var implicitChip = new AttachmentViewModel("Selection", "range", _ =>
+        {
+            reads++;
+            return Task.FromResult<MessageAttachment?>(new MessageAttachment { Title = selection, Content = $"cells {selection}", Kind = "selection" });
+        }, isImplicit: true);
+        chat.Attachments.Add(implicitChip);
+        chat.Attachments.Add(AttachmentViewModel.FromContent(new MessageAttachment { Title = "Sheet2", Content = "whole sheet", Kind = "sheet" }));
+        Assert.Equal(0, reads);
+
+        selection = "C3:D4"; // what is selected when the message goes is what goes
+        await chat.SendAsync("Explain.");
+        Assert.Equal(1, reads);
+        var sent = gateway.ChatRequests[0].Json.GetProperty("messages")[0].GetProperty("content").GetString()!;
+        Assert.Contains("cells C3:D4", sent);
+        Assert.Contains("whole sheet", sent);
+        Assert.Equal(new[] { "Selection", "Sheet2" }, chat.Turns[0].Attachments.Select(a => a.Title));
+        Assert.Same(implicitChip, Assert.Single(chat.Attachments));
+
+        implicitChip.ToggleCommand.Execute(null); // switched off: not sent
+        await chat.SendAsync("And now?");
+        Assert.Equal(1, reads);
+        Assert.Empty(chat.Turns[1].Attachments);
+
+        var (again, _, _) = (new AgentChatViewModel(agent, broker, InlineDispatcher.Instance), 0, 0);
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(chat.CurrentSessionId!);
+        Assert.Equal(new[] { "C3:D4", "Sheet2" }, again.Turns[0].Attachments.Select(a => a.Title));
+    }
+
+    [Fact]
+    public async Task Context_that_cannot_be_read_is_a_notice_and_the_message_still_goes()
+    {
+        var gateway = new Gateway().Says("Ok.");
+        var broker = new ApprovalBroker();
+        using var agent = gateway.Builder().UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
+        await chat.InitializeAsync();
+        chat.Attachments.Add(new AttachmentViewModel("Selection", null, _ => throw new InvalidOperationException("Excel is busy.")));
+        await chat.SendAsync("Go");
+        var notice = chat.Turns[0].Parts.OfType<NoticePart>().Single();
+        Assert.Equal(("Selection was not attached", "Excel is busy."), (notice.Title, notice.Message));
+        Assert.Equal(TurnState.Completed, chat.Turns[0].State);
+    }
+}

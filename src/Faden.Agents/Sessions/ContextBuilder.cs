@@ -98,7 +98,7 @@ public sealed class ContextBuilder
         switch (entry.Type)
         {
             case EntryTypes.UserMessage:
-                return new ChatMessage(ChatRole.User, Str(data, "text") ?? "");
+                return new ChatMessage(ChatRole.User, WithAttachments(data));
             case EntryTypes.AssistantMessage:
             {
                 var contents = new List<AIContent>();
@@ -124,6 +124,36 @@ public sealed class ContextBuilder
                 return null;
         }
     }
+
+    /// <summary>
+    /// The user's text after what they attached, each in an <c>&lt;attachment&gt;</c> block the model can tell
+    /// apart from the question.
+    /// </summary>
+    internal static string WithAttachments(JsonElement data)
+    {
+        var text = Str(data, "text") ?? "";
+        if (data.ValueKind != JsonValueKind.Object || !data.TryGetProperty("attachments", out var list)
+            || list.ValueKind != JsonValueKind.Array || list.GetArrayLength() == 0)
+        {
+            return text;
+        }
+        var builder = new System.Text.StringBuilder();
+        foreach (var a in list.EnumerateArray())
+        {
+            builder.Append("<attachment title=\"").Append(Attr(Str(a, "title"))).Append('"');
+            foreach (var name in new[] { "kind", "source", "reference" })
+            {
+                if (Str(a, name) is { Length: > 0 } value)
+                {
+                    builder.Append(' ').Append(name).Append("=\"").Append(Attr(value)).Append('"');
+                }
+            }
+            builder.Append(">\n").Append(Str(a, "content") ?? "").Append("\n</attachment>\n\n");
+        }
+        return builder.Append(text).ToString();
+    }
+
+    private static string Attr(string? value) => (value ?? "").Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;");
 
     private static string? Str(JsonElement e, string name) => ChatWire.Str(e, name);
 }

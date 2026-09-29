@@ -157,8 +157,48 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBox x:Name="Composer" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                <!-- Attached context: chips; an implicit one (the current selection) can be switched off -->
+                <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" Margin="0,0,0,6"
+                              Visibility="{Binding Attachments.Count, Converter={StaticResource Faden.EmptyToCollapsed}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:AttachmentViewModel}">
+                            <Border x:Name="Chip" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}"
+                                    Background="{DynamicResource Faden.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource Faden.GhostButton}" Padding="2" Command="{Binding ToggleCommand}"
+                                            ToolTip="Include with the next message" Visibility="{Binding IsImplicit, Converter={StaticResource Faden.BoolToVisibility}}">
+                                        <TextBlock x:Name="Eye" Style="{StaticResource Faden.Icon}" FontSize="11" Text="&#xE7B3;" />
+                                    </Button>
+                                    <TextBlock x:Name="ChipIcon" Style="{StaticResource Faden.Icon}" FontSize="11" Text="&#xE8A5;" Margin="0,0,4,0"
+                                               Foreground="{DynamicResource Faden.ForegroundMuted}"
+                                               Visibility="{Binding IsImplicit, Converter={StaticResource Faden.InverseBoolToVisibility}}" />
+                                    <TextBlock x:Name="ChipTitle" Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
+                                               ToolTip="{Binding Subtitle}" FontSize="12" />
+                                    <Button Style="{StaticResource Faden.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="Remove"
+                                            Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" Visibility="{Binding IsImplicit, Converter={StaticResource Faden.InverseBoolToVisibility}}">
+                                        <TextBlock Style="{StaticResource Faden.Icon}" FontSize="9" Text="&#xE711;" />
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsIncluded}" Value="False">
+                                    <Setter TargetName="ChipTitle" Property="Foreground" Value="{DynamicResource Faden.ForegroundMuted}" />
+                                    <Setter TargetName="Eye" Property="Text" Value="&#xED1A;" />
+                                    <Setter TargetName="Chip" Property="Background" Value="Transparent" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBox x:Name="Composer" Grid.Row="1" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                          TextWrapping="Wrap" MaxHeight="200" MinHeight="40" VerticalScrollBarVisibility="Auto"
                          BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Faden.Foreground}"
                          CaretBrush="{DynamicResource Faden.Foreground}" Padding="0,2" IsEnabled="{Binding IsReady}"
@@ -168,7 +208,7 @@
                         <KeyBinding Key="Enter" Command="{Binding SendCommand}" />
                     </TextBox.InputBindings>
                 </TextBox>
-                <TextBlock Text="Ask a question, or tell the agent what to do" IsHitTestVisible="False"
+                <TextBlock Grid.Row="1" Text="Ask a question, or tell the agent what to do" IsHitTestVisible="False"
                            Foreground="{DynamicResource Faden.ForegroundMuted}" Padding="2,2" VerticalAlignment="Top">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -181,7 +221,7 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <DockPanel Grid.Row="1" Margin="0,6,0,0">
+                <DockPanel Grid.Row="2" Margin="0,6,0,0">
                     <Grid DockPanel.Dock="Right">
                         <Button Style="{StaticResource Faden.PrimaryButton}" Padding="8,5" ToolTip="Send (Enter)" Command="{Binding SendCommand}"
                                 Visibility="{Binding IsBusy, Converter={StaticResource Faden.InverseBoolToVisibility}}">
@@ -192,6 +232,9 @@
                             <TextBlock Style="{StaticResource Faden.Icon}" FontSize="13" Text="&#xE71A;" />
                         </Button>
                     </Grid>
+                    <!-- A host's own buttons (e.g. "Add context") -->
+                    <ContentPresenter DockPanel.Dock="Left" Margin="0,0,6,0" VerticalAlignment="Center"
+                                      Content="{Binding ComposerToolbar, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                     <TextBlock Style="{StaticResource Faden.Muted}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                         <Run Text="{Binding SelectedToolMode.Label, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding SelectedToolMode.Description, Mode=OneWay}" />
                     </TextBlock>

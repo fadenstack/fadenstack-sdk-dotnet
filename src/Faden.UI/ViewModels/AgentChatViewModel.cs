@@ -66,6 +66,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         DeleteSessionCommand = new AsyncRelayCommand<SessionItemViewModel>(DeleteSessionAsync, _ => !_isBusy);
         LoadEarlierCommand = new AsyncRelayCommand(LoadEarlierAsync, () => HasEarlierTurns);
         ToggleHistoryCommand = new AsyncRelayCommand(ToggleHistoryAsync);
+        RemoveAttachmentCommand = new RelayCommand<AttachmentViewModel>(a =>
+        {
+            if (a is not null)
+            {
+                Attachments.Remove(a);
+            }
+        });
         SelectToolModeCommand = new RelayCommand<ToolModeOption>(option =>
         {
             if (option is { IsAvailable: true })
@@ -95,6 +102,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public ObservableCollection<string> Suggestions { get; } = new();
 
     public ObservableCollection<TurnViewModel> Turns { get; } = new();
+
+    /// <summary>Context that goes with the next message (chips in the composer).</summary>
+    public ObservableCollection<AttachmentViewModel> Attachments { get; } = new();
 
     public bool IsEmpty => Turns.Count == 0;
 
@@ -225,6 +235,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public IAsyncRelayCommand ToggleHistoryCommand { get; }
 
+    public IRelayCommand<AttachmentViewModel> RemoveAttachmentCommand { get; }
+
     public IRelayCommand<ToolModeOption> SelectToolModeCommand { get; }
 
     /// <summary>The skin moves the focus to the composer (after "Edit").</summary>
@@ -286,7 +298,15 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             Input = "";
         }
-        var turn = new TurnViewModel(this, text, _options.Clock(), _options.PreviewLength);
+        var attached = Attachments.Where(a => a.Sends).ToList();
+        foreach (var a in attached.Where(a => !a.IsImplicit))
+        {
+            Attachments.Remove(a);
+        }
+        var turn = new TurnViewModel(this, text, _options.Clock(), _options.PreviewLength)
+        {
+            Attachments = attached.Select(a => new AttachmentChip(a.Title, a.Subtitle)).ToList(),
+        };
         Turns.Add(turn);
         OnPropertyChanged(nameof(IsEmpty));
         _current = turn;
@@ -294,7 +314,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         IsBusy = true;
         try
         {
-            await Task.Run(() => RunTurnAsync(turn, text, _selectedMode.Mode, _stop.Token));
+            await Task.Run(() => RunTurnAsync(turn, text, attached, _selectedMode.Mode, _stop.Token));
             await _batcher.WhenFlushedAsync();
         }
         finally
@@ -318,6 +338,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _history = new List<List<TranscriptEntry>>();
         _loadedFrom = 0;
         Turns.Clear();
+        foreach (var a in Attachments.Where(a => !a.IsImplicit).ToList())
+        {
+            Attachments.Remove(a);
+        }
         SetProperty(ref _selectedMode, ToolModes.FirstOrDefault(o => o.Mode == _agent.DefaultToolMode && o.IsAvailable) ?? ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
         OnPropertyChanged(nameof(ToolModeHint));
         OnPropertyChanged(nameof(IsEmpty));
@@ -439,17 +463,34 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     // -- the turn, on a background thread -------------------------------------------------------------
 
-    private async Task RunTurnAsync(TurnViewModel turn, string text, ToolMode mode, CancellationToken cancellationToken)
+    private async Task RunTurnAsync(TurnViewModel turn, string text, IReadOnlyList<AttachmentViewModel> attached, ToolMode mode,
+        CancellationToken cancellationToken)
     {
         try
         {
+            var attachments = new List<MessageAttachment>();
+            foreach (var a in attached)
+            {
+                try
+                {
+                    if (await a.ResolveAsync(cancellationToken).ConfigureAwait(false) is { } resolved)
+                    {
+                        attachments.Add(resolved);
+                    }
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    var title = a.Title;
+                    _batcher.Enqueue(() => turn.AddPart(new Parts.NoticePart(Parts.NoticeSeverity.Warning, $"{title} was not attached", e.Message)));
+                }
+            }
             if (_session is null)
             {
                 _session = await _agent.StartSessionAsync(mode, cancellationToken).ConfigureAwait(false);
                 _batcher.Enqueue(() => OnPropertyChanged(nameof(CurrentSessionId)));
             }
             _session.ToolMode = mode;
-            await foreach (var e in _session.StreamAsync(text, cancellationToken).ConfigureAwait(false))
+            await foreach (var e in _session.StreamAsync(text, attachments, cancellationToken).ConfigureAwait(false))
             {
                 Apply(turn, e);
             }

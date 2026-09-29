@@ -38,6 +38,10 @@ internal static class TranscriptTurns
             previewLength, TurnState.Completed)
         {
             Id = entries[0].TurnId,
+            Attachments = user is not null && user.Data.ValueKind == JsonValueKind.Object && user.Data.TryGetProperty("attachments", out var list)
+                && list.ValueKind == JsonValueKind.Array
+                ? list.EnumerateArray().Select(a => new AttachmentChip(Json.Str(a, "title") ?? "", Json.Str(a, "kind"))).ToList()
+                : Array.Empty<AttachmentChip>(),
         };
         var state = TurnState.Stopped; // a turn without an end was interrupted
         ChatOutcome? outcome = null;

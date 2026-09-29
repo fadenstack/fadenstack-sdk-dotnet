@@ -531,6 +531,25 @@
                     Background="{DynamicResource Faden.UserBubble}" BorderThickness="1" BorderBrush="Transparent">
                 <TextBlock Text="{Binding UserText}" TextWrapping="Wrap" LineHeight="20" />
             </Border>
+            <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" HorizontalAlignment="Right" Margin="0,4,0,0"
+                          Visibility="{Binding HasAttachments, Converter={StaticResource Faden.BoolToVisibility}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}" Padding="6,1" Margin="4,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Faden.Icon}" FontSize="10" Text="&#xE8A5;" Margin="0,0,4,0"
+                                           Foreground="{DynamicResource Faden.ForegroundMuted}" />
+                                <TextBlock Style="{StaticResource Faden.Muted}" FontSize="11" Text="{Binding Title}" ToolTip="{Binding Subtitle}" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0"
                         Visibility="{Binding IsPromptBlocked, Converter={StaticResource Faden.BoolToVisibility}}">
                 <TextBlock Style="{StaticResource Faden.Muted}" Text="Not sent" Foreground="{DynamicResource Faden.Danger}" Margin="0,0,6,0" />
