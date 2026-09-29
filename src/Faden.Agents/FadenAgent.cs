@@ -131,6 +131,10 @@ public sealed class FadenAgent : IDisposable
 
     public void Dispose()
     {
+        foreach (var source in _settings.Sources.OfType<IDisposable>())
+        {
+            source.Dispose();
+        }
         if (_settings.OwnsClient)
         {
             _settings.Client.Dispose();
