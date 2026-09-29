@@ -8,10 +8,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Faden.Agents\Faden.Agents.csproj" />
     <ProjectReference Include="..\..\src\Faden.Mcp\Faden.Mcp.csproj" />
+    <Compile Include="..\Faden.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
   </ItemGroup>
 </Project>
