@@ -203,6 +203,14 @@ setup.
 dotnet run --project samples/Faden.Samples.Wpf -- --demo
 ```
 
+## Building a library on the SDK
+
+Target **netstandard2.0 and net8.0**, as the SDK does. The SDK's types use `init` setters (records,
+`MessageAttachment`, options). A netstandard2.0-only library that sets them, loaded by a .NET 8+
+application, gets the SDK's net8.0 build and fails with `MissingMethodException` on those setters.
+Built for both targets, each application loads matching builds. .NET Framework hosts use the
+netstandard2.0 builds throughout.
+
 ## Build and test
 
 ```bash
