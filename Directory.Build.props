@@ -1,0 +1,18 @@
+<Project>
+  <!-- Shared by every project. Libraries are netstandard2.0 (01-design §3): one package for
+       .NET Framework 4.7.2+ hosts (TIA Portal, EPLAN, Office) and .NET 8/10. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Authors>Fadenstack</Authors>
+    <Company>Fadenstack</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</RepositoryUrl>
+    <Version>0.2.0</Version>
+  </PropertyGroup>
+
+</Project>

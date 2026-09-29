@@ -1,19 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>Faden.Client</RootNamespace>
+    <RootNamespace>Faden</RootNamespace>
     <PackageId>Faden.Client</PackageId>
-    <Version>0.1.0</Version>
-    <Authors>Sachith Liyanagama</Authors>
-    <Description>Official .NET SDK for Fadenstack — wraps the OpenAI client with session, tool routing, memory, and attachment APIs.</Description>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <Description>The Fadenstack core client: an IChatClient for the gateway (agent-scoped or plain), sign-in and agent tokens, the agent profile, governance outcomes, tool classes and modes, and the server-session resources.</Description>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="OpenAI" Version="2.*" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.10.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
   </ItemGroup>
-
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Text.Json" Version="10.0.12" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Faden.Client.Tests" />
+    <InternalsVisibleTo Include="Faden.Agents" />
+    <InternalsVisibleTo Include="Faden.Agents.Tests" />
+  </ItemGroup>
 </Project>

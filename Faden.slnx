@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Faden.Samples.Console/Faden.Samples.Console.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Faden.Agents/Faden.Agents.csproj" />
+    <Project Path="src/Faden.Client/Faden.Client.csproj" />
+    <Project Path="src/Faden.Mcp/Faden.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Faden.Agents.Tests/Faden.Agents.Tests.csproj" />
+    <Project Path="tests/Faden.Client.Tests/Faden.Client.Tests.csproj" />
+  </Folder>
+</Solution>

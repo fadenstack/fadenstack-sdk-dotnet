@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!-- netstandard2.0 serves .NET Framework hosts; net8.0 is the same code for .NET 8/10 apps. Without it
+       those apps break: the .NET 10 SDK prunes Microsoft.Bcl.AsyncInterfaces from their package graph, and a
+       netstandard2.0-only assembly compiled against it (IAsyncEnumerable) then fails to load. -->
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Public members without docs are allowed while the API settles. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

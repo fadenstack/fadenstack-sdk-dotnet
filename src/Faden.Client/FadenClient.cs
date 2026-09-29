@@ -1,70 +1,75 @@
-using System.Net.Http.Headers;
-using Faden.Client.Resources;
-using OpenAI;
-using OpenAI.Chat;
+using Faden.Auth;
+using Faden.Chat;
+using Faden.Http;
+using Faden.Models;
+using Faden.Resources;
+using Microsoft.Extensions.AI;
 
-namespace Faden.Client;
+namespace Faden;
 
 /// <summary>
-/// Fadenstack client — wraps the OpenAI .NET SDK with Fadenstack-specific resources
-/// (sessions, projects, tools, memory, attachments, services).
+/// The connection to a Fadenstack server. With an agent (<see cref="FadenClientOptions.Agent"/>) it is that
+/// agent's client -- one agent per client -- and <see cref="Chat"/> calls the agent's endpoint; without one it
+/// uses the plain <c>/v1</c> routes with an API token. Python: <c>faden.FadenClient</c>.
 /// </summary>
 public sealed class FadenClient : IDisposable
 {
-    private readonly HttpClient _http;
-    private readonly OpenAIClient _openAiClient;
-
-    /// <summary>Sessions CRUD, messages, summary, capacity.</summary>
-    public SessionsResource Sessions { get; }
-
-    /// <summary>Projects CRUD.</summary>
-    public ProjectsResource Projects { get; }
-
-    /// <summary>Tool availability and session tool policy.</summary>
-    public ToolsResource Tools { get; }
-
-    /// <summary>Memory facts CRUD.</summary>
-    public MemoryResource Memory { get; }
-
-    /// <summary>Attachment upload, list, delete.</summary>
-    public AttachmentsResource Attachments { get; }
-
-    /// <summary>Health check and service discovery.</summary>
-    public ServicesResource Services { get; }
-
     public FadenClient(FadenClientOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
-
-        var baseUrl = options.BaseUrl.TrimEnd('/');
-
-        // HttpClient for Fadenstack extension endpoints
-        _http = new HttpClient
-        {
-            BaseAddress = new Uri(baseUrl),
-            Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds),
-        };
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.ApiKey);
-
-        // OpenAI client pointed at Fadenstack gateway
-        var openAiOptions = new OpenAIClientOptions { Endpoint = new Uri($"{baseUrl}/v1") };
-        var credential = new System.ClientModel.ApiKeyCredential(options.ApiKey);
-        _openAiClient = new OpenAIClient(credential, openAiOptions);
-
-        // Wire up resources
-        Sessions = new SessionsResource(_http);
-        Projects = new ProjectsResource(_http);
-        Tools = new ToolsResource(_http);
-        Memory = new MemoryResource(_http);
-        Attachments = new AttachmentsResource(_http);
-        Services = new ServicesResource(_http);
+        Options = options ?? throw new ArgumentNullException(nameof(options));
+        Transport = new FadenTransport(options);
+        Chat = new FadenChatClient(Transport, options);
+        Agent = options.Agent is { } agent ? new AgentResource(Transport, agent) : null;
+        Sessions = new SessionsResource(Transport);
+        Projects = new ProjectsResource(Transport);
+        Tools = new ToolsResource(Transport);
+        Memory = new MemoryResource(Transport);
+        Attachments = new AttachmentsResource(Transport);
+        Services = new ServicesResource(Transport);
     }
 
-    /// <summary>Get an OpenAI <see cref="ChatClient"/> for chat completions against the Fadenstack gateway.</summary>
-    public ChatClient GetChatClient(string model) => _openAiClient.GetChatClient(model);
+    public FadenClientOptions Options { get; }
 
-    public void Dispose()
+    /// <summary>Authenticated requests, for extensions that add their own resources (<c>Faden.Enterprise</c>).</summary>
+    public FadenTransport Transport { get; }
+
+    /// <summary>The gateway as an <see cref="IChatClient"/>: works with anything built on Microsoft.Extensions.AI.</summary>
+    public IChatClient Chat { get; }
+
+    /// <summary>The client's agent (profile, events, approvals); null without an agent.</summary>
+    public AgentResource? Agent { get; }
+
+    /// <summary>Server sessions (web chat and API); an agent's sessions are local (Faden.Agents).</summary>
+    public SessionsResource Sessions { get; }
+
+    public ProjectsResource Projects { get; }
+
+    public ToolsResource Tools { get; }
+
+    public MemoryResource Memory { get; }
+
+    public AttachmentsResource Attachments { get; }
+
+    public ServicesResource Services { get; }
+
+    /// <summary>The server's edition and features (<c>GET /v1/features</c>).</summary>
+    public Task<ServerFeatures> GetFeaturesAsync(CancellationToken cancellationToken = default) =>
+        Transport.GetAsync<ServerFeatures>(Transport.Gateway("v1/features"), cancellationToken);
+
+    /// <summary>
+    /// A client for <paramref name="agent"/> that keeps its sign-in in <paramref name="store"/>
+    /// (<see cref="FileTokenStore"/> by default). Sign in once with <see cref="AgentTokenProvider.SignInAsync"/>.
+    /// </summary>
+    public static FadenClient ForAgent(Uri serverUrl, string agent, out AgentTokenProvider tokens,
+        ITokenStore? store = null, Action<FadenClientOptions>? configure = null)
     {
-        _http.Dispose();
+        var options = new FadenClientOptions { ServerUrl = serverUrl, Agent = agent };
+        configure?.Invoke(options);
+        tokens = new AgentTokenProvider(options.ApiUrl ?? serverUrl, agent, store ?? new FileTokenStore(),
+            options.HttpClient ?? new System.Net.Http.HttpClient(FadenTransport.CreateHandler(options)));
+        options.Credentials = tokens;
+        return new FadenClient(options);
     }
+
+    public void Dispose() => Transport.Dispose();
 }
