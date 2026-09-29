@@ -6,9 +6,11 @@
     <Project Path="src/Faden.Agents/Faden.Agents.csproj" />
     <Project Path="src/Faden.Client/Faden.Client.csproj" />
     <Project Path="src/Faden.Mcp/Faden.Mcp.csproj" />
+    <Project Path="src/Faden.UI/Faden.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Faden.Agents.Tests/Faden.Agents.Tests.csproj" />
     <Project Path="tests/Faden.Client.Tests/Faden.Client.Tests.csproj" />
+    <Project Path="tests/Faden.UI.Tests/Faden.UI.Tests.csproj" />
   </Folder>
 </Solution>

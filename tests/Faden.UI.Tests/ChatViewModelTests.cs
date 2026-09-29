@@ -1,0 +1,331 @@
+using System.Net;
+using Faden.Agents;
+using Faden.Agents.Sessions;
+using Faden.Agents.Tests;
+using Faden.Client.Tests;
+using Faden.Governance;
+using Faden.Tools;
+using Faden.UI.Markdown;
+using Faden.UI.Parts;
+using Faden.UI.Services;
+using Faden.UI.ViewModels;
+using Xunit;
+
+namespace Faden.UI.Tests;
+
+/// <summary>The chat view model against a scripted gateway, with no UI thread (inline dispatch).</summary>
+public class ChatViewModelTests
+{
+    private static (AgentChatViewModel Chat, ApprovalBroker Broker, FadenAgent Agent) Chat(Gateway gateway, ISessionStore? store = null,
+        Action<AgentChatOptions>? configure = null)
+    {
+        var broker = new ApprovalBroker();
+        var agent = gateway.Builder(store).AddTools(new PageTools()).UseApprovals(broker).Build();
+        var options = new AgentChatOptions { RenderInterval = TimeSpan.Zero };
+        configure?.Invoke(options);
+        return (new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, options), broker, agent);
+    }
+
+    public static string Stream(params string[] chunks) => string.Concat(chunks.Select(Gateway.Text));
+
+    /// <summary>Waits for a part to show up while the turn runs on another thread.</summary>
+    private static async Task<T> WaitFor<T>(TurnViewModel turn) where T : ResponsePart
+    {
+        for (var i = 0; i < 500; i++)
+        {
+            try
+            {
+                if (turn.Parts.ToArray().OfType<T>().FirstOrDefault() is { } part)
+                {
+                    return part;
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // changed while read
+            }
+            await Task.Delay(10);
+        }
+        throw new TimeoutException(typeof(T).Name);
+    }
+
+    private static async Task<TurnViewModel> TurnOf(AgentChatViewModel chat)
+    {
+        for (var i = 0; i < 500 && chat.Turns.Count == 0; i++)
+        {
+            await Task.Delay(10);
+        }
+        return chat.Turns.Last();
+    }
+
+    [Fact]
+    public async Task It_starts_from_the_agents_profile_and_streams_an_answer_as_markdown()
+    {
+        var gateway = new Gateway().Then(Stream("## Page 7\n\nIt holds ", "**3 terminals**", " and `K7`."), Gateway.Finish("stop"), FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        Assert.True(chat.IsReady);
+        Assert.Equal(("EPLAN", "Ask EPLAN anything."), (chat.Title, chat.Greeting));
+        Assert.Equal(ToolMode.Ask, chat.SelectedToolMode.Mode);
+        Assert.True(chat.IsEmpty);
+
+        chat.Input = "What is on page 7?";
+        Assert.True(chat.SendCommand.CanExecute(null));
+        await chat.SendCommand.ExecuteAsync(null);
+
+        Assert.Equal("", chat.Input);
+        Assert.False(chat.IsBusy);
+        var turn = Assert.Single(chat.Turns);
+        Assert.Equal(("What is on page 7?", TurnState.Completed, ChatOutcome.Completed), (turn.UserText, turn.State, turn.Outcome));
+        var text = Assert.IsType<MarkdownPart>(Assert.Single(turn.Parts));
+        Assert.False(text.IsStreaming);
+        Assert.IsType<HeadingBlock>(text.Blocks[0]);
+        Assert.Contains(Assert.IsType<ParagraphBlock>(text.Blocks[1]).Inlines, r => r.Text == "3 terminals" && r.Style == InlineStyle.Bold);
+        Assert.Equal(chat.CurrentSessionId, Assert.Single(chat.Sessions).Id);
+        Assert.True(chat.Sessions[0].IsCurrent);
+        turn.CopyCommand.Execute(null);
+        Assert.Equal("## Page 7\n\nIt holds **3 terminals** and `K7`.", ((NoClipboard)NoClipboard.Instance).LastText);
+    }
+
+    [Fact]
+    public async Task A_tool_that_asks_shows_a_card_after_its_line_and_the_click_answers_it()
+    {
+        for (var run = 0; run < 5; run++) // the event and the broker race; the card must land in order every time
+        {
+            var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":2,"text":"ok"}""")).Says("Added.");
+            var (chat, _, _) = Chat(gateway);
+            await chat.InitializeAsync();
+            var sending = chat.SendAsync("Comment page 2.");
+            var turn = await TurnOf(chat);
+            var card = await WaitFor<ApprovalPart>(turn);
+            Assert.Equal(("Run add_comment?", "Changes data", TurnState.WaitingForApproval), (card.Title, card.ClassLabel, turn.State));
+            Assert.Contains("page: 2", card.ArgumentsText);
+            Assert.Equal(ToolCallState.WaitingForApproval, turn.Parts.OfType<ToolCallPart>().Single().State);
+            card.AllowCommand.Execute(null);
+            Assert.False(card.AllowCommand.CanExecute(null));
+            await sending;
+
+            Assert.Equal(new[] { typeof(ToolCallPart), typeof(ApprovalPart), typeof(MarkdownPart) }, turn.Parts.Select(p => p.GetType()));
+            var tool = turn.Parts.OfType<ToolCallPart>().Single();
+            Assert.Equal((ToolCallState.Succeeded, "Ran add_comment", ToolClass.Write), (tool.State, tool.Title, tool.Class));
+            Assert.Equal("", tool.ResultText); // not built until expanded
+            tool.ToggleCommand.Execute(null);
+            Assert.Equal("added", tool.ResultText);
+            Assert.Contains("\"page\": 2", tool.ArgumentsText);
+            Assert.Equal((ApprovalState.Approved, "Allowed"), (card.State, card.StateText));
+            Assert.Equal(TurnState.Completed, turn.State);
+        }
+    }
+
+    [Fact]
+    public async Task Denied_the_tool_does_not_run_and_the_turn_says_so()
+    {
+        var gateway = new Gateway().Calls(("call-1", "delete_page", """{"page":2}""")).Says("I did not delete it.");
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var sending = chat.SendAsync("Delete page 2.");
+        var card = await WaitFor<ApprovalPart>(await TurnOf(chat));
+        Assert.True(card.IsDestructive);
+        card.DenyCommand.Execute(null);
+        await sending;
+        var turn = chat.Turns.Single();
+        Assert.Equal((ToolCallState.Denied, ChatOutcome.ToolDenied), (turn.Parts.OfType<ToolCallPart>().Single().State, turn.Outcome));
+        Assert.Equal(ApprovalState.Denied, card.State);
+    }
+
+    [Fact]
+    public async Task Stop_ends_a_turn_that_waits_for_approval()
+    {
+        var gateway = new Gateway().Calls(("call-1", "stamp", "{}"));
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var sending = chat.SendAsync("Stamp it.");
+        var turn = await TurnOf(chat);
+        var card = await WaitFor<ApprovalPart>(turn);
+        Assert.True(chat.StopCommand.CanExecute(null));
+        chat.StopCommand.Execute(null);
+        await sending;
+        Assert.Equal((TurnState.Stopped, ApprovalState.Expired), (turn.State, card.State));
+        Assert.Equal(ToolCallState.Cancelled, turn.Parts.OfType<ToolCallPart>().Single().State);
+        Assert.True(turn.RetryCommand.CanExecute(null));
+        Assert.False(chat.IsBusy);
+    }
+
+    [Fact]
+    public async Task A_refused_prompt_is_marked_and_can_be_edited_and_resent()
+    {
+        var gateway = new Gateway().Then(_ => FakeServer.Respond((HttpStatusCode)422, new
+        {
+            error = new { type = "governance_error", code = "policy_blocked", message = "Project names stay out." },
+            faden = new { governance = new { outcome = "prompt_blocked", stage = "input", message = "Project names stay out.", decision_id = "d-1" } },
+        }));
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var focus = 0;
+        chat.ComposerFocusRequested += (_, _) => focus++;
+        await chat.SendAsync("Tell me about Project Falcon.");
+        var turn = chat.Turns.Single();
+        Assert.True(turn.IsPromptBlocked);
+        var notice = Assert.IsType<NoticePart>(Assert.Single(turn.Parts));
+        Assert.Equal((NoticeSeverity.Blocked, "Your message was not sent", "Project names stay out.", "Decision d-1"),
+            (notice.Severity, notice.Title, notice.Message, notice.Detail));
+        turn.EditCommand.Execute(null);
+        Assert.Equal(("Tell me about Project Falcon.", 1), (chat.Input, focus));
+    }
+
+    [Fact]
+    public async Task Tool_lines_and_text_interleave_in_the_order_they_happened()
+    {
+        var gateway = new Gateway()
+            .Then(Gateway.Text("Let me look."), Gateway.ToolCalls(("call-1", "read_page", """{"page":1}""")), Gateway.Finish("tool_calls"), FakeServer.Done)
+            .Then(Stream("Page 1 has ", "3 terminals."), Gateway.Finish("stop"), FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        await chat.SendAsync("What is on page 1?");
+        var parts = chat.Turns.Single().Parts;
+        Assert.Equal(new[] { typeof(MarkdownPart), typeof(ToolCallPart), typeof(MarkdownPart) }, parts.Select(p => p.GetType()));
+        Assert.Equal("Page 1 has 3 terminals.", ((MarkdownPart)parts[2]).Text);
+    }
+
+    [Fact]
+    public async Task Gateway_events_become_citations_pii_notices_and_generic_notices()
+    {
+        var gateway = new Gateway().Then(
+            Gateway.Custom("faden.pii", new { mode = "tokenize", entities = new { PERSON = 2, EMAIL_ADDRESS = 1 } }),
+            FakeServer.Faden(new { type = "TOOL_CALL_START", toolCallId = "gw-1", toolCallName = "knowledge_search", kind = "knowledge" }),
+            FakeServer.Faden(new { type = "TOOL_CALL_END", toolCallId = "gw-1", toolCallName = "knowledge_search", durationMs = 30, error = false }),
+            Gateway.Custom("faden.citations", new { tool = "knowledge_search", sources = new object[] { new { source = "manual.pdf", chunk = 3, score = 0.8 }, new { source = "wiring.docx" } } }),
+            Gateway.Custom("faden.tool_mode", new { mode = "ask", hidden = Array.Empty<string>() }),
+            Gateway.Custom("faden.enterprise_thing", new { message = "Something EE says." }),
+            Gateway.Text("Found it."), Gateway.Finish("stop"), FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        await chat.SendAsync("Search.");
+        var parts = chat.Turns.Single().Parts;
+        Assert.Equal(new[] { typeof(NoticePart), typeof(ToolCallPart), typeof(CitationsPart), typeof(NoticePart), typeof(MarkdownPart) },
+            parts.Select(p => p.GetType()));
+        Assert.Equal("3 values kept from the model: 2 person, 1 email address", ((NoticePart)parts[0]).Message);
+        Assert.Equal(("Ran knowledge_search", "gateway"), (((ToolCallPart)parts[1]).Title, ((ToolCallPart)parts[1]).Source));
+        var citations = (CitationsPart)parts[2];
+        Assert.Equal(("Used 2 references", "manual.pdf", "Part 3"), (citations.Title, citations.Citations[0].Title, citations.Citations[0].Detail));
+        Assert.Equal("Something EE says.", ((NoticePart)parts[3]).Message);
+    }
+
+    [Fact]
+    public async Task A_ceiling_greys_out_the_wider_modes_and_the_pick_goes_to_the_gateway()
+    {
+        var gateway = new Gateway(ceiling: "\"read_only\"").Says("Hi.");
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        Assert.Equal(new[] { true, true, false, false }, chat.ToolModes.Select(o => o.IsAvailable));
+        Assert.Equal(ToolMode.ReadOnly, chat.SelectedToolMode.Mode);
+        chat.SelectedToolMode = chat.ToolModes[3]; // Auto: not available
+        Assert.Equal(ToolMode.ReadOnly, chat.SelectedToolMode.Mode);
+        chat.SelectedToolMode = chat.ToolModes[0];
+        await chat.SendAsync("Hi");
+        Assert.Equal("off", gateway.ChatRequests[0].Header("X-Faden-Tool-Mode"));
+    }
+
+    [Fact]
+    public async Task A_long_session_opens_with_its_latest_turns_and_loads_older_ones_on_request()
+    {
+        var store = new MemorySessionStore();
+        var gateway = new Gateway();
+        for (var i = 1; i <= 75; i++)
+        {
+            gateway.Says($"Answer {i}.");
+        }
+        var (writer, _, _) = Chat(gateway, store);
+        await writer.InitializeAsync();
+        for (var i = 1; i <= 75; i++)
+        {
+            await writer.SendAsync($"Question {i}");
+        }
+        var id = writer.CurrentSessionId!;
+
+        var (reader, _, _) = Chat(new Gateway(), store, o => o.InitialTurns = 30);
+        await reader.InitializeAsync();
+        Assert.Equal(id, Assert.Single(reader.Sessions).Id);
+        await reader.OpenSessionCommand.ExecuteAsync(reader.Sessions[0]);
+        Assert.Equal(30, reader.Turns.Count);
+        Assert.Equal(("Question 46", "Answer 75."), (reader.Turns[0].UserText, ((MarkdownPart)reader.Turns[29].Parts.Single()).Text));
+        Assert.True(reader.HasEarlierTurns);
+        reader.LoadEarlierCommand.Execute(null);
+        reader.LoadEarlierCommand.Execute(null);
+        Assert.Equal(75, reader.Turns.Count);
+        Assert.Equal(Enumerable.Range(1, 75).Select(i => $"Question {i}"), reader.Turns.Select(t => t.UserText));
+        Assert.False(reader.HasEarlierTurns);
+        Assert.All(reader.Turns, t => Assert.Equal(TurnState.Completed, t.State));
+    }
+
+    [Fact]
+    public async Task A_reopened_session_shows_its_tools_approvals_and_notices()
+    {
+        var store = new MemorySessionStore();
+        var gateway = new Gateway()
+            .Calls(("call-1", "delete_page", """{"page":2}""")).Says("Not deleted.")
+            .Calls(("call-2", "read_page", """{"page":1}""")).Says("Page 1.");
+        var (chat, _, _) = Chat(gateway, store);
+        await chat.InitializeAsync();
+        var first = chat.SendAsync("Delete page 2.");
+        (await WaitFor<ApprovalPart>(await TurnOf(chat))).DenyCommand.Execute(null);
+        await first;
+        await chat.SendAsync("Read page 1.");
+
+        var (again, _, _) = Chat(new Gateway(), store);
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(chat.CurrentSessionId!);
+        Assert.Equal(new[] { typeof(ToolCallPart), typeof(ApprovalPart), typeof(MarkdownPart) }, again.Turns[0].Parts.Select(p => p.GetType()));
+        Assert.Equal((ToolCallState.Denied, ToolClass.Destructive), (again.Turns[0].Parts.OfType<ToolCallPart>().Single().State,
+            again.Turns[0].Parts.OfType<ToolCallPart>().Single().Class));
+        Assert.Equal(ApprovalState.Denied, again.Turns[0].Parts.OfType<ApprovalPart>().Single().State);
+        Assert.Equal(ChatOutcome.ToolDenied, again.Turns[0].Outcome);
+        Assert.Equal(ToolCallState.Succeeded, again.Turns[1].Parts.OfType<ToolCallPart>().Single().State);
+    }
+
+    [Fact]
+    public async Task A_fast_stream_reaches_the_ui_thread_in_a_few_batches()
+    {
+        var chunks = Enumerable.Range(0, 400).Select(i => $"w{i} ").ToArray();
+        var gateway = new Gateway().Then(Stream(chunks), Gateway.Finish("stop"), FakeServer.Done);
+        var dispatcher = new CountingDispatcher();
+        var broker = new ApprovalBroker();
+        var agent = gateway.Builder().UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, dispatcher, new AgentChatOptions { RenderInterval = TimeSpan.FromMilliseconds(30) });
+        await chat.InitializeAsync();
+        await chat.SendAsync("Go");
+        Assert.Equal(string.Concat(chunks), ((MarkdownPart)chat.Turns.Single().Parts.Single()).Text);
+        Assert.True(dispatcher.Posts < 40, $"{dispatcher.Posts} posts for 400 tokens");
+    }
+
+    [Fact]
+    public async Task Without_a_sign_in_the_chat_says_so()
+    {
+        var gateway = new Gateway();
+        var broker = new ApprovalBroker();
+        var agent = FadenAgent.CreateBuilder()
+            .UseServer(new Uri("https://faden.test"), new Faden.Auth.AgentTokenProvider(new Uri("https://faden.test"), Gateway.Slug,
+                new Faden.Auth.MemoryTokenStore(), new HttpClient(gateway.Server)), o => o.HttpClient = new HttpClient(gateway.Server))
+            .UseAgent(Gateway.Slug).UseSessionStore(new MemorySessionStore()).UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance);
+        await chat.InitializeAsync();
+        Assert.True(chat.SignInRequired);
+        Assert.False(chat.IsReady);
+        Assert.False(chat.SendCommand.CanExecute(null));
+    }
+
+    private sealed class CountingDispatcher : IUiDispatcher
+    {
+        private int _posts;
+
+        public int Posts => _posts;
+
+        public bool CheckAccess() => true;
+
+        public void Post(Action action)
+        {
+            Interlocked.Increment(ref _posts);
+            action();
+        }
+    }
+}
