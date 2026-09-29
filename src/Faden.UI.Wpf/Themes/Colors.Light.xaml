@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    mc:Ignorable="po">
+    <!-- Light colours (GitHub's palette). Every template uses these keys through DynamicResource. -->
+    <SolidColorBrush x:Key="Faden.Background" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Surface" Color="#F6F8FA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.SurfaceAlt" Color="#EEF1F4" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Border" Color="#D0D7DE" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Foreground" Color="#1F2328" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.ForegroundMuted" Color="#59636E" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Accent" Color="#0969DA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.AccentHover" Color="#0860CA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.AccentForeground" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Hover" Color="#EEF1F4" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Pressed" Color="#E2E6EA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Link" Color="#0969DA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Danger" Color="#CF222E" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Warning" Color="#9A6700" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Success" Color="#1A7F37" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.CodeBackground" Color="#F6F8FA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.CodeInlineBackground" Color="#EFF1F3" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.UserBubble" Color="#EEF4FB" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.InfoBackground" Color="#DDF4FF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.WarningBackground" Color="#FFF8C5" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.BlockedBackground" Color="#FFEBE9" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.AddedBackground" Color="#DAFBE1" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.RemovedBackground" Color="#FFEBE9" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Focus" Color="#0969DA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Scrim" Color="#33000000" po:Freeze="True" />
+    <FontFamily x:Key="Faden.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="Faden.CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
+    <FontFamily x:Key="Faden.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+</ResourceDictionary>

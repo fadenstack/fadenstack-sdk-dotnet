@@ -250,8 +250,8 @@ public class ChatViewModelTests
         Assert.Equal(30, reader.Turns.Count);
         Assert.Equal(("Question 46", "Answer 75."), (reader.Turns[0].UserText, ((MarkdownPart)reader.Turns[29].Parts.Single()).Text));
         Assert.True(reader.HasEarlierTurns);
-        reader.LoadEarlierCommand.Execute(null);
-        reader.LoadEarlierCommand.Execute(null);
+        await reader.LoadEarlierCommand.ExecuteAsync(null);
+        await reader.LoadEarlierCommand.ExecuteAsync(null);
         Assert.Equal(75, reader.Turns.Count);
         Assert.Equal(Enumerable.Range(1, 75).Select(i => $"Question {i}"), reader.Turns.Select(t => t.UserText));
         Assert.False(reader.HasEarlierTurns);

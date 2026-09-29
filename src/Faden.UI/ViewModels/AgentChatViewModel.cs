@@ -38,6 +38,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _isReady;
     private bool _isBusy;
     private bool _isHistoryOpen;
+    private bool _isModeMenuOpen;
     private bool _signInRequired;
     private string? _error;
     private ToolModeOption _selectedMode;
@@ -63,8 +64,16 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         OpenSessionCommand = new AsyncRelayCommand<SessionItemViewModel>(s => s is null ? Task.CompletedTask : OpenSessionAsync(s.Id),
             _ => _isReady && !_isBusy);
         DeleteSessionCommand = new AsyncRelayCommand<SessionItemViewModel>(DeleteSessionAsync, _ => !_isBusy);
-        LoadEarlierCommand = new RelayCommand(LoadEarlier, () => HasEarlierTurns);
+        LoadEarlierCommand = new AsyncRelayCommand(LoadEarlierAsync, () => HasEarlierTurns);
         ToggleHistoryCommand = new AsyncRelayCommand(ToggleHistoryAsync);
+        SelectToolModeCommand = new RelayCommand<ToolModeOption>(option =>
+        {
+            if (option is { IsAvailable: true })
+            {
+                SelectedToolMode = option;
+            }
+            IsModeMenuOpen = false;
+        }, option => option is { IsAvailable: true });
     }
 
     // -- state ---------------------------------------------------------------------------------------
@@ -157,6 +166,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ToolModeOption> ToolModes { get; }
 
+    /// <summary>The mode menu is open (presentation state, so the skin needs no code).</summary>
+    public bool IsModeMenuOpen
+    {
+        get => _isModeMenuOpen;
+        set => SetProperty(ref _isModeMenuOpen, value);
+    }
+
     /// <summary>The user's pick for this chat. New chats start in Ask (sdk/07).</summary>
     public ToolModeOption SelectedToolMode
     {
@@ -205,9 +221,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public IAsyncRelayCommand<SessionItemViewModel> DeleteSessionCommand { get; }
 
-    public IRelayCommand LoadEarlierCommand { get; }
+    public IAsyncRelayCommand LoadEarlierCommand { get; }
 
     public IAsyncRelayCommand ToggleHistoryCommand { get; }
+
+    public IRelayCommand<ToolModeOption> SelectToolModeCommand { get; }
 
     /// <summary>The skin moves the focus to the composer (after "Edit").</summary>
     public event EventHandler? ComposerFocusRequested;
@@ -238,6 +256,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             {
                 option.IsAvailable = Faden.Tools.ToolModes.Narrowest(option.Mode, ceiling) == option.Mode;
             }
+            SelectToolModeCommand.NotifyCanExecuteChanged();
             var start = ToolModes.First(o => o.Mode == _agent.DefaultToolMode);
             SetProperty(ref _selectedMode, start.IsAvailable ? start : ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
@@ -308,7 +327,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         MarkCurrent();
     }
 
-    /// <summary>Opens a session from this device: its latest turns first.</summary>
+    /// <summary>Opens a session from this device: its latest turns first. Reading and building happen off the UI thread.</summary>
     public async Task OpenSessionAsync(string sessionId)
     {
         if (_isBusy)
@@ -318,11 +337,18 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         Error = null;
         try
         {
-            var session = await _agent.OpenSessionAsync(sessionId);
+            var initial = _options.InitialTurns;
+            var (session, history, from, turns) = await Task.Run(async () =>
+            {
+                var opened = await _agent.OpenSessionAsync(sessionId).ConfigureAwait(false);
+                var grouped = TranscriptTurns.Group(opened.Transcript);
+                var start = Math.Max(0, grouped.Count - initial);
+                var built = grouped.Skip(start).Select(t => TranscriptTurns.Build(this, t, _options.PreviewLength)).ToList();
+                return (opened, grouped, start, built);
+            });
             _session = session;
-            _history = TranscriptTurns.Group(session.Transcript);
-            _loadedFrom = Math.Max(0, _history.Count - _options.InitialTurns);
-            var turns = _history.Skip(_loadedFrom).Select(t => TranscriptTurns.Build(this, t, _options.PreviewLength)).ToList();
+            _history = history;
+            _loadedFrom = from;
             Turns.Clear();
             foreach (var turn in turns)
             {
@@ -347,7 +373,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public async Task RefreshSessionsAsync()
     {
         var now = _options.Clock();
-        var sessions = await _agent.ListSessionsAsync();
+        var sessions = await Task.Run(() => _agent.ListSessionsAsync()); // reads files: not on the UI thread
         Sessions.Clear();
         foreach (var s in sessions)
         {
@@ -370,14 +396,15 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private void Stop() => _stop?.Cancel();
 
-    private void LoadEarlier()
+    private async Task LoadEarlierAsync()
     {
         if (_loadedFrom == 0)
         {
             return;
         }
         var from = Math.Max(0, _loadedFrom - _options.PageSize);
-        var older = _history.Skip(from).Take(_loadedFrom - from).Select(t => TranscriptTurns.Build(this, t, _options.PreviewLength)).ToList();
+        var page = _history.Skip(from).Take(_loadedFrom - from).ToList();
+        var older = await Task.Run(() => page.Select(t => TranscriptTurns.Build(this, t, _options.PreviewLength)).ToList());
         for (var k = 0; k < older.Count; k++)
         {
             Turns.Insert(k, older[k]);

@@ -15,5 +15,7 @@
     <Compile Include="..\Faden.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Faden.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
     <Compile Include="..\Faden.Agents.Tests\PageTools.cs" Link="PageTools.cs" />
+    <Compile Include="..\..\samples\Faden.Samples.Wpf\DemoGateway.cs" Link="DemoGateway.cs" />
+    <Compile Include="..\..\samples\Faden.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
   </ItemGroup>
 </Project>

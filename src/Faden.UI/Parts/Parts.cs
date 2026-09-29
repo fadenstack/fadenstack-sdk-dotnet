@@ -26,11 +26,22 @@ public sealed class MarkdownPart : ResponsePart
 {
     private bool _isStreaming;
 
-    public MarkdownPart(string? text = null, bool isStreaming = false)
+    public MarkdownPart(string? text = null, bool isStreaming = false, IClipboard? clipboard = null)
     {
         Document = new MarkdownDocument(text);
         _isStreaming = isStreaming;
+        var copyTo = clipboard ?? NoClipboard.Instance;
+        CopyCodeCommand = new RelayCommand<CodeBlock>(block =>
+        {
+            if (block is not null)
+            {
+                copyTo.SetText(block.Code);
+            }
+        });
     }
+
+    /// <summary>Copies a code block (its button in the skin).</summary>
+    public IRelayCommand<CodeBlock> CopyCodeCommand { get; }
 
     public MarkdownDocument Document { get; }
 

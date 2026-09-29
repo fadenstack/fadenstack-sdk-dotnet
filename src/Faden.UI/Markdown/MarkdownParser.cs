@@ -10,12 +10,12 @@ namespace Faden.UI.Markdown;
 /// </summary>
 public static class MarkdownParser
 {
-    private static readonly Regex Fence = new(@"^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)", RegexOptions.Compiled);
-    private static readonly Regex Heading = new(@"^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t#]*$", RegexOptions.Compiled);
-    private static readonly Regex Rule = new(@"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$", RegexOptions.Compiled);
-    private static readonly Regex Item = new(@"^([ \t]*)([-*+]|\d{1,9}[.)])[ \t]+(.*)$", RegexOptions.Compiled);
-    private static readonly Regex Quote = new(@"^ {0,3}>[ ]?(.*)$", RegexOptions.Compiled);
-    private static readonly Regex TableSeparator = new(@"^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$", RegexOptions.Compiled);
+    private static readonly Regex Fence = new(@"^ {0,3}(`{3,}|~{3,})[ \t]*([^\s`]*)");
+    private static readonly Regex Heading = new(@"^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t#]*$");
+    private static readonly Regex Rule = new(@"^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$");
+    private static readonly Regex Item = new(@"^([ \t]*)([-*+]|\d{1,9}[.)])[ \t]+(.*)$");
+    private static readonly Regex Quote = new(@"^ {0,3}>[ ]?(.*)$");
+    private static readonly Regex TableSeparator = new(@"^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$");
 
     /// <summary>The blocks of <paramref name="text"/>.</summary>
     public static IReadOnlyList<MarkdownBlock> Parse(string text) => ParseWithOffsets(text).Select(b => b.Block).ToList();

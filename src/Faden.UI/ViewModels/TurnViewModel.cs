@@ -138,7 +138,7 @@ public sealed class TurnViewModel : ObservableObject
     {
         if (_text is null)
         {
-            _text = new MarkdownPart(isStreaming: true);
+            _text = new MarkdownPart(isStreaming: true, clipboard: _chat?.Clipboard);
             Parts.Add(_text);
             OnPropertyChanged(nameof(StatusText));
         }
@@ -240,7 +240,7 @@ public sealed class TurnViewModel : ObservableObject
         _usageText = usage;
     }
 
-    internal void AddRestoredText(string text) => Parts.Add(new MarkdownPart(text));
+    internal void AddRestoredText(string text) => Parts.Add(new MarkdownPart(text, clipboard: _chat?.Clipboard));
 
     internal ToolCallPart AddRestoredTool(string callId, string name, string source, ToolClass toolClass)
     {

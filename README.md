@@ -10,6 +10,8 @@ agent's instructions, model and knowledge, and handles PII, budgets and audit.
 | `Faden.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent resource (profile, approvals, events), the REST resources, typed errors |
 | `Faden.Agents` | The agent: builder, the tool loop, tool classes and modes, approvals, local sessions, outcomes, modules and stages |
 | `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy |
+| `Faden.UI` | Platform-neutral view models for a chat with an agent (netstandard2.0; CommunityToolkit.Mvvm) |
+| `Faden.UI.Wpf` | The WPF skin: a Copilot-style chat panel (net472; net8.0-windows) |
 
 The libraries target **netstandard2.0** (.NET Framework 4.6.2+ hosts) and **net8.0**. Names match the
 Python SDK: `Faden.X` / `PascalCase` + `Async` ↔ `faden.x` / `snake_case`.
@@ -122,13 +124,69 @@ builder.Services.AddFadenAgent((agent, services) => agent
   `AddChatStage` wraps the `IChatClient`, and `AddToolStage` wraps each tool call.
 - `FadenTransport` makes authenticated requests with the client's tokens, TLS settings and typed errors.
 
+## A chat panel (`Faden.UI`, `Faden.UI.Wpf`)
+
+The UI is split in two, and the split is strict:
+
+- **`Faden.UI`** holds all of the behaviour, as view models with no platform references: the chat
+  (`AgentChatViewModel`), turns, answer parts, the tool-mode picker, session history, and the
+  `IUiDispatcher` / `IClipboard` services a skin implements. It is unit-tested headless.
+- **Skins only render.** `Faden.UI.Wpf` is XAML templates, styles, light and dark themes, and a few
+  view-only behaviours (keep the list scrolled to the bottom, render Markdown runs, focus the composer).
+  Its only code-behind picks the theme. A later Avalonia or WebView2 skin binds to the same view models.
+
+```csharp
+var approvals = new ApprovalBroker();                     // approval cards in the chat decide
+var agent = FadenAgent.CreateBuilder()
+    .UseClient(client).UseAgent("eplan-assistant")
+    .AddTools(new PageTools())
+    .UseApprovals(approvals)
+    .Build();
+var chat = new AgentChatViewModel(agent, approvals, new WpfDispatcher(),
+    new AgentChatOptions { Clipboard = new WpfClipboard() });
+panel.Content = new ChatView { DataContext = chat, Theme = ChatTheme.System };
+await chat.InitializeAsync();
+```
+
+What it shows, as in GitHub Copilot's chat:
+
+- The answer **streams as Markdown**: headings, lists, code blocks with a copy button, tables, quotes,
+  links. Text and tool calls **interleave** in the order they happened.
+- Each tool call is **one line** ("Running read_page" with a spinner, then "Ran read_page", its class
+  and duration). It expands to input and output.
+- **Approvals are cards** in the answer, with Allow, Allow for this chat, and Deny. Destructive and
+  unclassified tools are marked.
+- Refusals and limits are **notices**. A refused prompt is marked "Not sent", with *Edit and resend*.
+  Citations ("Used 2 references"), PII notices and reasoning ("Thought for 4 s") are collapsible.
+- **The tool mode** is picked in the header. Modes above an EE ceiling are greyed out.
+- Other controls: **Stop** (Esc), **new chat** (Ctrl+N), **session history**, and copy / retry per
+  answer. An empty chat shows the agent's greeting and suggested prompts (profile `ui.greeting`,
+  `ui.suggestions`).
+- Unknown gateway events show as generic notices. Modules add their own through
+  `IAgentEventRenderer` and the primitives (`CardPart`, `TablePart`, `ProgressPart`, `DiffPart`, `NoticePart`).
+
+Built for long sessions:
+
+- The agent runs off the UI thread. Its events reach the UI in **one batch per frame** (33 ms), with
+  consecutive text merged: 400 streamed tokens cost under 40 dispatches, whatever the model's speed.
+- A streamed answer re-parses **only its last block**. Blocks before it are immutable, so the skin
+  re-renders one item per update however long the answer grows.
+- The conversation is a **virtualized, recycled** list of turns, scrolled by pixel. Tool output and
+  reasoning are formatted only when expanded.
+- Opening a session reads and builds **off the UI thread** and shows the latest 30 turns. *Show
+  earlier messages* pages in more. A 2 000-turn encrypted session opens in about 250 ms.
+- Measured end to end against a gateway: the longest single block of the UI thread was 16 ms.
+
+In add-ins without a WPF `Application` (Office VSTO, WinForms hosts), host `ChatView` in an
+`ElementHost`. Create `WpfDispatcher` on the UI thread.
+
 ## Plain API use (no agent)
 
 `new FadenClient(new FadenClientOptions { ServerUrl = ..., Credentials = new StaticTokenProvider(token), Model = "..." })`
 gives `client.Chat` (an `IChatClient` on `/v1/chat/completions`) and the server resources: `Sessions`,
 `Projects`, `Tools` (including the session's tool mode), `Memory`, `Attachments` and `Services`.
 
-## Sample
+## Samples
 
 `samples/Faden.Samples.Console` is a console agent with host tools, console approvals, `/mode` and
 `/sessions`:
@@ -137,11 +195,21 @@ gives `client.Chat` (an `IChatClient` on `/v1/chat/completions`) and the server 
 dotnet run --project samples/Faden.Samples.Console -- --server https://faden.example --agent eplan-assistant --login-token <jwt>
 ```
 
+`samples/Faden.Samples.Wpf` is the chat panel in a window (Windows). With `--demo`, or without a
+server, it runs against a built-in demo gateway: streamed Markdown, tool calls and approvals, with no
+setup.
+
+```bash
+dotnet run --project samples/Faden.Samples.Wpf -- --demo
+```
+
 ## Build and test
 
 ```bash
 dotnet test Faden.slnx
 ```
+
+The WPF projects build on any OS (`EnableWindowsTargeting`). They run on Windows only.
 
 ## License
 
