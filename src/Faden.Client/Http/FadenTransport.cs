@@ -137,7 +137,11 @@ public sealed class FadenTransport : IDisposable
         return request;
     }
 
-    internal static HttpMessageHandler CreateHandler(FadenClientOptions options)
+    /// <summary>
+    /// A handler with the client's TLS settings (the trusted CA, <see cref="FadenClientOptions.AllowInsecureHttp"/>),
+    /// for a host's own requests to the same server (e.g. its sign-in).
+    /// </summary>
+    public static HttpMessageHandler CreateHandler(FadenClientOptions options)
     {
         var handler = new HttpClientHandler();
         if (options.TrustedCaCertificate is { } ca)
