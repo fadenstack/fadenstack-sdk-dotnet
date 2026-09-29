@@ -61,7 +61,8 @@ public partial class ChatView : UserControl
         }
     }
 
-    private static bool SystemUsesDarkMode()
+    /// <summary>Whether Windows is in dark app mode.</summary>
+    public static bool SystemUsesDarkMode()
     {
         try
         {
