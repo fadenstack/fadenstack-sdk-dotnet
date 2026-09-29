@@ -409,8 +409,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     internal void Edit(string text)
     {
         Input = text;
-        ComposerFocusRequested?.Invoke(this, EventArgs.Empty);
+        RequestComposerFocus();
     }
+
+    /// <summary>Asks the skin to put the focus in the composer (e.g. after a host attached the selection).</summary>
+    public void RequestComposerFocus() => ComposerFocusRequested?.Invoke(this, EventArgs.Empty);
 
     public void Dispose()
     {
