@@ -16,6 +16,112 @@
     <c:EmptyToCollapsedConverter x:Key="Faden.EmptyToCollapsed" />
     <c:LevelToIndentConverter x:Key="Faden.LevelToIndent" />
 
+    <!-- ===== Shape ======================================================================================== -->
+    <!--
+        Two radii. Containers (composer, cards, bubbles, code, menus) are 12; controls (buttons, fields, chips' parts)
+        are 6. A control in a container's corner sits 6 in from it, so its curve follows the container's (12 - 6 = 6).
+    -->
+    <CornerRadius x:Key="Faden.Radius.Container">12</CornerRadius>
+    <CornerRadius x:Key="Faden.Radius.Control">6</CornerRadius>
+    <CornerRadius x:Key="Faden.Radius.Chip">8</CornerRadius>
+
+    <!-- ===== Scroll bars: thin, themed, the thumb only (no arrows, no track); wider while hovered ============ -->
+
+    <Style x:Key="Faden.ScrollPageStyle" TargetType="RepeatButton">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Faden.ScrollThumbStyle" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Bar" Background="{DynamicResource Faden.ScrollThumb}" CornerRadius="3" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Faden.ScrollThumbHover}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Faden.ScrollThumbHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Implicit inside the chat (this dictionary is merged into the view's resources), never the host's. -->
+    <Style TargetType="ScrollBar">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="10" />
+        <Setter Property="MinWidth" Value="10" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="3,4">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource Faden.ScrollPageStyle}" Command="ScrollBar.PageUpCommand" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource Faden.ScrollThumbStyle}" MinHeight="24" />
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Style="{StaticResource Faden.ScrollPageStyle}" Command="ScrollBar.PageDownCommand" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_Track" Property="Margin" Value="2,4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Height" Value="10" />
+                <Setter Property="MinHeight" Value="10" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="Transparent">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False" Margin="4,3">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource Faden.ScrollPageStyle}" Command="ScrollBar.PageLeftCommand" />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Style="{StaticResource Faden.ScrollThumbStyle}" MinWidth="24" />
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Style="{StaticResource Faden.ScrollPageStyle}" Command="ScrollBar.PageRightCommand" />
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="PART_Track" Property="Margin" Value="4,2" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- ===== Primitive styles ============================================================================ -->
 
     <Style x:Key="Faden.Icon" TargetType="TextBlock">
@@ -41,14 +147,15 @@
     <Style x:Key="Faden.GhostButton" TargetType="ButtonBase">
         <Setter Property="Foreground" Value="{DynamicResource Faden.Foreground}" />
         <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Padding" Value="6,4" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ButtonBase">
-                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"
-                            BorderThickness="1" BorderBrush="Transparent">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Faden.Radius.Control}"
+                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -89,8 +196,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"
-                            BorderThickness="1" BorderBrush="Transparent">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Faden.Radius.Control}"
+                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -112,6 +219,70 @@
     <Style x:Key="Faden.SecondaryButton" TargetType="Button" BasedOn="{StaticResource Faden.GhostButton}">
         <Setter Property="Background" Value="{DynamicResource Faden.SurfaceAlt}" />
         <Setter Property="Padding" Value="12,5" />
+    </Style>
+
+    <!-- A text field for a host's own forms (sign-in, settings): rounded like the controls, accent on focus. -->
+    <Style x:Key="Faden.TextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource Faden.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Faden.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Faden.Border}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Faden.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Faden.Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Faden.Radius.Control}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource Faden.Focus}" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Faden.SurfaceAlt}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Faden.PasswordBox" TargetType="PasswordBox">
+        <Setter Property="Foreground" Value="{DynamicResource Faden.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Faden.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Faden.Border}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Faden.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Faden.Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Faden.Radius.Control}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource Faden.Focus}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- A small rounded label (a tool's class). -->
@@ -184,9 +355,9 @@
 
     <DataTemplate DataType="{x:Type md:CodeBlock}">
         <Border Background="{DynamicResource Faden.CodeBackground}" BorderBrush="{DynamicResource Faden.Border}" BorderThickness="1"
-                CornerRadius="6" Margin="0,2,0,12">
+                CornerRadius="{StaticResource Faden.Radius.Container}" Margin="0,2,0,12">
             <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="10,4,4,0">
+                <DockPanel DockPanel.Dock="Top" Margin="12,5,5,0">
                     <Button DockPanel.Dock="Right" Style="{StaticResource Faden.GhostButton}" ToolTip="Copy code"
                             Command="{Binding DataContext.CopyCodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                             CommandParameter="{Binding}">
@@ -279,7 +450,7 @@
             </Button>
             <Border Visibility="{Binding IsExpanded, Converter={StaticResource Faden.BoolToVisibility}}" Margin="30,2,0,8"
                     Background="{DynamicResource Faden.CodeBackground}" BorderBrush="{DynamicResource Faden.Border}"
-                    BorderThickness="1" CornerRadius="6" Padding="10,8">
+                    BorderThickness="1" CornerRadius="{StaticResource Faden.Radius.Container}" Padding="12,10">
                 <StackPanel>
                     <StackPanel Visibility="{Binding ArgumentsText, Converter={StaticResource Faden.EmptyToCollapsed}}">
                         <TextBlock Style="{StaticResource Faden.Muted}" Text="Input" Margin="0,0,0,2" />
@@ -319,7 +490,7 @@
 
     <!-- The approval card: answered in place, like Copilot's "Allow" / "Deny". -->
     <DataTemplate DataType="{x:Type parts:ApprovalPart}">
-        <Border x:Name="Card" Margin="0,6,0,8" Padding="14,12" CornerRadius="8" BorderThickness="1"
+        <Border x:Name="Card" Margin="0,6,0,8" Padding="14,12" CornerRadius="{StaticResource Faden.Radius.Container}" BorderThickness="1"
                 BorderBrush="{DynamicResource Faden.Accent}" Background="{DynamicResource Faden.Surface}" MaxWidth="640"
                 HorizontalAlignment="Left">
             <StackPanel>
@@ -333,7 +504,7 @@
                 </DockPanel>
                 <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Faden.ForegroundMuted}"
                            Visibility="{Binding Reason, Converter={StaticResource Faden.EmptyToCollapsed}}" />
-                <Border Background="{DynamicResource Faden.CodeBackground}" CornerRadius="6" Padding="10,6" Margin="0,8,0,0"
+                <Border Background="{DynamicResource Faden.CodeBackground}" CornerRadius="{StaticResource Faden.Radius.Control}" Padding="10,6" Margin="0,8,0,0"
                         Visibility="{Binding ArgumentsText, Converter={StaticResource Faden.EmptyToCollapsed}}">
                     <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
                         <TextBlock Style="{StaticResource Faden.Mono}" Text="{Binding ArgumentsText}" />
@@ -362,7 +533,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type parts:NoticePart}">
-        <Border x:Name="Box" Margin="0,4,0,8" Padding="12,8" CornerRadius="6" BorderThickness="3,0,0,0"
+        <Border x:Name="Box" Margin="0,4,0,8" Padding="12,8" CornerRadius="{StaticResource Faden.Radius.Control}" BorderThickness="3,0,0,0"
                 BorderBrush="{DynamicResource Faden.Accent}" Background="{DynamicResource Faden.InfoBackground}">
             <StackPanel>
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
@@ -417,7 +588,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type parts:CardPart}">
-        <Border Margin="0,4,0,8" Padding="14,10" CornerRadius="8" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}"
+        <Border Margin="0,4,0,8" Padding="14,10" CornerRadius="{StaticResource Faden.Radius.Container}" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}"
                 Background="{DynamicResource Faden.Surface}" HorizontalAlignment="Left" MinWidth="280">
             <StackPanel>
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
@@ -445,9 +616,10 @@
         <StackPanel Margin="0,4,0,8">
             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,4"
                        Visibility="{Binding Title, Converter={StaticResource Faden.EmptyToCollapsed}}" />
-            <Border BorderBrush="{DynamicResource Faden.Border}" BorderThickness="1" CornerRadius="6" HorizontalAlignment="Left">
+            <Border BorderBrush="{DynamicResource Faden.Border}" BorderThickness="1" CornerRadius="{StaticResource Faden.Radius.Control}" HorizontalAlignment="Left">
                 <StackPanel>
-                    <ItemsControl ItemsSource="{Binding Headers}" Focusable="False" Background="{DynamicResource Faden.SurfaceAlt}">
+                    <Border Background="{DynamicResource Faden.SurfaceAlt}" CornerRadius="5,5,0,0">
+                    <ItemsControl ItemsSource="{Binding Headers}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Rows="1" />
@@ -459,6 +631,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    </Border>
                     <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -527,7 +700,7 @@
 
     <DataTemplate DataType="{x:Type vm:TurnViewModel}">
         <StackPanel Margin="20,14,20,6">
-            <Border x:Name="Bubble" HorizontalAlignment="Right" MaxWidth="560" CornerRadius="12" Padding="12,8"
+            <Border x:Name="Bubble" HorizontalAlignment="Right" MaxWidth="560" CornerRadius="{StaticResource Faden.Radius.Container}" Padding="12,8"
                     Background="{DynamicResource Faden.UserBubble}" BorderThickness="1" BorderBrush="Transparent">
                 <TextBlock Text="{Binding UserText}" TextWrapping="Wrap" LineHeight="20" />
             </Border>
@@ -540,7 +713,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}" Padding="6,1" Margin="4,0,0,0">
+                        <Border CornerRadius="{StaticResource Faden.Radius.Chip}" BorderThickness="1" BorderBrush="{DynamicResource Faden.Border}" Padding="6,1" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Faden.Icon}" FontSize="10" Text="&#xE8A5;" Margin="0,0,4,0"
                                            Foreground="{DynamicResource Faden.ForegroundMuted}" />

@@ -23,7 +23,11 @@ public partial class ChatView : UserControl
 
     /// <summary>Extra content at the composer's bottom left, for the host's own buttons (e.g. "Add context").</summary>
     public static readonly DependencyProperty ComposerToolbarProperty = DependencyProperty.Register(
-        nameof(ComposerToolbar), typeof(object), typeof(ChatView), new PropertyMetadata(null));
+        nameof(ComposerToolbar), typeof(object), typeof(ChatView), new PropertyMetadata(null, (d, _) => ((ChatView)d).ShareTheme()));
+
+    private ResourceDictionary? _colors;
+    private FrameworkElement? _sharedWith;
+    private ResourceDictionary? _shared;
 
     public ChatView()
     {
@@ -58,6 +62,26 @@ public partial class ChatView : UserControl
         else
         {
             merged.Insert(0, colors);
+        }
+        _colors = colors;
+        ShareTheme();
+    }
+
+    /// <summary>
+    /// A host's toolbar content is defined in the host's own tree, so its DynamicResource lookups never reach this
+    /// view's colours: Office's "Context" button was drawn black on the dark composer. It gets the same colours.
+    /// </summary>
+    private void ShareTheme()
+    {
+        if (_sharedWith is not null && _shared is not null)
+        {
+            _sharedWith.Resources.MergedDictionaries.Remove(_shared);
+        }
+        _sharedWith = ComposerToolbar as FrameworkElement;
+        _shared = _colors;
+        if (_sharedWith is not null && _shared is not null)
+        {
+            _sharedWith.Resources.MergedDictionaries.Insert(0, _shared);
         }
     }
 

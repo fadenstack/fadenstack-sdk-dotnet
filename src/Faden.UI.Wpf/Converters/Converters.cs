@@ -23,13 +23,13 @@ public sealed class InverseBoolConverter : IValueConverter
 /// <summary>Null, empty text or an empty count → Collapsed.</summary>
 public sealed class EmptyToCollapsedConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
+    /// <summary>Collapsed for null, "" or 0; with <c>ConverterParameter=invert</c>, visible only for those.</summary>
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        null => Visibility.Collapsed,
-        string s when s.Length == 0 => Visibility.Collapsed,
-        int n when n == 0 => Visibility.Collapsed,
-        _ => Visibility.Visible,
-    };
+        var empty = value is null || (value is string s && s.Length == 0) || (value is int n && n == 0);
+        var invert = parameter is string p && p.Equals("invert", StringComparison.OrdinalIgnoreCase);
+        return empty != invert ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
