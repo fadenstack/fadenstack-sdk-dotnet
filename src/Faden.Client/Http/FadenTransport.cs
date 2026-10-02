@@ -144,6 +144,14 @@ public sealed class FadenTransport : IDisposable
     public static HttpMessageHandler CreateHandler(FadenClientOptions options)
     {
         var handler = new HttpClientHandler();
+        if (IsNetFramework)
+        {
+            // A native host (Word, EPLAN, TIA Portal) gives .NET Framework no target framework, so it keeps the
+            // legacy defaults -- SSL 3 and TLS 1.0 -- and servers refuse the handshake ("Could not create SSL/TLS
+            // secure channel"). TLS 1.2 and 1.3 on this handler, not ServicePointManager: that is the host's,
+            // shared with every other add-in in the process.
+            handler.SslProtocols = ModernTls();
+        }
         if (options.TrustedCaCertificate is { } ca)
         {
             var authority = new X509Certificate2(ca);
@@ -152,6 +160,18 @@ public sealed class FadenTransport : IDisposable
                 errors == System.Net.Security.SslPolicyErrors.None || ChainsTo(certificate, authority, errors);
         }
         return handler;
+    }
+
+    private static readonly bool IsNetFramework =
+        System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal);
+
+    /// <summary>TLS 1.2 and 1.3 (1.3 is unknown to .NET Framework before 4.8, which then gets 1.2).</summary>
+    internal static System.Security.Authentication.SslProtocols ModernTls()
+    {
+        const System.Security.Authentication.SslProtocols tls13 = (System.Security.Authentication.SslProtocols)12288;
+        return Enum.IsDefined(typeof(System.Security.Authentication.SslProtocols), tls13)
+            ? System.Security.Authentication.SslProtocols.Tls12 | tls13
+            : System.Security.Authentication.SslProtocols.Tls12;
     }
 
     private static bool ChainsTo(X509Certificate2? certificate, X509Certificate2 authority,
