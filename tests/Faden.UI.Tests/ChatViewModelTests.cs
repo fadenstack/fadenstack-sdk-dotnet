@@ -101,6 +101,7 @@ public class ChatViewModelTests
             Assert.Equal(("Run add_comment?", "Changes data", TurnState.WaitingForApproval), (card.Title, card.ClassLabel, turn.State));
             Assert.Contains("page: 2", card.ArgumentsText);
             Assert.Equal(ToolCallState.WaitingForApproval, turn.Parts.OfType<ToolCallPart>().Single().State);
+            Assert.Equal("", turn.StatusText); // the card and the tool's row say it, once
             card.AllowCommand.Execute(null);
             Assert.False(card.AllowCommand.CanExecute(null));
             await sending;

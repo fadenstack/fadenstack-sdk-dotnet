@@ -92,10 +92,13 @@ public sealed class TurnViewModel : ObservableObject
         private set => SetProperty(ref _outcome, value);
     }
 
+    /// <summary>
+    /// The turn's own line, for what no part shows: nothing while tools run or a card waits (the tool's row and
+    /// the card say it).
+    /// </summary>
     public string StatusText => _state switch
     {
         TurnState.Running => _text is null && _tools.Count == 0 ? "Working..." : "",
-        TurnState.WaitingForApproval => "Waiting for your approval",
         TurnState.Stopped => "Stopped",
         TurnState.Failed => "Something went wrong",
         _ => "",
