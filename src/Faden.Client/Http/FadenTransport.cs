@@ -151,6 +151,10 @@ public sealed class FadenTransport : IDisposable
             // secure channel"). TLS 1.2 and 1.3 on this handler, not ServicePointManager: that is the host's,
             // shared with every other add-in in the process.
             handler.SslProtocols = ModernTls();
+            // .NET Framework allows a client process 2 connections per server, and a streamed answer holds one
+            // the whole time: in an Office application with four agent panes, two waited for the other two
+            // (measured). Raised on this handler, for this server: the process default stays the host's.
+            handler.MaxConnectionsPerServer = NetFrameworkConnectionsPerServer;
         }
         if (options.TrustedCaCertificate is { } ca)
         {
@@ -161,6 +165,9 @@ public sealed class FadenTransport : IDisposable
         }
         return handler;
     }
+
+    /// <summary>Connections to the server one process may hold on .NET Framework (its default is 2; .NET 8+ has no limit).</summary>
+    internal const int NetFrameworkConnectionsPerServer = 32;
 
     private static readonly bool IsNetFramework =
         System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.StartsWith(".NET Framework", StringComparison.Ordinal);
