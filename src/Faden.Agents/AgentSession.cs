@@ -491,6 +491,7 @@ public sealed class AgentSession
             var watch = Stopwatch.StartNew();
             string result;
             string outcome;
+            var waited = TimeSpan.Zero;
             if (tool is null)
             {
                 (result, outcome) = ($"Tool '{call.Name}' does not exist here.", "error");
@@ -505,35 +506,39 @@ public sealed class AgentSession
             }
             else
             {
-                (result, outcome) = await DecideAndRunAsync(tool, call, arguments, cancellationToken).ConfigureAwait(false);
+                (result, outcome, waited) = await DecideAndRunAsync(tool, call, arguments, cancellationToken).ConfigureAwait(false);
             }
             watch.Stop();
+            // The tool's own time: the user's time on the approval card is reported apart (ApprovalDecidedEvent).
+            var ran = watch.Elapsed > waited ? watch.Elapsed - waited : TimeSpan.Zero;
             await _session.AppendAsync(EntryTypes.ToolComplete, _id, new
             {
                 call_id = call.CallId, name = call.Name, source, result, outcome,
-                duration_ms = (long)watch.Elapsed.TotalMilliseconds, origin = "client",
+                duration_ms = (long)ran.TotalMilliseconds, origin = "client",
             }).ConfigureAwait(false);
-            Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, watch.Elapsed));
+            Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran));
             if (tool is not null)
             {
                 Agent.Reporter.Add(new ToolExecutedEvent
                 {
                     ConversationId = _session.Id, Tool = call.Name, Source = source, Server = tool.Server,
-                    DurationMs = (long)watch.Elapsed.TotalMilliseconds, Outcome = outcome,
+                    DurationMs = (long)ran.TotalMilliseconds, Outcome = outcome,
                 });
             }
         }
 
-        private async Task<(string Result, string Outcome)> DecideAndRunAsync(AgentTool tool, FunctionCallContent call,
+        /// <summary>Asks if the mode says so, then runs the tool; also returns how long the asking took.</summary>
+        private async Task<(string Result, string Outcome, TimeSpan Waited)> DecideAndRunAsync(AgentTool tool, FunctionCallContent call,
             Dictionary<string, object?> arguments, CancellationToken cancellationToken)
         {
+            var asking = Stopwatch.StartNew();
             switch (ToolModes.Decide(_mode, tool.Class))
             {
                 case ToolModeDecision.Hidden:
                     _toolDenied = true;
                     var why = $"the tool mode is {_mode.ToWire()}";
                     await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
-                    return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied");
+                    return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero);
                 case ToolModeDecision.Ask:
                     var (decision, waited) = await AskAsync(new ApprovalRequest
                     {
@@ -558,15 +563,16 @@ public sealed class AgentSession
                     {
                         _toolDenied = true;
                         var reason = decision?.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                        return ($"The user declined to run '{tool.Name}'{reason}.", "denied");
+                        return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed);
                     }
                     break;
             }
+            var askedFor = asking.Elapsed;
             try
             {
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments), _session.Id, _id);
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
-                return (ChatWire.ResultText(new FunctionResultContent(call.CallId, value)), "ok");
+                return (ChatWire.ResultText(new FunctionResultContent(call.CallId, value)), "ok", askedFor);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -574,7 +580,7 @@ public sealed class AgentSession
             }
             catch (Exception e)
             {
-                return ($"Error: {e.Message}", "error");
+                return ($"Error: {e.Message}", "error", askedFor);
             }
         }
 

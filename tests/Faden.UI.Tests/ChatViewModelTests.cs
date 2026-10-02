@@ -105,7 +105,8 @@ public class ChatViewModelTests
             Assert.False(card.AllowCommand.CanExecute(null));
             await sending;
 
-            Assert.Equal(new[] { typeof(ToolCallPart), typeof(ApprovalPart), typeof(MarkdownPart) }, turn.Parts.Select(p => p.GetType()));
+            // Asked, allowed, ran: the card sits above its tool's row.
+            Assert.Equal(new[] { typeof(ApprovalPart), typeof(ToolCallPart), typeof(MarkdownPart) }, turn.Parts.Select(p => p.GetType()));
             var tool = turn.Parts.OfType<ToolCallPart>().Single();
             Assert.Equal((ToolCallState.Succeeded, "Ran add_comment", ToolClass.Write), (tool.State, tool.Title, tool.Class));
             Assert.Equal("", tool.ResultText); // not built until expanded
@@ -275,7 +276,7 @@ public class ChatViewModelTests
         var (again, _, _) = Chat(new Gateway(), store);
         await again.InitializeAsync();
         await again.OpenSessionAsync(chat.CurrentSessionId!);
-        Assert.Equal(new[] { typeof(ToolCallPart), typeof(ApprovalPart), typeof(MarkdownPart) }, again.Turns[0].Parts.Select(p => p.GetType()));
+        Assert.Equal(new[] { typeof(ApprovalPart), typeof(ToolCallPart), typeof(MarkdownPart) }, again.Turns[0].Parts.Select(p => p.GetType()));
         Assert.Equal((ToolCallState.Denied, ToolClass.Destructive), (again.Turns[0].Parts.OfType<ToolCallPart>().Single().State,
             again.Turns[0].Parts.OfType<ToolCallPart>().Single().Class));
         Assert.Equal(ApprovalState.Denied, again.Turns[0].Parts.OfType<ApprovalPart>().Single().State);

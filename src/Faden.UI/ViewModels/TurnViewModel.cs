@@ -183,12 +183,27 @@ public sealed class TurnViewModel : ObservableObject
     internal void AddApproval(PendingApproval pending)
     {
         CloseText();
-        Parts.Add(new ApprovalPart(pending, _previewLength));
+        AddApprovalPart(new ApprovalPart(pending, _previewLength));
         if (_tools.TryGetValue(Key(pending.Request.CallId, pending.Request.ToolName), out var tool))
         {
             tool.State = ToolCallState.WaitingForApproval;
         }
         State = TurnState.WaitingForApproval;
+    }
+
+    /// <summary>
+    /// The card goes above its tool's row, so the turn reads in order: asked, allowed (or not), ran.
+    /// </summary>
+    internal void AddApprovalPart(ApprovalPart card)
+    {
+        if (_tools.TryGetValue(Key(card.Request.CallId, card.ToolName), out var tool) && Parts.IndexOf(tool) is var at and >= 0)
+        {
+            Parts.Insert(at, card);
+        }
+        else
+        {
+            Parts.Add(card);
+        }
     }
 
     internal void ApprovalDecided(ApprovalRequest request, ApprovalDecision decision)

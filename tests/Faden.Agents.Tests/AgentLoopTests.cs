@@ -51,6 +51,27 @@ public class AgentLoopTests
         Assert.DoesNotContain("terminals", gateway.Reports.Single().Body); // names and counts, never content
     }
 
+    [Fact]
+    public async Task A_tools_duration_leaves_out_the_time_the_user_took_to_approve()
+    {
+        var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":2,"text":"ok"}""")).Says("Added.");
+        using var agent = gateway.Builder().AddTools(new PageTools())
+            .UseApprovals(async (_, ct) => { await Task.Delay(400, ct); return ApprovalDecision.Approve(); }).Build();
+        var session = await agent.StartSessionAsync();
+        var events = new List<AgentEvent>();
+
+        await foreach (var e in session.StreamAsync("Comment page 2."))
+        {
+            events.Add(e);
+        }
+
+        Assert.True(events.OfType<ToolCallCompleted>().Single().Duration < TimeSpan.FromMilliseconds(300));
+        var reported = gateway.Reports.SelectMany(r => r.Json.GetProperty("events").EnumerateArray()).ToList();
+        Assert.True(reported.Single(e => e.GetProperty("type").GetString() == "tool.executed").GetProperty("duration_ms").GetInt64() < 300);
+        Assert.True(reported.Single(e => e.GetProperty("type").GetString() == "approval.decided").GetProperty("wait_ms").GetInt64() >= 400);
+        Assert.True(session.Transcript.Single(e => e.Type == EntryTypes.ToolComplete).Data.GetProperty("duration_ms").GetInt64() < 300);
+    }
+
     [Theory]
     [InlineData(ToolMode.Ask, "add_comment", true)]
     [InlineData(ToolMode.Auto, "add_comment", false)]

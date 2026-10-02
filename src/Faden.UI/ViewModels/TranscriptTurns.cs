@@ -85,7 +85,7 @@ internal static class TranscriptTurns
                     var decided = Json.Bool(d, "timed_out") ? ApprovalState.Expired
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
                         : Json.Bool(d, "for_session") ? ApprovalState.ApprovedForSession : ApprovalState.Approved;
-                    turn.Parts.Add(new ApprovalPart(request, decided, previewLength));
+                    turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength));
                     break;
                 case EntryTypes.GovernanceNotice:
                     turn.Parts.Add(NoticePart.From(new GovernanceNotice
