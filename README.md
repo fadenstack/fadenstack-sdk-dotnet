@@ -195,6 +195,17 @@ gives `client.Chat` (an `IChatClient` on `/v1/chat/completions`) and the server 
 dotnet run --project samples/Faden.Samples.Console -- --server https://faden.example --agent eplan-assistant --login-token <jwt>
 ```
 
+`samples/Faden.Samples.LiveCheck` drives the SDK against a running server and says, check by check, what
+works: sign-in, refresh and refresh-token replay, the profile, streaming, host tools in every tool mode,
+approvals, sessions on the device, the agent's contract and the plain route refused, local MCP, tool rules
+and gateway approvals, a revoked grant. The server-side steps between its phases (publish, grants, rules)
+are the caller's:
+
+```bash
+FADEN_USER_EMAIL=... FADEN_USER_PASSWORD=... dotnet run --project samples/Faden.Samples.LiveCheck -- \
+    --server https://faden.example --ca ca.crt --agent sdk-livecheck --checks signin,profile,chat,host-read
+```
+
 `samples/Faden.Samples.Wpf` is the chat panel in a window (Windows). With `--demo`, or without a
 server, it runs against a built-in demo gateway: streamed Markdown, tool calls and approvals, with no
 setup.
