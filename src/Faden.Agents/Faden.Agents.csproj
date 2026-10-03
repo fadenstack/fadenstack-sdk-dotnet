@@ -14,5 +14,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Faden.Agents.Tests" />
     <InternalsVisibleTo Include="Faden.Mcp" />
+    <InternalsVisibleTo Include="Faden.Workspaces" />
   </ItemGroup>
 </Project>

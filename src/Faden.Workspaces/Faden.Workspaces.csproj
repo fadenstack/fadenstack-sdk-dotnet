@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Faden.Workspaces</RootNamespace>
+    <PackageId>Faden.Workspaces</PackageId>
+    <Description>One model for the applications agents work with: running instances, the files or projects open in them (workspaces), the agents active in each, document leases, workspace-bound tools and the default system tools.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Faden.Agents\Faden.Agents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Faden.Workspaces.Tests" />
+  </ItemGroup>
+</Project>

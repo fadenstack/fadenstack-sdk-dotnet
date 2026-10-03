@@ -10,10 +10,12 @@
     <Project Path="src/Faden.Mcp/Faden.Mcp.csproj" />
     <Project Path="src/Faden.UI.Wpf/Faden.UI.Wpf.csproj" />
     <Project Path="src/Faden.UI/Faden.UI.csproj" />
+    <Project Path="src/Faden.Workspaces/Faden.Workspaces.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Faden.Agents.Tests/Faden.Agents.Tests.csproj" />
     <Project Path="tests/Faden.Client.Tests/Faden.Client.Tests.csproj" />
     <Project Path="tests/Faden.UI.Tests/Faden.UI.Tests.csproj" />
+    <Project Path="tests/Faden.Workspaces.Tests/Faden.Workspaces.Tests.csproj" />
   </Folder>
 </Solution>
