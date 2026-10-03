@@ -10,6 +10,9 @@ public enum ChatTheme
     System,
     Light,
     Dark,
+
+    /// <summary>Dark text surfaces on mid-grey: for hosts whose chrome is grey, not black (Office's Dark Gray).</summary>
+    DarkGray,
 }
 
 /// <summary>
@@ -49,11 +52,7 @@ public partial class ChatView : UserControl
 
     private void ApplyTheme()
     {
-        var dark = Theme == ChatTheme.Dark || (Theme == ChatTheme.System && SystemUsesDarkMode());
-        var colors = new ResourceDictionary
-        {
-            Source = new Uri($"/Faden.UI.Wpf;component/Themes/Colors.{(dark ? "Dark" : "Light")}.xaml", UriKind.Relative),
-        };
+        var colors = new ResourceDictionary { Source = PaletteUri(Theme) };
         var merged = Resources.MergedDictionaries;
         if (merged.Count > 0)
         {
@@ -83,6 +82,19 @@ public partial class ChatView : UserControl
         {
             _sharedWith.Resources.MergedDictionaries.Insert(0, _shared);
         }
+    }
+
+    /// <summary>The colours of a theme, for hosts that draw around the panel (System: Windows' app mode).</summary>
+    public static Uri PaletteUri(ChatTheme theme)
+    {
+        var name = theme switch
+        {
+            ChatTheme.Light => "Light",
+            ChatTheme.Dark => "Dark",
+            ChatTheme.DarkGray => "DarkGray",
+            _ => SystemUsesDarkMode() ? "Dark" : "Light",
+        };
+        return new Uri($"/Faden.UI.Wpf;component/Themes/Colors.{name}.xaml", UriKind.Relative);
     }
 
     /// <summary>Whether Windows is in dark app mode.</summary>
