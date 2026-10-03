@@ -34,6 +34,8 @@ internal static class ChatWire
         if (options.FrequencyPenalty is { } fp) body["frequency_penalty"] = fp;
         if (options.PresencePenalty is { } pp) body["presence_penalty"] = pp;
         if (options.StopSequences is { Count: > 0 } stop) body["stop"] = new JsonArray(stop.Select(s => (JsonNode?)s).ToArray());
+        // OpenAI's field; the gateway turns "none" into a vLLM template's own switch (Qwen's enable_thinking).
+        if (options.Reasoning?.Effort is { } effort && Effort(effort) is { } wire) body["reasoning_effort"] = wire;
         if (options.ResponseFormat is ChatResponseFormatJson json)
         {
             body["response_format"] = json.Schema is { } schema
@@ -84,6 +86,16 @@ internal static class ChatWire
         }
         return body;
     }
+
+    private static string? Effort(ReasoningEffort effort) => effort switch
+    {
+        ReasoningEffort.None => "none",
+        ReasoningEffort.Low => "low",
+        ReasoningEffort.Medium => "medium",
+        ReasoningEffort.High => "high",
+        ReasoningEffort.ExtraHigh => "xhigh",
+        _ => null,
+    };
 
     private static JsonNode Tool(AIFunctionDeclaration tool)
     {

@@ -25,6 +25,7 @@ public sealed class AgentBuilder
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
     private bool _report = true;
+    private ReasoningEffort? _reasoning;
 
     internal AgentBuilder()
     {
@@ -123,6 +124,16 @@ public sealed class AgentBuilder
         return this;
     }
 
+    /// <summary>
+    /// How much the model reasons before it answers, on every request (default: the model's own). None asks for
+    /// no reasoning: a reasoning model answers at once, which suits quick reads. Models without a setting ignore it.
+    /// </summary>
+    public AgentBuilder UseReasoning(ReasoningEffort effort)
+    {
+        _reasoning = effort;
+        return this;
+    }
+
     /// <summary>Whether tool runs and approvals are reported to the server (names and counts only). Default on.</summary>
     public AgentBuilder UseEventReporting(bool enabled)
     {
@@ -201,6 +212,7 @@ public sealed class AgentBuilder
             MaxRounds = _maxRounds,
             HistoryTokens = _historyTokens,
             Report = _report,
+            Reasoning = _reasoning,
         });
     }
 }
@@ -221,4 +233,5 @@ internal sealed class AgentSettings
     public int MaxRounds { get; init; }
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }
+    public ReasoningEffort? Reasoning { get; init; }
 }

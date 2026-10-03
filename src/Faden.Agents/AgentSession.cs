@@ -297,6 +297,10 @@ public sealed class AgentSession
             var options = new ChatOptions { Tools = Agent.Offer(_mode) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
+            if (Agent.Settings.Reasoning is { } effort)
+            {
+                options.Reasoning = new ReasoningOptions { Effort = effort };
+            }
             if (options.Tools!.Count == 0)
             {
                 options.Tools = null;

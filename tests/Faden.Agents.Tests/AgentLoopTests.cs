@@ -52,6 +52,19 @@ public class AgentLoopTests
     }
 
     [Fact]
+    public async Task The_agents_reasoning_setting_goes_with_every_request_of_a_turn()
+    {
+        var gateway = new Gateway().Calls(("call-1", "read_page", """{"page":7}""")).Says("Page 7.");
+        using var agent = gateway.Builder().AddTools(new PageTools()).UseReasoning(Microsoft.Extensions.AI.ReasoningEffort.None).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("What is on page 7?");
+
+        Assert.Equal(2, gateway.ChatRequests.Count);
+        Assert.All(gateway.ChatRequests, r => Assert.Equal("none", r.Json.GetProperty("reasoning_effort").GetString()));
+    }
+
+    [Fact]
     public async Task A_tools_duration_leaves_out_the_time_the_user_took_to_approve()
     {
         var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":2,"text":"ok"}""")).Says("Added.");

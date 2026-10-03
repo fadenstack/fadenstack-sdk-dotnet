@@ -232,6 +232,23 @@ public class ChatClientTests
         Assert.NotNull(dev.Chat);
     }
 
+    [Theory]
+    [InlineData(ReasoningEffort.None, "none")]
+    [InlineData(ReasoningEffort.Low, "low")]
+    [InlineData(ReasoningEffort.High, "high")]
+    [InlineData(ReasoningEffort.ExtraHigh, "xhigh")]
+    public async Task How_much_the_model_reasons_goes_out_as_reasoning_effort(ReasoningEffort effort, string wire)
+    {
+        var (client, server) = Make();
+        server.Json("POST", Route, Whole(new { role = "assistant", content = "Hi." }));
+        await client.Chat.GetResponseAsync([new ChatMessage(ChatRole.User, "hi")],
+            new ChatOptions { Reasoning = new ReasoningOptions { Effort = effort } });
+        Assert.Equal(wire, server.Requests.Single().Json.GetProperty("reasoning_effort").GetString());
+
+        await client.Chat.GetResponseAsync([new ChatMessage(ChatRole.User, "hi")], new ChatOptions());
+        Assert.False(server.Requests[1].Json.TryGetProperty("reasoning_effort", out _), "no setting: the model's own");
+    }
+
     [Fact]
     public async Task Without_an_agent_the_plain_route_and_a_server_session()
     {
