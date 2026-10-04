@@ -3,6 +3,7 @@ using System.Text.Json;
 using Faden.Agents.Sessions;
 using Faden.Client.Tests;
 using Faden.Governance;
+using Faden.Models;
 using Faden.Tools;
 using Xunit;
 
@@ -195,6 +196,60 @@ public class AgentLoopTests
         await agent.StartAsync();
         Assert.Equal(new[] { ("read_page", ToolClass.Destructive), ("add_comment", ToolClass.Write), ("stamp", ToolClass.Read) },
             agent.Tools.Select(t => (t.Name, t.Class)));
+    }
+
+    [Fact]
+    public async Task The_app_tells_the_server_what_it_brings_also_the_tools_its_contract_does_not_list()
+    {
+        var gateway = new Gateway(contract: """[{"name":"read_page","risk":"read"}]""");
+        using var agent = gateway.Builder().AddTools(new PageTools()).DescribeApp(new AppDescription
+        {
+            Name = "EPLAN add-in",
+            Version = "2.1.0",
+            Context = [new ManifestContext { Id = "project:pages", Title = "The project's pages" }],
+            Ui = new ManifestUi { Greeting = "Ask about your project." },
+        }).Build();
+        await agent.StartAsync();
+        Assert.Equal(new[] { "read_page" }, agent.Tools.Select(t => t.Name)); // the others wait for the server's review
+
+        var sent = await Until(() => gateway.Manifests.FirstOrDefault());
+        var manifest = sent.Json;
+        Assert.Equal("EPLAN add-in", manifest.GetProperty("app").GetProperty("name").GetString());
+        Assert.Equal("2.1.0", manifest.GetProperty("app").GetProperty("version").GetString());
+        Assert.Equal("dotnet", manifest.GetProperty("sdk").GetProperty("language").GetString());
+        Assert.Equal("project:pages", manifest.GetProperty("context")[0].GetProperty("id").GetString());
+        Assert.Equal("Ask about your project.", manifest.GetProperty("ui").GetProperty("greeting").GetString());
+        var tools = manifest.GetProperty("tools").EnumerateArray()
+            .ToDictionary(t => t.GetProperty("name").GetString()!, t => t.GetProperty("class").GetString());
+        Assert.Equal("read", tools["read_page"]);
+        Assert.Equal("write", tools["add_comment"]);
+        Assert.Equal("destructive", tools["delete_page"]);
+        var read = manifest.GetProperty("tools").EnumerateArray().First(t => t.GetProperty("name").GetString() == "read_page");
+        Assert.Equal("Reads a page of the schematic.", read.GetProperty("description").GetString());
+        Assert.Equal("object", read.GetProperty("parameters").GetProperty("type").GetString());
+    }
+
+    [Fact]
+    public async Task No_manifest_when_event_reporting_is_off()
+    {
+        var gateway = new Gateway();
+        using var agent = gateway.Builder().AddTools(new PageTools()).UseEventReporting(false).Build();
+        await agent.StartAsync();
+        await Task.Delay(50);
+        Assert.Empty(gateway.Manifests);
+    }
+
+    private static async Task<T> Until<T>(Func<T?> find) where T : class
+    {
+        for (var i = 0; i < 200; i++)
+        {
+            if (find() is { } found)
+            {
+                return found;
+            }
+            await Task.Delay(10);
+        }
+        throw new TimeoutException();
     }
 
     [Fact]

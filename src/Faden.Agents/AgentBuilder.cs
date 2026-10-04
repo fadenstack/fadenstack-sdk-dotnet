@@ -1,5 +1,6 @@
 using Faden.Agents.Sessions;
 using Faden.Auth;
+using Faden.Models;
 using Faden.Tools;
 using Microsoft.Extensions.AI;
 
@@ -26,6 +27,7 @@ public sealed class AgentBuilder
     private int _historyTokens = 24_000;
     private bool _report = true;
     private ReasoningEffort? _reasoning;
+    private AppDescription _app = new() { Name = "Fadenstack SDK app" };
 
     internal AgentBuilder()
     {
@@ -134,10 +136,28 @@ public sealed class AgentBuilder
         return this;
     }
 
-    /// <summary>Whether tool runs and approvals are reported to the server (names and counts only). Default on.</summary>
+    /// <summary>
+    /// Whether tool runs and approvals (names and counts only), and the app's manifest, are reported to the server.
+    /// Default on.
+    /// </summary>
     public AgentBuilder UseEventReporting(bool enabled)
     {
         _report = enabled;
+        return this;
+    }
+
+    /// <summary>
+    /// The app the agent runs in. When the agent starts it tells the server what the app brings -- its host tools
+    /// with their classes, this context and greeting, the versions -- so the server's admins take new tools in with a
+    /// click instead of typing them; until they do, the server holds them back.
+    /// </summary>
+    public AgentBuilder DescribeApp(AppDescription app)
+    {
+        if (string.IsNullOrWhiteSpace(app?.Name))
+        {
+            throw new ArgumentException("An app needs a name.", nameof(app));
+        }
+        _app = app!;
         return this;
     }
 
@@ -213,8 +233,24 @@ public sealed class AgentBuilder
             HistoryTokens = _historyTokens,
             Report = _report,
             Reasoning = _reasoning,
+            App = _app,
         });
     }
+}
+
+/// <summary>The app an agent runs in: what its manifest says besides the tools.</summary>
+public sealed record AppDescription
+{
+    /// <summary>"Word add-in", "EPLAN add-in".</summary>
+    public string Name { get; init; } = "";
+
+    public string Version { get; init; } = "";
+
+    /// <summary>What the app offers the agent to read, by id.</summary>
+    public IReadOnlyList<ManifestContext> Context { get; init; } = [];
+
+    /// <summary>The greeting and suggestions the app would show.</summary>
+    public ManifestUi? Ui { get; init; }
 }
 
 internal sealed class AgentSettings
@@ -234,4 +270,5 @@ internal sealed class AgentSettings
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }
     public ReasoningEffort? Reasoning { get; init; }
+    public AppDescription App { get; init; } = new();
 }

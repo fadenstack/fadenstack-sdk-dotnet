@@ -24,6 +24,7 @@ public sealed class Gateway
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"]}
                 """)
             .Json("POST", "/v1/agents/eplan-assistant/events", new { accepted = 1 }, HttpStatusCode.Accepted)
+            .Json("PUT", "/v1/agents/eplan-assistant/manifest", new { sha256 = "abc", @new = true })
             .Json("POST", "/v1/agents/eplan-assistant/approvals/ap-1", new { ok = true })
             .On("POST", Chat, r => _answers.Count == 0
                 ? FakeServer.Respond(HttpStatusCode.InternalServerError, new { error = new { message = "unscripted" } })
@@ -35,6 +36,9 @@ public sealed class Gateway
     public List<Recorded> ChatRequests => Server.Requests.Where(r => r.Path == Chat).ToList();
 
     public List<Recorded> Reports => Server.Requests.Where(r => r.Path.EndsWith("/events")).ToList();
+
+    /// <summary>The manifests the app sent (<c>PUT .../manifest</c>).</summary>
+    public List<Recorded> Manifests => Server.Requests.Where(r => r.Path.EndsWith("/manifest")).ToList();
 
     public Gateway Then(Func<Recorded, HttpResponseMessage> answer)
     {

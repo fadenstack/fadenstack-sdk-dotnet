@@ -92,10 +92,47 @@ public sealed class FadenAgent : IDisposable
             }
             _tools = tools;
             _profile = profile;
+            if (_settings.Report)
+            {
+                _ = ReportManifestAsync();
+            }
         }
         finally
         {
             _starting.Release();
+        }
+    }
+
+    /// <summary>
+    /// Tells the server what this app brings: every host tool with the class its developer gave it -- also those the
+    /// contract does not list yet, which is how the server learns of them -- and the app's context and greeting.
+    /// Never fails the start: an older server without the route, or no network, just means no report.
+    /// </summary>
+    private async Task ReportManifestAsync()
+    {
+        var app = _settings.App;
+        var manifest = new AppManifest
+        {
+            App = new ManifestApp { Name = app.Name, Version = app.Version },
+            Sdk = new ManifestSdk { Language = SdkInfo.Language, Version = SdkInfo.Version },
+            Tools = _settings.Tools.Where(t => t.Source == "host").Select(t => new ManifestTool
+            {
+                Name = t.Name,
+                Description = string.IsNullOrEmpty(t.Function.Description) ? null : t.Function.Description,
+                Parameters = t.Function.JsonSchema,
+                Class = t.Class,
+                OpenWorld = t.OpenWorld,
+            }).ToList(),
+            Context = app.Context,
+            Ui = app.Ui,
+        };
+        try
+        {
+            await Client.Agent!.ReportManifestAsync(manifest).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Nothing to do: the server learns of the tools at the next start.
         }
     }
 

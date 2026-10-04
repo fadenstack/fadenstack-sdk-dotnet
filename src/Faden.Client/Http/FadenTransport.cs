@@ -113,6 +113,9 @@ public sealed class FadenTransport : IDisposable
     public Task<T> PostAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Post, url, body, cancellationToken);
 
+    public Task<T> PutAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
+        SendJsonAsync<T>(HttpMethod.Put, url, body, cancellationToken);
+
     public Task<T> PatchAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(new HttpMethod("PATCH"), url, body, cancellationToken);
 

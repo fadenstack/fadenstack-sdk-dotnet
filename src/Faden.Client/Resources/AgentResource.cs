@@ -35,6 +35,13 @@ public sealed class AgentResource
         await _transport.PostAsync<bool>(Route("events"), doc.RootElement, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Tells the server what the app brings -- its tools with their classes, its context, its greeting -- for its
+    /// admins to review. The same manifest again is only counted (<see cref="ManifestReceipt.IsNew"/> false).
+    /// </summary>
+    public Task<ManifestReceipt> ReportManifestAsync(AppManifest manifest, CancellationToken cancellationToken = default) =>
+        _transport.PutAsync<ManifestReceipt>(Route("manifest"), manifest, cancellationToken);
+
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },
