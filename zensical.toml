@@ -1,0 +1,30 @@
+# Standalone preview of the .NET SDK's developer documentation: `zensical serve`.
+# The developer hub reads `nav` from this file and mounts the pages under sdk/dotnet/.
+[project]
+site_name = "Fadenstack .NET SDK"
+docs_dir = "docs"
+nav = [
+  { "Overview" = "index.md" },
+  { "Build an agent" = "agent.md" },
+  { "Host tools" = "tools.md" },
+  { "Outcomes and errors" = "outcomes.md" },
+  { "Sessions on the device" = "sessions.md" },
+  { "Local MCP servers" = "local-mcp.md" },
+  { "Dependency injection" = "hosting.md" },
+  { "Chat panel" = "chat-panel.md" },
+  { "Without an agent" = "plain-api.md" },
+  { "Extending" = "extending.md" },
+  { "Samples" = "samples.md" },
+  { "Building a library" = "libraries.md" },
+]
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.highlight = {}
+pymdownx.inlinehilite = {}
+pymdownx.superfences = {}
+pymdownx.tabbed.alternate_style = true
