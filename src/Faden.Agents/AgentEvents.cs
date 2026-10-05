@@ -24,7 +24,7 @@ public sealed record ReasoningDelta(string Text) : AgentEvent;
 public sealed record ToolCallStarted(string CallId, string Name, ToolClass Class, string Source,
     IReadOnlyDictionary<string, object?> Arguments) : AgentEvent;
 
-/// <summary>A tool ended: <c>ok</c>, <c>error</c>, <c>denied</c> or <c>cancelled</c>.</summary>
+/// <summary>A tool ended: <c>ok</c>, <c>error</c> or <c>denied</c>. A stopped turn throws instead.</summary>
 public sealed record ToolCallCompleted(string CallId, string Name, string Source, string Outcome, string? Result,
     TimeSpan Duration) : AgentEvent;
 
@@ -36,7 +36,8 @@ public sealed record ApprovalDecided(ApprovalRequest Request, ApprovalDecision D
 /// <summary>A refusal or a limit, to show on the turn.</summary>
 public sealed record NoticeRaised(GovernanceNotice Notice) : AgentEvent;
 
-/// <summary>Any other gateway event (citations, PII notice, tool mode, events core does not know yet).</summary>
+/// <summary>Every gateway event as it came, also the ones turned into tool or notice events (citations, PII notice,
+/// tool mode, and events this SDK does not know yet).</summary>
 public sealed record GatewayEvent(FadenEventContent Event) : AgentEvent;
 
 public sealed record TurnCompleted(AgentResult Result) : AgentEvent;
