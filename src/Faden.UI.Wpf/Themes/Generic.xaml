@@ -1,0 +1,129 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:v="clr-namespace:Faden.UI.Wpf.Views"
+                    mc:Ignorable="po">
+    <!--
+        Default templates for the skin's controls; WPF finds them by type, wherever a control is used.
+
+        AgentAvatar: the Fadenstack agent, "the stack" (brand/avatar/make_agent_avatar.py), in its 200 x 200 space.
+        A plate is a diamond top face over two side faces, each filled and stroked (3, round joins) in its own
+        colour so neighbouring faces leave no seam. Drawn bottom up: bottom plate, thread end (full cut only),
+        the rose middle plate, its hollow (full cut only), the eyes, the lid. Plate, thread and hollow colours are
+        Faden.Avatar.* in Colors.*.xaml; the eyes are the same in every theme.
+    -->
+
+    <SolidColorBrush x:Key="Avatar.EyeWhite" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Avatar.EyeInk" Color="#0A0E1A" po:Freeze="True" />
+
+    <!-- Plates: bottom at y 146, middle at 122, lid at 62 (full cut) or 56 (small cut). Sides first, then the top. -->
+    <Geometry x:Key="Avatar.BottomSides" po:Freeze="True">F1 M42,146 L100,175 L100,184 L42,155 Z M100,175 L158,146 L158,155 L100,184 Z</Geometry>
+    <Geometry x:Key="Avatar.BottomTop" po:Freeze="True">F1 M100,117 L158,146 L100,175 L42,146 Z</Geometry>
+    <Geometry x:Key="Avatar.MiddleSides" po:Freeze="True">F1 M42,122 L100,151 L100,160 L42,131 Z M100,151 L158,122 L158,131 L100,160 Z</Geometry>
+    <Geometry x:Key="Avatar.MiddleTop" po:Freeze="True">F1 M100,93 L158,122 L100,151 L42,122 Z</Geometry>
+    <Geometry x:Key="Avatar.LidSides" po:Freeze="True">F1 M42,62 L100,91 L100,100 L42,71 Z M100,91 L158,62 L158,71 L100,100 Z</Geometry>
+    <Geometry x:Key="Avatar.LidTop" po:Freeze="True">F1 M100,33 L158,62 L100,91 L42,62 Z</Geometry>
+    <Geometry x:Key="Avatar.SmallLidSides" po:Freeze="True">F1 M42,56 L100,85 L100,94 L42,65 Z M100,85 L158,56 L158,65 L100,94 Z</Geometry>
+    <Geometry x:Key="Avatar.SmallLidTop" po:Freeze="True">F1 M100,27 L158,56 L100,85 L42,56 Z</Geometry>
+    <Geometry x:Key="Avatar.ThreadEnd" po:Freeze="True">M152,128 C168,132 176,148 168,160</Geometry>
+    <EllipseGeometry x:Key="Avatar.Hollow" Center="100,110" RadiusX="34" RadiusY="11" po:Freeze="True" />
+
+    <!-- Eyes: the white with an ink outline, the pupil up and right of centre, a glint on the pupil. -->
+    <GeometryGroup x:Key="Avatar.Eyes" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="88,104" RadiusX="8" RadiusY="9.5" />
+        <EllipseGeometry Center="112,104" RadiusX="8" RadiusY="9.5" />
+    </GeometryGroup>
+    <GeometryGroup x:Key="Avatar.Pupils" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="89,102.5" RadiusX="4.2" RadiusY="4.2" />
+        <EllipseGeometry Center="113,102.5" RadiusX="4.2" RadiusY="4.2" />
+    </GeometryGroup>
+    <GeometryGroup x:Key="Avatar.Glints" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="90.6,100.61" RadiusX="1.4" RadiusY="1.4" />
+        <EllipseGeometry Center="114.6,100.61" RadiusX="1.4" RadiusY="1.4" />
+    </GeometryGroup>
+    <GeometryGroup x:Key="Avatar.SmallEyes" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="84,104" RadiusX="11" RadiusY="12.5" />
+        <EllipseGeometry Center="116,104" RadiusX="11" RadiusY="12.5" />
+    </GeometryGroup>
+    <GeometryGroup x:Key="Avatar.SmallPupils" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="85,102.5" RadiusX="5.8" RadiusY="5.8" />
+        <EllipseGeometry Center="117,102.5" RadiusX="5.8" RadiusY="5.8" />
+    </GeometryGroup>
+    <GeometryGroup x:Key="Avatar.SmallGlints" FillRule="Nonzero" po:Freeze="True">
+        <EllipseGeometry Center="86.6,99.89" RadiusX="1.9" RadiusY="1.9" />
+        <EllipseGeometry Center="118.6,99.89" RadiusX="1.9" RadiusY="1.9" />
+    </GeometryGroup>
+
+    <Style x:Key="Avatar.Face" TargetType="Path">
+        <Setter Property="StrokeThickness" Value="3" />
+        <Setter Property="StrokeLineJoin" Value="Round" />
+    </Style>
+
+    <!-- Full cut, 40 px and up: viewBox 21 30 158 158. -->
+    <ControlTemplate x:Key="Avatar.Full" TargetType="v:AgentAvatar">
+        <Viewbox Stretch="Uniform">
+            <Canvas Width="158" Height="158" ClipToBounds="True">
+                <Canvas Canvas.Left="-21" Canvas.Top="-30">
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.BottomSides}"
+                          Fill="{DynamicResource Faden.Avatar.PlateSide}" Stroke="{DynamicResource Faden.Avatar.PlateSide}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.BottomTop}"
+                          Fill="{DynamicResource Faden.Avatar.PlateTop}" Stroke="{DynamicResource Faden.Avatar.PlateTop}" />
+                    <Path Data="{StaticResource Avatar.ThreadEnd}" Stroke="{TemplateBinding ThreadBrush}" StrokeThickness="6"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.MiddleSides}"
+                          Fill="{TemplateBinding ThreadSideBrush}" Stroke="{TemplateBinding ThreadSideBrush}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.MiddleTop}"
+                          Fill="{TemplateBinding ThreadBrush}" Stroke="{TemplateBinding ThreadBrush}" />
+                    <Path Data="{StaticResource Avatar.Hollow}" Fill="{DynamicResource Faden.Avatar.Hollow}" />
+                    <Path Data="{StaticResource Avatar.Eyes}" Fill="{StaticResource Avatar.EyeWhite}"
+                          Stroke="{StaticResource Avatar.EyeInk}" StrokeThickness="2" />
+                    <Path Data="{StaticResource Avatar.Pupils}" Fill="{StaticResource Avatar.EyeInk}" />
+                    <Path Data="{StaticResource Avatar.Glints}" Fill="{StaticResource Avatar.EyeWhite}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.LidSides}"
+                          Fill="{DynamicResource Faden.Avatar.PlateSide}" Stroke="{DynamicResource Faden.Avatar.PlateSide}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.LidTop}"
+                          Fill="{DynamicResource Faden.Avatar.PlateTop}" Stroke="{DynamicResource Faden.Avatar.PlateTop}" />
+                </Canvas>
+            </Canvas>
+        </Viewbox>
+    </ControlTemplate>
+
+    <!-- Small cut, 32 px and below: viewBox 19.5 25 161 161; bigger eyes, the lid raised, no thread end or hollow. -->
+    <ControlTemplate x:Key="Avatar.Small" TargetType="v:AgentAvatar">
+        <Viewbox Stretch="Uniform">
+            <Canvas Width="161" Height="161" ClipToBounds="True">
+                <Canvas Canvas.Left="-19.5" Canvas.Top="-25">
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.BottomSides}"
+                          Fill="{DynamicResource Faden.Avatar.PlateSide}" Stroke="{DynamicResource Faden.Avatar.PlateSide}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.BottomTop}"
+                          Fill="{DynamicResource Faden.Avatar.PlateTop}" Stroke="{DynamicResource Faden.Avatar.PlateTop}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.MiddleSides}"
+                          Fill="{TemplateBinding ThreadSideBrush}" Stroke="{TemplateBinding ThreadSideBrush}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.MiddleTop}"
+                          Fill="{TemplateBinding ThreadBrush}" Stroke="{TemplateBinding ThreadBrush}" />
+                    <Path Data="{StaticResource Avatar.SmallEyes}" Fill="{StaticResource Avatar.EyeWhite}"
+                          Stroke="{StaticResource Avatar.EyeInk}" StrokeThickness="3" />
+                    <Path Data="{StaticResource Avatar.SmallPupils}" Fill="{StaticResource Avatar.EyeInk}" />
+                    <Path Data="{StaticResource Avatar.SmallGlints}" Fill="{StaticResource Avatar.EyeWhite}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.SmallLidSides}"
+                          Fill="{DynamicResource Faden.Avatar.PlateSide}" Stroke="{DynamicResource Faden.Avatar.PlateSide}" />
+                    <Path Style="{StaticResource Avatar.Face}" Data="{StaticResource Avatar.SmallLidTop}"
+                          Fill="{DynamicResource Faden.Avatar.PlateTop}" Stroke="{DynamicResource Faden.Avatar.PlateTop}" />
+                </Canvas>
+            </Canvas>
+        </Viewbox>
+    </ControlTemplate>
+
+    <Style TargetType="v:AgentAvatar">
+        <!-- The theme's rose; a local ThreadBrush / ThreadSideBrush wins. -->
+        <Setter Property="ThreadBrush" Value="{DynamicResource Faden.Avatar.Thread}" />
+        <Setter Property="ThreadSideBrush" Value="{DynamicResource Faden.Avatar.ThreadSide}" />
+        <Setter Property="Template" Value="{StaticResource Avatar.Full}" />
+        <Style.Triggers>
+            <Trigger Property="Small" Value="True">
+                <Setter Property="Template" Value="{StaticResource Avatar.Small}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

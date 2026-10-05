@@ -34,6 +34,12 @@
     <SolidColorBrush x:Key="Faden.Scrim" Color="#66000000" po:Freeze="True" />
     <SolidColorBrush x:Key="Faden.ScrollThumb" Color="#5C5C5C" po:Freeze="True" />
     <SolidColorBrush x:Key="Faden.ScrollThumbHover" Color="#808080" po:Freeze="True" />
+    <!-- The agent avatar (AgentAvatar): paper plates, the rose thread plate, the hollow under the lid. -->
+    <SolidColorBrush x:Key="Faden.Avatar.PlateTop" Color="#F3F4F6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Avatar.PlateSide" Color="#AEB7C6" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Avatar.Thread" Color="#FF4D6D" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Avatar.ThreadSide" Color="#C21E48" po:Freeze="True" />
+    <SolidColorBrush x:Key="Faden.Avatar.Hollow" Color="#8C0A0E1A" po:Freeze="True" />
     <FontFamily x:Key="Faden.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="Faden.CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
     <FontFamily x:Key="Faden.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>

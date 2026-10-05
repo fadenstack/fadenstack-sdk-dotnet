@@ -4,7 +4,8 @@
                     xmlns:parts="clr-namespace:Faden.UI.Parts;assembly=Faden.UI"
                     xmlns:md="clr-namespace:Faden.UI.Markdown;assembly=Faden.UI"
                     xmlns:b="clr-namespace:Faden.UI.Wpf.Behaviors"
-                    xmlns:c="clr-namespace:Faden.UI.Wpf.Converters">
+                    xmlns:c="clr-namespace:Faden.UI.Wpf.Converters"
+                    xmlns:v="clr-namespace:Faden.UI.Wpf.Views">
     <!--
         Styles and templates for the chat. Templates are implicit (by view-model type), so a host can replace
         any one of them by adding its own DataTemplate for that type. Colours come from Colors.*.xaml.
@@ -732,9 +733,7 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
-                <Border Width="22" Height="22" CornerRadius="11" Background="{DynamicResource Faden.Accent}">
-                    <TextBlock Style="{StaticResource Faden.Icon}" FontSize="12" Text="&#xE99A;" Foreground="{DynamicResource Faden.AccentForeground}" />
-                </Border>
+                <v:AgentAvatar Small="True" Width="22" Height="22" />
                 <TextBlock Margin="8,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"
                            Text="{Binding DataContext.Title, RelativeSource={RelativeSource AncestorType=UserControl}}" />
             </StackPanel>

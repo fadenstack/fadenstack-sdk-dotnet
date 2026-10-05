@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Faden.UI.ViewModels;assembly=Faden.UI"
              xmlns:b="clr-namespace:Faden.UI.Wpf.Behaviors"
+             xmlns:local="clr-namespace:Faden.UI.Wpf.Views"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:AgentChatViewModel}"
              d:DesignWidth="480" d:DesignHeight="720"
              Background="{DynamicResource Faden.Background}" Foreground="{DynamicResource Faden.Foreground}"
@@ -80,9 +81,7 @@
                         <TextBlock Style="{StaticResource Faden.Icon}" Text="&#xE710;" />
                     </Button>
                 </StackPanel>
-                <Border Width="24" Height="24" CornerRadius="12" Background="{DynamicResource Faden.Accent}" Margin="0,0,10,0">
-                    <TextBlock Style="{StaticResource Faden.Icon}" FontSize="13" Text="&#xE99A;" Foreground="{DynamicResource Faden.AccentForeground}" />
-                </Border>
+                <local:AgentAvatar Small="True" Width="24" Height="24" Margin="0,0,10,0" />
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
         </Border>
@@ -92,9 +91,7 @@
             <!-- Empty chat: the agent's greeting and suggestions -->
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440" Margin="24"
                         Visibility="{Binding IsEmpty, Converter={StaticResource Faden.BoolToVisibility}}">
-                <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Faden.Accent}" HorizontalAlignment="Center">
-                    <TextBlock Style="{StaticResource Faden.Icon}" FontSize="22" Text="&#xE99A;" Foreground="{DynamicResource Faden.AccentForeground}" />
-                </Border>
+                <local:AgentAvatar Width="56" Height="56" HorizontalAlignment="Center" />
                 <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,4" />
                 <TextBlock Text="{Binding Greeting}" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource Faden.ForegroundMuted}" />
                 <ItemsControl ItemsSource="{Binding Suggestions}" Focusable="False" Margin="0,16,0,0">
