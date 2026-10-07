@@ -55,7 +55,7 @@ switch (result.Outcome)
 | `ResponseBlocked` | An output check stopped the answer. Tool calls in it are never run. Only the question stays in the session's history. |
 | `ToolDenied` | At least one tool call was refused: by the tool mode, by the user, because an approval expired, or by the server. The answer may still be complete. |
 | `RateLimited` | The server's rate limit applied. The notice's `RetryAfter` says when to try again, if the server said. |
-| `BudgetExceeded` | A budget is used up. The notice's `RetryAfter` says when to try again, if the server said. |
+| `BudgetExceeded` | A budget is used up. The notice's `RetryAfter` says when to try again, if the server said. Budgets are <span class="fs-planned">Planned</span>. |
 | `ApprovalRequired` | A call waits for the user's decision. An agent turn does not end with it, because the agent waits for the decision inside the turn. |
 
 A refusal of the prompt or the answer decides the outcome before a denied tool does.

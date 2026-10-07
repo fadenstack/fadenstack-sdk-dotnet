@@ -18,7 +18,7 @@ A `LocalMcpServer` is one of three kinds:
 |---|---|
 | `LocalMcpServer.Stdio(label, command, arguments, environment, workingDirectory)` | A program the agent starts and talks to over standard input and output. |
 | `LocalMcpServer.Http(label, url, httpClient)` | An MCP server reached over HTTP. |
-| `LocalMcpServer.FromTransport(label, transport)` | Any other transport of the MCP C# SDK (`IClientTransport`), such as a named pipe or an in-process stream. |
+| `LocalMcpServer.FromTransport(label, transport)` | Any other transport of the MCP C# SDK, such as a named pipe or an in-process stream. `transport` is a function that returns the `IClientTransport` when the server is attached. |
 
 The label is what the user and the server see the server as. Choose a short, stable name.
 

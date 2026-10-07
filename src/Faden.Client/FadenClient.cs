@@ -10,7 +10,7 @@ namespace Faden;
 /// <summary>
 /// The connection to a Fadenstack server. With an agent (<see cref="FadenClientOptions.Agent"/>) it is that
 /// agent's client -- one agent per client -- and <see cref="Chat"/> calls the agent's endpoint; without one it
-/// uses the plain <c>/v1</c> routes with an API token. Python: <c>faden.FadenClient</c>.
+/// uses the plain <c>/v1</c> routes with an API token.
 /// </summary>
 public sealed class FadenClient : IDisposable
 {

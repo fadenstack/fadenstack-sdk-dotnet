@@ -29,7 +29,7 @@ The options you are most likely to set for an agent:
 | `ApiUrl` | The backend that handles sign-in, when it is not at the server URL. |
 | `TrustedCaCertificate` | A CA certificate (PEM or DER) to trust for the server's certificate, in addition to the operating system's store. It applies to this client's connections only, sign-in included. |
 | `AllowInsecureHttp` | Allows `http://`. Use it only for a development server on your own machine. |
-| `Timeout` | How long one request may take (default five minutes). A streamed answer that has started is not cut off by it. |
+| `Timeout` | How long one request may take (default five minutes). Streamed requests, such as an agent's model calls, are not limited by it. |
 | `HttpClient` | Your own `HttpClient`, for proxies, extra handlers or tests. |
 | `GatewayEvents` | Whether the gateway sends its events (tool rounds, approvals, notices). On by default. |
 
@@ -38,7 +38,7 @@ using var client = FadenClient.ForAgent(serverUrl, "eplan-assistant", out var to
     configure: options => options.TrustedCaCertificate = File.ReadAllBytes("company-ca.crt"));
 ```
 
-The client never changes process-wide settings, so it is safe inside another application's process. On .NET Framework it enables TLS 1.2 and 1.3 on its own connections only.
+The client never changes process-wide settings, so it is safe inside another application's process. On .NET Framework it enables TLS 1.2, and TLS 1.3 from .NET Framework 4.8, on its own connections only.
 
 ## Sign in
 
@@ -111,7 +111,7 @@ using var agent = FadenAgent.CreateBuilder()
 
 ### Describe your app
 
-When the agent starts, it tells the server what your app brings: its host tools with the classes you gave them, the app's name and version, the SDK's version, and the context and greeting you describe. The server keeps this for its administrators to review; nothing in it changes what the agent may do. A tool the server has not seen before is held back until an administrator takes it in.
+When the agent starts, it tells the server what your app brings: its host tools with the classes you gave them, the app's name and version, the SDK's version, and the context and greeting you describe. The server keeps this for its administrators to review; nothing in it changes what the agent may do. When the agent's host tool contract is not empty, a tool the contract does not list is held back until an administrator takes it in.
 
 ```csharp
 using Faden.Models;
@@ -189,7 +189,7 @@ await foreach (var e in session.StreamAsync("What is on page 7?"))
 | `TextDelta` | Answer text arrives. | `Text` |
 | `ReasoningDelta` | The model's reasoning arrives, from models that send it. | `Text` |
 | `ToolCallStarted` | A tool starts. | `CallId`, `Name`, `Class`, `Source` (`host`, `mcp` or `gateway`), `Arguments` (empty for gateway tools) |
-| `ToolCallCompleted` | A tool ended. | `CallId`, `Name`, `Source`, `Outcome` (`ok`, `error`, `denied` or `cancelled`), `Result` (null for gateway tools), `Duration` (the tool's own time, without the wait for approval) |
+| `ToolCallCompleted` | A tool ended. | `CallId`, `Name`, `Source`, `Outcome` (`ok`, `error` or `denied`), `Result` (null for gateway tools), `Duration` (the tool's own time, without the wait for approval) |
 | `ApprovalRequested` | A call waits for the user. Your approval handler is called right after. | `Request` |
 | `ApprovalDecided` | The decision was made. | `Request`, `Decision` |
 | `NoticeRaised` | A refusal or a limit to show on the turn. | `Notice` |

@@ -2,6 +2,10 @@
 
 This page covers `Faden.Client` on its own: the gateway's `/v1/chat/completions` route as an `IChatClient`, and the server's REST resources.
 
+!!! note "Server version"
+    Tool modes, governance notices, the gateway's events and `GetFeaturesAsync` need a Fadenstack server from the
+    next release, after 0.4.1. With 0.4.1, chat and the server resources work without them.
+
 ## A plain client
 
 Without an agent, a `FadenClient` uses the plain `/v1` routes with an API token and a model you choose:
@@ -78,7 +82,7 @@ var response = await client.Chat.GetResponseAsync(question, options);
 |---|---|
 | `WithSession(sessionId)` | Uses a server session (see below) for this request. |
 | `WithToolMode(mode)` | The tool mode for this request. Without it, the client's `ToolMode` option applies, which is `Ask` by default. |
-| `WithConversation(conversationId, turnId)` | Groups usage per conversation without the server keeping the conversation. |
+| `WithConversation(conversationId, turnId)` | Names the conversation and turn. Only an agent's route reads them, to group usage per conversation without keeping the conversation; the plain routes ignore them. |
 | `FadenChatOptions.Skills` | A key for `AdditionalProperties`: the skills to use for this message, by slug. |
 
 With `GatewayEvents` on (the default), the response also carries the gateway's events as `FadenEventContent` items, such as citations.

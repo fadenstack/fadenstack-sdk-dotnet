@@ -3,7 +3,7 @@
 Agents that run inside other software (EPLAN, TIA Portal, Office, any desktop application) and are governed by a
 [Fadenstack](https://fadenstack.com) server. The SDK runs the agent loop on the device: host tools, approvals, local
 MCP servers and the conversation itself. The server owns the agent's instructions, model and knowledge, and handles
-personal data, budgets and audit.
+personal data and audit (budgets are planned). Agents need a Fadenstack server from the next release, after 0.4.1.
 
 **Documentation: [developers.fadenstack.com/sdk/dotnet](https://developers.fadenstack.com/sdk/dotnet/)**
 (the source is in [`docs/`](docs/)).
@@ -16,7 +16,7 @@ personal data, budgets and audit.
 | `Faden.UI` | Platform-neutral view models for a chat with an agent |
 | `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins |
 
-`Faden.Client`, `Faden.Agents`, `Faden.Mcp` and `Faden.UI` target `netstandard2.0` (.NET Framework 4.6.2 and later)
+`Faden.Client`, `Faden.Agents`, `Faden.Mcp` and `Faden.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
 and `net8.0`. `Faden.UI.Wpf` targets `net472` and `net8.0-windows`.
 
 ## An agent in a host application

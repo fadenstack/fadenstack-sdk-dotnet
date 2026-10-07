@@ -71,7 +71,7 @@ Every tool has a class that says what it does:
 | `Destructive` | Deletes, sends, pays, or cannot be undone. |
 | `Unknown` | Nobody said what it does. It always asks, and `ReadOnly` hides it. |
 
-The class you give is what you say the tool does. The agent's host tool contract on the server can make a class stricter, never looser, and the agent runs each tool under the stricter of the two. When the contract is not empty, host tools it does not list are not offered to the model at all. After the agent has started, `agent.Tools` lists the tools it offers with the classes they run under.
+The class you give is what you say the tool does. The agent's host tool contract on the server can make a class stricter, never looser, and the agent runs each tool under the stricter of the two. A tool you gave no class runs under the contract's class. When the contract is not empty, host tools it does not list are not offered to the model at all. After the agent has started, `agent.Tools` lists the tools it offers with the classes they run under.
 
 [Agents on the server](../../concepts/agents.md) describes the host tool contract.
 

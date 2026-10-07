@@ -2,11 +2,15 @@
 
 This page introduces the .NET SDK, its packages and target frameworks, and shows how to add it to a project.
 
+!!! note "Server version"
+    Agents need a Fadenstack server from the next release, after 0.4.1. With 0.4.1, only
+    [the plain client](plain-api.md) works, without tool modes, governance notices and the gateway's events.
+
 ## What the SDK is
 
 The SDK builds agents that run inside other software and are governed by a Fadenstack server. The host can be a desktop application such as EPLAN, TIA Portal or Microsoft Office, a Windows service or a console tool.
 
-The work is split between the device and the server. The device runs the agent loop: it sends the conversation, runs the host application's tools, asks the user before a tool changes something, attaches local MCP servers and keeps the conversation. The server owns the agent's instructions, its model and its knowledge, and it handles personal data (PII), budgets and the audit trail.
+The work is split between the device and the server. The device runs the agent loop: it sends the conversation, runs the host application's tools, asks the user before a tool changes something, attaches local MCP servers and keeps the conversation. The server owns the agent's instructions, its model and its knowledge, and it handles personal data (PII) and the audit trail. Budgets are <span class="fs-planned">Planned</span>.
 
 The SDK never receives the agent's instructions. Every model call goes through the server's gateway, which applies the organisation's policies on the way to the model and back. [Agents on the server](../../concepts/agents.md) explains how an agent is defined there.
 
@@ -26,7 +30,7 @@ Each package brings the packages it builds on. `Faden.Agents` includes `Faden.Cl
 
 | Package | Targets | Runs on |
 |---|---|---|
-| `Faden.Client`, `Faden.Agents`, `Faden.Mcp`, `Faden.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.6.2 and later, .NET 8 and later |
+| `Faden.Client`, `Faden.Agents`, `Faden.Mcp`, `Faden.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
 | `Faden.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
 
 The `netstandard2.0` builds serve .NET Framework hosts, such as add-ins loaded by a native application. A .NET 8 or later application gets the `net8.0` builds. If you write a library on top of the SDK, read [Building a library](libraries.md) first.
