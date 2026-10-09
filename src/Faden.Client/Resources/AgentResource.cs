@@ -42,6 +42,13 @@ public sealed class AgentResource
     public Task<ManifestReceipt> ReportManifestAsync(AppManifest manifest, CancellationToken cancellationToken = default) =>
         _transport.PutAsync<ManifestReceipt>(Route("manifest"), manifest, cancellationToken);
 
+    /// <summary>
+    /// Pictures from a prompt, by the image model the server runs (<see cref="AgentProfile.Images"/> says whether
+    /// it has one); for a tool that puts a picture into a document. The prompt is checked like any text.
+    /// </summary>
+    public Task<ImagesResponse> GenerateImagesAsync(ImageRequest request, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<ImagesResponse>(Route("images/generations"), request, cancellationToken);
+
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },

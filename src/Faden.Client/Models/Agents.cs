@@ -19,6 +19,9 @@ public sealed record AgentProfile
     /// <summary>Whether the agent's model sees pictures: true, false, or null when nobody said (sdk/10 §4).</summary>
     public bool? Vision { get; init; }
 
+    /// <summary>Whether the server has an image model the agent's tools can use (sdk/11).</summary>
+    public bool Images { get; init; }
+
     public string? InstructionsSha256 { get; init; }
 
     /// <summary>The tools the host application may offer; any other tool is refused.</summary>
