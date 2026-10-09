@@ -38,6 +38,9 @@ public sealed class FadenAgent : IDisposable
     /// <summary>The most any session may use: the profile's ceiling (EE), or Auto.</summary>
     public ToolMode Ceiling => ToolModes.ParseMode(_profile?.ToolModes.Ceiling) ?? ToolMode.Auto;
 
+    /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
+    public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;
+
     public ToolMode DefaultToolMode => ToolModes.Narrowest(_settings.DefaultMode, ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask);
 
     internal AgentSettings Settings => _settings;

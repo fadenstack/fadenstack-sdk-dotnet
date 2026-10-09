@@ -27,6 +27,7 @@ public sealed class AgentBuilder
     private int _historyTokens = 24_000;
     private bool _report = true;
     private ReasoningEffort? _reasoning;
+    private bool _pictures = true;
     private AppDescription _app = new() { Name = "Fadenstack SDK app" };
 
     internal AgentBuilder()
@@ -137,6 +138,16 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
+    /// Whether pictures the tools return (a rendered slide) go to the model. Default on, and then only when the
+    /// agent's profile says its model sees them; off, they never do (sdk/10 §3-4).
+    /// </summary>
+    public AgentBuilder UsePictures(bool enabled)
+    {
+        _pictures = enabled;
+        return this;
+    }
+
+    /// <summary>
     /// Whether tool runs and approvals (names and counts only), and the app's manifest, are reported to the server.
     /// Default on.
     /// </summary>
@@ -233,6 +244,7 @@ public sealed class AgentBuilder
             HistoryTokens = _historyTokens,
             Report = _report,
             Reasoning = _reasoning,
+            Pictures = _pictures,
             App = _app,
         });
     }
@@ -270,5 +282,6 @@ internal sealed class AgentSettings
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }
     public ReasoningEffort? Reasoning { get; init; }
+    public bool Pictures { get; init; } = true;
     public AppDescription App { get; init; } = new();
 }

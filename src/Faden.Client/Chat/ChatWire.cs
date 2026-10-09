@@ -131,13 +131,26 @@ internal static class ChatWire
         var role = message.Role.Value;
         if (message.Role == ChatRole.Tool)
         {
-            foreach (var result in message.Contents.OfType<FunctionResultContent>())
+            // Pictures in a tool message belong to its (last) result: the text, then each picture (sdk/10 §3).
+            var results = message.Contents.OfType<FunctionResultContent>().ToList();
+            var pictures = message.Contents.OfType<DataContent>().Where(d => d.HasTopLevelMediaType("image")).ToList();
+            for (var i = 0; i < results.Count; i++)
             {
+                JsonNode content = ResultText(results[i]);
+                if (i == results.Count - 1 && pictures.Count > 0)
+                {
+                    var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = ResultText(results[i]) } };
+                    foreach (var picture in pictures)
+                    {
+                        parts.Add(new JsonObject { ["type"] = "image_url", ["image_url"] = new JsonObject { ["url"] = picture.Uri } });
+                    }
+                    content = parts;
+                }
                 yield return new JsonObject
                 {
                     ["role"] = "tool",
-                    ["tool_call_id"] = result.CallId,
-                    ["content"] = ResultText(result),
+                    ["tool_call_id"] = results[i].CallId,
+                    ["content"] = content,
                 };
             }
             yield break;

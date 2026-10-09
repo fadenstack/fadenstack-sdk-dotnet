@@ -14,12 +14,12 @@ public sealed class Gateway
     private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
 
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
-        string localMcp = """{"mode":"disable","developer_mode":false}""")
+        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null")
     {
         Server = new FakeServer()
             .Json("GET", "/v1/agents/eplan-assistant/profile", $$"""
                 {"object":"agent.profile","id":"a-1","slug":"eplan-assistant","name":"EPLAN","version":3,"draft":false,
-                 "model":"qwen3-32b","host_tool_contract":{{contract ?? "[]"}},"local_mcp":{{localMcp}},
+                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? "[]"}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"]}
                 """)

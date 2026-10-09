@@ -204,6 +204,10 @@ public sealed class AgentSession
         private bool _toolDenied;
         private ToolMode _mode;
 
+        // Pictures the turn's tools returned, by call; only the newest goes back to the model (sdk/10 §3).
+        private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
+        private string? _newestPicture;
+
         public Turn(AgentSession session, string id, ChannelWriter<AgentEvent> writer)
         {
             _session = session;
@@ -306,6 +310,7 @@ public sealed class AgentSession
                 options.Tools = null;
             }
             var history = _session._context.Build(_session._entries);
+            AttachNewestPicture(history);
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();
             await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
@@ -496,6 +501,7 @@ public sealed class AgentSession
             string result;
             string outcome;
             var waited = TimeSpan.Zero;
+            IReadOnlyList<DataContent> pictures = Array.Empty<DataContent>();
             if (tool is null)
             {
                 (result, outcome) = ($"Tool '{call.Name}' does not exist here.", "error");
@@ -510,7 +516,19 @@ public sealed class AgentSession
             }
             else
             {
-                (result, outcome, waited) = await DecideAndRunAsync(tool, call, arguments, cancellationToken).ConfigureAwait(false);
+                (result, outcome, waited, pictures) = await DecideAndRunAsync(tool, call, arguments, cancellationToken).ConfigureAwait(false);
+            }
+            if (pictures.Count > 0)
+            {
+                if (Agent.SeesPictures)
+                {
+                    _pictures[call.CallId] = pictures;
+                    _newestPicture = call.CallId;
+                }
+                else
+                {
+                    result += (result.Length > 0 ? "\n" : "") + "(The model cannot see pictures: the picture was not sent.)";
+                }
             }
             watch.Stop();
             // The tool's own time: the user's time on the approval card is reported apart (ApprovalDecidedEvent).
@@ -518,9 +536,9 @@ public sealed class AgentSession
             await _session.AppendAsync(EntryTypes.ToolComplete, _id, new
             {
                 call_id = call.CallId, name = call.Name, source, result, outcome,
-                duration_ms = (long)ran.TotalMilliseconds, origin = "client",
+                duration_ms = (long)ran.TotalMilliseconds, origin = "client", pictures = pictures.Count,
             }).ConfigureAwait(false);
-            Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran));
+            Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
             if (tool is not null)
             {
                 Agent.Reporter.Add(new ToolExecutedEvent
@@ -532,7 +550,7 @@ public sealed class AgentSession
         }
 
         /// <summary>Asks if the mode says so, then runs the tool; also returns how long the asking took.</summary>
-        private async Task<(string Result, string Outcome, TimeSpan Waited)> DecideAndRunAsync(AgentTool tool, FunctionCallContent call,
+        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool, FunctionCallContent call,
             Dictionary<string, object?> arguments, CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
@@ -542,7 +560,7 @@ public sealed class AgentSession
                     _toolDenied = true;
                     var why = $"the tool mode is {_mode.ToWire()}";
                     await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
-                    return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero);
+                    return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
                 case ToolModeDecision.Ask:
                     var (decision, waited) = await AskAsync(new ApprovalRequest
                     {
@@ -567,7 +585,7 @@ public sealed class AgentSession
                     {
                         _toolDenied = true;
                         var reason = decision?.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                        return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed);
+                        return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
                     }
                     break;
             }
@@ -576,7 +594,8 @@ public sealed class AgentSession
             {
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments), _session.Id, _id);
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
-                return (ChatWire.ResultText(new FunctionResultContent(call.CallId, value)), "ok", askedFor);
+                var (text, pictures) = ToolResults.Split(call.CallId, value);
+                return (text, "ok", askedFor, pictures);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -584,7 +603,31 @@ public sealed class AgentSession
             }
             catch (Exception e)
             {
-                return ($"Error: {e.Message}", "error", askedFor);
+                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>());
+            }
+        }
+
+        /// <summary>
+        /// The newest picture a tool returned in this turn goes back with that tool's result; older ones are left out,
+        /// their text stays (sdk/10 §3). Pictures are never in the transcript, so later turns carry none.
+        /// </summary>
+        private void AttachNewestPicture(IList<ChatMessage> history)
+        {
+            if (_newestPicture is null || !_pictures.TryGetValue(_newestPicture, out var pictures))
+            {
+                return;
+            }
+            for (var i = history.Count - 1; i >= 0; i--)
+            {
+                var message = history[i];
+                if (message.Role == ChatRole.Tool && message.Contents.OfType<FunctionResultContent>().Any(r => r.CallId == _newestPicture))
+                {
+                    foreach (var picture in pictures)
+                    {
+                        message.Contents.Add(picture);
+                    }
+                    return;
+                }
             }
         }
 

@@ -26,7 +26,11 @@ public sealed record ToolCallStarted(string CallId, string Name, ToolClass Class
 
 /// <summary>A tool ended: <c>ok</c>, <c>error</c> or <c>denied</c>. A stopped turn throws instead.</summary>
 public sealed record ToolCallCompleted(string CallId, string Name, string Source, string Outcome, string? Result,
-    TimeSpan Duration) : AgentEvent;
+    TimeSpan Duration) : AgentEvent
+{
+    /// <summary>The pictures the tool returned (a rendered slide), for the UI to show; sent to the model only if it sees.</summary>
+    public IReadOnlyList<DataContent> Pictures { get; init; } = Array.Empty<DataContent>();
+}
 
 /// <summary>A call waits for the user; the <see cref="IApprovalHandler"/> is asked right after.</summary>
 public sealed record ApprovalRequested(ApprovalRequest Request) : AgentEvent;
