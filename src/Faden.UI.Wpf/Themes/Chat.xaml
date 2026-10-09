@@ -449,6 +449,14 @@
                                Visibility="{Binding HasDetails, Converter={StaticResource Faden.BoolToVisibility}}" />
                 </StackPanel>
             </Button>
+            <!-- What the tool showed the agent (a rendered slide): small, under its line. -->
+            <Border Visibility="{Binding HasPicture, Converter={StaticResource Faden.BoolToVisibility}}" Margin="30,4,0,6"
+                    HorizontalAlignment="Left" Width="240" Height="135" BorderBrush="{DynamicResource Faden.Border}" BorderThickness="1"
+                    CornerRadius="{StaticResource Faden.Radius.Container}">
+                <Border.Background>
+                    <ImageBrush ImageSource="{Binding Picture}" Stretch="Uniform" />
+                </Border.Background>
+            </Border>
             <Border Visibility="{Binding IsExpanded, Converter={StaticResource Faden.BoolToVisibility}}" Margin="30,2,0,8"
                     Background="{DynamicResource Faden.CodeBackground}" BorderBrush="{DynamicResource Faden.Border}"
                     BorderThickness="1" CornerRadius="{StaticResource Faden.Radius.Container}" Padding="12,10">

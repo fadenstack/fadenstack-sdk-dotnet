@@ -137,6 +137,7 @@ public sealed class ToolCallPart : ResponsePart
     private TimeSpan? _duration;
     private bool _isExpanded;
     private string? _result;
+    private byte[]? _picture;
     private IReadOnlyDictionary<string, object?>? _arguments;
 
     internal ToolCallPart(string callId, string name, string source, ToolClass toolClass,
@@ -228,11 +229,27 @@ public sealed class ToolCallPart : ResponsePart
 
     public bool HasDetails => (_arguments?.Count ?? 0) > 0 || !string.IsNullOrEmpty(_result);
 
+    /// <summary>The first picture the tool returned (a rendered slide), PNG or JPEG; a UI shows it small under the line.</summary>
+    public byte[]? Picture
+    {
+        get => _picture;
+        private set
+        {
+            if (SetProperty(ref _picture, value))
+            {
+                OnPropertyChanged(nameof(HasPicture));
+            }
+        }
+    }
+
+    public bool HasPicture => _picture is { Length: > 0 };
+
     public IRelayCommand ToggleCommand { get; }
 
-    internal void Complete(string outcome, string? result, TimeSpan duration)
+    internal void Complete(string outcome, string? result, TimeSpan duration, byte[]? picture = null)
     {
         _result = result;
+        Picture = picture;
         Duration = duration;
         State = outcome switch
         {

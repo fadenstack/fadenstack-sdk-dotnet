@@ -180,7 +180,7 @@ public sealed class TurnViewModel : ObservableObject
             _tools[Key(e.CallId, e.Name)] = part;
             Parts.Add(part);
         }
-        part.Complete(e.Outcome, e.Result, e.Duration);
+        part.Complete(e.Outcome, e.Result, e.Duration, e.Pictures.Count > 0 ? e.Pictures[0].Data.ToArray() : null);
     }
 
     internal void AddApproval(PendingApproval pending)
