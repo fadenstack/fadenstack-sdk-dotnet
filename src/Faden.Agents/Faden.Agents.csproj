@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Faden.Agents</RootNamespace>
-    <PackageId>Faden.Agents</PackageId>
+    <PackageId>Fadenstack.Agents</PackageId>
     <Description>Agents on Fadenstack: the agent builder, the tool loop with host tools, tool modes and approvals, local encrypted sessions, and typed governance outcomes.</Description>
   </PropertyGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Faden</RootNamespace>
-    <PackageId>Faden.Client</PackageId>
+    <PackageId>Fadenstack.Client</PackageId>
     <Description>The Fadenstack core client: an IChatClient for the gateway (agent-scoped or plain), sign-in and agent tokens, the agent profile, governance outcomes, tool classes and modes, and the server-session resources.</Description>
   </PropertyGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Faden.UI</RootNamespace>
-    <PackageId>Faden.UI</PackageId>
+    <PackageId>Fadenstack.UI</PackageId>
     <Description>Platform-neutral view models for Fadenstack agents: the chat, streamed markdown, tool calls, approvals, notices, sessions. Skins (Faden.UI.Wpf) only render them.</Description>
   </PropertyGroup>
   <ItemGroup>

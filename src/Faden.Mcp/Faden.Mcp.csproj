@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <RootNamespace>Faden.Mcp</RootNamespace>
-    <PackageId>Faden.Mcp</PackageId>
+    <PackageId>Fadenstack.Mcp</PackageId>
     <Description>MCP for Fadenstack agents: local MCP servers as agent tools, under the agent's local MCP policy.</Description>
   </PropertyGroup>
   <ItemGroup>

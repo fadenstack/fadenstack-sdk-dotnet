@@ -8,16 +8,17 @@ personal data and audit (budgets are planned). Agents need a Fadenstack server f
 **Documentation: [developers.fadenstack.com/sdk/dotnet](https://developers.fadenstack.com/sdk/dotnet/)**
 (the source is in [`docs/`](docs/)).
 
-| Package | What it is |
-|---|---|
-| `Faden.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
-| `Faden.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
-| `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy |
-| `Faden.UI` | Platform-neutral view models for a chat with an agent |
-| `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins |
+| Package | Namespace | What it is |
+|---|---|---|
+| `Fadenstack.Client` | `Faden` and `Faden.*` (Auth, Chat, Tools, ...) | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
+| `Fadenstack.Agents` | `Faden.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
+| `Fadenstack.Mcp` | `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy |
+| `Fadenstack.UI` | `Faden.UI` | Platform-neutral view models for a chat with an agent |
+| `Fadenstack.UI.Wpf` | `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins |
 
-`Faden.Client`, `Faden.Agents`, `Faden.Mcp` and `Faden.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
-and `net8.0`. `Faden.UI.Wpf` targets `net472` and `net8.0-windows`.
+The packages are named `Fadenstack.*`; the code keeps the short `Faden` namespaces. `Fadenstack.Client`,
+`Fadenstack.Agents`, `Fadenstack.Mcp` and `Fadenstack.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
+and `net8.0`. `Fadenstack.UI.Wpf` targets `net472` and `net8.0-windows`.
 
 ## An agent in a host application
 
