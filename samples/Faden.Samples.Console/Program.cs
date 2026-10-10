@@ -103,7 +103,8 @@ return 0;
 
 static async Task<ApprovalDecision> AskOnConsole(ApprovalRequest request, CancellationToken cancellationToken)
 {
-    Console.Write($"\n  ? Run {request.ToolName} ({request.ToolClass.ToWire()}, {request.Source})? {request.Reason} [y/s/N] ");
+    var choices = request.CanAllowForSession ? "y/s/N" : "y/N"; // "s": for this session, where the request offers it
+    Console.Write($"\n  ? Run {request.ToolName} ({request.ToolClass.ToWire()}, {request.Source})? {request.Reason} [{choices}] ");
     var answer = await Task.Run(Console.ReadLine, cancellationToken);
     return answer?.Trim().ToLowerInvariant() switch
     {

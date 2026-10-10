@@ -35,7 +35,8 @@ public partial class App : Application
             builder.UseServer(new Uri("https://demo.invalid"), new Faden.Auth.StaticTokenProvider("demo"),
                     o => o.HttpClient = new HttpClient(new DemoGateway()))
                 .UseAgent(DemoGateway.Agent)
-                .UseSessionStore(new Faden.Agents.Sessions.MemorySessionStore());
+                .UseSessionStore(new Faden.Agents.Sessions.MemorySessionStore())
+                .UseApprovalStore(new MemoryApprovalStore());
         }
         else
         {

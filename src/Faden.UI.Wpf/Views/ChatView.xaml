@@ -68,6 +68,10 @@
                                 </ItemsControl>
                                 <TextBlock Style="{StaticResource Faden.Muted}" Text="{Binding ToolModeHint}" TextWrapping="Wrap" MaxWidth="280"
                                            Margin="8,6,8,4" />
+                                <Border BorderBrush="{DynamicResource Faden.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" />
+                                <Button Style="{StaticResource Faden.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                        Command="{Binding ResetApprovalsCommand}" Content="Reset approvals"
+                                        ToolTip="Ask again before the tools you allowed for this chat or always" />
                             </StackPanel>
                         </Border>
                     </Popup>

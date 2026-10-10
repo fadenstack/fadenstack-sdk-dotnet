@@ -161,12 +161,16 @@ public class AgentResourceTests
         await client.Agent!.ReportAsync([
             new ToolExecutedEvent { Tool = "read_page", Source = "host", DurationMs = 12, Outcome = "ok", ConversationId = "c-1" },
             new ApprovalDecidedEvent { Tool = "delete_page", Decision = "denied", WaitMs = 4000 },
+            new ApprovalDecidedEvent { Tool = "add_comment", Decision = "approved", Scope = "always" },
         ]);
         var events = server.Requests.Single().Json.GetProperty("events").EnumerateArray().ToList();
         Assert.Equal("tool.executed", events[0].GetProperty("type").GetString());
         Assert.Equal(12, events[0].GetProperty("duration_ms").GetInt32());
         Assert.False(events[0].TryGetProperty("server", out _), "no nulls: the server refuses unknown and empty fields alike");
         Assert.Equal(("approval.decided", "denied"), (events[1].GetProperty("type").GetString(), events[1].GetProperty("decision").GetString()));
+        Assert.False(events[1].TryGetProperty("scope", out _));
+        Assert.Equal("always", events[2].GetProperty("scope").GetString());
+        Assert.False(events[2].TryGetProperty("wait_ms", out _)); // nobody was asked
     }
 
     [Theory]

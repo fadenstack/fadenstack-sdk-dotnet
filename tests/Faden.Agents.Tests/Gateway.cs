@@ -11,6 +11,13 @@ public sealed class Gateway
 {
     public const string Slug = "eplan-assistant";
     public const string Chat = "/v1/agents/eplan-assistant/chat/completions";
+
+    /// <summary>The test tools' contract, with the classes they declare (<c>stamp</c> has no risk: unclassified).</summary>
+    public const string Contract = """
+        [{"name":"read_page","risk":"read"},{"name":"add_comment","risk":"write"},{"name":"delete_page","risk":"destructive"},
+         {"name":"stamp"},{"name":"render_page","risk":"read"},{"name":"render_slide","risk":"read"},{"name":"boom","risk":"read"}]
+        """;
+
     private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
 
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
@@ -19,7 +26,7 @@ public sealed class Gateway
         Server = new FakeServer()
             .Json("GET", "/v1/agents/eplan-assistant/profile", $$"""
                 {"object":"agent.profile","id":"a-1","slug":"eplan-assistant","name":"EPLAN","version":3,"draft":false,
-                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? "[]"}},"local_mcp":{{localMcp}},
+                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"]}
                 """)
@@ -80,8 +87,14 @@ public sealed class Gateway
 
     public static string Custom(string name, object value) => FakeServer.Faden(new { type = "CUSTOM", name, value });
 
-    public AgentBuilder Builder(ISessionStore? store = null) => FadenAgent.CreateBuilder()
+    /// <summary>A builder for this gateway; sessions and "Allow always" in memory (never the user's data folder).</summary>
+    public AgentBuilder Builder(ISessionStore? store = null, IApprovalStore? approvals = null) => FadenAgent.CreateBuilder()
         .UseServer(new Uri("https://faden.test"), new StaticTokenProvider("agent-token"), o => o.HttpClient = new HttpClient(Server))
         .UseAgent(Slug)
-        .UseSessionStore(store ?? new MemorySessionStore());
+        .UseSessionStore(store ?? new MemorySessionStore())
+        .UseApprovalStore(approvals ?? new MemoryApprovalStore());
+
+    /// <summary>The events the agent reported, in order.</summary>
+    public List<System.Text.Json.JsonElement> Reported =>
+        Reports.SelectMany(r => r.Json.GetProperty("events").EnumerateArray()).ToList();
 }

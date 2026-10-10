@@ -70,7 +70,7 @@ A host tool wins over an MCP tool of the same name. Disposing the agent closes t
 
 Every tool of a local MCP server has the class `Unknown`. An MCP server describes its own tools, and the agent does not trust that description to decide what may run without the user.
 
-So in the `Ask` and `Auto` modes, every call to an MCP tool goes to your approval handler, unless the user approved that tool for the session. In the `ReadOnly` and `Off` modes, MCP tools are hidden. [Host tools](tools.md#approvals) describes approvals.
+So in the `Ask` and `Auto` modes, every call to an MCP tool goes to your approval handler, every time: an unclassified tool is never allowed for the chat or always. In the `ReadOnly` and `Off` modes, MCP tools are hidden. [Host tools](tools.md#approvals) describes approvals.
 
 ## What the server learns
 

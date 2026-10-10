@@ -201,7 +201,7 @@ public sealed class FileSessionStore : ISessionStore
 
     private string PathOf(string agent, string sessionId) => Path.Combine(AgentDirectory(agent), Safe(sessionId) + ".jsonl");
 
-    private static string Safe(string name)
+    internal static string Safe(string name)
     {
         var invalid = Path.GetInvalidFileNameChars();
         var safe = new string(name.Select(c => invalid.Contains(c) || c == '.' ? '_' : c).ToArray());

@@ -521,7 +521,10 @@
                 </Border>
                 <WrapPanel Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Faden.BoolToVisibility}}">
                     <Button Style="{StaticResource Faden.PrimaryButton}" Content="Allow" Command="{Binding AllowCommand}" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Faden.SecondaryButton}" Content="Allow for this chat" Command="{Binding AllowForSessionCommand}" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Faden.SecondaryButton}" Content="Allow for this chat" Command="{Binding AllowForSessionCommand}" Margin="0,0,8,0"
+                            Visibility="{Binding CanAllowForSession, Converter={StaticResource Faden.BoolToVisibility}}" />
+                    <Button Style="{StaticResource Faden.SecondaryButton}" Content="Allow always" Command="{Binding AllowAlwaysCommand}" Margin="0,0,8,0"
+                            Visibility="{Binding CanAllowAlways, Converter={StaticResource Faden.BoolToVisibility}}" />
                     <Button Style="{StaticResource Faden.SecondaryButton}" Content="Deny" Command="{Binding DenyCommand}" />
                 </WrapPanel>
                 <TextBlock Style="{StaticResource Faden.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"

@@ -53,8 +53,9 @@ public sealed class PageTools
 }
 ```
 
-A read tool runs without asking. A tool that changes something asks the user first, and without an approval
-handler the call is declined. The docs cover [host tools and approvals](docs/tools.md),
+A read tool runs without asking, once the agent's tool contract on the server lists it as `read`; until then it is
+unclassified and asks every time. A tool that changes something asks the user first, and without an approval handler
+the call is declined. The docs cover [host tools and approvals](docs/tools.md),
 [outcomes and errors](docs/outcomes.md), [sessions on the device](docs/sessions.md),
 [local MCP servers](docs/local-mcp.md), [the chat panel](docs/chat-panel.md) and [the samples](docs/samples.md).
 

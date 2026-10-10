@@ -71,4 +71,4 @@ builder.Services.AddFadenAgent((agent, services) => agent
     .UseAgent("my-assistant"));
 ```
 
-For an application without a user at the keyboard, also register an approval handler that fits your case, or keep the default, which declines every call that needs approval.
+For an application without a user at the keyboard, also register an approval handler that fits your case, or keep the default, which declines every call that needs approval. For trusted automation, `UsePermissionMode(PermissionMode.Bypass)` approves those calls instead, destructive ones too; an administrator's "Ask first" rule still goes to the handler. See [Host tools](tools.md#bypass-mode).

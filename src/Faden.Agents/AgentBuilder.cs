@@ -22,6 +22,8 @@ public sealed class AgentBuilder
     private string? _agent;
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
+    private IApprovalStore? _approvalStore;
+    private PermissionMode _permissionMode = PermissionMode.Ask;
     private ToolMode _defaultMode = ToolMode.Ask;
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
@@ -100,6 +102,25 @@ public sealed class AgentBuilder
     public AgentBuilder UseSessionStore(ISessionStore store)
     {
         _sessions = store ?? throw new ArgumentNullException(nameof(store));
+        return this;
+    }
+
+    /// <summary>Where "Allow always" is kept; by default encrypted files under the user's data folder.</summary>
+    public AgentBuilder UseApprovalStore(IApprovalStore store)
+    {
+        _approvalStore = store ?? throw new ArgumentNullException(nameof(store));
+        return this;
+    }
+
+    /// <summary>
+    /// <see cref="PermissionMode.Ask"/> (the default): calls the tool mode asks about wait for the user.
+    /// <see cref="PermissionMode.Bypass"/>: they are approved without asking, destructive ones too -- for development
+    /// and trusted automation, never a user's choice. An admin's "Ask first" rule still asks, and the transcript and
+    /// the server's record say <c>bypass</c> for each call it let through. The agent warns once when it starts in bypass.
+    /// </summary>
+    public AgentBuilder UsePermissionMode(PermissionMode mode)
+    {
+        _permissionMode = mode is PermissionMode.Ask or PermissionMode.Bypass ? mode : throw new ArgumentOutOfRangeException(nameof(mode));
         return this;
     }
 
@@ -239,6 +260,8 @@ public sealed class AgentBuilder
             Modules = _modules.ToList(),
             Approvals = _approvals,
             Sessions = _sessions,
+            ApprovalStore = _approvalStore,
+            PermissionMode = _permissionMode,
             DefaultMode = _defaultMode,
             MaxRounds = _maxRounds,
             HistoryTokens = _historyTokens,
@@ -277,6 +300,8 @@ internal sealed class AgentSettings
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
     public ISessionStore? Sessions { get; init; }
+    public IApprovalStore? ApprovalStore { get; init; }
+    public PermissionMode PermissionMode { get; init; }
     public ToolMode DefaultMode { get; init; } = ToolMode.Ask;
     public int MaxRounds { get; init; }
     public int HistoryTokens { get; init; }

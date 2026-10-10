@@ -22,7 +22,7 @@ public sealed class AgentSession
 {
     private readonly FadenAgent _agent;
     private readonly List<TranscriptEntry> _entries;
-    private readonly HashSet<string> _approvedForSession;
+    private readonly HashSet<string> _approvedForSession = new();
     private readonly SemaphoreSlim _turn = new(1, 1);
     private readonly ContextBuilder _context;
 
@@ -33,9 +33,6 @@ public sealed class AgentSession
         _entries = entries;
         ToolMode = toolMode;
         _context = new ContextBuilder { TokenBudget = agent.Settings.HistoryTokens };
-        _approvedForSession = new HashSet<string>(entries
-            .Where(e => e.Type == EntryTypes.ApprovalDecision && Bool(e.Data, "for_session") && Bool(e.Data, "approved"))
-            .Select(e => ChatWire.Str(e.Data, "name") ?? ""));
     }
 
     public string Id { get; }
@@ -52,8 +49,29 @@ public sealed class AgentSession
     /// <summary>What the next request would carry as history.</summary>
     public IList<ChatMessage> History => _context.Build(_entries);
 
-    /// <summary>Tools the user approved for the rest of this session.</summary>
+    /// <summary>
+    /// Tools the user allowed for this chat. Kept in memory only: a session opened again asks again.
+    /// </summary>
     public IReadOnlyCollection<string> ApprovedForSession => _approvedForSession;
+
+    /// <summary>
+    /// Forgets what the user allowed for this chat: every tool, or <paramref name="tool"/> only. (What they allowed
+    /// always: <see cref="FadenAgent.ResetApprovalsAsync"/>.)
+    /// </summary>
+    public void ResetApprovals(string? tool = null)
+    {
+        lock (_approvedForSession)
+        {
+            if (tool is null)
+            {
+                _approvedForSession.Clear();
+            }
+            else
+            {
+                _approvedForSession.Remove(tool);
+            }
+        }
+    }
 
     /// <summary>Sends a message and waits for the turn to end.</summary>
     public Task<AgentResult> SendAsync(string message, CancellationToken cancellationToken = default) =>
@@ -187,8 +205,51 @@ public sealed class AgentSession
         _entries.Add(entry);
     }
 
-    private static bool Bool(JsonElement e, string name) =>
-        e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+    private bool ApprovedForChat(string tool)
+    {
+        lock (_approvedForSession)
+        {
+            return _approvedForSession.Contains(tool);
+        }
+    }
+
+    private void ApproveForChat(string tool)
+    {
+        lock (_approvedForSession)
+        {
+            _approvedForSession.Add(tool);
+        }
+    }
+
+    /// <summary>An admin's "Ask first" rule, unless the gateway says exactly <c>false</c>: an older gateway says nothing.</summary>
+    private static bool Rule(JsonElement value) =>
+        !(value.ValueKind == JsonValueKind.Object && value.TryGetProperty("rule", out var r) && r.ValueKind == JsonValueKind.False);
+
+    /// <summary>The stricter of two classes; unclassified when either is.</summary>
+    private static ToolClass Stricter(ToolClass own, ToolClass? other)
+    {
+        if (other is not { } o || o == own)
+        {
+            return own;
+        }
+        if (own == ToolClass.Unknown || o == ToolClass.Unknown)
+        {
+            return ToolClass.Unknown;
+        }
+        return o > own ? o : own; // Read < Write < Destructive
+    }
+
+    /// <summary>Destructive and unclassified tools ask every time: never for the chat, never always.</summary>
+    private static bool AsksEveryTime(ToolClass toolClass) => toolClass is ToolClass.Destructive or ToolClass.Unknown;
+
+    /// <summary>
+    /// A call of the agent's own tool the gateway marked (<c>faden.approval_required</c> without an approvalId): an
+    /// admin's "Ask first" rule, or the class the gateway holds for the tool, never taken looser than the tool's own.
+    /// </summary>
+    private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
+
+    /// <summary>How a call that needed approval was settled; the user's reason when they declined.</summary>
+    private sealed record Settled(bool Approved, bool TimedOut, string? Reason);
 
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
@@ -198,6 +259,7 @@ public sealed class AgentSession
         private readonly ChannelWriter<AgentEvent> _writer;
         private readonly List<GovernanceNotice> _notices = new();
         private readonly HashSet<string> _deniedByGateway = new();
+        private readonly Dictionary<string, GatewayMark> _marks = new();
         private readonly StringBuilder _text = new();
         private UsageDetails? _usage;
         private GovernanceNotice? _blocked;
@@ -376,7 +438,16 @@ public sealed class AgentSession
                     await KeepRoundAsync(value).ConfigureAwait(false);
                     break;
                 case "faden.approval_required":
-                    await AnswerGatewayApprovalAsync(value, cancellationToken).ConfigureAwait(false);
+                    // With an approvalId the gateway runs the tool and waits for the answer; without, the call is one of
+                    // the agent's own tools, which the session asks about as the gateway says.
+                    if (string.IsNullOrEmpty(ChatWire.Str(value, "approvalId")))
+                    {
+                        Mark(value);
+                    }
+                    else
+                    {
+                        await AnswerGatewayApprovalAsync(value, cancellationToken).ConfigureAwait(false);
+                    }
                     break;
                 case "faden.tool_denied":
                     _toolDenied = true;
@@ -457,38 +528,47 @@ public sealed class AgentSession
         /// <summary>A gateway tool held for the user: ask, and answer the gateway while it waits.</summary>
         private async Task AnswerGatewayApprovalAsync(JsonElement value, CancellationToken cancellationToken)
         {
-            var approvalId = ChatWire.Str(value, "approvalId");
-            if (string.IsNullOrEmpty(approvalId))
-            {
-                return;
-            }
+            var approvalId = ChatWire.Str(value, "approvalId")!;
             var request = new ApprovalRequest
             {
                 CallId = ChatWire.Str(value, "toolCallId") ?? "",
                 ToolName = ChatWire.Str(value, "toolCallName") ?? "",
-                ToolClass = ToolClass.Unknown,
+                ToolClass = ToolModes.ParseClass(ChatWire.Str(value, "toolClass")),
                 Source = "gateway",
                 Reason = ChatWire.Str(value, "message") ?? "",
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
-            var (decision, _) = await AskAsync(request, timeout, cancellationToken).ConfigureAwait(false);
-            if (decision is null)
+            var settled = await ApproveAsync(request, Rule(value), timeout, cancellationToken).ConfigureAwait(false);
+            if (settled.TimedOut)
             {
-                return; // timed out: the gateway expires it on its own
+                return; // the gateway expires it on its own
             }
-            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId!, decision.Approved, cancellationToken).ConfigureAwait(false);
-            if (!decision.Approved)
+            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, cancellationToken).ConfigureAwait(false);
+            if (!settled.Approved)
             {
                 _toolDenied = true;
             }
+        }
+
+        /// <summary>The gateway's word on a call of the agent's own tool, kept until the call runs.</summary>
+        private void Mark(JsonElement value)
+        {
+            if (ChatWire.Str(value, "toolCallId") is not { Length: > 0 } callId)
+            {
+                return;
+            }
+            var toolClass = ChatWire.Str(value, "toolClass");
+            _marks[callId] = new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
+                ChatWire.Str(value, "message") ?? "");
         }
 
         private async Task RunToolAsync(FunctionCallContent call, CancellationToken cancellationToken)
         {
             var tool = Agent.Find(call.Name);
             var source = tool?.Source ?? "host";
-            var toolClass = tool?.Class ?? ToolClass.Unknown;
+            _marks.TryGetValue(call.CallId, out var mark);
+            var toolClass = tool is null ? ToolClass.Unknown : Stricter(tool.Class, mark?.ToolClass);
             var arguments = call.Arguments is null
                 ? new Dictionary<string, object?>()
                 : new Dictionary<string, object?>(call.Arguments);
@@ -516,7 +596,8 @@ public sealed class AgentSession
             }
             else
             {
-                (result, outcome, waited, pictures) = await DecideAndRunAsync(tool, call, arguments, cancellationToken).ConfigureAwait(false);
+                (result, outcome, waited, pictures) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
+                    .ConfigureAwait(false);
             }
             if (pictures.Count > 0)
             {
@@ -549,45 +630,42 @@ public sealed class AgentSession
             }
         }
 
-        /// <summary>Asks if the mode says so, then runs the tool; also returns how long the asking took.</summary>
-        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool, FunctionCallContent call,
-            Dictionary<string, object?> arguments, CancellationToken cancellationToken)
+        /// <summary>
+        /// Asks if the mode or an admin's rule says so, then runs the tool; also returns how long the asking took.
+        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's.
+        /// </summary>
+        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool,
+            ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
-            switch (ToolModes.Decide(_mode, tool.Class))
+            var decided = ToolModes.Decide(_mode, toolClass);
+            if (decided == ToolModeDecision.Hidden)
             {
-                case ToolModeDecision.Hidden:
+                _toolDenied = true;
+                var why = $"the tool mode is {_mode.ToWire()}";
+                await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
+                return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
+            }
+            var rule = mark is { Rule: true };
+            if (rule || decided == ToolModeDecision.Ask)
+            {
+                var settled = await ApproveAsync(new ApprovalRequest
+                {
+                    CallId = call.CallId,
+                    ToolName = tool.Name,
+                    ToolClass = toolClass,
+                    Source = tool.Source,
+                    Reason = rule ? mark!.Message
+                        : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
+                        : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
+                    Arguments = arguments,
+                }, rule, null, cancellationToken).ConfigureAwait(false);
+                if (!settled.Approved)
+                {
                     _toolDenied = true;
-                    var why = $"the tool mode is {_mode.ToWire()}";
-                    await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
-                    return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
-                case ToolModeDecision.Ask:
-                    var (decision, waited) = await AskAsync(new ApprovalRequest
-                    {
-                        CallId = call.CallId,
-                        ToolName = tool.Name,
-                        ToolClass = tool.Class,
-                        Source = tool.Source,
-                        Reason = tool.Class == ToolClass.Unknown
-                            ? "Nobody has said what this tool does."
-                            : $"'{tool.Name}' is {tool.Class.ToWire()}; the tool mode is {_mode.ToWire()}.",
-                        Arguments = arguments,
-                    }, null, cancellationToken).ConfigureAwait(false);
-                    if (waited is { } ms)
-                    {
-                        Agent.Reporter.Add(new ApprovalDecidedEvent
-                        {
-                            ConversationId = _session.Id, Tool = tool.Name, WaitMs = ms,
-                            Decision = decision is null ? "timeout" : decision.Approved ? "approved" : "denied",
-                        });
-                    }
-                    if (decision is not { Approved: true })
-                    {
-                        _toolDenied = true;
-                        var reason = decision?.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                        return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
-                    }
-                    break;
+                    var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
+                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
+                }
             }
             var askedFor = asking.Elapsed;
             try
@@ -645,16 +723,27 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// Asks the user, unless they approved this tool for the session. Returns null when the time ran out,
-        /// and how long the user took (null when nobody was asked).
+        /// Settles a call that needs approval, first that applies: an admin's rule asks (once only, even in bypass);
+        /// bypass mode approves; a destructive or unclassified tool asks (once only); what the user allowed always,
+        /// then what they allowed for this chat, approves; else the user is asked, and may allow once, for this chat or
+        /// always. Every outcome goes in the transcript and the server's record, with what let the call through.
         /// </summary>
-        private async Task<(ApprovalDecision? Decision, long? WaitedMs)> AskAsync(ApprovalRequest request, TimeSpan? timeout,
-            CancellationToken cancellationToken)
+        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken)
         {
-            if (_session._approvedForSession.Contains(request.ToolName))
+            var (name, toolClass) = (request.ToolName, request.ToolClass);
+            var open = !rule && !AsksEveryTime(toolClass);
+            var standing = rule ? null
+                : Agent.PermissionMode == PermissionMode.Bypass ? ApprovalScopes.Bypass
+                : !open ? null
+                : await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
+                : _session.ApprovedForChat(name) ? ApprovalScopes.Chat
+                : null;
+            if (standing is not null)
             {
-                return (ApprovalDecision.Approve(), null);
+                await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
+                return new Settled(true, false, null);
             }
+            request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule };
             Emit(new ApprovalRequested(request));
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (timeout is { } t)
@@ -669,25 +758,78 @@ public sealed class AgentSession
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                decision = null;
+                decision = null; // the time ran out
             }
             var waited = (long)watch.Elapsed.TotalMilliseconds;
+            // What the request offered, and nothing more: a handler cannot widen it.
+            var scope = decision is not { Approved: true } ? null
+                : decision.Always && open ? ApprovalScopes.Always
+                : decision.ForSession && open ? ApprovalScopes.Chat
+                : ApprovalScopes.Once;
+            if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass).ConfigureAwait(false))
+            {
+                scope = ApprovalScopes.Once;
+            }
+            if (scope == ApprovalScopes.Chat)
+            {
+                _session.ApproveForChat(name);
+            }
+            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited).ConfigureAwait(false);
+            Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
+                : scope == ApprovalScopes.Always ? ApprovalDecision.ApproveAlways()
+                : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
+                : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
+                : decision));
+            return new Settled(scope is not null, decision is null, decision?.Reason);
+        }
+
+        /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
+        private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs)
+        {
             await _session.AppendAsync(EntryTypes.ApprovalDecision, _id, new
             {
                 call_id = request.CallId,
                 name = request.ToolName,
                 source = request.Source,
-                approved = decision?.Approved ?? false,
-                for_session = decision?.ForSession ?? false,
-                timed_out = decision is null,
-                wait_ms = waited,
+                approved = scope is not null,
+                for_session = asked && scope == ApprovalScopes.Chat, // for older readers
+                scope,
+                asked,
+                rule,
+                timed_out = timedOut,
+                wait_ms = waitedMs ?? 0,
             }).ConfigureAwait(false);
-            if (decision is { Approved: true, ForSession: true })
+            Agent.Reporter.Add(new ApprovalDecidedEvent
             {
-                _session._approvedForSession.Add(request.ToolName);
+                ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope,
+                Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
+            });
+        }
+
+        private async Task<bool> ApprovedAlwaysAsync(string tool, ToolClass toolClass)
+        {
+            try
+            {
+                var kept = await Agent.ApprovalStore.ListAsync(Agent.Slug).ConfigureAwait(false);
+                return kept.Any(a => a.Tool == tool && a.ToolClass == toolClass);
             }
-            Emit(new ApprovalDecided(request, decision ?? ApprovalDecision.Deny("No answer in time.")));
-            return (decision, waited);
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                return false; // a store that cannot be read approves nothing
+            }
+        }
+
+        private async Task<bool> KeepAlwaysAsync(string tool, ToolClass toolClass)
+        {
+            try
+            {
+                await Agent.ApprovalStore.AddAsync(Agent.Slug, new StoredApproval(tool, toolClass, DateTimeOffset.UtcNow)).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                return false; // not kept: this call runs, the next one asks
+            }
         }
 
         private async Task NoticeAsync(GovernanceNotice notice)

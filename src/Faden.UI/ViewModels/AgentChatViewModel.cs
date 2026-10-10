@@ -81,6 +81,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             }
             IsModeMenuOpen = false;
         }, option => option is { IsAvailable: true });
+        ResetApprovalsCommand = new AsyncRelayCommand(ResetApprovalsAsync, () => _isReady);
     }
 
     // -- state ---------------------------------------------------------------------------------------
@@ -238,6 +239,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public IRelayCommand<AttachmentViewModel> RemoveAttachmentCommand { get; }
 
     public IRelayCommand<ToolModeOption> SelectToolModeCommand { get; }
+
+    /// <summary>
+    /// "Reset approvals": forgets what the user allowed always for this agent on this device, and what they allowed
+    /// for the current chat. The next such call asks again.
+    /// </summary>
+    public IAsyncRelayCommand ResetApprovalsCommand { get; }
 
     /// <summary>The skin moves the focus to the composer (after "Edit").</summary>
     public event EventHandler? ComposerFocusRequested;
@@ -439,6 +446,20 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _loadedFrom = from;
         OnPropertyChanged(nameof(HasEarlierTurns));
         LoadEarlierCommand.NotifyCanExecuteChanged();
+    }
+
+    private async Task ResetApprovalsAsync()
+    {
+        IsModeMenuOpen = false;
+        _session?.ResetApprovals();
+        try
+        {
+            await Task.Run(() => _agent.ResetApprovalsAsync()); // writes a file: not on the UI thread
+        }
+        catch (Exception e)
+        {
+            Error = e.Message;
+        }
     }
 
     private async Task ToggleHistoryAsync()
@@ -646,6 +667,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         NewChatCommand.NotifyCanExecuteChanged();
         OpenSessionCommand.NotifyCanExecuteChanged();
         DeleteSessionCommand.NotifyCanExecuteChanged();
+        ResetApprovalsCommand.NotifyCanExecuteChanged();
     }
 
     private static JsonElement? Ui(Dictionary<string, JsonElement>? ui, string key) =>
