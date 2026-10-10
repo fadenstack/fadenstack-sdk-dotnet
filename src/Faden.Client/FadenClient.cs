@@ -66,7 +66,8 @@ public sealed class FadenClient : IDisposable
         var options = new FadenClientOptions { ServerUrl = serverUrl, Agent = agent };
         configure?.Invoke(options);
         tokens = new AgentTokenProvider(options.ApiUrl ?? serverUrl, agent, store ?? new FileTokenStore(),
-            options.HttpClient ?? new System.Net.Http.HttpClient(FadenTransport.CreateHandler(options)));
+            options.HttpClient ?? new System.Net.Http.HttpClient(FadenTransport.CreateHandler(options)),
+            allowInsecureHttp: options.AllowInsecureHttp);
         options.Credentials = tokens;
         return new FadenClient(options);
     }

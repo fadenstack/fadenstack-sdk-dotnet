@@ -26,9 +26,18 @@ public sealed class AgentTokenProvider : ITokenProvider
     /// <param name="store">Where the sign-in is kept; <see cref="FileTokenStore"/> for desktop apps.</param>
     /// <param name="httpClient">The client to reach the backend with; the provider's own if not given.</param>
     /// <param name="clock">The time, for tests.</param>
+    /// <param name="allowInsecureHttp">
+    /// Allow <c>http://</c> to another machine, for a development server. Off: sign-ins go over https, or plain http
+    /// only to this machine (localhost).
+    /// </param>
     public AgentTokenProvider(Uri apiUrl, string agent, ITokenStore? store = null, HttpClient? httpClient = null,
-        Func<DateTimeOffset>? clock = null)
+        Func<DateTimeOffset>? clock = null, bool allowInsecureHttp = false)
     {
+        if (apiUrl.Scheme != Uri.UriSchemeHttps && !(apiUrl.Scheme == Uri.UriSchemeHttp && (allowInsecureHttp || apiUrl.IsLoopback)))
+        {
+            throw new ArgumentException(
+                "The API URL must be https unless allowInsecureHttp is set or it is this machine (localhost).", nameof(apiUrl));
+        }
         _apiUrl = new Uri(apiUrl.AbsoluteUri.TrimEnd('/') + "/");
         _agent = agent;
         _store = store ?? new MemoryTokenStore();

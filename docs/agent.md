@@ -28,7 +28,7 @@ The options you are most likely to set for an agent:
 |---|---|
 | `ApiUrl` | The backend that handles sign-in, when it is not at the server URL. |
 | `TrustedCaCertificate` | A CA certificate (PEM or DER) to trust for the server's certificate, in addition to the operating system's store. It applies to this client's connections only, sign-in included. |
-| `AllowInsecureHttp` | Allows `http://`. Use it only for a development server on your own machine. |
+| `AllowInsecureHttp` | Allows `http://`. Use it only for a development server. `ForAgent` passes it on to the token provider. |
 | `Timeout` | How long one request may take (default five minutes). Streamed requests, such as an agent's model calls, are not limited by it. |
 | `HttpClient` | Your own `HttpClient`, for proxies, extra handlers or tests. |
 | `GatewayEvents` | Whether the gateway sends its events (tool rounds, approvals, notices). On by default. |
@@ -59,6 +59,8 @@ if (!await tokens.IsSignedInAsync())
 | `SignInAsync(loginToken, deviceLabel)` | Signs in and keeps the sign-in in the store. |
 | `SignOutAsync()` | Forgets the sign-in on this device. It does not revoke it on the server; revoking is done there. |
 | `DeviceId` | This device's sign-in id, once signed in. |
+
+A sign-in sends the user's login token, so `AgentTokenProvider` refuses an `http://` API URL unless it is this machine (`localhost`, `127.0.0.1` or `::1`) or you pass `allowInsecureHttp: true` for a development server. Its constructor throws `ArgumentException` otherwise.
 
 After the sign-in, the provider supplies access tokens by itself. An access token is short-lived and is renewed with a refresh token shortly before it expires; the server replaces the refresh token on every use. When the server refuses a renewal (the sign-in was revoked, a refresh token was used twice, or the user lost access), the provider forgets the sign-in and throws `FadenSignInRequiredException`. Ask the user to sign in again.
 
