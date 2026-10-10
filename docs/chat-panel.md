@@ -62,7 +62,8 @@ When the panel closes, dispose the view model and then the agent.
 - **An empty chat** shows the agent's greeting and suggested prompts, from the agent's profile (`ui.greeting`, `ui.suggestions`).
 - **The answer streams as Markdown**: headings, lists, code blocks with a copy button, tables, quotes, rules and links. Text and tool calls appear in the order they happened.
 - **Each tool call is one line**: "Running read_page" while it runs, then "Ran read_page" with its class and duration. It expands to its arguments and result.
-- **Approvals are cards** in the answer, above the call they are for, with *Allow*, *Allow for this chat* and *Deny*. Destructive and unclassified tools are marked.
+- **Approvals are cards** in the answer, above the call they are for, with *Allow* and *Deny*, and *Allow for this chat* and *Allow always* where the request offers them: never for destructive or unclassified tools, nor for a call an administrator's rule covers. Destructive and unclassified tools are marked. A call that an earlier approval lets through gets no card, also when a session is opened again.
+- **The tool-mode menu** ends with *Reset approvals*, which forgets what the user allowed always for this agent on this device and what they allowed for the current chat (`ResetApprovalsCommand`).
 - **Refusals and limits are notices** in the answer. A refused prompt is marked *Not sent*, with *Edit and resend*. A notice shows the server's decision id for support.
 - **Citations** ("Used 3 references") and **the model's reasoning** ("Thinking...", then how long it thought) are collapsed until the user opens them. Personal data the server kept from the model is reported as a notice.
 - **Gateway events the panel does not know** appear as generic notices.

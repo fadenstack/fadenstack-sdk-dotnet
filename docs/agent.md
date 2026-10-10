@@ -28,7 +28,7 @@ The options you are most likely to set for an agent:
 |---|---|
 | `ApiUrl` | The backend that handles sign-in, when it is not at the server URL. |
 | `TrustedCaCertificate` | A CA certificate (PEM or DER) to trust for the server's certificate, in addition to the operating system's store. It applies to this client's connections only, sign-in included. |
-| `AllowInsecureHttp` | Allows `http://`. Use it only for a development server on your own machine. |
+| `AllowInsecureHttp` | Allows `http://`. Use it only for a development server. `ForAgent` passes it on to the token provider. |
 | `Timeout` | How long one request may take (default five minutes). Streamed requests, such as an agent's model calls, are not limited by it. |
 | `HttpClient` | Your own `HttpClient`, for proxies, extra handlers or tests. |
 | `GatewayEvents` | Whether the gateway sends its events (tool rounds, approvals, notices). On by default. |
@@ -59,6 +59,8 @@ if (!await tokens.IsSignedInAsync())
 | `SignInAsync(loginToken, deviceLabel)` | Signs in and keeps the sign-in in the store. |
 | `SignOutAsync()` | Forgets the sign-in on this device. It does not revoke it on the server; revoking is done there. |
 | `DeviceId` | This device's sign-in id, once signed in. |
+
+A sign-in sends the user's login token, so `AgentTokenProvider` refuses an `http://` API URL unless it is this machine (`localhost`, `127.0.0.1` or `::1`) or you pass `allowInsecureHttp: true` for a development server. Its constructor throws `ArgumentException` otherwise.
 
 After the sign-in, the provider supplies access tokens by itself. An access token is short-lived and is renewed with a refresh token shortly before it expires; the server replaces the refresh token on every use. When the server refuses a renewal (the sign-in was revoked, a refresh token was used twice, or the user lost access), the provider forgets the sign-in and throws `FadenSignInRequiredException`. Ask the user to sign in again.
 
@@ -98,6 +100,8 @@ using var agent = FadenAgent.CreateBuilder()
 | `UseAgent(slug)` | The agent's slug. Optional with `UseClient`, which brings the client's agent. |
 | `AddTools(target)`, `AddTools<T>()`, `AddTool(...)` | Host tools. See [Host tools](tools.md). |
 | `UseApprovals(handler)` | Who decides on calls that need approval. Without it, every such call is declined. |
+| `UseApprovalStore(store)` | Where "Allow always" is kept. See [Host tools](tools.md#allow-always). |
+| `UsePermissionMode(mode)` | `PermissionMode.Ask` (the default), or `PermissionMode.Bypass` for development and trusted automation. See [Host tools](tools.md#bypass-mode). |
 | `UseSessionStore(store)` | Where sessions live. See [Sessions on the device](sessions.md). |
 | `UseDefaultToolMode(mode)` | The mode new sessions start in. It can only be stricter than `Ask`. |
 | `UseMaxRounds(rounds)` | Model calls per turn before the loop stops (default 16). |
@@ -139,6 +143,8 @@ The report never fails the start. `UseEventReporting(false)` turns it off, toget
 | `Profile` | The agent's `AgentProfile`: name, version, model, host tool contract, tool modes, UI settings. Never its instructions. |
 | `Tools` | The tools the agent offers, with the classes they run under. |
 | `DefaultToolMode` | The mode new sessions start in. |
+| `PermissionMode` | `Ask`, or `Bypass` when the app set it. |
+| `ResetApprovalsAsync(tool)` | Forgets what the user allowed always for this agent on this device: every tool, or one. |
 | `Slug`, `Client` | The agent's slug and its client. |
 
 `StartAsync` throws `FadenSignInRequiredException` when there is no sign-in, `FadenPermissionException` when the user may not use the agent, and `FadenException` when the agent requires a client module the builder does not have.
@@ -159,6 +165,7 @@ var session = await agent.StartSessionAsync();       // starts in Ask
 | `session.Id` | The session's id. |
 | `session.ToolMode`, `session.EffectiveToolMode` | The user's pick, and the mode turns run in. See [Host tools](tools.md#tool-modes). |
 | `session.Transcript`, `session.History` | What is kept, and what the next request would carry. |
+| `session.ApprovedForSession`, `session.ResetApprovals(tool)` | The tools the user allowed for this chat, and forgetting them. Kept in memory only. |
 | `session.CloseAsync()` | Reports the session's counts (never content) and sends what is left to report. |
 
 A session runs one turn at a time. Starting a turn while another runs in the same session throws `InvalidOperationException`.
@@ -190,8 +197,8 @@ await foreach (var e in session.StreamAsync("What is on page 7?"))
 | `ReasoningDelta` | The model's reasoning arrives, from models that send it. | `Text` |
 | `ToolCallStarted` | A tool starts. | `CallId`, `Name`, `Class`, `Source` (`host`, `mcp` or `gateway`), `Arguments` (empty for gateway tools) |
 | `ToolCallCompleted` | A tool ended. | `CallId`, `Name`, `Source`, `Outcome` (`ok`, `error` or `denied`), `Result` (null for gateway tools), `Duration` (the tool's own time, without the wait for approval) |
-| `ApprovalRequested` | A call waits for the user. Your approval handler is called right after. | `Request` |
-| `ApprovalDecided` | The decision was made. | `Request`, `Decision` |
+| `ApprovalRequested` | A call waits for the user. Your approval handler is called right after. A call that an earlier approval lets through raises no approval events. | `Request` |
+| `ApprovalDecided` | The decision was made. `Decision` says what was taken: `ForSession` or `Always` only where the request offered it. | `Request`, `Decision` |
 | `NoticeRaised` | A refusal or a limit to show on the turn. | `Notice` |
 | `GatewayEvent` | The gateway sent an event. | `Event` |
 | `TurnCompleted` | Last, when the turn ended with an outcome. | `Result`: the `AgentResult` |
@@ -259,6 +266,6 @@ A cancelled turn is recorded as cancelled in the session and is never sent to th
 
 ## What is reported to the server
 
-With event reporting on (the default), the agent reports what it did as names, counts, durations and outcomes: tool runs, approval decisions, attached local MCP servers and session counts. It never reports arguments, results or messages. Reports are sent after each turn; a report that fails is dropped and never fails the turn. `agent.FlushAsync()` sends what is pending.
+With event reporting on (the default), the agent reports what it did as names, counts, durations and outcomes: tool runs, approval decisions with what let each call through (`once`, `chat`, `always` or `bypass`), attached local MCP servers and session counts. It never reports arguments, results or messages. Reports are sent after each turn; a report that fails is dropped and never fails the turn. `agent.FlushAsync()` sends what is pending.
 
 [Sessions](../../concepts/sessions.md) describes what the server keeps.

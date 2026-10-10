@@ -101,6 +101,40 @@ public class AuthTests
         Assert.Equal(2, server.Requests.Count(r => r.Path.EndsWith("chat/completions")));
     }
 
+    [Theory]
+    [InlineData("http://faden.plant.local", false, false)]
+    [InlineData("http://192.0.2.10:8000", false, false)]
+    [InlineData("ftp://faden.test", true, false)]
+    [InlineData("http://faden.plant.local", true, true)]
+    [InlineData("http://localhost:8000", false, true)]
+    [InlineData("http://127.0.0.1:8000", false, true)]
+    [InlineData("http://127.4.5.6", false, true)]
+    [InlineData("http://[::1]:8000", false, true)]
+    [InlineData("https://faden.plant.local", false, true)]
+    public void Sign_ins_go_over_https_or_plain_http_only_to_this_machine_unless_allowed(string url, bool allowInsecureHttp, bool accepted)
+    {
+        AgentTokenProvider Create() => new(new Uri(url), "eplan-assistant", allowInsecureHttp: allowInsecureHttp);
+        if (accepted)
+        {
+            Create();
+        }
+        else
+        {
+            var refused = Assert.Throws<ArgumentException>(Create);
+            Assert.Contains("must be https unless allowInsecureHttp is set", refused.Message);
+        }
+    }
+
+    [Fact]
+    public void A_client_for_an_agent_passes_its_http_setting_to_the_sign_in()
+    {
+        using var client = FadenClient.ForAgent(new Uri("http://faden.plant.local"), "eplan-assistant", out var tokens,
+            new MemoryTokenStore(), o => o.AllowInsecureHttp = true);
+        Assert.NotNull(tokens);
+        Assert.Throws<ArgumentException>(() => FadenClient.ForAgent(new Uri("http://faden.plant.local"), "eplan-assistant", out _,
+            new MemoryTokenStore()));
+    }
+
     [Fact]
     public async Task The_file_store_keeps_the_sign_in_for_its_owner_only()
     {
@@ -161,12 +195,16 @@ public class AgentResourceTests
         await client.Agent!.ReportAsync([
             new ToolExecutedEvent { Tool = "read_page", Source = "host", DurationMs = 12, Outcome = "ok", ConversationId = "c-1" },
             new ApprovalDecidedEvent { Tool = "delete_page", Decision = "denied", WaitMs = 4000 },
+            new ApprovalDecidedEvent { Tool = "add_comment", Decision = "approved", Scope = "always" },
         ]);
         var events = server.Requests.Single().Json.GetProperty("events").EnumerateArray().ToList();
         Assert.Equal("tool.executed", events[0].GetProperty("type").GetString());
         Assert.Equal(12, events[0].GetProperty("duration_ms").GetInt32());
         Assert.False(events[0].TryGetProperty("server", out _), "no nulls: the server refuses unknown and empty fields alike");
         Assert.Equal(("approval.decided", "denied"), (events[1].GetProperty("type").GetString(), events[1].GetProperty("decision").GetString()));
+        Assert.False(events[1].TryGetProperty("scope", out _));
+        Assert.Equal("always", events[2].GetProperty("scope").GetString());
+        Assert.False(events[2].TryGetProperty("wait_ms", out _)); // nobody was asked
     }
 
     [Theory]

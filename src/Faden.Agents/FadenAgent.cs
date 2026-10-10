@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Faden.Agents.Sessions;
 using Faden.Models;
 using Faden.Tools;
@@ -14,8 +15,10 @@ public sealed class FadenAgent : IDisposable
     private readonly AgentSettings _settings;
     private readonly SemaphoreSlim _starting = new(1, 1);
     private ISessionStore? _sessions;
+    private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
     private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
+    private bool _warned;
 
     internal FadenAgent(AgentSettings settings)
     {
@@ -43,15 +46,22 @@ public sealed class FadenAgent : IDisposable
 
     public ToolMode DefaultToolMode => ToolModes.Narrowest(_settings.DefaultMode, ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask);
 
+    /// <summary><see cref="PermissionMode.Ask"/>, or <see cref="PermissionMode.Bypass"/> when the app set it.</summary>
+    public PermissionMode PermissionMode => _settings.PermissionMode;
+
     internal AgentSettings Settings => _settings;
 
     internal EventReporter Reporter { get; }
 
     internal ISessionStore SessionStore => _sessions ??= _settings.Sessions ?? new FileSessionStore();
 
+    internal IApprovalStore ApprovalStore => _approvalStore ??= _settings.ApprovalStore ?? new FileApprovalStore();
+
     /// <summary>
     /// Loads the profile, checks the modules the agent requires, and settles the tools: host tools outside the
-    /// agent's contract are dropped, the others get the stricter of their own and the contract's class.
+    /// agent's contract are dropped, the others get the stricter of their own and the contract's class. Without a
+    /// contract -- or for an entry without a risk -- nobody on the server vouched for a tool: it is unclassified and
+    /// always asks.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -78,7 +88,8 @@ public sealed class FadenAgent : IDisposable
                 {
                     continue; // the gateway refuses it anyway; not offering it keeps the model from trying
                 }
-                tools.Add(new AgentTool(tool.Function, AgentTool.Effective(tool.Class, ToolModes.ParseClass(entry?.Risk)),
+                var risk = ToolModes.ParseClass(entry?.Risk);
+                tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
                     tool.Source, tool.Server, tool.OpenWorld));
             }
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
@@ -95,6 +106,12 @@ public sealed class FadenAgent : IDisposable
             }
             _tools = tools;
             _profile = profile;
+            if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
+            {
+                _warned = true;
+                Trace.TraceWarning($"The agent '{Slug}' runs in bypass mode: tool calls that would ask are approved without asking, " +
+                    "destructive ones too; an admin's \"Ask first\" rule still asks. Use it only for development and trusted automation.");
+            }
             if (_settings.Report)
             {
                 _ = ReportManifestAsync();
@@ -165,6 +182,13 @@ public sealed class FadenAgent : IDisposable
 
     public Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default) =>
         SessionStore.DeleteAsync(Slug, sessionId, cancellationToken);
+
+    /// <summary>
+    /// Forgets what the user allowed always on this device for this agent: every tool, or <paramref name="tool"/> only.
+    /// (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
+    /// </summary>
+    public Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default) =>
+        ApprovalStore.RemoveAsync(Slug, tool, cancellationToken);
 
     /// <summary>Sends what is left to report.</summary>
     public Task FlushAsync(CancellationToken cancellationToken = default) => Reporter.FlushAsync(cancellationToken);

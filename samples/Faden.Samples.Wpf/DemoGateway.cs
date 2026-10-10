@@ -48,7 +48,9 @@ internal sealed class DemoGateway : HttpMessageHandler
         if (path.EndsWith("/profile", StringComparison.Ordinal))
         {
             return Json("""
-                {"id":"demo","slug":"demo-assistant","name":"Demo assistant","version":1,"host_tool_contract":[],
+                {"id":"demo","slug":"demo-assistant","name":"Demo assistant","version":1,
+                 "host_tool_contract":[{"name":"read_page","risk":"read"},{"name":"add_comment","risk":"write"},
+                                       {"name":"delete_page","risk":"destructive"},{"name":"stamp_page"}],
                  "local_mcp":{"mode":"disable","developer_mode":false},"tool_modes":{"default":"ask","ceiling":null},
                  "ui":{"greeting":"A demo without a server. Try one of these:",
                        "suggestions":["What can you do?","Read page 3","Add a comment to page 2","Delete page 2"]},

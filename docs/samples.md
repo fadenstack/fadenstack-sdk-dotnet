@@ -30,7 +30,7 @@ At the prompt, anything you type goes to the agent. Three commands control the s
 | `/sessions` | Lists the sessions on this machine. |
 | `/quit` | Ends the sample. |
 
-When a tool asks, answer `y` to run it once, `s` to allow it for the session, or anything else to decline.
+When a tool asks, answer `y` to run it once, `s` to allow it for the session where the prompt offers it, or anything else to decline. Destructive and unclassified tools ask every time.
 
 ## WPF chat panel
 

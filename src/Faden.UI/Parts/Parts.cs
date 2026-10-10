@@ -292,9 +292,14 @@ public enum ApprovalState
     ApprovedForSession,
     Denied,
     Expired,
+    ApprovedAlways,
 }
 
-/// <summary>"Run delete_page?" with Allow, Allow for this chat, and Deny -- answered in place, like Copilot.</summary>
+/// <summary>
+/// "Run delete_page?" with Allow, Allow for this chat, Allow always, and Deny -- answered in place, like Copilot.
+/// "Allow for this chat" and "Allow always" are offered only where the request allows them: never for a destructive
+/// or unclassified tool, nor for a call an admin's rule covers.
+/// </summary>
 public sealed class ApprovalPart : ResponsePart
 {
     private readonly PendingApproval? _pending;
@@ -312,9 +317,18 @@ public sealed class ApprovalPart : ResponsePart
         _state = state;
         ArgumentsText = ToolCallPart.Preview(Arguments(request), previewLength);
         AllowCommand = new RelayCommand(() => Decide(ApprovalDecision.Approve(), ApprovalState.Approved), () => IsPending);
-        AllowForSessionCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForSession(), ApprovalState.ApprovedForSession), () => IsPending);
+        AllowForSessionCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForSession(), ApprovalState.ApprovedForSession),
+            () => IsPending && CanAllowForSession);
+        AllowAlwaysCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveAlways(), ApprovalState.ApprovedAlways),
+            () => IsPending && CanAllowAlways);
         DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(), ApprovalState.Denied), () => IsPending);
     }
+
+    /// <summary>Whether the card offers "Allow for this chat".</summary>
+    public bool CanAllowForSession => Request.CanAllowForSession;
+
+    /// <summary>Whether the card offers "Allow always".</summary>
+    public bool CanAllowAlways => Request.CanAllowAlways;
 
     public ApprovalRequest Request { get; }
 
@@ -334,6 +348,7 @@ public sealed class ApprovalPart : ResponsePart
         _ => "Unclassified",
     };
 
+    /// <summary>Why it asks: the admin's message for a rule or a gateway tool, else the tool's class and the mode.</summary>
     public string Reason => Request.Reason;
 
     public string ArgumentsText { get; }
@@ -349,6 +364,7 @@ public sealed class ApprovalPart : ResponsePart
                 OnPropertyChanged(nameof(StateText));
                 AllowCommand.NotifyCanExecuteChanged();
                 AllowForSessionCommand.NotifyCanExecuteChanged();
+                AllowAlwaysCommand.NotifyCanExecuteChanged();
                 DenyCommand.NotifyCanExecuteChanged();
             }
         }
@@ -360,6 +376,7 @@ public sealed class ApprovalPart : ResponsePart
     {
         ApprovalState.Approved => "Allowed",
         ApprovalState.ApprovedForSession => "Allowed for this chat",
+        ApprovalState.ApprovedAlways => "Allowed always",
         ApprovalState.Denied => "Denied",
         ApprovalState.Expired => "No answer in time",
         _ => "",
@@ -368,6 +385,8 @@ public sealed class ApprovalPart : ResponsePart
     public IRelayCommand AllowCommand { get; }
 
     public IRelayCommand AllowForSessionCommand { get; }
+
+    public IRelayCommand AllowAlwaysCommand { get; }
 
     public IRelayCommand DenyCommand { get; }
 

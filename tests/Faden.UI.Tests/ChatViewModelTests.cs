@@ -136,6 +136,84 @@ public class ChatViewModelTests
     }
 
     [Fact]
+    public async Task For_this_chat_and_always_show_only_where_the_request_offers_them()
+    {
+        var gateway = new Gateway()
+            .Calls(("call-1", "add_comment", """{"page":2,"text":"ok"}""")).Says("Added.")
+            .Calls(("call-2", "delete_page", """{"page":2}""")).Says("Not deleted.");
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+
+        var first = chat.SendAsync("Comment page 2.");
+        var card = await WaitFor<ApprovalPart>(await TurnOf(chat));
+        Assert.Equal((true, true), (card.CanAllowForSession, card.CanAllowAlways));
+        Assert.True(card.AllowForSessionCommand.CanExecute(null));
+        card.AllowAlwaysCommand.Execute(null);
+        await first;
+        Assert.Equal((ApprovalState.ApprovedAlways, "Allowed always"), (card.State, card.StateText));
+        Assert.False(card.AllowAlwaysCommand.CanExecute(null));
+
+        var second = chat.SendAsync("Delete page 2.");
+        var destructive = await WaitFor<ApprovalPart>(chat.Turns.Last());
+        Assert.Equal((false, false), (destructive.CanAllowForSession, destructive.CanAllowAlways));
+        Assert.False(destructive.AllowForSessionCommand.CanExecute(null));
+        Assert.False(destructive.AllowAlwaysCommand.CanExecute(null));
+        Assert.True(destructive.AllowCommand.CanExecute(null));
+        destructive.DenyCommand.Execute(null);
+        await second;
+    }
+
+    [Fact]
+    public async Task A_reopened_session_shows_allowed_always_and_no_card_for_a_call_let_through()
+    {
+        var store = new MemorySessionStore();
+        var gateway = new Gateway()
+            .Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Added.")
+            .Calls(("call-2", "add_comment", """{"page":2,"text":"b"}""")).Says("Added again.");
+        var (chat, _, _) = Chat(gateway, store);
+        await chat.InitializeAsync();
+        var first = chat.SendAsync("Comment page 1.");
+        (await WaitFor<ApprovalPart>(await TurnOf(chat))).AllowAlwaysCommand.Execute(null);
+        await first;
+        await chat.SendAsync("Comment page 2."); // allowed always: no card
+        Assert.Empty(chat.Turns[1].Parts.OfType<ApprovalPart>());
+
+        var (again, _, _) = Chat(new Gateway(), store);
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(chat.CurrentSessionId!);
+        var card = again.Turns[0].Parts.OfType<ApprovalPart>().Single();
+        Assert.Equal((ApprovalState.ApprovedAlways, "Allowed always"), (card.State, card.StateText));
+        Assert.Empty(again.Turns[1].Parts.OfType<ApprovalPart>());
+        Assert.Equal(ToolCallState.Succeeded, again.Turns[1].Parts.OfType<ToolCallPart>().Single().State);
+    }
+
+    [Fact]
+    public async Task Reset_approvals_makes_the_next_call_ask_again()
+    {
+        var gateway = new Gateway()
+            .Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Added.")
+            .Calls(("call-2", "add_comment", """{"page":2,"text":"b"}""")).Says("Added.")
+            .Calls(("call-3", "add_comment", """{"page":3,"text":"c"}""")).Says("Added.");
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var first = chat.SendAsync("Comment page 1.");
+        (await WaitFor<ApprovalPart>(await TurnOf(chat))).AllowAlwaysCommand.Execute(null);
+        await first;
+        await chat.SendAsync("Comment page 2.");
+        Assert.Empty(chat.Turns[1].Parts.OfType<ApprovalPart>());
+
+        chat.IsModeMenuOpen = true;
+        Assert.True(chat.ResetApprovalsCommand.CanExecute(null));
+        await chat.ResetApprovalsCommand.ExecuteAsync(null);
+        Assert.False(chat.IsModeMenuOpen);
+
+        var third = chat.SendAsync("Comment page 3.");
+        (await WaitFor<ApprovalPart>(chat.Turns.Last())).AllowCommand.Execute(null);
+        await third;
+        Assert.Equal(ChatOutcome.Completed, chat.Turns[2].Outcome);
+    }
+
+    [Fact]
     public async Task Stop_ends_a_turn_that_waits_for_approval()
     {
         var gateway = new Gateway().Calls(("call-1", "stamp", "{}"));

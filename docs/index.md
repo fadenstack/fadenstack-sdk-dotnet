@@ -92,7 +92,7 @@ public sealed class PageTools
 }
 ```
 
-`read_page` is a read tool, so it runs without asking in the mode every session starts in. A tool that changes something asks the user first, and without an approval handler such a call is declined. [Host tools](tools.md) explains both.
+`read_page` is a read tool, so it runs without asking in the mode every session starts in, once the agent's tool contract on the server lists it as `read`. Until an administrator has taken it in, it is unclassified and asks every time. A tool that changes something asks the user first, and without an approval handler such a call is declined. [Host tools](tools.md) explains both.
 
 ## Namespaces
 

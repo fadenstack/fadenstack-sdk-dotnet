@@ -131,23 +131,28 @@ public class AgentLoopTests
     }
 
     [Fact]
-    public async Task Approved_for_the_session_is_not_asked_again_even_after_reopening()
+    public async Task Allowed_for_this_chat_holds_in_the_session_and_ends_with_it()
     {
         var store = new MemorySessionStore();
         var gateway = new Gateway()
             .Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Added.")
-            .Calls(("call-2", "add_comment", """{"page":2,"text":"b"}""")).Says("Added again.");
+            .Calls(("call-2", "add_comment", """{"page":2,"text":"b"}""")).Says("Added again.")
+            .Calls(("call-3", "add_comment", """{"page":3,"text":"c"}""")).Says("Added once more.");
         var tools = new PageTools();
         var asked = 0;
         using var agent = gateway.Builder(store).AddTools(tools)
             .UseApprovals((_, _) => { asked++; return Task.FromResult(ApprovalDecision.ApproveForSession()); }).Build();
         var session = await agent.StartSessionAsync();
         await session.SendAsync("Comment page 1.");
-        var reopened = await agent.OpenSessionAsync(session.Id);
-        await reopened.SendAsync("And page 2.");
+        await session.SendAsync("And page 2.");
         Assert.Equal(1, asked);
-        Assert.Equal(2, tools.Ran.Count);
-        Assert.Contains("add_comment", reopened.ApprovedForSession);
+        Assert.Contains("add_comment", session.ApprovedForSession);
+
+        var reopened = await agent.OpenSessionAsync(session.Id);
+        Assert.Empty(reopened.ApprovedForSession); // never rebuilt from the transcript
+        await reopened.SendAsync("And page 3.");
+        Assert.Equal(2, asked);
+        Assert.Equal(3, tools.Ran.Count);
     }
 
     [Fact]
@@ -194,8 +199,32 @@ public class AgentLoopTests
         var gateway = new Gateway(contract: """[{"name":"read_page","risk":"destructive"},{"name":"stamp","risk":"read"},{"name":"add_comment"}]""");
         using var agent = gateway.Builder().AddTools(new PageTools()).Build();
         await agent.StartAsync();
-        Assert.Equal(new[] { ("read_page", ToolClass.Destructive), ("add_comment", ToolClass.Write), ("stamp", ToolClass.Read) },
+        // An entry without a risk: nobody on the server vouched for the tool, so it is unclassified.
+        Assert.Equal(new[] { ("read_page", ToolClass.Destructive), ("add_comment", ToolClass.Unknown), ("stamp", ToolClass.Read) },
             agent.Tools.Select(t => (t.Name, t.Class)));
+    }
+
+    [Fact]
+    public async Task Without_a_contract_every_host_tool_is_unclassified_and_asks_every_time()
+    {
+        var gateway = new Gateway(contract: "[]")
+            .Calls(("call-1", "read_page", """{"page":1}""")).Says("Page 1.")
+            .Calls(("call-2", "read_page", """{"page":2}""")).Says("Page 2.");
+        var tools = new PageTools();
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder().AddTools(tools)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.ApproveAlways()); }).Build();
+        await agent.StartAsync();
+        Assert.All(agent.Tools, t => Assert.Equal(ToolClass.Unknown, t.Class));
+        var session = await agent.StartSessionAsync(ToolMode.Auto);
+
+        await session.SendAsync("Read page 1.");
+        await session.SendAsync("Read page 2.");
+
+        Assert.Equal(2, requests.Count);
+        Assert.All(requests, r => Assert.Equal((ToolClass.Unknown, false, false), (r.ToolClass, r.CanAllowForSession, r.CanAllowAlways)));
+        Assert.Equal("Nobody has said what this tool does.", requests[0].Reason);
+        Assert.Equal(2, tools.Ran.Count);
     }
 
     [Fact]

@@ -65,7 +65,7 @@ var session = await agent.OpenSessionAsync(sessions[0].Id);
 ```
 
 - `ListSessionsAsync()` returns `SessionInfo` values, the most recently used first: `Id`, `Agent`, `Started`, `LastActivity` and `Title`, which is the beginning of the session's first message.
-- `OpenSessionAsync(id)` continues the session in the tool mode it was last used in. Tools the user approved for the session still run without asking. An id that is not stored on this device throws `KeyNotFoundException`.
+- `OpenSessionAsync(id)` continues the session in the tool mode it was last used in. What the user allowed for the chat ended with it: those tools ask again. What they allowed always still holds. An id that is not stored on this device throws `KeyNotFoundException`.
 - `DeleteSessionAsync(id)` deletes a session from the device.
 
 ## Plug in your own store

@@ -76,6 +76,10 @@ internal static class TranscriptTurns
                         TimeSpan.FromMilliseconds(Json.Long(d, "duration_ms") ?? 0));
                     break;
                 case EntryTypes.ApprovalDecision:
+                    if (d.ValueKind == JsonValueKind.Object && d.TryGetProperty("asked", out var asked) && asked.ValueKind == JsonValueKind.False)
+                    {
+                        break; // let through without asking (this chat, always, bypass): no card, as it ran
+                    }
                     var request = new ApprovalRequest
                     {
                         CallId = Json.Str(d, "call_id") ?? "",
@@ -84,6 +88,7 @@ internal static class TranscriptTurns
                     };
                     var decided = Json.Bool(d, "timed_out") ? ApprovalState.Expired
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
+                        : Json.Str(d, "scope") == ApprovalScopes.Always ? ApprovalState.ApprovedAlways
                         : Json.Bool(d, "for_session") ? ApprovalState.ApprovedForSession : ApprovalState.Approved;
                     turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength));
                     break;
