@@ -80,8 +80,12 @@ To preview the documentation on its own: `pip install zensical`, then `zensical 
 
 ## Contributing
 
-Questions, bug reports and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report a security
-problem privately, as [SECURITY.md](SECURITY.md) describes.
+Questions, bug reports and ideas go in [GitHub issues](https://github.com/fadenstack/fadenstack-sdk-dotnet/issues); pick the
+template that fits. Please open an issue before you write code for a change, so we can agree on it first.
+[CONTRIBUTING.md](CONTRIBUTING.md) says what a pull request needs, including the one-time
+[contributor licence agreement](CONTRIBUTOR_LICENSE_AGREEMENT.md) you sign from your first pull request. Everyone
+follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report a security problem privately, as [SECURITY.md](SECURITY.md)
+describes.
 
 ## License
 
