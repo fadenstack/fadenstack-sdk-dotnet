@@ -131,7 +131,7 @@ internal static class ChatWire
         var role = message.Role.Value;
         if (message.Role == ChatRole.Tool)
         {
-            // Pictures in a tool message belong to its (last) result: the text, then each picture (sdk/10 §3).
+            // Pictures in a tool message belong to its (last) result: the text, then each picture.
             var results = message.Contents.OfType<FunctionResultContent>().ToList();
             var pictures = message.Contents.OfType<DataContent>().Where(d => d.HasTopLevelMediaType("image")).ToList();
             for (var i = 0; i < results.Count; i++)

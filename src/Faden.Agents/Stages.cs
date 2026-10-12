@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 namespace Faden.Agents;
 
 /// <summary>
-/// Where a stage sits (01-design §4, "the builder owns the order"). Outgoing: context → local PII masking →
+/// Where a stage sits: the builder owns the order. Outgoing: context → local PII masking →
 /// transport. Tool call: approval (the loop) → unmask arguments → run → mask the result. A lower number is
 /// further from the transport; modules pick their slot, not their call order.
 /// </summary>
@@ -71,7 +71,7 @@ public sealed class AgentContext
 
     public Models.AgentProfile Profile { get; }
 
-    /// <summary>Reports an event to the server (names and counts, never content: 06 §5).</summary>
+    /// <summary>Reports an event to the server (names and counts, never content).</summary>
     public Task ReportAsync(Models.AgentClientEvent clientEvent) => _report(new[] { clientEvent });
 }
 

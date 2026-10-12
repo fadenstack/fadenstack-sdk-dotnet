@@ -5,7 +5,7 @@ using Microsoft.Extensions.AI;
 namespace Faden.Agents.Sessions;
 
 /// <summary>
-/// Builds a request's history from the transcript, with the session rule of 04 §8 applied on the device:
+/// Builds a request's history from the transcript, with the session rule applied on the device:
 /// a refused prompt, a failed or cancelled turn is left out whole; of a refused answer only the question
 /// stays; consecutive user messages are merged; and the oldest turns go when the history passes the budget.
 /// </summary>

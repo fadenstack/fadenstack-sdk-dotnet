@@ -1,5 +1,5 @@
 <Project>
-  <!-- Shared by every project. Libraries are netstandard2.0 (01-design §3): one package for
+  <!-- Shared by every project. Libraries are netstandard2.0: one package for
        .NET Framework 4.7.2+ hosts (TIA Portal, EPLAN, Office) and .NET 8/10. -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>

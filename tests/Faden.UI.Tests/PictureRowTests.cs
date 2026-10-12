@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Faden.UI.Tests;
 
-/// <summary>A tool's picture (a rendered slide) shows small under its line (sdk/10 §3).</summary>
+/// <summary>A tool's picture (a rendered slide) shows small under its line.</summary>
 public class PictureRowTests
 {
     public sealed class SlideTools

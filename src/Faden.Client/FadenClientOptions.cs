@@ -30,7 +30,7 @@ public sealed class FadenClientOptions
 
     /// <summary>
     /// The tool mode sent with each request (<c>X-Faden-Tool-Mode</c>) unless a request says otherwise.
-    /// Every session starts in <see cref="ToolMode.Ask"/> (sdk/07).
+    /// Every session starts in <see cref="ToolMode.Ask"/>.
     /// </summary>
     public ToolMode ToolMode { get; set; } = ToolMode.Ask;
 

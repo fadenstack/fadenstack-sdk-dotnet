@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Faden.Client.Tests;
 
-/// <summary>Pictures for an agent's tools: the gateway's images route under the agent (sdk/11).</summary>
+/// <summary>Pictures for an agent's tools: the gateway's images route under the agent.</summary>
 public class ImagesTests
 {
     private const string Png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";

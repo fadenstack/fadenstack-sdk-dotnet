@@ -184,7 +184,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _isModeMenuOpen, value);
     }
 
-    /// <summary>The user's pick for this chat. New chats start in Ask (sdk/07).</summary>
+    /// <summary>The user's pick for this chat. New chats start in Ask.</summary>
     public ToolModeOption SelectedToolMode
     {
         get => _selectedMode;

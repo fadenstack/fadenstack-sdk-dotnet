@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Faden.Agents.Sessions;
 
 /// <summary>
-/// One line of a local session's transcript (06 §3). The names are the same in both SDKs. The transcript is
+/// One line of a local session's transcript. The names are the same in both SDKs. The transcript is
 /// the truth about a session: requests are built from it, and nothing of it is kept on the server.
 /// </summary>
 public sealed record TranscriptEntry
@@ -40,7 +40,7 @@ public static class EntryTypes
     public const string TurnEnd = "assistant.turn_end";
 }
 
-/// <summary>How a turn ended; blocked, failed and cancelled turns are not sent to the model again (04 §8).</summary>
+/// <summary>How a turn ended; blocked, failed and cancelled turns are not sent to the model again.</summary>
 public static class TurnStatus
 {
     public const string Ok = "ok";

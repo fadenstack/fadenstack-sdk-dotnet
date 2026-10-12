@@ -164,7 +164,7 @@ public sealed record AgentPresence
 
     public AgentStatus Status { get; init; }
 
-    /// <summary>A pipe name, when the agent accepts delegation or lends tools (08 §5.4); null otherwise.</summary>
+    /// <summary>A pipe name, when the agent accepts delegation or lends tools; null otherwise.</summary>
     public string? Bridge { get; init; }
 
     /// <summary>The process the agent's loop runs in, and its start time (to tell a restarted process).</summary>

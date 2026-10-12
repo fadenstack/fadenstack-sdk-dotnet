@@ -1,6 +1,6 @@
 namespace Faden.Models;
 
-// The server's own sessions: the web chat and plain API use (06 §3). An agent's sessions live on the device.
+// The server's own sessions: the web chat and plain API use. An agent's sessions live on the device.
 // JSON names are the server's snake_case (FadenJson).
 
 public sealed record Session
@@ -47,7 +47,7 @@ public sealed record SessionMessage
     public int? TokenEstimate { get; init; }
     public string? TraceId { get; init; }
 
-    /// <summary><c>ok</c>, <c>blocked_input</c>, <c>blocked_output</c> or <c>error</c> (04 §8).</summary>
+    /// <summary><c>ok</c>, <c>blocked_input</c>, <c>blocked_output</c> or <c>error</c>.</summary>
     public string Status { get; init; } = "ok";
 
     public Guid? DecisionId { get; init; }
@@ -86,7 +86,7 @@ public sealed record MemoryFact
     public DateTimeOffset UpdatedAt { get; init; }
 }
 
-/// <summary>A tool a chat may use, with its class and what the chat's tool mode does with it (sdk/07).</summary>
+/// <summary>A tool a chat may use, with its class and what the chat's tool mode does with it.</summary>
 public sealed record ToolAvailability
 {
     public string ToolId { get; init; } = "";

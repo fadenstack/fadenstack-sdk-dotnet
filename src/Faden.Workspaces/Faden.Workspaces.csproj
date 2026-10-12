@@ -4,7 +4,7 @@
     <PackageId>Fadenstack.Workspaces</PackageId>
     <Description>One model for the applications agents work with: running instances, the files or projects open in them (workspaces), the agents active in each, document leases, workspace-bound tools and the default system tools.</Description>
     <!-- A prototype: built and tested with the SDK, but not published until the workspace framework's
-         open decisions (fadenstack-dev sdk/08, section 5.8) are made. -->
+         open decisions are made. -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>

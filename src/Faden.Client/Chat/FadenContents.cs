@@ -5,7 +5,7 @@ using Microsoft.Extensions.AI;
 namespace Faden.Chat;
 
 /// <summary>
-/// One of the gateway's events (AG-UI vocabulary, 02 §7): a gateway tool starting or ending, citations,
+/// One of the gateway's events (AG-UI vocabulary): a gateway tool starting or ending, citations,
 /// a PII notice, a gateway round to keep, an approval the gateway waits for, a refused tool. Carried in a
 /// response's contents; clients that do not know it ignore it.
 /// </summary>

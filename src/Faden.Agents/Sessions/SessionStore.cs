@@ -5,7 +5,7 @@ using Faden.Http;
 
 namespace Faden.Agents.Sessions;
 
-/// <summary>Where an agent's sessions live: on the device (06 §3). Integrators may plug their own (e.g. in the host's project).</summary>
+/// <summary>Where an agent's sessions live: on the device. Integrators may plug their own (e.g. in the host's project).</summary>
 public interface ISessionStore
 {
     Task AppendAsync(string agent, string sessionId, TranscriptEntry entry, CancellationToken cancellationToken = default);

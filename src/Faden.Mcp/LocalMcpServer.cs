@@ -4,7 +4,7 @@ namespace Faden.Mcp;
 
 /// <summary>
 /// A local MCP server the agent may attach: a program started over stdio, an HTTP endpoint, or any transport.
-/// Whether it is attached is the agent's policy, not this configuration's (01-design §7.1).
+/// Whether it is attached is the agent's policy, not this configuration's.
 /// </summary>
 public sealed class LocalMcpServer
 {

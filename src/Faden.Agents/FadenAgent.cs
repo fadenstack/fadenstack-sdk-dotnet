@@ -8,7 +8,7 @@ namespace Faden.Agents;
 
 /// <summary>
 /// An agent served by a Fadenstack server and run on this device: its profile, its tools, and its sessions.
-/// The loop runs here (01-design §5); every model call goes through the gateway.
+/// The loop runs here; every model call goes through the gateway.
 /// </summary>
 public sealed class FadenAgent : IDisposable
 {

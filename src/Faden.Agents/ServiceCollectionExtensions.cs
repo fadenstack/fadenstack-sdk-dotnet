@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>The agent on the standard .NET host (01-design §4): the same modules, registered as services.</summary>
+/// <summary>The agent on the standard .NET host: the same modules, registered as services.</summary>
 public static class FadenAgentServiceCollectionExtensions
 {
     /// <summary>

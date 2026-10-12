@@ -6,8 +6,8 @@ using Microsoft.Extensions.AI;
 namespace Faden.Agents;
 
 /// <summary>
-/// What happens during a turn, in order, for a UI to render (AG-UI's vocabulary in our own types, 01-design
-/// §9). Every event names its turn.
+/// What happens during a turn, in order, for a UI to render (AG-UI's vocabulary in our own types). Every event
+/// names its turn.
 /// </summary>
 public abstract record AgentEvent
 {
@@ -46,7 +46,7 @@ public sealed record GatewayEvent(FadenEventContent Event) : AgentEvent;
 
 public sealed record TurnCompleted(AgentResult Result) : AgentEvent;
 
-/// <summary>How a turn ended. A refusal is a result, not an exception (04 §8).</summary>
+/// <summary>How a turn ended. A refusal is a result, not an exception.</summary>
 public sealed record AgentResult
 {
     public string TurnId { get; init; } = "";

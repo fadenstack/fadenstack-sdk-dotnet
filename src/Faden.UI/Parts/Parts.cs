@@ -491,7 +491,7 @@ public sealed class CitationsPart : ResponsePart
     }
 }
 
-// -- primitives for features and modules (01-design §9) ------------------------------------------
+// -- primitives for features and modules ------------------------------------------
 
 public sealed record CardField(string Label, string Value);
 

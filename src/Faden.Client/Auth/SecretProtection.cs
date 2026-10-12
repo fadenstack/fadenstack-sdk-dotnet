@@ -31,7 +31,7 @@ public sealed class DpapiSecretProtector : ISecretProtector
 
 /// <summary>
 /// No encryption: the data goes to a file only its owner may read (mode 0600). For systems without DPAPI
-/// until an OS keyring module exists (01-design §11).
+/// until an OS keyring module exists.
 /// </summary>
 public sealed class OwnerOnlyFileProtector : ISecretProtector
 {

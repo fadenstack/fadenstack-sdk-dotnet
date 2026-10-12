@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Faden.Agents.Tests;
 
-/// <summary>A tool that returns a picture, as a slide render does (sdk/10 §3).</summary>
+/// <summary>A tool that returns a picture, as a slide render does.</summary>
 public sealed class RenderTools
 {
     public static readonly byte[] Png = Convert.FromBase64String(

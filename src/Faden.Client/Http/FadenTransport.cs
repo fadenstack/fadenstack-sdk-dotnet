@@ -10,7 +10,7 @@ namespace Faden.Http;
 
 /// <summary>
 /// Authenticated requests to a Fadenstack server, with the client's tokens, TLS settings and typed errors.
-/// Public, so extensions (<c>Faden.Enterprise</c>) add resources without copying the plumbing (01-design §3a).
+/// Public, so extensions (<c>Faden.Enterprise</c>) add resources without copying the plumbing.
 /// </summary>
 public sealed class FadenTransport : IDisposable
 {
@@ -162,7 +162,7 @@ public sealed class FadenTransport : IDisposable
         if (options.TrustedCaCertificate is { } ca)
         {
             var authority = new X509Certificate2(ca);
-            // Per connection, never process-wide: the SDK runs inside other people's processes (01-design §11).
+            // Per connection, never process-wide: the SDK runs inside other people's processes.
             handler.ServerCertificateCustomValidationCallback = (_, certificate, chain, errors) =>
                 errors == System.Net.Security.SslPolicyErrors.None || ChainsTo(certificate, authority, errors);
         }

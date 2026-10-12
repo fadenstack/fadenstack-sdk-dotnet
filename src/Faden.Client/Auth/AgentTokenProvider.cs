@@ -7,7 +7,7 @@ namespace Faden.Auth;
 
 /// <summary>
 /// An agent sign-in on this device: a short access token for one agent, renewed with a refresh token that
-/// the server replaces on every use (02 §4). Kept in an <see cref="ITokenStore"/> between runs.
+/// the server replaces on every use. Kept in an <see cref="ITokenStore"/> between runs.
 /// </summary>
 public sealed class AgentTokenProvider : ITokenProvider
 {

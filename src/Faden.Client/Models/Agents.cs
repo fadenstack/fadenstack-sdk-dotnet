@@ -16,10 +16,10 @@ public sealed record AgentProfile
 
     public string? Model { get; init; }
 
-    /// <summary>Whether the agent's model sees pictures: true, false, or null when nobody said (sdk/10 §4).</summary>
+    /// <summary>Whether the agent's model sees pictures: true, false, or null when nobody said.</summary>
     public bool? Vision { get; init; }
 
-    /// <summary>Whether the server has an image model the agent's tools can use (sdk/11).</summary>
+    /// <summary>Whether the server has an image model the agent's tools can use.</summary>
     public bool Images { get; init; }
 
     public string? InstructionsSha256 { get; init; }
@@ -45,7 +45,7 @@ public sealed record ToolContractEntry
 {
     public string Name { get; init; } = "";
 
-    /// <summary><c>read</c>, <c>write</c> or <c>destructive</c>: the tool's class (sdk/07). Absent: unknown.</summary>
+    /// <summary><c>read</c>, <c>write</c> or <c>destructive</c>: the tool's class. Absent: unknown.</summary>
     public string? Risk { get; init; }
 
     [JsonPropertyName("schema_sha256")]

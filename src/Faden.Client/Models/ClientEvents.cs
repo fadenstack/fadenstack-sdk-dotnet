@@ -1,7 +1,7 @@
 namespace Faden.Models;
 
 /// <summary>
-/// What the SDK reports about its work (02 §9, 06 §5): names, counts, durations, outcomes -- never
+/// What the SDK reports about its work: names, counts, durations, outcomes -- never
 /// arguments, results or messages. The server refuses any other field.
 /// </summary>
 public abstract record AgentClientEvent

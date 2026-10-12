@@ -82,7 +82,7 @@ public sealed class ProjectsResource
         _t.DeleteAsync(_t.Gateway($"v1/sessions/projects/{projectId}"), cancellationToken);
 }
 
-/// <summary>A server session's tools, and its tool policy -- including the tool mode (sdk/07).</summary>
+/// <summary>A server session's tools, and its tool policy -- including the tool mode.</summary>
 public sealed class ToolsResource
 {
     private readonly FadenTransport _t;

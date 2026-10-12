@@ -1,7 +1,7 @@
 namespace Faden.Models;
 
 /// <summary>
-/// What to draw: OpenAI's images request with the settings local image servers take (sdk/11). Pictures come back
+/// What to draw: OpenAI's images request with the settings local image servers take. Pictures come back
 /// in the answer, never as links.
 /// </summary>
 public sealed record ImageRequest

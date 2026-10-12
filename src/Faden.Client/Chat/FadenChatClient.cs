@@ -12,8 +12,8 @@ using Microsoft.Extensions.AI;
 namespace Faden.Chat;
 
 /// <summary>
-/// The gateway as an <see cref="IChatClient"/>, over <see cref="HttpClient"/> -- not the OpenAI SDK (01-design
-/// §4): the gateway's events (tool rounds, approvals, notices) arrive as <see cref="FadenEventContent"/>, and a
+/// The gateway as an <see cref="IChatClient"/>, over <see cref="HttpClient"/> -- not the OpenAI SDK: the
+/// gateway's events (tool rounds, approvals, notices) arrive as <see cref="FadenEventContent"/>, and a
 /// refused prompt or answer as a <see cref="GovernanceNoticeContent"/> on a <c>content_filter</c> response.
 /// For an agent it calls <c>/v1/agents/{agent}/chat/completions</c>; otherwise <c>/v1/chat/completions</c>.
 /// </summary>
@@ -129,7 +129,7 @@ public sealed class FadenChatClient : IChatClient
         return request;
     }
 
-    /// <summary>A prompt the gateway refused (422 policy_blocked) is an answer, not an error (04 §8).</summary>
+    /// <summary>A prompt the gateway refused (422 policy_blocked) is an answer, not an error.</summary>
     private static ChatResponse? Refused(HttpResponseMessage response, string body)
     {
         if (response.StatusCode != (HttpStatusCode)422)

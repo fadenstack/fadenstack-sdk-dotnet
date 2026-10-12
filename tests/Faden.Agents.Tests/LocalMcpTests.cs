@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Faden.Agents.Tests;
 
-/// <summary>Local MCP servers under the agent's policy (01-design §7.1), against an in-process server.</summary>
+/// <summary>Local MCP servers under the agent's policy, against an in-process server.</summary>
 public class LocalMcpTests
 {
     private const string DeveloperMode = """{"mode":"disable","developer_mode":true}""";

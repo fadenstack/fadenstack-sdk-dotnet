@@ -1,6 +1,6 @@
 namespace Faden.Tools;
 
-/// <summary>What a tool does (sdk/07-tool-classes.md). The same names as the gateway's.</summary>
+/// <summary>What a tool does. The same names as the gateway's.</summary>
 public enum ToolClass
 {
     /// <summary>Nobody vouched for it: it always asks, and Read only hides it.</summary>

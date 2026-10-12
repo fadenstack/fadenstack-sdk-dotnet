@@ -37,7 +37,7 @@ public sealed class AgentSession
 
     public string Id { get; }
 
-    /// <summary>The mode the user picked for this session (sdk/07). New sessions start in Ask.</summary>
+    /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
 
     /// <summary>The mode turns run in: the user's pick, narrowed by the agent's ceiling (EE).</summary>
@@ -266,7 +266,7 @@ public sealed class AgentSession
         private bool _toolDenied;
         private ToolMode _mode;
 
-        // Pictures the turn's tools returned, by call; only the newest goes back to the model (sdk/10 §3).
+        // Pictures the turn's tools returned, by call; only the newest goes back to the model.
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
         private string? _newestPicture;
 
@@ -478,7 +478,7 @@ public sealed class AgentSession
             Emit(new GatewayEvent(e));
         }
 
-        /// <summary>The gateway's own tool round, kept so the model still knows what it searched (02 §7).</summary>
+        /// <summary>The gateway's own tool round, kept so the model still knows what it searched.</summary>
         private async Task KeepRoundAsync(JsonElement value)
         {
             if (value.ValueKind != JsonValueKind.Object || !value.TryGetProperty("messages", out var messages)
@@ -687,7 +687,7 @@ public sealed class AgentSession
 
         /// <summary>
         /// The newest picture a tool returned in this turn goes back with that tool's result; older ones are left out,
-        /// their text stays (sdk/10 §3). Pictures are never in the transcript, so later turns carry none.
+        /// their text stays. Pictures are never in the transcript, so later turns carry none.
         /// </summary>
         private void AttachNewestPicture(IList<ChatMessage> history)
         {

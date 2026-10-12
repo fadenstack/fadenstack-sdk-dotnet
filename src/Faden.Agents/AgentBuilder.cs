@@ -126,7 +126,7 @@ public sealed class AgentBuilder
 
     /// <summary>
     /// The mode new sessions start in. It can only be stricter than Ask: every session starts asking unless the
-    /// user widens that session (sdk/07 §1).
+    /// user widens that session.
     /// </summary>
     public AgentBuilder UseDefaultToolMode(ToolMode mode)
     {
@@ -160,7 +160,7 @@ public sealed class AgentBuilder
 
     /// <summary>
     /// Whether pictures the tools return (a rendered slide) go to the model. Default on, and then only when the
-    /// agent's profile says its model sees them; off, they never do (sdk/10 §3-4).
+    /// agent's profile says its model sees them; off, they never do.
     /// </summary>
     public AgentBuilder UsePictures(bool enabled)
     {

@@ -10,7 +10,7 @@ namespace Faden.Agents;
 /// Marks a method as a host tool and says what it does: <c>[AgentTool(ToolClass.Read)]</c>. The description
 /// comes from <see cref="DescriptionAttribute"/>; the name is the method's in snake_case (<c>ReadPageAsync</c> →
 /// <c>read_page</c>) unless <see cref="Name"/> says otherwise. A tool without a class is
-/// <see cref="ToolClass.Unknown"/>: it always asks (sdk/07).
+/// <see cref="ToolClass.Unknown"/>: it always asks.
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class AgentToolAttribute : Attribute
@@ -105,7 +105,7 @@ public sealed class AgentTool
 
     /// <summary>
     /// The class the agent runs the tool under: the stricter of the integrator's and the agent contract's
-    /// (<c>risk</c>). The client may be stricter than the server, never looser (01-design §6).
+    /// (<c>risk</c>). The client may be stricter than the server, never looser.
     /// </summary>
     internal static ToolClass Effective(ToolClass declared, ToolClass? contract)
     {

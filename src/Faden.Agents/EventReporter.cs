@@ -4,7 +4,7 @@ namespace Faden.Agents;
 
 /// <summary>
 /// Tells the server what happened on the device -- tool runs, approvals, session counts -- as names, durations
-/// and outcomes, never content (06 §5). Sent after each turn; a report that fails is dropped, never the turn.
+/// and outcomes, never content. Sent after each turn; a report that fails is dropped, never the turn.
 /// </summary>
 internal sealed class EventReporter
 {

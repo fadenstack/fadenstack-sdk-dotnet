@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Faden.Agents.Tests;
 
-/// <summary>The loop: the agent's tools under the session's tool mode, approvals, outcomes (sdk/07, 04 §8).</summary>
+/// <summary>The loop: the agent's tools under the session's tool mode, approvals, outcomes.</summary>
 public class AgentLoopTests
 {
     private static List<string> ToolNames(Recorded request) =>

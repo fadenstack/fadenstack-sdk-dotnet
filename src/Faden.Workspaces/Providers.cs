@@ -5,7 +5,7 @@ public sealed record OpenWorkspace(string Location, string Title, bool IsActive,
 
 /// <summary>
 /// One application the framework works with, implemented once per application (Word, PowerPoint, TIA Portal)
-/// and per kind of binding (08 §5.1: in-process inside the add-in, automation from outside, file only). The
+/// and per kind of binding (in-process inside the add-in, automation from outside, file only). The
 /// framework does the rest: instances, handles, agents, resolving what the model means, leases, threading.
 /// </summary>
 public interface IApplicationProvider

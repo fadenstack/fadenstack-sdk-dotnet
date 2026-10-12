@@ -12,7 +12,7 @@ public sealed record AttachedMcpServer(string Label, IReadOnlyList<string> Tools
 public sealed record SkippedMcpServer(string Label, string Reason, Exception? Error = null);
 
 /// <summary>
-/// Local MCP servers as agent tools (01-design §7.1). They are attached when the agent starts, if its policy
+/// Local MCP servers as agent tools. They are attached when the agent starts, if its policy
 /// allows; their tools are <see cref="ToolClass.Unknown"/> -- MCP servers describe themselves, and their word
 /// is not trusted -- so every call asks unless the user approved the tool for the session. Each attached
 /// server is reported (label, program or URL, tool names).

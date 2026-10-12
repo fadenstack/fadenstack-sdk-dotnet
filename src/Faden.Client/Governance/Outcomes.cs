@@ -1,7 +1,7 @@
 namespace Faden.Governance;
 
 /// <summary>
-/// How a turn ended (04 §8). A refusal is part of the result, not an exception: the user sees the notice on
+/// How a turn ended. A refusal is part of the result, not an exception: the user sees the notice on
 /// the turn and goes on in the same session.
 /// </summary>
 public enum ChatOutcome

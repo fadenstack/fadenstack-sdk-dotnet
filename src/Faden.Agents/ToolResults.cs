@@ -5,7 +5,7 @@ namespace Faden.Agents;
 
 /// <summary>
 /// A tool's return value as the text the transcript, the UI and the server's events keep, and the pictures it
-/// carries for the model (sdk/10 §3). A tool returns pictures as <see cref="DataContent"/> (<c>image/*</c>), alone
+/// carries for the model. A tool returns pictures as <see cref="DataContent"/> (<c>image/*</c>), alone
 /// or with <see cref="TextContent"/>; any other value is text as before.
 /// </summary>
 internal static class ToolResults
