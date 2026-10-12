@@ -1,0 +1,23 @@
+name: Question
+description: Ask something the documentation does not answer.
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please look in the [documentation](https://developers.fadenstack.com/sdk/dotnet/) first. Leave out passwords, tokens, API keys and personal data.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried or read already
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      placeholder: "Fadenstack.Agents 0.2.0"

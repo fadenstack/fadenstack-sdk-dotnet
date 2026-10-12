@@ -1,0 +1,50 @@
+name: Bug report
+description: Something in the .NET SDK does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting. Please search the [existing issues](https://github.com/fadenstack/fadenstack-sdk-dotnet/issues) first.
+        A security problem is reported privately: see [SECURITY.md](https://github.com/fadenstack/fadenstack-sdk-dotnet/security/policy).
+        Leave out passwords, tokens, API keys and personal data.
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      placeholder: "Fadenstack.Agents 0.2.0"
+    validations:
+      required: true
+  - type: input
+    id: runtime
+    attributes:
+      label: .NET and host
+      description: The .NET your code runs on, and the application that hosts it, if any.
+      placeholder: ".NET Framework 4.8 in an Outlook VSTO add-in"
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Server release
+      description: What `faden version` prints on the Fadenstack server, if you know it.
+      placeholder: "0.4.3"
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you did, step by step, and what happened then. A small program that shows it helps most.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Exception or log
+      description: The exception with its stack trace, or the part of the log that matters, without secrets.
+      render: text
