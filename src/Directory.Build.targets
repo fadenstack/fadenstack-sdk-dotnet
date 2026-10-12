@@ -1,0 +1,14 @@
+<Project>
+  <!-- The packages use each other's internals (InternalsVisibleTo), so each works only with the exact version of the
+       others it was built with: mixed versions throw MissingMethodException. Pack writes a project reference as
+       ">= version"; this makes it "[version]", so NuGet never mixes Fadenstack.* versions. -->
+  <Target Name="FadenExactProjectReferenceVersions" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_FadenExactProjectReference Include="@(_ProjectReferencesWithVersions)">
+        <ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
+      </_FadenExactProjectReference>
+      <_ProjectReferencesWithVersions Remove="@(_ProjectReferencesWithVersions)" />
+      <_ProjectReferencesWithVersions Include="@(_FadenExactProjectReference)" />
+    </ItemGroup>
+  </Target>
+</Project>
