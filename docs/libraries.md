@@ -12,7 +12,7 @@ Build your library for both of the SDK's targets:
 </PropertyGroup>
 ```
 
-A library on `Faden.UI.Wpf` targets `net472` and `net8.0-windows` for the same reason.
+A library on `Fadenstack.UI.Wpf` targets `net472` and `net8.0-windows` for the same reason.
 
 ## Why both
 

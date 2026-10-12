@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Fadenstack.Samples.Console/Fadenstack.Samples.Console.csproj" />
+    <Project Path="samples/Fadenstack.Samples.LiveCheck/Fadenstack.Samples.LiveCheck.csproj" />
+    <Project Path="samples/Fadenstack.Samples.Wpf/Fadenstack.Samples.Wpf.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Fadenstack.Agents/Fadenstack.Agents.csproj" />
+    <Project Path="src/Fadenstack.Client/Fadenstack.Client.csproj" />
+    <Project Path="src/Fadenstack.Mcp/Fadenstack.Mcp.csproj" />
+    <Project Path="src/Fadenstack.UI.Wpf/Fadenstack.UI.Wpf.csproj" />
+    <Project Path="src/Fadenstack.UI/Fadenstack.UI.csproj" />
+    <Project Path="src/Fadenstack.Workspaces/Fadenstack.Workspaces.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fadenstack.Agents.Tests/Fadenstack.Agents.Tests.csproj" />
+    <Project Path="tests/Fadenstack.Client.Tests/Fadenstack.Client.Tests.csproj" />
+    <Project Path="tests/Fadenstack.UI.Tests/Fadenstack.UI.Tests.csproj" />
+    <Project Path="tests/Fadenstack.Workspaces.Tests/Fadenstack.Workspaces.Tests.csproj" />
+  </Folder>
+</Solution>

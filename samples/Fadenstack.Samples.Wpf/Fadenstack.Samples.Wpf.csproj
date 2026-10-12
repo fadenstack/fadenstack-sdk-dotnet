@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <IsSample>true</IsSample>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Fadenstack.UI.Wpf\Fadenstack.UI.Wpf.csproj" />
+    <Compile Include="..\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
+  </ItemGroup>
+</Project>

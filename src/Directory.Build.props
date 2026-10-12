@@ -10,4 +10,22 @@
     <!-- Public members without docs are allowed while the API settles. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <!-- The packages: each carries its own README, the icon, LICENSE and NOTICE (Apache-2.0 section 4), and a
+       symbol package. Source Link points the symbols at the tagged commit. -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>fadenstack;ai;agents;llm;governance;microsoft-extensions-ai</PackageTags>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Condition="Exists('README.md')" Pack="true" PackagePath="\" />
+    <None Include="$(MSBuildThisFileDirectory)..\pkg\icon.png" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)..\LICENSE" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)..\NOTICE" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 </Project>

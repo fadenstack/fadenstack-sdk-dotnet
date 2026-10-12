@@ -1,33 +1,33 @@
 # Extending
 
-This page covers the SDK's extension points: modules, stages and their fixed order, tool sources, `FadenTransport`, and the client modules an agent can require.
+This page covers the SDK's extension points: modules, stages and their fixed order, tool sources, `FadenstackTransport`, and the client modules an agent can require.
 
 ## Modules
 
-A module is a package that plugs into the builder. It implements `IFadenModule`:
+A module is a package that plugs into the builder. It implements `IFadenstackModule`:
 
 ```csharp
-public interface IFadenModule
+public interface IFadenstackModule
 {
     string? Name { get; }
     void Configure(AgentBuilder builder);
 }
 ```
 
-`builder.Use(module)` calls `Configure`, where the module adds its stages, tool sources or tools. `Faden.Mcp` is such a module: `AddLocalMcp` adds a `LocalMcpModule`, named `mcp.local`.
+`builder.Use(module)` calls `Configure`, where the module adds its stages, tool sources or tools. `Fadenstack.Mcp` is such a module: `AddLocalMcp` adds a `LocalMcpModule`, named `mcp.local`.
 
 A module is active only when it is referenced and added to the builder, never just by being installed.
 
 ### Required client modules
 
-An agent's profile on the server can list client modules the agent needs (`required_client_modules`). When the agent starts, every listed name must be the `Name` of a module added with `Use`. Otherwise `StartAsync` throws `FadenException`, naming the missing modules, and no session starts.
+An agent's profile on the server can list client modules the agent needs (`required_client_modules`). When the agent starts, every listed name must be the `Name` of a module added with `Use`. Otherwise `StartAsync` throws `FadenstackException`, naming the missing modules, and no session starts.
 
 A module whose `Name` is null can be added, but it cannot satisfy a requirement.
 
 ```csharp
-using Faden.Agents;
+using Fadenstack.Agents;
 
-public sealed class AuditModule : IFadenModule
+public sealed class AuditModule : IFadenstackModule
 {
     public string? Name => "example.audit";
 
@@ -98,7 +98,7 @@ The agent streams every request, so a chat stage overrides `GetStreamingResponse
 
 ```csharp
 using System.Diagnostics;
-using Faden.Agents;
+using Fadenstack.Agents;
 
 public sealed class ToolLogStage : IToolStage
 {
@@ -134,13 +134,13 @@ Add one with `builder.AddToolSource(source)`. The `AgentContext` gives the sourc
 
 An `AgentTool` wraps an `AIFunction` with its class, its `Source` (`host` or `mcp`), the `Server` label of an MCP tool, and whether it reaches outside the organisation.
 
-## FadenTransport
+## FadenstackTransport
 
 `client.Transport` makes authenticated requests to the server with the client's tokens, TLS settings and typed errors. Use it to add requests the SDK does not cover yet, without copying the plumbing:
 
 ```csharp
-using Faden.Http;
-using Faden.Models;
+using Fadenstack.Http;
+using Fadenstack.Models;
 
 var transport = client.Transport;
 var features = await transport.GetAsync<ServerFeatures>(transport.Gateway("v1/features"));
@@ -155,4 +155,4 @@ var features = await transport.GetAsync<ServerFeatures>(transport.Gateway("v1/fe
 | `ServerUrl`, `ApiUrl`, `Timeout`, `HttpClient` | The client's settings. |
 | `CreateHandler(options)` | A handler with the client's TLS settings, for your own requests to the same server. |
 
-Requests carry the bearer token. When the server answers 401, the transport gets a fresh token and retries once. JSON uses the server's snake_case names; `FadenJson.Options` holds the serializer options.
+Requests carry the bearer token. When the server answers 401, the transport gets a fresh token and retries once. JSON uses the server's snake_case names; `FadenstackJson.Options` holds the serializer options.

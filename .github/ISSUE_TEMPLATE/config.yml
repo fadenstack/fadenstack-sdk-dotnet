@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://developers.fadenstack.com/sdk/dotnet/
+    about: Building agents with the .NET SDK. Many questions are answered here.
+  - name: The Fadenstack server
+    url: https://github.com/fadenstack/fadenstack/issues
+    about: Problems with the server, the console or the faden command belong there.
+  - name: Report a security problem
+    url: https://github.com/fadenstack/fadenstack-sdk-dotnet/security/policy
+    about: Please report vulnerabilities privately, never in an issue.

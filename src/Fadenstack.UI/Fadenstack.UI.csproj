@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Fadenstack.UI</RootNamespace>
+    <PackageId>Fadenstack.UI</PackageId>
+    <Description>Platform-neutral view models for Fadenstack agents: the chat, streamed markdown, tool calls, approvals, notices, sessions. Skins (Fadenstack.UI.Wpf) only render them.</Description>
+    <PackageTags>$(PackageTags);mvvm;chat</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.UI.Tests" />
+  </ItemGroup>
+</Project>

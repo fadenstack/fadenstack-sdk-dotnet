@@ -1,18 +1,31 @@
 <Project>
-  <!-- Shared by every project. Libraries are netstandard2.0 (01-design §3): one package for
-       .NET Framework 4.7.2+ hosts (TIA Portal, EPLAN, Office) and .NET 8/10. -->
+  <!-- Shared by every project. Libraries are netstandard2.0: one package for
+       .NET Framework 4.7.2+ hosts (add-ins, desktop applications) and .NET 8/10. -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Authors>Fadenstack</Authors>
-    <Company>Fadenstack</Company>
+    <!-- The copyright holder, as in NOTICE. -->
+    <Authors>Emagin8 UG (haftungsbeschränkt)</Authors>
+    <Company>Emagin8 UG (haftungsbeschränkt)</Company>
+    <Product>Fadenstack</Product>
+    <Copyright>Copyright 2026 Emagin8 UG (haftungsbeschränkt) and contributors</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</PackageProjectUrl>
+    <PackageProjectUrl>https://developers.fadenstack.com/sdk/dotnet/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- The release: a tag v<Version> publishes it (.github/workflows/release.yml checks they match). -->
     <Version>0.2.0</Version>
   </PropertyGroup>
 
+  <!-- Strong names: a strong-named host or add-in can only load strong-named assemblies. The key is public on
+       purpose (Microsoft's advice for open-source libraries): a strong name is an identity, not a signature anyone
+       should trust. PublicKey is what InternalsVisibleTo names the friend assemblies with; all are signed with this key. -->
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)Fadenstack.snk</AssemblyOriginatorKeyFile>
+    <PublicKey>002400000480000094000000060200000024000052534131000400000100010075b169afad0292f908f1954ef43e97ce03e1bae6790cee4f2dc284b9086f8d1b0423b98f4a960f9e58d703c1c32b8e61892110b1ba9f79a8e94a24aa19402f6536cfd7768e69b32dd7c0089c41e61d072409100a94dd45efc5545cf9f1737d4476c39bc9ce705c78228da96fb0fd5aea28ccfbba714f39b98162c3baa02eeddd</PublicKey>
+  </PropertyGroup>
 </Project>

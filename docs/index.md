@@ -3,14 +3,14 @@
 This page introduces the .NET SDK, its packages and target frameworks, and shows how to add it to a project.
 
 !!! note "Server version"
-    Agents need a Fadenstack server from the next release, after 0.4.1. With 0.4.1, only
+    Agents need a Fadenstack server 0.4.2 or later. With 0.4.1 and older, only
     [the plain client](plain-api.md) works, without tool modes, governance notices and the gateway's events.
 
 ## What the SDK is
 
-The SDK builds agents that run inside other software and are governed by a Fadenstack server. The host can be a desktop application such as EPLAN, TIA Portal or Microsoft Office, a Windows service or a console tool.
+The SDK builds agents that run inside other software and are governed by a Fadenstack server. The host can be a desktop application, an add-in for Microsoft Office or another application, a Windows service or a console tool.
 
-The work is split between the device and the server. The device runs the agent loop: it sends the conversation, runs the host application's tools, asks the user before a tool changes something, attaches local MCP servers and keeps the conversation. The server owns the agent's instructions, its model and its knowledge, and it handles personal data (PII) and the audit trail. Budgets are <span class="fs-planned">Planned</span>.
+The work is split between the device and the server. The device runs the agent loop: it sends the conversation, runs the host application's tools, asks the user before a tool changes something, attaches local MCP servers and keeps the conversation. The server owns the agent's instructions, its model and its knowledge, and it handles personal data (PII) and the audit trail.
 
 The SDK never receives the agent's instructions. Every model call goes through the server's gateway, which applies the organisation's policies on the way to the model and back. [Agents on the server](../../concepts/agents.md) explains how an agent is defined there.
 
@@ -18,26 +18,36 @@ The SDK never receives the agent's instructions. Every model call goes through t
 
 | Package | What it contains |
 |---|---|
-| `Faden.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
-| `Faden.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
-| `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
-| `Faden.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm. |
-| `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins. |
+| `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
+| `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
+| `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
+| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm. |
+| `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins. |
 
-Each package brings the packages it builds on. `Faden.Agents` includes `Faden.Client`; `Faden.Mcp` and `Faden.UI` include `Faden.Agents`; `Faden.UI.Wpf` includes `Faden.UI`.
+Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.UI.Wpf` includes `Fadenstack.UI`.
 
 ## Target frameworks
 
 | Package | Targets | Runs on |
 |---|---|---|
-| `Faden.Client`, `Faden.Agents`, `Faden.Mcp`, `Faden.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
-| `Faden.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
+| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
+| `Fadenstack.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
 
 The `netstandard2.0` builds serve .NET Framework hosts, such as add-ins loaded by a native application. A .NET 8 or later application gets the `net8.0` builds. If you write a library on top of the SDK, read [Building a library](libraries.md) first.
 
 ## Install
 
-The packages are published to NuGet with the first release. Until then, reference the projects from source.
+Add the package you need from nuget.org. It brings the packages it builds on:
+
+```bash
+dotnet add package Fadenstack.Agents
+```
+
+For local MCP servers, add `Fadenstack.Mcp`. For the WPF chat panel, add `Fadenstack.UI.Wpf`. Your project can target any of the frameworks in the table above.
+
+### From source
+
+To try changes that are not released yet, reference the projects instead of the packages:
 
 1. Clone the repository next to your solution:
 
@@ -49,13 +59,13 @@ The packages are published to NuGet with the first release. Until then, referenc
 
     ```xml
     <ItemGroup>
-      <ProjectReference Include="..\fadenstack-sdk-dotnet\src\Faden.Agents\Faden.Agents.csproj" />
+      <ProjectReference Include="..\fadenstack-sdk-dotnet\src\Fadenstack.Agents\Fadenstack.Agents.csproj" />
     </ItemGroup>
     ```
 
-    For local MCP servers, add `src\Faden.Mcp\Faden.Mcp.csproj`. For the WPF chat panel, add `src\Faden.UI.Wpf\Faden.UI.Wpf.csproj`.
+    For local MCP servers, add `src\Fadenstack.Mcp\Fadenstack.Mcp.csproj`. For the WPF chat panel, add `src\Fadenstack.UI.Wpf\Fadenstack.UI.Wpf.csproj`.
 
-Build the SDK's projects with the .NET 10 SDK. Your own project can target any of the frameworks in the table above.
+Build the SDK's projects with the .NET 10 SDK.
 
 ## A complete example
 
@@ -63,18 +73,18 @@ A console program that signs in to an agent, offers one host tool and asks one q
 
 ```csharp
 using System.ComponentModel;
-using Faden;
-using Faden.Agents;
-using Faden.Tools;
+using Fadenstack;
+using Fadenstack.Agents;
+using Fadenstack.Tools;
 
-using var client = FadenClient.ForAgent(new Uri("https://ai.example.internal"), "my-assistant", out var tokens);
+using var client = FadenstackClient.ForAgent(new Uri("https://ai.example.internal"), "my-assistant", out var tokens);
 if (!await tokens.IsSignedInAsync())
 {
     // First run only: the sign-in is kept for this user on this device.
     await tokens.SignInAsync(loginToken: args[0], deviceLabel: "Console on " + Environment.MachineName);
 }
 
-using var agent = FadenAgent.CreateBuilder()
+using var agent = FadenstackAgent.CreateBuilder()
     .UseClient(client)
     .UseAgent("my-assistant")
     .AddTools(new PageTools())
@@ -88,7 +98,7 @@ Console.WriteLine($"Outcome: {result.Outcome}");
 public sealed class PageTools
 {
     [AgentTool(ToolClass.Read), Description("Reads a page of the open document.")]
-    public string ReadPage(int page) => $"Page {page}: contactor K1, terminal strip X1.";
+    public string ReadPage(int page) => $"Page {page}: section 1.1, table T1.";
 }
 ```
 
@@ -98,19 +108,19 @@ public sealed class PageTools
 
 | Namespace | Main types |
 |---|---|
-| `Faden` | `FadenClient`, `FadenClientOptions`, the exceptions |
-| `Faden.Auth` | `AgentTokenProvider`, `StaticTokenProvider`, `ITokenProvider`, `ITokenStore`, `FileTokenStore`, `MemoryTokenStore` |
-| `Faden.Chat` | `FadenChatOptions`, `FadenEventContent`, `GovernanceNoticeContent` |
-| `Faden.Governance` | `ChatOutcome`, `GovernanceNotice` |
-| `Faden.Tools` | `ToolClass`, `ToolMode`, `ToolModes` |
-| `Faden.Models`, `Faden.Resources` | The profile, manifest and server records; the REST resources |
-| `Faden.Http` | `FadenTransport`, `FadenJson` |
-| `Faden.Agents` | `FadenAgent`, `AgentBuilder`, `AgentSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenModule` |
-| `Faden.Agents.Sessions` | `ISessionStore`, `FileSessionStore`, `MemorySessionStore`, `SessionRetention`, `TranscriptEntry` |
-| `Faden.Mcp` | `LocalMcpServer`, `LocalMcpModule`, `AddLocalMcp` |
-| `Faden.UI.ViewModels`, `Faden.UI.Parts`, `Faden.UI.Services` | The chat view models, the answer parts, `ApprovalBroker`, `IUiDispatcher` |
-| `Faden.UI.Wpf.Views`, `Faden.UI.Wpf.Services` | `ChatView`, `ChatTheme`, `WpfDispatcher`, `WpfClipboard` |
-| `Microsoft.Extensions.DependencyInjection` | `AddFadenAgent` |
+| `Fadenstack` | `FadenstackClient`, `FadenstackClientOptions`, the exceptions |
+| `Fadenstack.Auth` | `AgentTokenProvider`, `StaticTokenProvider`, `ITokenProvider`, `ITokenStore`, `FileTokenStore`, `MemoryTokenStore` |
+| `Fadenstack.Chat` | `FadenstackChatOptions`, `FadenstackEventContent`, `GovernanceNoticeContent` |
+| `Fadenstack.Governance` | `ChatOutcome`, `GovernanceNotice` |
+| `Fadenstack.Tools` | `ToolClass`, `ToolMode`, `ToolModes` |
+| `Fadenstack.Models`, `Fadenstack.Resources` | The profile, manifest and server records; the REST resources |
+| `Fadenstack.Http` | `FadenstackTransport`, `FadenstackJson` |
+| `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `AgentSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
+| `Fadenstack.Agents.Sessions` | `ISessionStore`, `FileSessionStore`, `MemorySessionStore`, `SessionRetention`, `TranscriptEntry` |
+| `Fadenstack.Mcp` | `LocalMcpServer`, `LocalMcpModule`, `AddLocalMcp` |
+| `Fadenstack.UI.ViewModels`, `Fadenstack.UI.Parts`, `Fadenstack.UI.Services` | The chat view models, the answer parts, `ApprovalBroker`, `IUiDispatcher` |
+| `Fadenstack.UI.Wpf.Views`, `Fadenstack.UI.Wpf.Services` | `ChatView`, `ChatTheme`, `WpfDispatcher`, `WpfClipboard` |
+| `Microsoft.Extensions.DependencyInjection` | `AddFadenstackAgent` |
 
 ## Where next
 

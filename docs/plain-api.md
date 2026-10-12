@@ -1,20 +1,20 @@
 # Using the server without an agent
 
-This page covers `Faden.Client` on its own: the gateway's `/v1/chat/completions` route as an `IChatClient`, and the server's REST resources.
+This page covers `Fadenstack.Client` on its own: the gateway's `/v1/chat/completions` route as an `IChatClient`, and the server's REST resources.
 
 !!! note "Server version"
-    Tool modes, governance notices, the gateway's events and `GetFeaturesAsync` need a Fadenstack server from the
-    next release, after 0.4.1. With 0.4.1, chat and the server resources work without them.
+    Tool modes, governance notices, the gateway's events and `GetFeaturesAsync` need a Fadenstack server 0.4.2 or
+    later. With 0.4.1 and older, chat and the server resources work without them.
 
 ## A plain client
 
-Without an agent, a `FadenClient` uses the plain `/v1` routes with an API token and a model you choose:
+Without an agent, a `FadenstackClient` uses the plain `/v1` routes with an API token and a model you choose:
 
 ```csharp
-using Faden;
-using Faden.Auth;
+using Fadenstack;
+using Fadenstack.Auth;
 
-using var client = new FadenClient(new FadenClientOptions
+using var client = new FadenstackClient(new FadenstackClientOptions
 {
     ServerUrl = new Uri("https://ai.example.internal"),
     Credentials = new StaticTokenProvider(apiToken),
@@ -49,7 +49,7 @@ It is built on `HttpClient` and speaks the OpenAI chat completions format. Tools
 When the gateway refuses a prompt, `GetResponseAsync` does not throw. It returns a response whose `FinishReason` is `ContentFilter`, with the governance notice attached:
 
 ```csharp
-using Faden.Chat;
+using Fadenstack.Chat;
 
 var response = await client.Chat.GetResponseAsync(question);
 if (response.GetGovernanceNotice() is { } notice)
@@ -62,14 +62,14 @@ else
 }
 ```
 
-The notice is a `GovernanceNoticeContent` in the response's contents. An answer stopped by an output check carries its notice the same way; in a stream, the notice arrives as a `GovernanceNoticeContent` in an update. Other errors throw the exceptions listed in [Outcomes and errors](outcomes.md#exceptions); a rate limit throws `FadenRateLimitedException`.
+The notice is a `GovernanceNoticeContent` in the response's contents. An answer stopped by an output check carries its notice the same way; in a stream, the notice arrives as a `GovernanceNoticeContent` in an update. Other errors throw the exceptions listed in [Outcomes and errors](outcomes.md#exceptions); a rate limit throws `FadenstackRateLimitedException`.
 
 ## Fadenstack options for a request
 
-`FadenChatOptions` holds the keys and extension methods for Fadenstack's own request settings:
+`FadenstackChatOptions` holds the keys and extension methods for Fadenstack's own request settings:
 
 ```csharp
-using Faden.Tools;
+using Fadenstack.Tools;
 
 var options = new ChatOptions()
     .WithSession(session.Id.ToString())
@@ -83,9 +83,9 @@ var response = await client.Chat.GetResponseAsync(question, options);
 | `WithSession(sessionId)` | Uses a server session (see below) for this request. |
 | `WithToolMode(mode)` | The tool mode for this request. Without it, the client's `ToolMode` option applies, which is `Ask` by default. |
 | `WithConversation(conversationId, turnId)` | Names the conversation and turn. Only an agent's route reads them, to group usage per conversation without keeping the conversation; the plain routes ignore them. |
-| `FadenChatOptions.Skills` | A key for `AdditionalProperties`: the skills to use for this message, by slug. |
+| `FadenstackChatOptions.Skills` | A key for `AdditionalProperties`: the skills to use for this message, by slug. |
 
-With `GatewayEvents` on (the default), the response also carries the gateway's events as `FadenEventContent` items, such as citations.
+With `GatewayEvents` on (the default), the response also carries the gateway's events as `FadenstackEventContent` items, such as citations.
 
 ## Server resources
 
@@ -117,4 +117,4 @@ foreach (var message in await client.Sessions.MessagesAsync(session.Id))
 
 A stored message that was refused has an empty `Content`, a `Status` of `blocked_input` or `blocked_output`, and the `Notice` the user was told.
 
-The records (`Session`, `Project`, `SessionMessage`, `MemoryFact`, `Attachment` and others) are in the `Faden.Models` namespace. The resources throw the exceptions listed in [Outcomes and errors](outcomes.md#exceptions).
+The records (`Session`, `Project`, `SessionMessage`, `MemoryFact`, `Attachment` and others) are in the `Fadenstack.Models` namespace. The resources throw the exceptions listed in [Outcomes and errors](outcomes.md#exceptions).

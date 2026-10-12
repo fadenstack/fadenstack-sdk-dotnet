@@ -4,14 +4,14 @@ This page covers the client and the agent's sign-in, the builder, sessions, the 
 
 ## The client
 
-A `FadenClient` is the connection to one server, for one agent. `FadenClient.ForAgent` creates it together with the token provider that signs the agent in:
+A `FadenstackClient` is the connection to one server, for one agent. `FadenstackClient.ForAgent` creates it together with the token provider that signs the agent in:
 
 ```csharp
-using Faden;
-using Faden.Auth;
+using Fadenstack;
+using Fadenstack.Auth;
 
-using var client = FadenClient.ForAgent(
-    new Uri("https://ai.example.internal"), "eplan-assistant", out AgentTokenProvider tokens);
+using var client = FadenstackClient.ForAgent(
+    new Uri("https://ai.example.internal"), "docs-assistant", out AgentTokenProvider tokens);
 ```
 
 | Parameter | Meaning |
@@ -20,7 +20,7 @@ using var client = FadenClient.ForAgent(
 | `agent` | The agent's slug or id. A client works for one agent: its chat goes to that agent's route. |
 | `tokens` (out) | The `AgentTokenProvider` that signs in and supplies the client's access tokens. |
 | `store` | Where the sign-in is kept. Defaults to `FileTokenStore`. |
-| `configure` | Sets further `FadenClientOptions` before the client is created. |
+| `configure` | Sets further `FadenstackClientOptions` before the client is created. |
 
 The options you are most likely to set for an agent:
 
@@ -34,7 +34,7 @@ The options you are most likely to set for an agent:
 | `GatewayEvents` | Whether the gateway sends its events (tool rounds, approvals, notices). On by default. |
 
 ```csharp
-using var client = FadenClient.ForAgent(serverUrl, "eplan-assistant", out var tokens,
+using var client = FadenstackClient.ForAgent(serverUrl, "docs-assistant", out var tokens,
     configure: options => options.TrustedCaCertificate = File.ReadAllBytes("company-ca.crt"));
 ```
 
@@ -47,11 +47,11 @@ The agent signs in once per user and device. Check for a kept sign-in before ask
 ```csharp
 if (!await tokens.IsSignedInAsync())
 {
-    await tokens.SignInAsync(loginToken, deviceLabel: "EPLAN on PC-7");
+    await tokens.SignInAsync(loginToken, deviceLabel: "Viewer on PC-7");
 }
 ```
 
-`SignInAsync(loginToken, deviceLabel)` exchanges the user's login token for a sign-in to this agent on this device and returns the `TokenSet`. The device label names this sign-in in the server's list of sign-ins; it defaults to the machine name. If the user has no grant for the agent, the server refuses with `FadenPermissionException` (403). [Your first agent](../../get-started/first-agent.md) shows how an agent is registered and granted, and where a login token comes from.
+`SignInAsync(loginToken, deviceLabel)` exchanges the user's login token for a sign-in to this agent on this device and returns the `TokenSet`. The device label names this sign-in in the server's list of sign-ins; it defaults to the machine name. If the user has no grant for the agent, the server refuses with `FadenstackPermissionException` (403). [Your first agent](../../get-started/first-agent.md) shows how an agent is registered and granted, and where a login token comes from.
 
 | Member | Meaning |
 |---|---|
@@ -62,7 +62,7 @@ if (!await tokens.IsSignedInAsync())
 
 A sign-in sends the user's login token, so `AgentTokenProvider` refuses an `http://` API URL unless it is this machine (`localhost`, `127.0.0.1` or `::1`) or you pass `allowInsecureHttp: true` for a development server. Its constructor throws `ArgumentException` otherwise.
 
-After the sign-in, the provider supplies access tokens by itself. An access token is short-lived and is renewed with a refresh token shortly before it expires; the server replaces the refresh token on every use. When the server refuses a renewal (the sign-in was revoked, a refresh token was used twice, or the user lost access), the provider forgets the sign-in and throws `FadenSignInRequiredException`. Ask the user to sign in again.
+After the sign-in, the provider supplies access tokens by itself. An access token is short-lived and is renewed with a refresh token shortly before it expires; the server replaces the refresh token on every use. When the server refuses a renewal (the sign-in was revoked, a refresh token was used twice, or the user lost access), the provider forgets the sign-in and throws `FadenstackSignInRequiredException`. Ask the user to sign in again.
 
 ### Where the sign-in is kept
 
@@ -75,19 +75,19 @@ To keep it elsewhere, pass a store:
 - Your own `ITokenStore` implements `LoadAsync`, `SaveAsync` and `DeleteAsync`.
 
 ```csharp
-using var client = FadenClient.ForAgent(serverUrl, "eplan-assistant", out var tokens, store: new MemoryTokenStore());
+using var client = FadenstackClient.ForAgent(serverUrl, "docs-assistant", out var tokens, store: new MemoryTokenStore());
 ```
 
 ## The builder
 
-`FadenAgent.CreateBuilder()` puts an agent together. `Build()` returns the `FadenAgent`.
+`FadenstackAgent.CreateBuilder()` puts an agent together. `Build()` returns the `FadenstackAgent`.
 
 ```csharp
-using Faden.Agents;
+using Fadenstack.Agents;
 
-using var agent = FadenAgent.CreateBuilder()
+using var agent = FadenstackAgent.CreateBuilder()
     .UseClient(client)
-    .UseAgent("eplan-assistant")
+    .UseAgent("docs-assistant")
     .AddTools(new PageTools())
     .UseApprovals((request, cancellationToken) => AskTheUserAsync(request, cancellationToken))
     .Build();
@@ -118,11 +118,11 @@ using var agent = FadenAgent.CreateBuilder()
 When the agent starts, it tells the server what your app brings: its host tools with the classes you gave them, the app's name and version, the SDK's version, and the context and greeting you describe. The server keeps this for its administrators to review; nothing in it changes what the agent may do. When the agent's host tool contract is not empty, a tool the contract does not list is held back until an administrator takes it in.
 
 ```csharp
-using Faden.Models;
+using Fadenstack.Models;
 
 builder.DescribeApp(new AppDescription
 {
-    Name = "EPLAN add-in",
+    Name = "Viewer add-in",
     Version = "2.1.0",
     Ui = new ManifestUi
     {
@@ -147,7 +147,7 @@ The report never fails the start. `UseEventReporting(false)` turns it off, toget
 | `ResetApprovalsAsync(tool)` | Forgets what the user allowed always for this agent on this device: every tool, or one. |
 | `Slug`, `Client` | The agent's slug and its client. |
 
-`StartAsync` throws `FadenSignInRequiredException` when there is no sign-in, `FadenPermissionException` when the user may not use the agent, and `FadenException` when the agent requires a client module the builder does not have.
+`StartAsync` throws `FadenstackSignInRequiredException` when there is no sign-in, `FadenstackPermissionException` when the user may not use the agent, and `FadenstackException` when the agent requires a client module the builder does not have.
 
 ## Sessions
 
@@ -205,7 +205,7 @@ await foreach (var e in session.StreamAsync("What is on page 7?"))
 
 Every event carries the turn's `TurnId`.
 
-`GatewayEvent.Event` is a `FadenEventContent`: the event as the gateway sent it (`Event`), its type (`Type`), the name of a custom event (`Name`), its value (`Value`) and `Kind`, which is the name for a custom event and the type otherwise. Citations (`faden.citations`) and personal-data notices (`faden.pii`) arrive this way. Every gateway event arrives as a `GatewayEvent`, including those the SDK also turns into the events above, so render the kinds you know and ignore the rest.
+`GatewayEvent.Event` is a `FadenstackEventContent`: the event as the gateway sent it (`Event`), its type (`Type`), the name of a custom event (`Name`), its value (`Value`) and `Kind`, which is the name for a custom event and the type otherwise. Citations (`faden.citations`) and personal-data notices (`faden.pii`) arrive this way. Every gateway event arrives as a `GatewayEvent`, including those the SDK also turns into the events above, so render the kinds you know and ignore the rest.
 
 A turn that is cancelled or fails has no `TurnCompleted`.
 

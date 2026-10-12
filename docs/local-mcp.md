@@ -1,15 +1,15 @@
 # Local MCP servers
 
-This page covers how an agent uses MCP servers on the device with `Faden.Mcp`: adding them, when they are attached or skipped, and why their tools always ask.
+This page covers how an agent uses MCP servers on the device with `Fadenstack.Mcp`: adding them, when they are attached or skipped, and why their tools always ask.
 
 ## Add a server
 
-Reference `Faden.Mcp` and add the servers to the builder:
+Add the `Fadenstack.Mcp` package and add the servers to the builder:
 
 ```csharp
-using Faden.Mcp;
+using Fadenstack.Mcp;
 
-builder.AddLocalMcp(LocalMcpServer.Stdio("eplan-db", "eplan-mcp.exe"));
+builder.AddLocalMcp(LocalMcpServer.Stdio("notes-db", "notes-mcp.exe"));
 ```
 
 A `LocalMcpServer` is one of three kinds:
@@ -37,7 +37,7 @@ To see what happened, keep the module and read it after the start:
 ```csharp
 var mcp = new LocalMcpModule(new[]
 {
-    LocalMcpServer.Stdio("eplan-db", "eplan-mcp.exe"),
+    LocalMcpServer.Stdio("notes-db", "notes-mcp.exe"),
 });
 builder.AddLocalMcp(mcp);
 
