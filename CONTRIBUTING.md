@@ -33,7 +33,7 @@ not wasted. Small fixes (a typo, a broken link) can go straight to a pull reques
 - **Link the issue** it resolves ("Fixes #123"). A bug fix needs an issue that describes the bug; a feature needs
   an issue we agreed on.
 - **One change per pull request**, as small as it can be.
-- **Tests:** add or change tests that show the change works, and run `dotnet test Faden.slnx`.
+- **Tests:** add or change tests that show the change works, and run `dotnet test Fadenstack.slnx`.
 - **Documentation:** when you change what a developer sees or does, change the page in `docs/`.
 - **Compatibility:** the libraries target `netstandard2.0` for .NET Framework hosts, so use only APIs that exist
   there. A change to a public API that breaks existing code needs to be agreed in the issue first.
@@ -58,7 +58,7 @@ and macOS the WPF projects build (`EnableWindowsTargeting`), but the WPF sample 
 ```bash
 git clone https://github.com/fadenstack/fadenstack-sdk-dotnet.git
 cd fadenstack-sdk-dotnet
-dotnet test Faden.slnx
+dotnet test Fadenstack.slnx
 ```
 
 The tests run against a fake server and need no Fadenstack installation. To preview the documentation:

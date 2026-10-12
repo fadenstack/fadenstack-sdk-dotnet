@@ -49,7 +49,7 @@ Entries are only ever appended. A turn that was stopped is still recorded, as st
 To keep more or fewer, create the store yourself:
 
 ```csharp
-using Faden.Agents.Sessions;
+using Fadenstack.Agents.Sessions;
 
 builder.UseSessionStore(new FileSessionStore(
     retention: new SessionRetention(MaxSessions: 20, MaxAgeDays: 30)));

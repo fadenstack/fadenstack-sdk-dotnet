@@ -8,19 +8,19 @@ A host tool is a method of your application that the model may call. Mark it wit
 
 ```csharp
 using System.ComponentModel;
-using Faden.Agents;
-using Faden.Tools;
+using Fadenstack.Agents;
+using Fadenstack.Tools;
 
 public sealed class PageTools
 {
-    [AgentTool(ToolClass.Read), Description("Reads a page of the open schematic.")]
-    public string ReadPage([Description("The page number, from 1.")] int page) => Schematic.Read(page);
+    [AgentTool(ToolClass.Read), Description("Reads a page of the open document.")]
+    public string ReadPage([Description("The page number, from 1.")] int page) => Document.Read(page);
 
     [AgentTool(ToolClass.Write), Description("Adds a comment to a page.")]
-    public string AddComment(int page, string text) => Schematic.Comment(page, text);
+    public string AddComment(int page, string text) => Document.Comment(page, text);
 
     [AgentTool(ToolClass.Destructive), Description("Deletes a page.")]
-    public string DeletePage(int page) => Schematic.Delete(page);
+    public string DeletePage(int page) => Document.Delete(page);
 }
 ```
 
@@ -89,7 +89,7 @@ session.ToolMode = ToolMode.Auto;                // from the next turn
 - `session.ToolMode` is the user's pick. You can change it at any time; a turn runs in the mode it started with, which `TurnStarted.ToolMode` reports.
 - `agent.StartSessionAsync(toolMode)` starts a session in a mode the user picked.
 - `UseDefaultToolMode(mode)` sets the mode new sessions start in. It can only be stricter than `Ask`: `Off` and `ReadOnly` take effect, a wider mode is ignored.
-- `session.EffectiveToolMode` is the mode turns run in. With the Enterprise edition (planned), an administrator may in future narrow the modes a user can pick, and `EffectiveToolMode` then holds the narrowed mode.
+- `session.EffectiveToolMode` is the mode turns run in. When the server limits the modes a user can pick (a ceiling, from an administrator's rules), `EffectiveToolMode` holds the narrowed mode.
 - A session continued with `OpenSessionAsync` keeps the mode it was last used in.
 
 A hidden tool is not offered to the model. If the model calls it anyway, the call is refused, the turn gets a `tool_denied` notice, and the outcome is `ToolDenied`.

@@ -44,10 +44,10 @@ jobs:
           }
 
       - name: Test
-        run: dotnet test Faden.slnx -c Release
+        run: dotnet test Fadenstack.slnx -c Release
 
       - name: Pack
-        run: dotnet pack Faden.slnx -c Release --no-build -o artifacts
+        run: dotnet pack Fadenstack.slnx -c Release --no-build -o artifacts
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

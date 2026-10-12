@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Fadenstack.UI\Fadenstack.UI.csproj" />
+    <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
+    <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
+    <Compile Include="..\Fadenstack.Agents.Tests\PageTools.cs" Link="PageTools.cs" />
+    <Compile Include="..\..\samples\Fadenstack.Samples.Wpf\DemoGateway.cs" Link="DemoGateway.cs" />
+    <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
+  </ItemGroup>
+</Project>

@@ -28,7 +28,7 @@ packages on PyPI, and the images under `ghcr.io/fadenstack`.
 
 ## Other marks
 
-Microsoft, Windows, .NET, Visual Studio, Office, Excel, Word, PowerPoint, Outlook, EPLAN, TIA Portal, OpenAI and
+Microsoft, Windows, .NET, Visual Studio, Office, Excel, Word, PowerPoint, Outlook, OpenAI and
 the other product names in this repository are the marks of their owners. Fadenstack names them only to say what
 it works with; that implies no endorsement or relationship.
 

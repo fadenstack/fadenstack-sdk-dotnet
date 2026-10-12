@@ -1,0 +1,100 @@
+using System.Net;
+using Fadenstack.Agents;
+using Fadenstack.Agents.Sessions;
+using Fadenstack.Auth;
+using Fadenstack.Client.Tests;
+
+namespace Fadenstack.Agents.Tests;
+
+/// <summary>A scripted gateway for one agent: a profile, and one answer per model call, in order.</summary>
+public sealed class Gateway
+{
+    public const string Slug = "docs-assistant";
+    public const string Chat = "/v1/agents/docs-assistant/chat/completions";
+
+    /// <summary>The test tools' contract, with the classes they declare (<c>stamp</c> has no risk: unclassified).</summary>
+    public const string Contract = """
+        [{"name":"read_page","risk":"read"},{"name":"add_comment","risk":"write"},{"name":"delete_page","risk":"destructive"},
+         {"name":"stamp"},{"name":"render_page","risk":"read"},{"name":"render_slide","risk":"read"},{"name":"boom","risk":"read"}]
+        """;
+
+    private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
+
+    public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
+        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null")
+    {
+        Server = new FakeServer()
+            .Json("GET", "/v1/agents/docs-assistant/profile", $$"""
+                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
+                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
+                 "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
+                 "required_client_modules":{{modules}},"edition":"community","features":["agents"]}
+                """)
+            .Json("POST", "/v1/agents/docs-assistant/events", new { accepted = 1 }, HttpStatusCode.Accepted)
+            .Json("PUT", "/v1/agents/docs-assistant/manifest", new { sha256 = "abc", @new = true })
+            .Json("POST", "/v1/agents/docs-assistant/approvals/ap-1", new { ok = true })
+            .On("POST", Chat, r => _answers.Count == 0
+                ? FakeServer.Respond(HttpStatusCode.InternalServerError, new { error = new { message = "unscripted" } })
+                : _answers.Dequeue()(r));
+    }
+
+    public FakeServer Server { get; }
+
+    public List<Recorded> ChatRequests => Server.Requests.Where(r => r.Path == Chat).ToList();
+
+    public List<Recorded> Reports => Server.Requests.Where(r => r.Path.EndsWith("/events")).ToList();
+
+    /// <summary>The manifests the app sent (<c>PUT .../manifest</c>).</summary>
+    public List<Recorded> Manifests => Server.Requests.Where(r => r.Path.EndsWith("/manifest")).ToList();
+
+    public Gateway Then(Func<Recorded, HttpResponseMessage> answer)
+    {
+        _answers.Enqueue(answer);
+        return this;
+    }
+
+    public Gateway Then(params string[] sse) => Then(_ => FakeServer.Sse(sse));
+
+    /// <summary>A streamed answer with text.</summary>
+    public Gateway Says(string text) => Then(Text(text), Finish("stop"), FakeServer.Done);
+
+    /// <summary>A streamed answer that calls tools.</summary>
+    public Gateway Calls(params (string Id, string Name, string Arguments)[] calls) =>
+        Then(ToolCalls(calls), Finish("tool_calls"), FakeServer.Done);
+
+    public static string Text(string text) =>
+        FakeServer.Data(new { id = "c1", choices = new[] { new { index = 0, delta = new { content = text } } } });
+
+    public static string ToolCalls(params (string Id, string Name, string Arguments)[] calls) =>
+        FakeServer.Data(new
+        {
+            id = "c1",
+            choices = new[]
+            {
+                new
+                {
+                    index = 0,
+                    delta = new
+                    {
+                        tool_calls = calls.Select((c, i) => new { index = i, id = c.Id, type = "function", function = new { name = c.Name, arguments = c.Arguments } }),
+                    },
+                },
+            },
+        });
+
+    public static string Finish(string reason) =>
+        FakeServer.Data(new { id = "c1", choices = new[] { new { index = 0, delta = new { }, finish_reason = reason } } });
+
+    public static string Custom(string name, object value) => FakeServer.Fadenstack(new { type = "CUSTOM", name, value });
+
+    /// <summary>A builder for this gateway; sessions and "Allow always" in memory (never the user's data folder).</summary>
+    public AgentBuilder Builder(ISessionStore? store = null, IApprovalStore? approvals = null) => FadenstackAgent.CreateBuilder()
+        .UseServer(new Uri("https://faden.test"), new StaticTokenProvider("agent-token"), o => o.HttpClient = new HttpClient(Server))
+        .UseAgent(Slug)
+        .UseSessionStore(store ?? new MemorySessionStore())
+        .UseApprovalStore(approvals ?? new MemoryApprovalStore());
+
+    /// <summary>The events the agent reported, in order.</summary>
+    public List<System.Text.Json.JsonElement> Reported =>
+        Reports.SelectMany(r => r.Json.GetProperty("events").EnumerateArray()).ToList();
+}

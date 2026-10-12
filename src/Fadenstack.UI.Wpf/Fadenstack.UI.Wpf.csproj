@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The skin is runtime-specific: .NET Framework hosts (add-ins in native applications, Office VSTO) and .NET 8+ applications. -->
+    <TargetFrameworks>net472;net8.0-windows</TargetFrameworks>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>Fadenstack.UI.Wpf</RootNamespace>
+    <PackageId>Fadenstack.UI.Wpf</PackageId>
+    <Description>The WPF skin for Fadenstack.UI: a chat panel for Fadenstack agents in WPF hosts and add-ins.</Description>
+    <PackageTags>$(PackageTags);wpf;chat</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

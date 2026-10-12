@@ -1,29 +1,29 @@
 # Chat panel
 
-This page covers the ready chat UI: the view models in `Faden.UI`, the WPF skin in `Faden.UI.Wpf`, what the panel shows, hosting it in add-ins, and extending how answers are rendered.
+This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, hosting it in add-ins, and extending how answers are rendered.
 
 ## Two packages
 
 The UI is split in two, and the split is strict:
 
-- **`Faden.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
-- **`Faden.UI.Wpf`** only renders. It is XAML templates, styles, themes and a few view-only behaviours, such as keeping the conversation scrolled to the bottom and moving the focus to the composer. It targets `net472` and `net8.0-windows`.
+- **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
+- **`Fadenstack.UI.Wpf`** only renders. It is XAML templates, styles, themes and a few view-only behaviours, such as keeping the conversation scrolled to the bottom and moving the focus to the composer. It targets `net472` and `net8.0-windows`.
 
 Another skin can bind to the same view models.
 
 ## Show the panel
 
 ```csharp
-using Faden.Agents;
-using Faden.UI.Services;
-using Faden.UI.ViewModels;
-using Faden.UI.Wpf.Services;
-using Faden.UI.Wpf.Views;
+using Fadenstack.Agents;
+using Fadenstack.UI.Services;
+using Fadenstack.UI.ViewModels;
+using Fadenstack.UI.Wpf.Services;
+using Fadenstack.UI.Wpf.Views;
 
 var approvals = new ApprovalBroker();          // approval cards in the chat decide
-var agent = FadenAgent.CreateBuilder()
+var agent = FadenstackAgent.CreateBuilder()
     .UseClient(client)
-    .UseAgent("eplan-assistant")
+    .UseAgent("docs-assistant")
     .AddTools(new PageTools())
     .UseApprovals(approvals)
     .Build();
@@ -49,7 +49,7 @@ The panel can also be placed in XAML; set its `DataContext` to the view model:
 <Window x:Class="MyApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:views="clr-namespace:Faden.UI.Wpf.Views;assembly=Faden.UI.Wpf">
+        xmlns:views="clr-namespace:Fadenstack.UI.Wpf.Views;assembly=Fadenstack.UI.Wpf">
     <views:ChatView Theme="System" />
 </Window>
 ```
@@ -120,7 +120,7 @@ Office VSTO add-ins and Windows Forms applications have no WPF `Application`. Ho
 ```csharp
 using System.Windows.Forms;
 using System.Windows.Forms.Integration;
-using Faden.UI.Wpf.Views;
+using Fadenstack.UI.Wpf.Views;
 
 var view = new ChatView { DataContext = chat, Theme = ChatTheme.System };
 var host = new ElementHost { Dock = DockStyle.Fill, Child = view };
@@ -134,13 +134,13 @@ taskPaneControl.Controls.Add(host);
 Gateway events become parts of an answer through renderers. The panel's own renderers handle citations and personal-data notices, and show any other custom event as a generic notice. Add your own for events your server sends:
 
 ```csharp
-using Faden.Chat;
-using Faden.UI.Parts;
-using Faden.UI.ViewModels;
+using Fadenstack.Chat;
+using Fadenstack.UI.Parts;
+using Fadenstack.UI.ViewModels;
 
 public sealed class StatusRenderer : IAgentEventRenderer
 {
-    public bool TryRender(FadenEventContent gatewayEvent, TurnViewModel turn)
+    public bool TryRender(FadenstackEventContent gatewayEvent, TurnViewModel turn)
     {
         if (gatewayEvent.Kind != "example.status")
         {
