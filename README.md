@@ -3,7 +3,7 @@
 Agents that run inside other software (EPLAN, TIA Portal, Office, any desktop application) and are governed by a
 [Fadenstack](https://fadenstack.com) server. The SDK runs the agent loop on the device: host tools, approvals, local
 MCP servers and the conversation itself. The server owns the agent's instructions, model and knowledge, and handles
-personal data and audit (budgets are planned). Agents need a Fadenstack server from the next release, after 0.4.1.
+personal data and audit (budgets are planned). Agents need a Fadenstack server 0.4.2 or later.
 
 **Documentation: [developers.fadenstack.com/sdk/dotnet](https://developers.fadenstack.com/sdk/dotnet/)**
 (the source is in [`docs/`](docs/)).
@@ -61,8 +61,12 @@ the call is declined. The docs cover [host tools and approvals](docs/tools.md),
 
 ## Install
 
-The packages are published to NuGet with the first release. Until then, reference the projects from source;
-[Install](docs/index.md#install) shows how.
+```bash
+dotnet add package Fadenstack.Agents
+```
+
+Each package brings the ones it builds on. Add `Fadenstack.Mcp` for local MCP servers and `Fadenstack.UI.Wpf` for
+the WPF chat panel. [Install](docs/index.md#install) also shows how to build from source.
 
 ## Build and test
 
@@ -74,6 +78,11 @@ Build with the .NET 10 SDK. The WPF projects build on any OS (`EnableWindowsTarg
 
 To preview the documentation on its own: `pip install zensical`, then `zensical serve` in this folder.
 
+## Contributing
+
+Questions, bug reports and pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report a security
+problem privately, as [SECURITY.md](SECURITY.md) describes.
+
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE). The name and logo are covered by [TRADEMARKS.md](TRADEMARKS.md).

@@ -3,7 +3,7 @@
 This page introduces the .NET SDK, its packages and target frameworks, and shows how to add it to a project.
 
 !!! note "Server version"
-    Agents need a Fadenstack server from the next release, after 0.4.1. With 0.4.1, only
+    Agents need a Fadenstack server 0.4.2 or later. With 0.4.1 and older, only
     [the plain client](plain-api.md) works, without tool modes, governance notices and the gateway's events.
 
 ## What the SDK is
@@ -16,28 +16,38 @@ The SDK never receives the agent's instructions. Every model call goes through t
 
 ## Packages
 
-| Package | What it contains |
-|---|---|
-| `Faden.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
-| `Faden.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
-| `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
-| `Faden.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm. |
-| `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins. |
+| Package | Namespace | What it contains |
+|---|---|---|
+| `Fadenstack.Client` | `Faden` and `Faden.*` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
+| `Fadenstack.Agents` | `Faden.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
+| `Fadenstack.Mcp` | `Faden.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
+| `Fadenstack.UI` | `Faden.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm. |
+| `Fadenstack.UI.Wpf` | `Faden.UI.Wpf` | The WPF skin for `Faden.UI`: a chat panel for WPF applications and add-ins. |
 
-Each package brings the packages it builds on. `Faden.Agents` includes `Faden.Client`; `Faden.Mcp` and `Faden.UI` include `Faden.Agents`; `Faden.UI.Wpf` includes `Faden.UI`.
+The packages are named `Fadenstack.*`; the code keeps the short `Faden` namespaces. Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.UI.Wpf` includes `Fadenstack.UI`.
 
 ## Target frameworks
 
 | Package | Targets | Runs on |
 |---|---|---|
-| `Faden.Client`, `Faden.Agents`, `Faden.Mcp`, `Faden.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
-| `Faden.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
+| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
+| `Fadenstack.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
 
 The `netstandard2.0` builds serve .NET Framework hosts, such as add-ins loaded by a native application. A .NET 8 or later application gets the `net8.0` builds. If you write a library on top of the SDK, read [Building a library](libraries.md) first.
 
 ## Install
 
-The packages are published to NuGet with the first release. Until then, reference the projects from source.
+Add the package you need from nuget.org. It brings the packages it builds on:
+
+```bash
+dotnet add package Fadenstack.Agents
+```
+
+For local MCP servers, add `Fadenstack.Mcp`. For the WPF chat panel, add `Fadenstack.UI.Wpf`. Your project can target any of the frameworks in the table above.
+
+### From source
+
+To try changes that are not released yet, reference the projects instead of the packages:
 
 1. Clone the repository next to your solution:
 
@@ -55,7 +65,7 @@ The packages are published to NuGet with the first release. Until then, referenc
 
     For local MCP servers, add `src\Faden.Mcp\Faden.Mcp.csproj`. For the WPF chat panel, add `src\Faden.UI.Wpf\Faden.UI.Wpf.csproj`.
 
-Build the SDK's projects with the .NET 10 SDK. Your own project can target any of the frameworks in the table above.
+Build the SDK's projects with the .NET 10 SDK.
 
 ## A complete example
 

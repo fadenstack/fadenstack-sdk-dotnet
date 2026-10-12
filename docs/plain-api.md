@@ -3,8 +3,8 @@
 This page covers `Faden.Client` on its own: the gateway's `/v1/chat/completions` route as an `IChatClient`, and the server's REST resources.
 
 !!! note "Server version"
-    Tool modes, governance notices, the gateway's events and `GetFeaturesAsync` need a Fadenstack server from the
-    next release, after 0.4.1. With 0.4.1, chat and the server resources work without them.
+    Tool modes, governance notices, the gateway's events and `GetFeaturesAsync` need a Fadenstack server 0.4.2 or
+    later. With 0.4.1 and older, chat and the server resources work without them.
 
 ## A plain client
 

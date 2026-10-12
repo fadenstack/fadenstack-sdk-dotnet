@@ -4,7 +4,7 @@ This page covers how an agent uses MCP servers on the device with `Faden.Mcp`: a
 
 ## Add a server
 
-Reference `Faden.Mcp` and add the servers to the builder:
+Add the `Fadenstack.Mcp` package and add the servers to the builder:
 
 ```csharp
 using Faden.Mcp;
