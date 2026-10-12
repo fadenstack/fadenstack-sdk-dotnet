@@ -3,6 +3,7 @@
     <RootNamespace>Faden.Mcp</RootNamespace>
     <PackageId>Fadenstack.Mcp</PackageId>
     <Description>MCP for Fadenstack agents: local MCP servers as agent tools, under the agent's local MCP policy.</Description>
+    <PackageTags>$(PackageTags);mcp</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol.Core" Version="2.2.0" />

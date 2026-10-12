@@ -7,6 +7,7 @@
     <RootNamespace>Faden.UI.Wpf</RootNamespace>
     <PackageId>Fadenstack.UI.Wpf</PackageId>
     <Description>The WPF skin for Faden.UI: a chat panel for Fadenstack agents in WPF hosts and add-ins.</Description>
+    <PackageTags>$(PackageTags);wpf;chat</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Faden.UI\Faden.UI.csproj" />

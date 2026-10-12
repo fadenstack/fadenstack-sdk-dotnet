@@ -7,11 +7,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Authors>Fadenstack</Authors>
-    <Company>Fadenstack</Company>
+    <!-- The copyright holder, as in NOTICE. -->
+    <Authors>Emagin8 UG (haftungsbeschränkt)</Authors>
+    <Company>Emagin8 UG (haftungsbeschränkt)</Company>
+    <Product>Fadenstack</Product>
+    <Copyright>Copyright 2026 Emagin8 UG (haftungsbeschränkt) and contributors</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</PackageProjectUrl>
+    <PackageProjectUrl>https://developers.fadenstack.com/sdk/dotnet/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- The release: a tag v<Version> publishes it (.github/workflows/release.yml checks they match). -->
     <Version>0.2.0</Version>
   </PropertyGroup>
 

@@ -373,3 +373,6 @@ test:.cs
 *.tempLog.xml
 *.testResults.xml
 *.testStats.csv
+
+# WPF builds write a temporary project next to the real one; an interrupted build leaves it behind.
+*_wpftmp.csproj
