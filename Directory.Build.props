@@ -17,7 +17,7 @@
     <RepositoryUrl>https://github.com/fadenstack/fadenstack-sdk-dotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <!-- The release: a tag v<Version> publishes it (.github/workflows/release.yml checks they match). -->
-    <Version>0.2.0-rc.1</Version>
+    <Version>0.2.0-rc.2</Version>
   </PropertyGroup>
 
   <!-- Strong names: a strong-named host or add-in can only load strong-named assemblies. The key is public on
