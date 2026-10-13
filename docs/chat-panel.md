@@ -182,7 +182,31 @@ Your renderers are tried before the built-in ones; the first that returns true w
 | `InitialTurns` | How many turns an opened session shows at first. |
 | `PageSize` | How many older turns *Show earlier messages* adds. |
 | `PreviewLength` | How many characters of a tool's arguments or result are shown. |
+| `BeforeSend`, `AfterSend` | What your add-in does around each message. See below. |
 | `Clock` | The time, for tests. |
+
+### Before a message goes
+
+Your add-in may need to do something before each message is sent: check that the user may still send, take the
+context its tools read, or attach a document. Do it in `BeforeSend`, so it runs for every message, from the composer,
+a suggestion, Retry, or Edit and resend:
+
+```csharp
+var options = new AgentChatOptions
+{
+    BeforeSend = async (message, cancellationToken) =>
+    {
+        _document = _host.ActiveDocument ?? throw new InvalidOperationException("Open a document first.");
+        _chat.Attachments.Add(AttachmentViewModel.FromContent(await ReadSelectionAsync(_document, cancellationToken)));
+    },
+    AfterSend = _ => _document = null,
+};
+```
+
+`BeforeSend` runs on the UI thread. While it runs, the chat is busy and Stop cancels its token. If it throws, nothing
+is sent: the text stays in the composer and `Error` shows the message. Attachments it adds go with this message.
+`AfterSend` runs once after every send, however it ended: its turn finished, failed or was stopped, or `BeforeSend`
+threw.
 
 ## The view model
 
@@ -191,7 +215,7 @@ For your own skin, or to drive the chat from the host:
 | Member | Meaning |
 |---|---|
 | `InitializeAsync()` | Starts the agent and reads the session list. |
-| `SendAsync(text)` | Sends a message; completes when the turn has ended and been shown. |
+| `SendAsync(text)` | Sends a message, after `BeforeSend`; completes when the turn has ended and been shown. |
 | `NewChat()`, `OpenSessionAsync(id)`, `RefreshSessionsAsync()` | Chats on this device. |
 | `Turns`, `Sessions`, `Attachments`, `Suggestions` | The collections the panel binds to. |
 | `Title`, `Greeting`, `Input`, `SelectedToolMode`, `ToolModes`, `ToolModeHint` | The header, the composer and the mode picker. |

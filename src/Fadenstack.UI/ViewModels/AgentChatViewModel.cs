@@ -143,7 +143,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>A turn is running.</summary>
+    /// <summary>A message is on its way: the host's <see cref="AgentChatOptions.BeforeSend"/> or its turn is running.</summary>
     public bool IsBusy
     {
         get => _isBusy;
@@ -293,7 +293,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>Sends a message; completes when its turn has ended and been shown.</summary>
+    /// <summary>
+    /// Sends a message, after the host's <see cref="AgentChatOptions.BeforeSend"/>; completes when its turn has ended
+    /// and been shown. A new message clears the last <see cref="Error"/>.
+    /// </summary>
     public async Task SendAsync(string text)
     {
         text = text?.Trim() ?? "";
@@ -301,36 +304,77 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             return;
         }
-        if (text == _input.Trim())
-        {
-            Input = "";
-        }
-        var attached = Attachments.Where(a => a.Sends).ToList();
-        foreach (var a in attached.Where(a => !a.IsImplicit))
-        {
-            Attachments.Remove(a);
-        }
-        var turn = new TurnViewModel(this, text, _options.Clock(), _options.PreviewLength)
-        {
-            Attachments = attached.Select(a => new AttachmentChip(a.Title, a.Subtitle)).ToList(),
-        };
-        Turns.Add(turn);
-        OnPropertyChanged(nameof(IsEmpty));
-        _current = turn;
-        _stop = new CancellationTokenSource();
+        var outgoing = new OutgoingMessage(text);
+        var stop = new CancellationTokenSource();
+        _stop = stop;
         IsBusy = true;
+        Error = null;
+        TurnViewModel? turn = null;
         try
         {
-            await Task.Run(() => RunTurnAsync(turn, text, attached, _selectedMode.Mode, _stop.Token));
+            if (_options.BeforeSend is { } beforeSend)
+            {
+                try
+                {
+                    await beforeSend(outgoing, stop.Token);
+                    stop.Token.ThrowIfCancellationRequested();
+                }
+                catch (Exception e)
+                {
+                    if (!stop.IsCancellationRequested)
+                    {
+                        Error = e.Message;
+                    }
+                    return;
+                }
+            }
+            if (text == _input.Trim())
+            {
+                Input = "";
+            }
+            var attached = Attachments.Where(a => a.Sends).ToList();
+            foreach (var a in attached.Where(a => !a.IsImplicit))
+            {
+                Attachments.Remove(a);
+            }
+            var started = new TurnViewModel(this, text, _options.Clock(), _options.PreviewLength)
+            {
+                Attachments = attached.Select(a => new AttachmentChip(a.Title, a.Subtitle)).ToList(),
+            };
+            turn = started;
+            Turns.Add(started);
+            OnPropertyChanged(nameof(IsEmpty));
+            _current = started;
+            await Task.Run(() => RunTurnAsync(started, text, attached, _selectedMode.Mode, stop.Token));
             await _batcher.WhenFlushedAsync();
         }
         finally
         {
             _current = null;
-            _stop.Dispose();
             _stop = null;
+            stop.Dispose();
             IsBusy = false;
-            TouchCurrentSession(text);
+            if (turn is not null)
+            {
+                TouchCurrentSession(text);
+            }
+            RunAfterSend(outgoing);
+        }
+    }
+
+    private void RunAfterSend(OutgoingMessage message)
+    {
+        if (_options.AfterSend is not { } afterSend)
+        {
+            return;
+        }
+        try
+        {
+            afterSend(message);
+        }
+        catch (Exception e)
+        {
+            Error = e.Message;
         }
     }
 

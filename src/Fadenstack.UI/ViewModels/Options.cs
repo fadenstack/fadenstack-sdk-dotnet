@@ -28,6 +28,29 @@ public sealed class AgentChatOptions
     public IList<IAgentEventRenderer> Renderers { get; } = new List<IAgentEventRenderer>();
 
     public Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.Now;
+
+    /// <summary>
+    /// Runs before every message goes -- from the composer, a suggestion, Retry, or Edit and resend -- for what the
+    /// host does first: check it may still send, take the context its tools read, add attachments (they go with this
+    /// message). It runs on the UI thread; the chat is busy meanwhile and Stop cancels the token. When it throws,
+    /// nothing is sent: the text stays in the composer and <see cref="AgentChatViewModel.Error"/> says why.
+    /// </summary>
+    public Func<OutgoingMessage, CancellationToken, Task>? BeforeSend { get; set; }
+
+    /// <summary>
+    /// Runs once after every send, however it ended: its turn finished, failed or was stopped, or
+    /// <see cref="BeforeSend"/> threw.
+    /// </summary>
+    public Action<OutgoingMessage>? AfterSend { get; set; }
+}
+
+/// <summary>A message on its way, for <see cref="AgentChatOptions.BeforeSend"/> and <see cref="AgentChatOptions.AfterSend"/>.</summary>
+public sealed class OutgoingMessage
+{
+    internal OutgoingMessage(string text) => Text = text;
+
+    /// <summary>What the user sent, trimmed.</summary>
+    public string Text { get; }
 }
 
 /// <summary>A mode in the picker, with what it means; above the ceiling it cannot be picked.</summary>
