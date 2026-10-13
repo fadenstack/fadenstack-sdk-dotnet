@@ -1,12 +1,12 @@
 # Chat panel
 
-This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, hosting it in add-ins, and extending how answers are rendered.
+This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, its languages and settings, hosting it in add-ins, and extending how answers are rendered.
 
 ## Two packages
 
 The UI is split in two, and the split is strict:
 
-- **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
+- **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, every text the panel shows (`UiStrings`, from the package's resources), and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
 - **`Fadenstack.UI.Wpf`** only renders. It is XAML templates, styles, themes and a few view-only behaviours, such as keeping the conversation scrolled to the bottom and moving the focus to the composer. It targets `net472` and `net8.0-windows`.
 
 Another skin can bind to the same view models.
@@ -113,6 +113,72 @@ chat.Attachments.Add(new AttachmentViewModel(
 
 `AgentAvatar` is the agent's picture as a WPF control. Set `Small` at sizes of 32 pixels and below; `ThreadBrush` and `ThreadSideBrush` recolour it for a custom agent.
 
+## Languages
+
+The panel has no text of its own. Every text it shows is in the resources of `Fadenstack.UI`: `Resources/UiText.resx` holds the English texts, and `UiText.de.resx`, `UiText.fr.resx`, `UiText.es.resx` and `UiText.zh-Hans.resx` the German, French, Spanish and Simplified Chinese ones. They are the one place to change a word. The view models read them through `UiStrings`, and the WPF skin binds its buttons, tooltips and screen-reader names to the same texts.
+
+**The user picks the language** in the panel's settings (the gear in the header): *Automatic*, or one of the languages, each listed in its own name (Deutsch, Français, 中文（简体）), so anyone finds their own. The whole panel changes at once, the conversation too, and the choice is remembered for every Fadenstack panel of the user on this computer, so a language picked in Word is Excel's too, and for the user on the server, so their other devices, the browser agent and the console follow it. Your add-in only says what *Automatic* means, the language the host runs in:
+
+```csharp
+using System.Globalization;
+
+var options = new AgentChatOptions
+{
+    Clipboard = new WpfClipboard(),
+    // Office's own UI language, which can differ from Windows'
+    AutomaticLanguage = CultureInfo.GetCultureInfo(application.LanguageSettings.LanguageID[MsoAppLanguageID.msoLanguageIDUI]),
+};
+```
+
+Without `AutomaticLanguage`, *Automatic* is `CultureInfo.CurrentUICulture`. A culture finds the nearest language: `de-AT` gets German, `zh-CN` Simplified Chinese, and a language without texts, such as `zh-TW` or `ja-JP`, gets English.
+
+| Option | What it is |
+|---|---|
+| `AutomaticLanguage` | What *Automatic* means: the host's language. |
+| `Languages` | The languages to pick from, by tag: `UiStrings.BuiltInLanguages` by default. |
+| `TextOverrides` | Your own resources (a `.resx` with the same names): your words, and the texts of the languages you add to `Languages`. |
+| `LockedLanguage` | A language your organisation fixed, from its policy: the panel uses it, and the settings show it with *Set by your organisation* and no choice. |
+| `Preferences` | Where the choice is kept (`IPreferenceStore`). By default a `FilePreferenceStore`: `%APPDATA%\Fadenstack\preferences.json`. `MemoryPreferenceStore` keeps nothing, for tests. |
+| `Strings` | Texts you fix instead (`UiStrings.For(culture)`): the panel then offers no choice. |
+
+`chat.SetLanguage("fr")` (or `SetLanguageCommand`) and `chat.SetLanguage(AgentChatViewModel.Automatic)` do from code what the settings do; `await chat.SetLanguageAsync("fr")` also waits until the server kept it. `Language`, `LanguageOptions` and `CanChangeLanguage` say what they show.
+
+**The language follows the user.** The agent's profile carries the language the user picked anywhere (`agent.Profile.User.Language`, a tag such as `de` or `zh-Hans`), and the panel takes it over this computer's when it starts, if it offers that language (`zh` is Simplified Chinese; a language it lacks changes nothing). A pick in the settings is sent back (`agent.SetUserLanguageAsync(tag)`, `PATCH /v1/agents/{agent}/user`); *Automatic* sends `null`, so each client follows its host again. A server that cannot keep it, or an older one without the route, leaves the pick on this computer. A language your organisation locked is never sent, and a language from the server never overrides it.
+
+Numbers and dates follow the format culture, `CultureInfo.CurrentCulture`, so an English panel on a German system writes 1.234 and 13.10.2026.
+
+To add a language or change words, ship your own resources with the same names:
+
+```csharp
+// MyTexts.resx: <data name="Allow"><value>Allow once</value></data>
+// MyTexts.it.resx: <data name="LanguageName"><value>Italiano</value></data>, and the Italian texts you have
+var options = new AgentChatOptions
+{
+    TextOverrides = MyTexts.ResourceManager,
+    Languages = UiStrings.BuiltInLanguages.Append("it").ToList(),
+};
+```
+
+For each language, from the most specific to English, your text wins over the package's, so your English words do not hide the package's German ones. What your resources lack comes from the package. `UiStrings.Language` is the language the texts are in, and `strings["Allow"]` reads any text by name. The names and what fills their placeholders are in the comments of `UiText.resx`.
+
+`ChatView` sets its `Language` from the texts, and mirrors its layout (`FlowDirection`) for a right-to-left language such as Arabic or Hebrew. In your own templates, `{v:Text Allow}` (namespace `Fadenstack.UI.Wpf.Views`) shows a text by name, and follows the user's pick. Outside a `ChatView`, set `ChatText.Strings` on your root element.
+
+Satellite assemblies hold the translations: `de\Fadenstack.UI.resources.dll` and the others next to `Fadenstack.UI.dll`. Deploy those folders with your add-in, or the panel shows English.
+
+## Settings
+
+The gear in the header opens the panel's settings: the language, and below it your add-in's own items, such as sign out or its options, so they all sit in one place. Put them in `ChatView.SettingsContent`; they get the panel's colours:
+
+```csharp
+var view = new ChatView
+{
+    DataContext = chat,
+    SettingsContent = new Button { Content = "Sign out", Command = signOut },
+};
+```
+
+The gear only shows when there is something to set: a choice of languages, a fixed one to show, or your items.
+
 ## Host the panel in VSTO and Windows Forms
 
 Office VSTO add-ins and Windows Forms applications have no WPF `Application`. Host `ChatView` in an `ElementHost`, and create the `WpfDispatcher` on the UI thread:
@@ -182,7 +248,33 @@ Your renderers are tried before the built-in ones; the first that returns true w
 | `InitialTurns` | How many turns an opened session shows at first. |
 | `PageSize` | How many older turns *Show earlier messages* adds. |
 | `PreviewLength` | How many characters of a tool's arguments or result are shown. |
+| `AutomaticLanguage`, `Languages`, `TextOverrides`, `LockedLanguage`, `Preferences` | The language the user picks in the settings, and where it is kept. See [Languages](#languages). |
+| `Strings` | Texts you fix instead of a language the user picks. |
+| `BeforeSend`, `AfterSend` | What your add-in does around each message. See below. |
 | `Clock` | The time, for tests. |
+
+### Before a message goes
+
+Your add-in may need to do something before each message is sent: check that the user may still send, take the
+context its tools read, or attach a document. Do it in `BeforeSend`, so it runs for every message, from the composer,
+a suggestion, Retry, or Edit and resend:
+
+```csharp
+var options = new AgentChatOptions
+{
+    BeforeSend = async (message, cancellationToken) =>
+    {
+        _document = _host.ActiveDocument ?? throw new InvalidOperationException("Open a document first.");
+        _chat.Attachments.Add(AttachmentViewModel.FromContent(await ReadSelectionAsync(_document, cancellationToken)));
+    },
+    AfterSend = _ => _document = null,
+};
+```
+
+`BeforeSend` runs on the UI thread. While it runs, the chat is busy and Stop cancels its token. If it throws, nothing
+is sent: the text stays in the composer and `Error` shows the message. Attachments it adds go with this message.
+`AfterSend` runs once after every send, however it ended: its turn finished, failed or was stopped, or `BeforeSend`
+threw.
 
 ## The view model
 
@@ -191,11 +283,13 @@ For your own skin, or to drive the chat from the host:
 | Member | Meaning |
 |---|---|
 | `InitializeAsync()` | Starts the agent and reads the session list. |
-| `SendAsync(text)` | Sends a message; completes when the turn has ended and been shown. |
+| `SendAsync(text)` | Sends a message, after `BeforeSend`; completes when the turn has ended and been shown. |
 | `NewChat()`, `OpenSessionAsync(id)`, `RefreshSessionsAsync()` | Chats on this device. |
 | `Turns`, `Sessions`, `Attachments`, `Suggestions` | The collections the panel binds to. |
 | `Title`, `Greeting`, `Input`, `SelectedToolMode`, `ToolModes`, `ToolModeHint` | The header, the composer and the mode picker. |
 | `IsReady`, `IsBusy`, `CanSend`, `IsEmpty`, `HasEarlierTurns`, `SignInRequired`, `Error` | State. |
+| `Strings` | The texts the panel shows, for a skin's labels; they change when the user picks another language. |
+| `Language`, `LanguageOptions`, `CanChangeLanguage`, `IsLanguageLocked`, `SetLanguage(id)`, `IsSettingsOpen` | The settings. |
 | `SendCommand`, `StopCommand`, `NewChatCommand`, `LoadEarlierCommand`, and others | Commands for the skin. |
 
 `InlineDispatcher` runs everything on the calling thread, for tests and hosts without a UI thread.

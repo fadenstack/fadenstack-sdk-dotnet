@@ -21,15 +21,19 @@ public sealed class Gateway
     private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
 
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
-        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null")
+        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null", string? userLanguage = null)
     {
+        UserLanguage = userLanguage;
         Server = new FakeServer()
-            .Json("GET", "/v1/agents/docs-assistant/profile", $$"""
-                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
-                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
-                 "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
-                 "required_client_modules":{{modules}},"edition":"community","features":["agents"]}
-                """)
+            .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK, Profile(contract, ceiling, modules, localMcp, vision)))
+            .On("PATCH", "/v1/agents/docs-assistant/user", r =>
+            {
+                if (r.Json.TryGetProperty("language", out var language))
+                {
+                    UserLanguage = language.ValueKind == System.Text.Json.JsonValueKind.String ? language.GetString() : null;
+                }
+                return FakeServer.Respond(HttpStatusCode.OK, new { @object = "agent.user", language = UserLanguage });
+            })
             .Json("POST", "/v1/agents/docs-assistant/events", new { accepted = 1 }, HttpStatusCode.Accepted)
             .Json("PUT", "/v1/agents/docs-assistant/manifest", new { sha256 = "abc", @new = true })
             .Json("POST", "/v1/agents/docs-assistant/approvals/ap-1", new { ok = true })
@@ -39,6 +43,22 @@ public sealed class Gateway
     }
 
     public FakeServer Server { get; }
+
+    /// <summary>The language the user picked for all their clients, as the server keeps it (<c>PATCH .../user</c>).</summary>
+    public string? UserLanguage { get; private set; }
+
+    /// <summary>The agent profile, with the language the user picked as it is now.</summary>
+    private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision)
+    {
+        var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
+        return $$"""
+                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
+                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
+                 "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
+                 "required_client_modules":{{modules}},"edition":"community","features":["agents"],
+                 "user":{"language":{{language}} } }
+                """;
+    }
 
     public List<Recorded> ChatRequests => Server.Requests.Where(r => r.Path == Chat).ToList();
 

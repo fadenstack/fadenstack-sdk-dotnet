@@ -28,8 +28,8 @@ internal sealed class CitationsRenderer : IAgentEventRenderer
         {
             foreach (var s in sources.EnumerateArray())
             {
-                var title = Json.Str(s, "source") ?? Json.Str(s, "document_id") ?? "Source";
-                var chunk = s.TryGetProperty("chunk", out var c) && c.ValueKind == JsonValueKind.Number ? $"Part {c.GetInt32()}" : null;
+                var title = Json.Str(s, "source") ?? Json.Str(s, "document_id") ?? turn.Strings.Source;
+                var chunk = s.TryGetProperty("chunk", out var c) && c.ValueKind == JsonValueKind.Number ? turn.Strings.Part(c.GetInt32()) : null;
                 double? score = s.TryGetProperty("score", out var sc) && sc.ValueKind == JsonValueKind.Number ? sc.GetDouble() : null;
                 citations.Add(new Citation(title, chunk, score));
             }
@@ -44,7 +44,7 @@ internal sealed class CitationsRenderer : IAgentEventRenderer
         }
         else
         {
-            turn.AddPart(new CitationsPart(citations));
+            turn.AddPart(new CitationsPart(citations, turn.Strings));
         }
         return true;
     }
@@ -67,9 +67,8 @@ internal sealed class PiiRenderer : IAgentEventRenderer
             if (found.Count > 0)
             {
                 var total = found.Sum(f => f.Count);
-                turn.AddPart(new NoticePart(NoticeSeverity.Info, "Personal data protected",
-                    $"{total} value{(total == 1 ? "" : "s")} kept from the model: " +
-                    string.Join(", ", found.Select(f => $"{f.Count} {Pretty(f.Type)}"))));
+                var list = string.Join(", ", found.Select(f => $"{f.Count} {Pretty(f.Type)}"));
+                turn.AddPart(NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.PiiTitle, s.PiiMessage(total, list), null)));
             }
         }
         return true;
@@ -94,7 +93,7 @@ internal sealed class FallbackRenderer : IAgentEventRenderer
             return true;
         }
         var message = e.Value.ValueKind == JsonValueKind.Object && Json.Str(e.Value, "message") is { } m ? m : e.Kind;
-        turn.AddPart(new NoticePart(NoticeSeverity.Info, "Notice", message));
+        turn.AddPart(NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.NoticeFallback, message, null)));
         return true;
     }
 }

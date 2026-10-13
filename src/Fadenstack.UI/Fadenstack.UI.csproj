@@ -2,8 +2,10 @@
   <PropertyGroup>
     <RootNamespace>Fadenstack.UI</RootNamespace>
     <PackageId>Fadenstack.UI</PackageId>
-    <Description>Platform-neutral view models for Fadenstack agents: the chat, streamed markdown, tool calls, approvals, notices, sessions. Skins (Fadenstack.UI.Wpf) only render them.</Description>
+    <Description>Platform-neutral view models for Fadenstack agents: the chat, streamed markdown, tool calls, approvals, notices, sessions, and their texts in English, German, French, Spanish and Simplified Chinese. Skins (Fadenstack.UI.Wpf) only render them.</Description>
     <PackageTags>$(PackageTags);mvvm;chat</PackageTags>
+    <!-- The texts are Resources/UiText.resx (English) and its translations, built into satellite assemblies. -->
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

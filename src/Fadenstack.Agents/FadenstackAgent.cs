@@ -124,6 +124,20 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>
+    /// Keeps the language the user picked for all their clients and the console (null: each follows its host), and in
+    /// this agent's profile. Returns the language kept.
+    /// </summary>
+    public async Task<string?> SetUserLanguageAsync(string? language, CancellationToken cancellationToken = default)
+    {
+        var kept = await Client.Agent!.SetUserLanguageAsync(language, cancellationToken).ConfigureAwait(false);
+        if (_profile is { } profile)
+        {
+            _profile = profile with { User = profile.User with { Language = kept } };
+        }
+        return kept;
+    }
+
+    /// <summary>
     /// Tells the server what this app brings: every host tool with the class its developer gave it -- also those the
     /// contract does not list yet, which is how the server learns of them -- and the app's context and greeting.
     /// Never fails the start: an older server without the route, or no network, just means no report.

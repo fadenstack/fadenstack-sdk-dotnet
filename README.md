@@ -13,7 +13,7 @@ personal data and audit. Agents need a Fadenstack server 0.4.2 or later.
 | `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
 | `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
 | `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy |
-| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent |
+| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, with its texts in English, German, French, Spanish and Simplified Chinese |
 | `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins |
 
 Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it

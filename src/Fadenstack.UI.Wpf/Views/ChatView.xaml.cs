@@ -1,5 +1,8 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Markup;
+using Fadenstack.UI.ViewModels;
 using Microsoft.Win32;
 
 namespace Fadenstack.UI.Wpf.Views;
@@ -17,7 +20,8 @@ public enum ChatTheme
 
 /// <summary>
 /// The chat panel for an <see cref="ViewModels.AgentChatViewModel"/> (set it as the DataContext). Everything it
-/// shows comes from the view model; the code here only picks the colours.
+/// shows comes from the view model, its texts too (<see cref="AgentChatViewModel.Strings"/>); the code here only
+/// picks the colours and gives the panel the texts' language and direction.
 /// </summary>
 public partial class ChatView : UserControl
 {
@@ -28,14 +32,21 @@ public partial class ChatView : UserControl
     public static readonly DependencyProperty ComposerToolbarProperty = DependencyProperty.Register(
         nameof(ComposerToolbar), typeof(object), typeof(ChatView), new PropertyMetadata(null, (d, _) => ((ChatView)d).ShareTheme()));
 
+    /// <summary>The host's own items in the panel's settings, below the language (sign out, its own options).</summary>
+    public static readonly DependencyProperty SettingsContentProperty = DependencyProperty.Register(
+        nameof(SettingsContent), typeof(object), typeof(ChatView), new PropertyMetadata(null, (d, _) => ((ChatView)d).ApplySettingsContent()));
+
+    private AgentChatViewModel? _chat;
+
     private ResourceDictionary? _colors;
-    private FrameworkElement? _sharedWith;
+    private readonly List<FrameworkElement> _sharedWith = new();
     private ResourceDictionary? _shared;
 
     public ChatView()
     {
         InitializeComponent();
         ApplyTheme();
+        DataContextChanged += (_, _) => ApplyStrings();
     }
 
     public ChatTheme Theme
@@ -48,6 +59,64 @@ public partial class ChatView : UserControl
     {
         get => GetValue(ComposerToolbarProperty);
         set => SetValue(ComposerToolbarProperty, value);
+    }
+
+    public object? SettingsContent
+    {
+        get => GetValue(SettingsContentProperty);
+        set => SetValue(SettingsContentProperty, value);
+    }
+
+    /// <summary>The view model's texts for everything in the panel (<see cref="ChatText"/>), with their language and direction.</summary>
+    private void ApplyStrings()
+    {
+        if (!ReferenceEquals(_chat, DataContext))
+        {
+            if (_chat is not null)
+            {
+                _chat.PropertyChanged -= OnChatChanged;
+            }
+            _chat = DataContext as AgentChatViewModel;
+            if (_chat is not null)
+            {
+                _chat.PropertyChanged += OnChatChanged;
+            }
+        }
+        UpdateSettingsButton();
+        var strings = _chat?.Strings;
+        ChatText.SetStrings(this, strings);
+        if (strings is null)
+        {
+            ClearValue(LanguageProperty);
+            ClearValue(FlowDirectionProperty);
+            return;
+        }
+        Language = XmlLanguage.GetLanguage(strings.Language);
+        FlowDirection = strings.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+    }
+
+    /// <summary>The user picked another language: the panel's texts, language and direction follow.</summary>
+    private void OnChatChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(AgentChatViewModel.Strings) or null or "")
+        {
+            ApplyStrings();
+        }
+    }
+
+    private void ApplySettingsContent()
+    {
+        SettingsHost.Content = SettingsContent;
+        ShareTheme();
+        UpdateSettingsButton();
+    }
+
+    /// <summary>The settings button shows when there is something to set: a language, or the host's items.</summary>
+    private void UpdateSettingsButton()
+    {
+        var languages = _chat?.HasLanguageSettings == true;
+        SettingsButton.Visibility = languages || SettingsContent is not null ? Visibility.Visible : Visibility.Collapsed;
+        SettingsSeparator.Visibility = languages && SettingsContent is not null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ApplyTheme()
@@ -72,15 +141,22 @@ public partial class ChatView : UserControl
     /// </summary>
     private void ShareTheme()
     {
-        if (_sharedWith is not null && _shared is not null)
+        if (_shared is not null)
         {
-            _sharedWith.Resources.MergedDictionaries.Remove(_shared);
+            foreach (var element in _sharedWith)
+            {
+                element.Resources.MergedDictionaries.Remove(_shared);
+            }
         }
-        _sharedWith = ComposerToolbar as FrameworkElement;
+        _sharedWith.Clear();
+        _sharedWith.AddRange(new[] { ComposerToolbar, SettingsContent }.OfType<FrameworkElement>());
         _shared = _colors;
-        if (_sharedWith is not null && _shared is not null)
+        if (_shared is not null)
         {
-            _sharedWith.Resources.MergedDictionaries.Insert(0, _shared);
+            foreach (var element in _sharedWith)
+            {
+                element.Resources.MergedDictionaries.Insert(0, _shared);
+            }
         }
     }
 

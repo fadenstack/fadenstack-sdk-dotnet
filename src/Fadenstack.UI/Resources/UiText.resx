@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- Every text the chat shows, in English: the one place to change them. Each translation (UiText.<language>.resx)
+       has the same names; UiStrings reads them. {0}, {1}: what the code fills in, as the comments say. -->
+  <data name="LanguageName" xml:space="preserve">
+    <value>English</value>
+    <comment>The language's name in itself: the settings list each language by it</comment>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>The settings button and menu</comment>
+  </data>
+  <data name="LanguageMenu" xml:space="preserve">
+    <value>Language</value>
+    <comment>The heading of the languages in the settings</comment>
+  </data>
+  <data name="LanguageAutomatic" xml:space="preserve">
+    <value>Automatic ({0})</value>
+    <comment>{0}: the host's language, named in itself</comment>
+  </data>
+  <data name="LanguageLocked" xml:space="preserve">
+    <value>Set by your organisation</value>
+    <comment>Under the languages when the organisation fixed one</comment>
+  </data>
+  <data name="Working" xml:space="preserve">
+    <value>Working...</value>
+    <comment>The turn's line before anything arrives</comment>
+  </data>
+  <data name="Stopped" xml:space="preserve">
+    <value>Stopped</value>
+    <comment>A turn the user stopped</comment>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>Something went wrong</value>
+    <comment>A turn that failed</comment>
+  </data>
+  <data name="Tokens" xml:space="preserve">
+    <value>{0:N0} tokens</value>
+    <comment>{0}: the turn's tokens</comment>
+  </data>
+  <data name="NotAttached" xml:space="preserve">
+    <value>{0} was not attached</value>
+    <comment>{0}: the attachment's title</comment>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{0:0.0} s</value>
+    <comment>{0}: seconds</comment>
+  </data>
+  <data name="DurationMilliseconds" xml:space="preserve">
+    <value>{0:0} ms</value>
+    <comment>{0}: milliseconds</comment>
+  </data>
+  <data name="ToolRunning" xml:space="preserve">
+    <value>Running {0}</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolWaiting" xml:space="preserve">
+    <value>{0} is waiting for your approval</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolRan" xml:space="preserve">
+    <value>Ran {0}</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolFailed" xml:space="preserve">
+    <value>{0} failed</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolDenied" xml:space="preserve">
+    <value>{0} was not run</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolStopped" xml:space="preserve">
+    <value>{0} was stopped</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ToolClass_Read" xml:space="preserve">
+    <value>Read</value>
+    <comment>A tool's class, on its line</comment>
+  </data>
+  <data name="ToolClass_Write" xml:space="preserve">
+    <value>Write</value>
+    <comment>A tool's class, on its line</comment>
+  </data>
+  <data name="ToolClass_Destructive" xml:space="preserve">
+    <value>Destructive</value>
+    <comment>A tool's class, on its line</comment>
+  </data>
+  <data name="ToolClass_Unknown" xml:space="preserve">
+    <value>Unclassified</value>
+    <comment>A tool's class, on its line</comment>
+  </data>
+  <data name="ToolSource_host" xml:space="preserve">
+    <value>Runs in this app</value>
+    <comment>Where a tool runs: one of the app's own</comment>
+  </data>
+  <data name="ToolSource_mcp" xml:space="preserve">
+    <value>Runs on an MCP server</value>
+    <comment>Where a tool runs: an MCP server's</comment>
+  </data>
+  <data name="ToolSource_gateway" xml:space="preserve">
+    <value>Runs on the server</value>
+    <comment>Where a tool runs: the Fadenstack server's</comment>
+  </data>
+  <data name="MoreCharacters" xml:space="preserve">
+    <value>... ({0:N0} more characters)</value>
+    <comment>{0}: characters left out of a preview</comment>
+  </data>
+  <data name="Arguments" xml:space="preserve">
+    <value>Input</value>
+    <comment>The label over a tool's input</comment>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Output</value>
+    <comment>The label over a tool's output</comment>
+  </data>
+  <data name="ApprovalTitle" xml:space="preserve">
+    <value>Run {0}?</value>
+    <comment>{0}: the tool's name</comment>
+  </data>
+  <data name="ApprovalClass_Read" xml:space="preserve">
+    <value>Read</value>
+    <comment>What an approval card says the tool does</comment>
+  </data>
+  <data name="ApprovalClass_Write" xml:space="preserve">
+    <value>Changes data</value>
+    <comment>What an approval card says the tool does</comment>
+  </data>
+  <data name="ApprovalClass_Destructive" xml:space="preserve">
+    <value>Cannot be undone</value>
+    <comment>What an approval card says the tool does</comment>
+  </data>
+  <data name="ApprovalClass_Unknown" xml:space="preserve">
+    <value>Unclassified</value>
+    <comment>What an approval card says the tool does</comment>
+  </data>
+  <data name="ApprovalWhy_Read" xml:space="preserve">
+    <value>It only reads.</value>
+    <comment>Why a card asks about one of the agent's own tools</comment>
+  </data>
+  <data name="ApprovalWhy_Write" xml:space="preserve">
+    <value>It changes something, which can be changed back.</value>
+    <comment>Why a card asks about one of the agent's own tools</comment>
+  </data>
+  <data name="ApprovalWhy_Destructive" xml:space="preserve">
+    <value>It may do something that cannot be undone.</value>
+    <comment>Why a card asks about one of the agent's own tools</comment>
+  </data>
+  <data name="ApprovalWhy_Unknown" xml:space="preserve">
+    <value>Nobody has said what this tool does.</value>
+    <comment>Why a card asks about one of the agent's own tools</comment>
+  </data>
+  <data name="ServerTool" xml:space="preserve">
+    <value>Server tool</value>
+    <comment>A tool the server runs</comment>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Allow</value>
+    <comment>A card's button</comment>
+  </data>
+  <data name="AllowForChat" xml:space="preserve">
+    <value>Allow for this chat</value>
+    <comment>A card's button</comment>
+  </data>
+  <data name="AllowAlways" xml:space="preserve">
+    <value>Allow always</value>
+    <comment>A card's button</comment>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Deny</value>
+    <comment>A card's button</comment>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>Allowed</value>
+    <comment>A card once answered</comment>
+  </data>
+  <data name="AllowedForChat" xml:space="preserve">
+    <value>Allowed for this chat</value>
+    <comment>A card once answered</comment>
+  </data>
+  <data name="AllowedAlways" xml:space="preserve">
+    <value>Allowed always</value>
+    <comment>A card once answered</comment>
+  </data>
+  <data name="Denied" xml:space="preserve">
+    <value>Denied</value>
+    <comment>A card once answered</comment>
+  </data>
+  <data name="NoAnswer" xml:space="preserve">
+    <value>No answer in time</value>
+    <comment>A card nobody answered in time</comment>
+  </data>
+  <data name="ResetApprovals" xml:space="preserve">
+    <value>Reset approvals</value>
+    <comment>The mode menu's last item</comment>
+  </data>
+  <data name="ResetApprovalsHint" xml:space="preserve">
+    <value>Ask again before the tools you allowed for this chat or always</value>
+    <comment>The tooltip of Reset approvals</comment>
+  </data>
+  <data name="Notice_prompt_blocked" xml:space="preserve">
+    <value>Your message was not sent</value>
+    <comment>A notice's title, by the server's outcome</comment>
+  </data>
+  <data name="Notice_response_blocked" xml:space="preserve">
+    <value>The answer was stopped</value>
+    <comment>A notice's title, by the server's outcome</comment>
+  </data>
+  <data name="Notice_tool_denied" xml:space="preserve">
+    <value>A tool was not allowed</value>
+    <comment>A notice's title, by the server's outcome</comment>
+  </data>
+  <data name="Notice_rate_limited" xml:space="preserve">
+    <value>Too many requests</value>
+    <comment>A notice's title, by the server's outcome</comment>
+  </data>
+  <data name="Notice_round_limit" xml:space="preserve">
+    <value>Stopped</value>
+    <comment>A notice's title, by the server's outcome</comment>
+  </data>
+  <data name="NoticeFallback" xml:space="preserve">
+    <value>Notice</value>
+    <comment>A notice's title the chat does not know</comment>
+  </data>
+  <data name="TryAgainIn" xml:space="preserve">
+    <value>Try again in {0} s.</value>
+    <comment>{0}: seconds</comment>
+  </data>
+  <data name="Decision" xml:space="preserve">
+    <value>Decision {0}</value>
+    <comment>{0}: the server's decision id, for support</comment>
+  </data>
+  <data name="PiiTitle" xml:space="preserve">
+    <value>Personal data protected</value>
+    <comment>A notice's title</comment>
+  </data>
+  <data name="PiiMessage_One" xml:space="preserve">
+    <value>{0} value kept from the model: {1}</value>
+    <comment>{0}: 1; {1}: the kinds, e.g. 1 person</comment>
+  </data>
+  <data name="PiiMessage_Other" xml:space="preserve">
+    <value>{0} values kept from the model: {1}</value>
+    <comment>{0}: how many; {1}: the kinds, e.g. 2 person, 1 email</comment>
+  </data>
+  <data name="Thinking" xml:space="preserve">
+    <value>Thinking...</value>
+    <comment>Reasoning while it streams</comment>
+  </data>
+  <data name="ThoughtFor" xml:space="preserve">
+    <value>Thought for {0} s</value>
+    <comment>{0}: seconds</comment>
+  </data>
+  <data name="UsedReferences_One" xml:space="preserve">
+    <value>Used {0} reference</value>
+    <comment>{0}: 1</comment>
+  </data>
+  <data name="UsedReferences_Other" xml:space="preserve">
+    <value>Used {0} references</value>
+    <comment>{0}: how many</comment>
+  </data>
+  <data name="Part" xml:space="preserve">
+    <value>Part {0}</value>
+    <comment>{0}: the part of a document a reference is</comment>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Source</value>
+    <comment>A reference without a name</comment>
+  </data>
+  <data name="GreetingFallback" xml:space="preserve">
+    <value>Ask {0} anything.</value>
+    <comment>{0}: the agent's name; when its profile has no greeting</comment>
+  </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>New chat</value>
+    <comment>A chat's title before its first message, and the button</comment>
+  </data>
+  <data name="NewChatShortcut" xml:space="preserve">
+    <value>New chat (Ctrl+N)</value>
+    <comment>The tooltip of the new-chat button</comment>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>Yesterday</value>
+    <comment>When a chat was last used</comment>
+  </data>
+  <data name="Mode_Off_Label" xml:space="preserve">
+    <value>Off</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_Off_Description" xml:space="preserve">
+    <value>No tools: the agent only answers.</value>
+    <comment>What the tool mode means</comment>
+  </data>
+  <data name="Mode_ReadOnly_Label" xml:space="preserve">
+    <value>Read only</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_ReadOnly_Description" xml:space="preserve">
+    <value>Only tools that change nothing.</value>
+    <comment>What the tool mode means</comment>
+  </data>
+  <data name="Mode_Ask_Label" xml:space="preserve">
+    <value>Ask</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_Ask_Description" xml:space="preserve">
+    <value>Asks before anything that changes something.</value>
+    <comment>What the tool mode means</comment>
+  </data>
+  <data name="Mode_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_Auto_Description" xml:space="preserve">
+    <value>Runs tools that change things; still asks before anything that cannot be undone.</value>
+    <comment>What the tool mode means</comment>
+  </data>
+  <data name="LimitedTo" xml:space="preserve">
+    <value>{0} Limited to {1} by your organisation.</value>
+    <comment>{0}: the mode's description; {1}: the mode the organisation allows</comment>
+  </data>
+  <data name="ToolModeMenu" xml:space="preserve">
+    <value>Tools in this chat</value>
+    <comment>The heading of the tool-mode menu</comment>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>Chats</value>
+    <comment>The chats on this device: the button and the menu's heading</comment>
+  </data>
+  <data name="NoHistory" xml:space="preserve">
+    <value>No chats yet.</value>
+    <comment>The history when it is empty</comment>
+  </data>
+  <data name="DeleteSession" xml:space="preserve">
+    <value>Delete chat</value>
+    <comment>A history item's button</comment>
+  </data>
+  <data name="ShowEarlier" xml:space="preserve">
+    <value>Show earlier messages</value>
+    <comment>Loads older turns</comment>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>Try again</value>
+    <comment>Sends a failed or stopped message again; starts a chat that failed to start</comment>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+    <comment>Copies an answer</comment>
+  </data>
+  <data name="CopyCode" xml:space="preserve">
+    <value>Copy code</value>
+    <comment>Copies a code block</comment>
+  </data>
+  <data name="NotSent" xml:space="preserve">
+    <value>Not sent</value>
+    <comment>A refused message</comment>
+  </data>
+  <data name="EditAndResend" xml:space="preserve">
+    <value>Edit and resend</value>
+    <comment>Puts a refused message back in the composer</comment>
+  </data>
+  <data name="ComposerPlaceholder" xml:space="preserve">
+    <value>Ask a question, or tell the agent what to do</value>
+    <comment>The empty composer</comment>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>Message</value>
+    <comment>The composer's name for screen readers</comment>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Send</value>
+    <comment>The send button's name</comment>
+  </data>
+  <data name="SendShortcut" xml:space="preserve">
+    <value>Send (Enter)</value>
+    <comment>The send button's tooltip</comment>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
+    <comment>The stop button's name</comment>
+  </data>
+  <data name="StopShortcut" xml:space="preserve">
+    <value>Stop (Esc)</value>
+    <comment>The stop button's tooltip</comment>
+  </data>
+  <data name="RemoveAttachment" xml:space="preserve">
+    <value>Remove</value>
+    <comment>Removes a chip from the composer</comment>
+  </data>
+  <data name="IncludeAttachment" xml:space="preserve">
+    <value>Include with the next message</value>
+    <comment>Switches an offered chip on and off</comment>
+  </data>
+</root>

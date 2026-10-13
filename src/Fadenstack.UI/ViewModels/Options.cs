@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
@@ -28,30 +30,98 @@ public sealed class AgentChatOptions
     public IList<IAgentEventRenderer> Renderers { get; } = new List<IAgentEventRenderer>();
 
     public Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.Now;
+
+    /// <summary>
+    /// What "Automatic" means in the panel's settings: the host's language (an add-in passes Office's UI language);
+    /// <see cref="CultureInfo.CurrentUICulture"/> by default. The panel starts in it until the user picks another.
+    /// </summary>
+    public CultureInfo? AutomaticLanguage { get; set; }
+
+    /// <summary>The languages the user can pick, by tag: <see cref="UiStrings.BuiltInLanguages"/> by default. Add the ones <see cref="TextOverrides"/> has.</summary>
+    public IList<string>? Languages { get; set; }
+
+    /// <summary>The host's own resources (a .resx with the same names): its words, and the texts of the languages it adds.</summary>
+    public ResourceManager? TextOverrides { get; set; }
+
+    /// <summary>A language the organisation fixed (a policy): the panel uses it, and its settings show it without a choice.</summary>
+    public string? LockedLanguage { get; set; }
+
+    /// <summary>
+    /// Where the user's pick is kept: by default a <see cref="FilePreferenceStore"/>
+    /// (<c>%APPDATA%\Fadenstack\preferences.json</c>), shared by every Fadenstack panel of the user on this computer.
+    /// </summary>
+    public IPreferenceStore? Preferences { get; set; }
+
+    /// <summary>
+    /// Texts fixed by the host instead of a language the user picks: the panel then offers no choice. Most hosts leave
+    /// it out and pass <see cref="AutomaticLanguage"/>.
+    /// </summary>
+    public UiStrings? Strings { get; set; }
+
+    /// <summary>
+    /// Runs before every message goes -- from the composer, a suggestion, Retry, or Edit and resend -- for what the
+    /// host does first: check it may still send, take the context its tools read, add attachments (they go with this
+    /// message). It runs on the UI thread; the chat is busy meanwhile and Stop cancels the token. When it throws,
+    /// nothing is sent: the text stays in the composer and <see cref="AgentChatViewModel.Error"/> says why.
+    /// </summary>
+    public Func<OutgoingMessage, CancellationToken, Task>? BeforeSend { get; set; }
+
+    /// <summary>
+    /// Runs once after every send, however it ended: its turn finished, failed or was stopped, or
+    /// <see cref="BeforeSend"/> threw.
+    /// </summary>
+    public Action<OutgoingMessage>? AfterSend { get; set; }
+}
+
+/// <summary>A message on its way, for <see cref="AgentChatOptions.BeforeSend"/> and <see cref="AgentChatOptions.AfterSend"/>.</summary>
+public sealed class OutgoingMessage
+{
+    internal OutgoingMessage(string text) => Text = text;
+
+    /// <summary>What the user sent, trimmed.</summary>
+    public string Text { get; }
+}
+
+/// <summary>A language in the panel's settings: <c>auto</c> (the host's) or a tag, named in itself ("Deutsch").</summary>
+public sealed class LanguageOption
+{
+    internal LanguageOption(string id, string label, string language, bool isSelected)
+    {
+        Id = id;
+        Label = label;
+        Language = language;
+        IsSelected = isSelected;
+    }
+
+    public string Id { get; }
+
+    public string Label { get; }
+
+    /// <summary>The language the label is written in, for the item's <c>xml:lang</c>.</summary>
+    public string Language { get; }
+
+    public bool IsSelected { get; }
+
+    public override string ToString() => Label;
 }
 
 /// <summary>A mode in the picker, with what it means; above the ceiling it cannot be picked.</summary>
 public sealed class ToolModeOption : ObservableObject
 {
     private bool _isAvailable = true;
+    private UiStrings _strings;
 
-    internal ToolModeOption(ToolMode mode)
+    internal ToolModeOption(ToolMode mode, UiStrings strings)
     {
         Mode = mode;
-        (Label, Description) = mode switch
-        {
-            ToolMode.Off => ("Off", "No tools: the agent only answers."),
-            ToolMode.ReadOnly => ("Read only", "Only tools that change nothing."),
-            ToolMode.Ask => ("Ask", "Asks before anything that changes something."),
-            _ => ("Auto", "Runs tools that change things; still asks before anything that cannot be undone."),
-        };
+        _strings = strings;
     }
 
     public ToolMode Mode { get; }
 
-    public string Label { get; }
+    public string Label => _strings.ModeLabel(Mode);
 
-    public string Description { get; }
+    public string Description => _strings.ModeDescription(Mode);
 
     /// <summary>False above the ceiling the server sets for the agent.</summary>
     public bool IsAvailable
@@ -61,22 +131,33 @@ public sealed class ToolModeOption : ObservableObject
     }
 
     public override string ToString() => Label;
+
+    internal void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(Description));
+    }
 }
 
 /// <summary>A session in the history list.</summary>
 public sealed class SessionItemViewModel : ObservableObject
 {
+    private readonly bool _untitled;
+    private UiStrings _strings;
     private string _title;
     private DateTimeOffset _lastActivity;
     private string _whenText;
     private bool _isCurrent;
 
-    internal SessionItemViewModel(string id, string? title, DateTimeOffset lastActivity, DateTimeOffset now)
+    internal SessionItemViewModel(string id, string? title, DateTimeOffset lastActivity, DateTimeOffset now, UiStrings strings)
     {
         Id = id;
-        _title = string.IsNullOrWhiteSpace(title) ? "New chat" : title!;
+        _strings = strings;
+        _untitled = string.IsNullOrWhiteSpace(title);
+        _title = _untitled ? strings.NewChat : title!;
         _lastActivity = lastActivity;
-        _whenText = When(lastActivity, now);
+        _whenText = When(lastActivity, now, strings);
     }
 
     public string Id { get; }
@@ -104,21 +185,32 @@ public sealed class SessionItemViewModel : ObservableObject
     internal void Touch(DateTimeOffset at, DateTimeOffset now)
     {
         _lastActivity = at;
-        WhenText = When(at, now);
+        WhenText = When(at, now, _strings);
     }
 
-    internal static string When(DateTimeOffset at, DateTimeOffset now)
+    internal void Retext(UiStrings strings, DateTimeOffset now)
+    {
+        _strings = strings;
+        if (_untitled)
+        {
+            Title = strings.NewChat;
+        }
+        WhenText = When(_lastActivity, now, strings);
+    }
+
+    /// <summary>The time today, "Yesterday", the weekday this week, else the date (written in the format culture).</summary>
+    internal static string When(DateTimeOffset at, DateTimeOffset now, UiStrings strings)
     {
         var local = at.ToLocalTime();
         var today = now.ToLocalTime().Date;
         if (local.Date == today)
         {
-            return local.ToString("t");
+            return local.ToString("t", strings.FormatCulture);
         }
         if (local.Date == today.AddDays(-1))
         {
-            return "Yesterday";
+            return strings.Yesterday;
         }
-        return (today - local.Date).TotalDays < 7 ? local.ToString("dddd") : local.ToString("d");
+        return (today - local.Date).TotalDays < 7 ? local.ToString("dddd", strings.FormatCulture) : local.ToString("d", strings.FormatCulture);
     }
 }

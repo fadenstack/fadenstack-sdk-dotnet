@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Windows;
 using Fadenstack.Agents;
@@ -12,6 +13,7 @@ namespace Fadenstack.Samples.Wpf;
 ///
 ///   Fadenstack.Samples.Wpf.exe --demo                                   (no server: a built-in demo gateway)
 ///   Fadenstack.Samples.Wpf.exe --server https://ai.example.internal --agent docs-assistant [--api ...] [--login-token ...]
+///   ... --language de                                                   (start in another language than Windows')
 /// </summary>
 public partial class App : Application
 {
@@ -50,7 +52,9 @@ public partial class App : Application
             builder.UseClient(client).UseAgent(slug);
         }
         _agent = builder.Build();
-        _chat = new AgentChatViewModel(_agent, broker, new WpfDispatcher(), new AgentChatOptions { Clipboard = new WpfClipboard() });
+        // The user picks the language in the panel's settings; it starts in Windows' display language, or --language.
+        var language = Arg("language", "FADEN_LANGUAGE") is { } tag ? CultureInfo.GetCultureInfo(tag) : null;
+        _chat = new AgentChatViewModel(_agent, broker, new WpfDispatcher(), new AgentChatOptions { Clipboard = new WpfClipboard(), AutomaticLanguage = language });
         MainWindow = new MainWindow { DataContext = _chat };
         MainWindow.Show();
         await _chat.InitializeAsync();

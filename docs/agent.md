@@ -136,7 +136,7 @@ The report never fails the start. `UseEventReporting(false)` turns it off, toget
 
 ## Start the agent
 
-`agent.StartAsync()` loads the agent's profile from the server, checks that the client modules the agent requires are present, and settles the tools. `StartSessionAsync` and `OpenSessionAsync` call it for you; call it yourself to fail early or to read the profile.
+`agent.StartAsync()` loads the agent's profile from the server, checks that the client modules the agent requires are present, and settles the tools. `StartSessionAsync` and `OpenSessionAsync` call it for you; call it yourself to fail early or to read the profile. `agent.Profile.User.Language` is the language the user picked for all their clients and the console, or `null`; `agent.SetUserLanguageAsync(tag)` keeps a new one (`null` forgets it). The chat panel does both: see [Languages](chat-panel.md#languages).
 
 | Member | Meaning |
 |---|---|

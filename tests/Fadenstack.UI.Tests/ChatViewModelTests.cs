@@ -410,6 +410,105 @@ public class ChatViewModelTests
     }
 }
 
+public class BeforeSendTests
+{
+    private static async Task<(AgentChatViewModel Chat, Gateway Gateway)> ChatAsync(Gateway gateway, Action<AgentChatOptions> configure)
+    {
+        var broker = new ApprovalBroker();
+        var agent = gateway.Builder(new MemorySessionStore()).UseApprovals(broker).Build();
+        var options = new AgentChatOptions { RenderInterval = TimeSpan.Zero };
+        configure(options);
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, options);
+        await chat.InitializeAsync();
+        return (chat, gateway);
+    }
+
+    [Fact]
+    public async Task It_runs_around_every_send_and_what_it_attaches_goes_with_the_message()
+    {
+        var log = new List<string>();
+        AgentChatViewModel chat = null!;
+        (chat, var gateway) = await ChatAsync(new Gateway().Says("Ok.").Says("Ok again.").Says("Once more."), o =>
+        {
+            o.BeforeSend = async (message, _) =>
+            {
+                log.Add($"before {message.Text} busy={chat.IsBusy}");
+                await Task.Yield();
+                if (message.Text == "Explain.")
+                {
+                    chat.Attachments.Add(AttachmentViewModel.FromContent(new MessageAttachment { Title = "Sheet2", Content = "whole sheet", Kind = "sheet" }));
+                }
+            };
+            o.AfterSend = message => log.Add($"after {message.Text}");
+        });
+
+        chat.Input = "Explain.";
+        await chat.SendCommand.ExecuteAsync(null);
+        await chat.SendSuggestionCommand.ExecuteAsync("Summarise.");
+        await chat.SendAsync("Again.");
+
+        Assert.Equal(new[]
+        {
+            "before Explain. busy=True", "after Explain.",
+            "before Summarise. busy=True", "after Summarise.",
+            "before Again. busy=True", "after Again.",
+        }, log);
+        Assert.Equal(new[] { "Explain.", "Summarise.", "Again." }, chat.Turns.Select(t => t.UserText));
+        Assert.Equal(new[] { "Sheet2" }, chat.Turns[0].Attachments.Select(a => a.Title));
+        Assert.Contains("whole sheet", gateway.ChatRequests[0].Json.GetProperty("messages")[0].GetProperty("content").GetString());
+        Assert.Equal("", chat.Input);
+    }
+
+    [Fact]
+    public async Task When_it_throws_nothing_is_sent_the_text_stays_and_the_next_message_clears_the_error()
+    {
+        var refuse = true;
+        var after = new List<string>();
+        var (chat, gateway) = await ChatAsync(new Gateway().Says("Ok."), o =>
+        {
+            o.BeforeSend = (_, _) => refuse ? throw new InvalidOperationException("Select a file first.") : Task.CompletedTask;
+            o.AfterSend = message => after.Add(message.Text);
+        });
+
+        chat.Input = "Summarise the file.";
+        await chat.SendCommand.ExecuteAsync(null);
+        Assert.Equal(("Select a file first.", "Summarise the file.", false, true), (chat.Error, chat.Input, chat.IsBusy, chat.IsEmpty));
+        Assert.Empty(gateway.ChatRequests);
+
+        refuse = false;
+        await chat.SendCommand.ExecuteAsync(null);
+        Assert.Null(chat.Error);
+        Assert.Single(chat.Turns);
+        Assert.Equal(new[] { "Summarise the file.", "Summarise the file." }, after);
+    }
+
+    [Fact]
+    public async Task Stop_while_the_host_prepares_sends_nothing_and_shows_no_error()
+    {
+        var started = new TaskCompletionSource();
+        var after = 0;
+        var (chat, gateway) = await ChatAsync(new Gateway().Says("Ok."), o =>
+        {
+            o.BeforeSend = async (_, token) =>
+            {
+                started.SetResult();
+                await Task.Delay(Timeout.Infinite, token);
+            };
+            o.AfterSend = _ => after++;
+        });
+
+        var sending = chat.SendAsync("Go.");
+        await started.Task;
+        Assert.True(chat.IsBusy);
+        Assert.True(chat.StopCommand.CanExecute(null));
+        chat.StopCommand.Execute(null);
+        await sending;
+
+        Assert.Equal((false, (string?)null, true, 1), (chat.IsBusy, chat.Error, chat.IsEmpty, after));
+        Assert.Empty(gateway.ChatRequests);
+    }
+}
+
 public class AttachmentTrayTests
 {
     [Fact]
