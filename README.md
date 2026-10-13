@@ -1,25 +1,57 @@
-# Fadenstack .NET SDK
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/banner-dark.png">
+    <img alt="Fadenstack SDK for .NET: governed AI agents inside your own software" src="docs/images/readme/banner-light.png" width="100%">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/Fadenstack.Agents"><img alt="NuGet" src="https://img.shields.io/nuget/vpre/Fadenstack.Agents?logo=nuget&label=NuGet&color=004880"></a>
+  <a href="https://github.com/fadenstack/fadenstack-sdk-dotnet/actions/workflows/release.yml"><img alt="Release" src="https://github.com/fadenstack/fadenstack-sdk-dotnet/actions/workflows/release.yml/badge.svg"></a>
+  <img alt=".NET: netstandard2.0 and net8.0" src="https://img.shields.io/badge/.NET-netstandard2.0%20%7C%20net8.0-512BD4?logo=dotnet">
+  <a href="https://developers.fadenstack.com/sdk/dotnet/"><img alt="Documentation" src="https://img.shields.io/badge/docs-developers.fadenstack.com-E2325A"></a>
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/github/license/fadenstack/fadenstack-sdk-dotnet?color=blue"></a>
+</p>
+
+<p align="center">
+  <a href="https://developers.fadenstack.com/sdk/dotnet/"><b>Documentation</b></a> ·
+  <a href="#an-agent-in-a-host-application"><b>Quick start</b></a> ·
+  <a href="docs/samples.md"><b>Samples</b></a> ·
+  <a href="https://www.nuget.org/profiles/fadenstack"><b>NuGet</b></a> ·
+  <a href="https://fadenstack.com"><b>fadenstack.com</b></a>
+</p>
 
 Agents that run inside other software (a desktop application, an Office add-in, a Windows service) and are
 governed by a [Fadenstack](https://fadenstack.com) server. The SDK runs the agent loop on the device: host tools, approvals, local
 MCP servers and the conversation itself. The server owns the agent's instructions, model and knowledge, and handles
 personal data and audit. Agents need a Fadenstack server 0.4.2 or later.
 
-**Documentation: [developers.fadenstack.com/sdk/dotnet](https://developers.fadenstack.com/sdk/dotnet/)**
-(the source is in [`docs/`](docs/)).
+## Highlights
 
-| Package | What it is |
-|---|---|
-| `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
-| `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
-| `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy |
-| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, with its texts in English, German, French, Spanish and Simplified Chinese |
-| `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins |
+- **The loop runs in your application.** Your own methods become tools with an attribute; the agent asks before
+  anything that changes something, and the conversation stays on the device.
+- **The server governs.** Instructions, model, knowledge, tool rules, personal data and audit are your
+  administrator's, in the Fadenstack console; the app never holds the instructions.
+- **A chat panel to drop in.** Platform-neutral view models and a WPF skin, in English, German, French, Spanish and
+  Simplified Chinese. The user picks the language, and it follows them to every client.
+- **Built for Office and the desktop.** `netstandard2.0` runs in VSTO add-ins on .NET Framework 4.7.2; the gateway
+  is a Microsoft.Extensions.AI `IChatClient`; local MCP servers become tools under the agent's policy.
+
+## Packages
+
+| Package | Version | What it is |
+|---|---|---|
+| [`Fadenstack.Client`](https://www.nuget.org/packages/Fadenstack.Client) | [![Fadenstack.Client](https://img.shields.io/nuget/vpre/Fadenstack.Client?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Client) | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
+| [`Fadenstack.Agents`](https://www.nuget.org/packages/Fadenstack.Agents) | [![Fadenstack.Agents](https://img.shields.io/nuget/vpre/Fadenstack.Agents?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Agents) | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
+| [`Fadenstack.Mcp`](https://www.nuget.org/packages/Fadenstack.Mcp) | [![Fadenstack.Mcp](https://img.shields.io/nuget/vpre/Fadenstack.Mcp?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Mcp) | Local MCP servers as agent tools, under the agent's local MCP policy |
+| [`Fadenstack.UI`](https://www.nuget.org/packages/Fadenstack.UI) | [![Fadenstack.UI](https://img.shields.io/nuget/vpre/Fadenstack.UI?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.UI) | Platform-neutral view models for a chat with an agent, with its texts in English, German, French, Spanish and Simplified Chinese |
+| [`Fadenstack.UI.Wpf`](https://www.nuget.org/packages/Fadenstack.UI.Wpf) | [![Fadenstack.UI.Wpf](https://img.shields.io/nuget/vpre/Fadenstack.UI.Wpf?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.UI.Wpf) | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins |
 
 Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it
 (`Fadenstack.Auth`, `Fadenstack.Chat`, `Fadenstack.Tools`, ...). `Fadenstack.Client`,
 `Fadenstack.Agents`, `Fadenstack.Mcp` and `Fadenstack.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
 and `net8.0`. `Fadenstack.UI.Wpf` targets `net472` and `net8.0-windows`.
+
 
 ## An agent in a host application
 
