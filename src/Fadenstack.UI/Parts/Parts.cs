@@ -64,12 +64,15 @@ public sealed class ReasoningPart : ResponsePart
     private readonly StringBuilder _text = new();
     private readonly DateTimeOffset _started;
     private bool _isStreaming = true;
+    private readonly UiStrings _strings;
     private bool _isExpanded;
-    private string _title = "Thinking...";
+    private string _title;
 
-    internal ReasoningPart(DateTimeOffset started)
+    internal ReasoningPart(DateTimeOffset started, UiStrings strings)
     {
         _started = started;
+        _strings = strings;
+        _title = strings.Thinking;
         ToggleCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
@@ -115,7 +118,7 @@ public sealed class ReasoningPart : ResponsePart
     {
         IsStreaming = false;
         var seconds = Math.Max(1, (int)Math.Round((now - _started).TotalSeconds));
-        Title = $"Thought for {seconds} s";
+        Title = _strings.ThoughtFor(seconds);
     }
 }
 
@@ -133,6 +136,7 @@ public enum ToolCallState
 public sealed class ToolCallPart : ResponsePart
 {
     private readonly int _previewLength;
+    private readonly UiStrings _strings;
     private ToolCallState _state;
     private TimeSpan? _duration;
     private bool _isExpanded;
@@ -141,8 +145,9 @@ public sealed class ToolCallPart : ResponsePart
     private IReadOnlyDictionary<string, object?>? _arguments;
 
     internal ToolCallPart(string callId, string name, string source, ToolClass toolClass,
-        IReadOnlyDictionary<string, object?>? arguments, int previewLength)
+        IReadOnlyDictionary<string, object?>? arguments, int previewLength, UiStrings strings)
     {
+        _strings = strings;
         CallId = callId;
         Name = name;
         Source = source;
@@ -161,13 +166,10 @@ public sealed class ToolCallPart : ResponsePart
 
     public ToolClass Class { get; }
 
-    public string ClassLabel => Class switch
-    {
-        ToolClass.Read => "Read",
-        ToolClass.Write => "Write",
-        ToolClass.Destructive => "Destructive",
-        _ => "Unclassified",
-    };
+    public string ClassLabel => _strings.ToolClassLabel(Class);
+
+    /// <summary>Where it runs, in words ("Runs in this app").</summary>
+    public string SourceLabel => _strings.ToolSource(Source);
 
     public ToolCallState State
     {
@@ -187,12 +189,12 @@ public sealed class ToolCallPart : ResponsePart
     /// <summary>What the line says: "Running read_page", "Ran read_page", "read_page was denied".</summary>
     public string Title => _state switch
     {
-        ToolCallState.Running => $"Running {Name}",
-        ToolCallState.WaitingForApproval => $"{Name} is waiting for your approval",
-        ToolCallState.Succeeded => $"Ran {Name}",
-        ToolCallState.Failed => $"{Name} failed",
-        ToolCallState.Denied => $"{Name} was not run",
-        _ => $"{Name} was stopped",
+        ToolCallState.Running => _strings.ToolRunning(Name),
+        ToolCallState.WaitingForApproval => _strings.ToolWaiting(Name),
+        ToolCallState.Succeeded => _strings.ToolRan(Name),
+        ToolCallState.Failed => _strings.ToolFailed(Name),
+        ToolCallState.Denied => _strings.ToolDenied(Name),
+        _ => _strings.ToolStopped(Name),
     };
 
     public TimeSpan? Duration
@@ -207,7 +209,7 @@ public sealed class ToolCallPart : ResponsePart
         }
     }
 
-    public string DurationText => _duration is { } d ? (d.TotalSeconds >= 1 ? $"{d.TotalSeconds:0.0} s" : $"{d.TotalMilliseconds:0} ms") : "";
+    public string DurationText => _duration is { } d ? _strings.Duration(d) : "";
 
     public bool IsExpanded
     {
@@ -225,7 +227,7 @@ public sealed class ToolCallPart : ResponsePart
     /// <summary>Formatted only when the call is expanded.</summary>
     public string ArgumentsText => _isExpanded ? Format(_arguments) : "";
 
-    public string ResultText => _isExpanded ? Preview(_result, _previewLength) : "";
+    public string ResultText => _isExpanded ? Preview(_result, _previewLength, _strings) : "";
 
     public bool HasDetails => (_arguments?.Count ?? 0) > 0 || !string.IsNullOrEmpty(_result);
 
@@ -265,8 +267,8 @@ public sealed class ToolCallPart : ResponsePart
         }
     }
 
-    internal static string Preview(string? text, int length) =>
-        text is null ? "" : text.Length <= length ? text : text.Substring(0, length) + $"\n... ({text.Length - length:N0} more characters)";
+    internal static string Preview(string? text, int length, UiStrings strings) =>
+        text is null ? "" : text.Length <= length ? text : text.Substring(0, length) + "\n" + strings.MoreCharacters(text.Length - length);
 
     private static string Format(IReadOnlyDictionary<string, object?>? arguments)
     {
@@ -303,19 +305,21 @@ public enum ApprovalState
 public sealed class ApprovalPart : ResponsePart
 {
     private readonly PendingApproval? _pending;
+    private readonly UiStrings _strings;
     private ApprovalState _state;
 
-    internal ApprovalPart(PendingApproval pending, int previewLength)
-        : this(pending.Request, ApprovalState.Pending, previewLength)
+    internal ApprovalPart(PendingApproval pending, int previewLength, UiStrings strings)
+        : this(pending.Request, ApprovalState.Pending, previewLength, strings)
     {
         _pending = pending;
     }
 
-    internal ApprovalPart(ApprovalRequest request, ApprovalState state, int previewLength)
+    internal ApprovalPart(ApprovalRequest request, ApprovalState state, int previewLength, UiStrings strings)
     {
         Request = request;
+        _strings = strings;
         _state = state;
-        ArgumentsText = ToolCallPart.Preview(Arguments(request), previewLength);
+        ArgumentsText = ToolCallPart.Preview(Arguments(request), previewLength, strings);
         AllowCommand = new RelayCommand(() => Decide(ApprovalDecision.Approve(), ApprovalState.Approved), () => IsPending);
         AllowForSessionCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForSession(), ApprovalState.ApprovedForSession),
             () => IsPending && CanAllowForSession);
@@ -334,22 +338,16 @@ public sealed class ApprovalPart : ResponsePart
 
     public string ToolName => Request.ToolName;
 
-    public string Title => $"Run {Request.ToolName}?";
+    public string Title => _strings.ApprovalTitle(Request.ToolName);
 
     public ToolClass Class => Request.ToolClass;
 
     public bool IsDestructive => Request.ToolClass is ToolClass.Destructive or ToolClass.Unknown;
 
-    public string ClassLabel => Request.Source == "gateway" ? "Server tool" : Request.ToolClass switch
-    {
-        ToolClass.Read => "Read",
-        ToolClass.Write => "Changes data",
-        ToolClass.Destructive => "Cannot be undone",
-        _ => "Unclassified",
-    };
+    public string ClassLabel => Request.Source == "gateway" ? _strings.ServerTool : _strings.ApprovalClassLabel(Request.ToolClass);
 
-    /// <summary>Why it asks: the admin's message for a rule or a gateway tool, else the tool's class and the mode.</summary>
-    public string Reason => Request.Reason;
+    /// <summary>Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, what its class means.</summary>
+    public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason : _strings.ApprovalWhy(Request.ToolClass);
 
     public string ArgumentsText { get; }
 
@@ -374,11 +372,11 @@ public sealed class ApprovalPart : ResponsePart
 
     public string StateText => _state switch
     {
-        ApprovalState.Approved => "Allowed",
-        ApprovalState.ApprovedForSession => "Allowed for this chat",
-        ApprovalState.ApprovedAlways => "Allowed always",
-        ApprovalState.Denied => "Denied",
-        ApprovalState.Expired => "No answer in time",
+        ApprovalState.Approved => _strings.Allowed,
+        ApprovalState.ApprovedForSession => _strings.AllowedForChat,
+        ApprovalState.ApprovedAlways => _strings.AllowedAlways,
+        ApprovalState.Denied => _strings.Denied,
+        ApprovalState.Expired => _strings.NoAnswer,
         _ => "",
     };
 
@@ -439,19 +437,17 @@ public sealed class NoticePart : ResponsePart
     /// <summary>For support: the decision id of a refusal.</summary>
     public string? Detail { get; }
 
-    internal static NoticePart From(GovernanceNotice notice)
+    internal static NoticePart From(GovernanceNotice notice, UiStrings strings)
     {
-        var (severity, title) = notice.Outcome switch
+        var severity = notice.Outcome switch
         {
-            "prompt_blocked" => (NoticeSeverity.Blocked, "Your message was not sent"),
-            "response_blocked" => (NoticeSeverity.Blocked, "The answer was stopped"),
-            "tool_denied" => (NoticeSeverity.Warning, "A tool was not allowed"),
-            "rate_limited" => (NoticeSeverity.Warning, "Too many requests"),
-            "round_limit" => (NoticeSeverity.Info, "Stopped"),
-            _ => (NoticeSeverity.Info, "Notice"),
+            "prompt_blocked" or "response_blocked" => NoticeSeverity.Blocked,
+            "tool_denied" or "rate_limited" => NoticeSeverity.Warning,
+            _ => NoticeSeverity.Info,
         };
-        var message = notice.RetryAfter is { } wait ? $"{notice.Message} Try again in {Math.Ceiling(wait.TotalSeconds)} s." : notice.Message;
-        return new NoticePart(severity, title, message, notice.DecisionId is null ? null : $"Decision {notice.DecisionId}");
+        var title = strings.NoticeTitle(notice.Outcome) ?? strings.NoticeFallback;
+        var message = notice.RetryAfter is { } wait ? $"{notice.Message} {strings.TryAgainIn(Math.Ceiling(wait.TotalSeconds))}" : notice.Message;
+        return new NoticePart(severity, title, message, notice.DecisionId is null ? null : strings.Decision(notice.DecisionId));
     }
 }
 
@@ -460,17 +456,21 @@ public sealed record Citation(string Title, string? Detail, double? Score);
 /// <summary>"Used 3 references", expandable.</summary>
 public sealed class CitationsPart : ResponsePart
 {
+    private readonly UiStrings _strings;
     private bool _isExpanded;
 
-    public CitationsPart(IEnumerable<Citation> citations)
+    /// <param name="citations">The references, in order.</param>
+    /// <param name="strings">The texts (the turn's, <see cref="ViewModels.TurnViewModel.Strings"/>); the current UI language's by default.</param>
+    public CitationsPart(IEnumerable<Citation> citations, UiStrings? strings = null)
     {
+        _strings = strings ?? UiStrings.Current;
         Citations = new ObservableCollection<Citation>(citations);
         ToggleCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
     public ObservableCollection<Citation> Citations { get; }
 
-    public string Title => Citations.Count == 1 ? "Used 1 reference" : $"Used {Citations.Count} references";
+    public string Title => _strings.UsedReferences(Citations.Count);
 
     public bool IsExpanded
     {

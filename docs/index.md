@@ -21,7 +21,7 @@ The SDK never receives the agent's instructions. Every model call goes through t
 | `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
 | `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
 | `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
-| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm. |
+| `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm, with its texts in English, German, French, Spanish and Simplified Chinese ([Languages](chat-panel.md#languages)). |
 | `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins. |
 
 Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.UI.Wpf` includes `Fadenstack.UI`.

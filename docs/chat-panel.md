@@ -1,12 +1,12 @@
 # Chat panel
 
-This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, hosting it in add-ins, and extending how answers are rendered.
+This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, its languages, hosting it in add-ins, and extending how answers are rendered.
 
 ## Two packages
 
 The UI is split in two, and the split is strict:
 
-- **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
+- **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, every text the panel shows (`UiStrings`, from the package's resources), and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
 - **`Fadenstack.UI.Wpf`** only renders. It is XAML templates, styles, themes and a few view-only behaviours, such as keeping the conversation scrolled to the bottom and moving the focus to the composer. It targets `net472` and `net8.0-windows`.
 
 Another skin can bind to the same view models.
@@ -113,6 +113,41 @@ chat.Attachments.Add(new AttachmentViewModel(
 
 `AgentAvatar` is the agent's picture as a WPF control. Set `Small` at sizes of 32 pixels and below; `ThreadBrush` and `ThreadSideBrush` recolour it for a custom agent.
 
+## Languages
+
+The panel has no text of its own. Every text it shows is in the resources of `Fadenstack.UI`: `Resources/UiText.resx` holds the English texts, and `UiText.de.resx`, `UiText.fr.resx`, `UiText.es.resx` and `UiText.zh-Hans.resx` the German, French, Spanish and Simplified Chinese ones. They are the one place to change a word. The view models read them through `UiStrings`, and the WPF skin binds its buttons, tooltips and screen-reader names to the same texts.
+
+By default the panel speaks the current UI language, `CultureInfo.CurrentUICulture`. .NET falls back from the most specific language: `de-AT` gets German, `zh-CN` Simplified Chinese, and a language without texts, such as `zh-TW` or `ja-JP`, gets English. To use another language, pass it in the options:
+
+```csharp
+using System.Globalization;
+using Fadenstack.UI;
+
+var options = new AgentChatOptions
+{
+    Clipboard = new WpfClipboard(),
+    Strings = UiStrings.For(CultureInfo.GetCultureInfo("de-DE")),
+};
+```
+
+In an Office add-in, pass Office's own UI language, which can differ from Windows': `CultureInfo.GetCultureInfo(application.LanguageSettings.LanguageID[MsoAppLanguageID.msoLanguageIDUI])`.
+
+Numbers and dates follow the format culture, `CultureInfo.CurrentCulture`, so an English panel on a German system writes 1.234 and 13.10.2026. `new UiStrings(culture, formatCulture: ...)` sets it.
+
+To add a language or change words, ship your own resources with the same names, and pass their `ResourceManager`:
+
+```csharp
+// MyTexts.resx: <data name="Allow"><value>Allow once</value></data>
+// MyTexts.it.resx: the Italian texts, as many as you have
+var strings = new UiStrings(culture, MyTexts.ResourceManager);
+```
+
+For each language, from the most specific to English, your text wins over the package's, so your English words do not hide the package's German ones. What your resources lack comes from the package. `UiStrings.Language` is the language the texts are in, and `strings["Allow"]` reads any text by name. The names and what fills their placeholders are in the comments of `UiText.resx`.
+
+`ChatView` sets its `Language` from the texts, and mirrors its layout (`FlowDirection`) for a right-to-left language such as Arabic or Hebrew. In your own templates, `{v:Text Allow}` (namespace `Fadenstack.UI.Wpf.Views`) shows a text by name. Outside a `ChatView`, set `ChatText.Strings` on your root element.
+
+Satellite assemblies hold the translations: `de\Fadenstack.UI.resources.dll` and the others next to `Fadenstack.UI.dll`. Deploy those folders with your add-in, or the panel shows English.
+
 ## Host the panel in VSTO and Windows Forms
 
 Office VSTO add-ins and Windows Forms applications have no WPF `Application`. Host `ChatView` in an `ElementHost`, and create the `WpfDispatcher` on the UI thread:
@@ -182,6 +217,7 @@ Your renderers are tried before the built-in ones; the first that returns true w
 | `InitialTurns` | How many turns an opened session shows at first. |
 | `PageSize` | How many older turns *Show earlier messages* adds. |
 | `PreviewLength` | How many characters of a tool's arguments or result are shown. |
+| `Strings` | The texts: a language (`UiStrings.For(culture)`) or your own resources. See [Languages](#languages). |
 | `BeforeSend`, `AfterSend` | What your add-in does around each message. See below. |
 | `Clock` | The time, for tests. |
 
@@ -220,6 +256,7 @@ For your own skin, or to drive the chat from the host:
 | `Turns`, `Sessions`, `Attachments`, `Suggestions` | The collections the panel binds to. |
 | `Title`, `Greeting`, `Input`, `SelectedToolMode`, `ToolModes`, `ToolModeHint` | The header, the composer and the mode picker. |
 | `IsReady`, `IsBusy`, `CanSend`, `IsEmpty`, `HasEarlierTurns`, `SignInRequired`, `Error` | State. |
+| `Strings` | The texts the panel shows, for a skin's labels. |
 | `SendCommand`, `StopCommand`, `NewChatCommand`, `LoadEarlierCommand`, and others | Commands for the skin. |
 
 `InlineDispatcher` runs everything on the calling thread, for tests and hosts without a UI thread.

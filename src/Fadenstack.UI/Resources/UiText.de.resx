@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- The chat's texts in de: the same names as UiText.resx. -->
+  <data name="Working" xml:space="preserve">
+    <value>Arbeitet…</value>
+  </data>
+  <data name="Stopped" xml:space="preserve">
+    <value>Angehalten</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>Etwas ist schiefgelaufen</value>
+  </data>
+  <data name="Tokens" xml:space="preserve">
+    <value>{0:N0} Tokens</value>
+  </data>
+  <data name="NotAttached" xml:space="preserve">
+    <value>{0} wurde nicht angehängt</value>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{0:0.0} s</value>
+  </data>
+  <data name="DurationMilliseconds" xml:space="preserve">
+    <value>{0:0} ms</value>
+  </data>
+  <data name="ToolRunning" xml:space="preserve">
+    <value>{0} läuft</value>
+  </data>
+  <data name="ToolWaiting" xml:space="preserve">
+    <value>{0} wartet auf Ihre Freigabe</value>
+  </data>
+  <data name="ToolRan" xml:space="preserve">
+    <value>{0} ausgeführt</value>
+  </data>
+  <data name="ToolFailed" xml:space="preserve">
+    <value>{0} fehlgeschlagen</value>
+  </data>
+  <data name="ToolDenied" xml:space="preserve">
+    <value>{0} wurde nicht ausgeführt</value>
+  </data>
+  <data name="ToolStopped" xml:space="preserve">
+    <value>{0} wurde angehalten</value>
+  </data>
+  <data name="ToolClass_Read" xml:space="preserve">
+    <value>Lesen</value>
+  </data>
+  <data name="ToolClass_Write" xml:space="preserve">
+    <value>Schreiben</value>
+  </data>
+  <data name="ToolClass_Destructive" xml:space="preserve">
+    <value>Unumkehrbar</value>
+  </data>
+  <data name="ToolClass_Unknown" xml:space="preserve">
+    <value>Nicht eingestuft</value>
+  </data>
+  <data name="ToolSource_host" xml:space="preserve">
+    <value>Läuft in dieser App</value>
+  </data>
+  <data name="ToolSource_mcp" xml:space="preserve">
+    <value>Läuft auf einem MCP-Server</value>
+  </data>
+  <data name="ToolSource_gateway" xml:space="preserve">
+    <value>Läuft auf dem Server</value>
+  </data>
+  <data name="MoreCharacters" xml:space="preserve">
+    <value>… ({0:N0} weitere Zeichen)</value>
+  </data>
+  <data name="Arguments" xml:space="preserve">
+    <value>Eingabe</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Ausgabe</value>
+  </data>
+  <data name="ApprovalTitle" xml:space="preserve">
+    <value>{0} ausführen?</value>
+  </data>
+  <data name="ApprovalClass_Read" xml:space="preserve">
+    <value>Lesen</value>
+  </data>
+  <data name="ApprovalClass_Write" xml:space="preserve">
+    <value>Ändert Daten</value>
+  </data>
+  <data name="ApprovalClass_Destructive" xml:space="preserve">
+    <value>Nicht rückgängig zu machen</value>
+  </data>
+  <data name="ApprovalClass_Unknown" xml:space="preserve">
+    <value>Nicht eingestuft</value>
+  </data>
+  <data name="ApprovalWhy_Read" xml:space="preserve">
+    <value>Es wird nur gelesen.</value>
+  </data>
+  <data name="ApprovalWhy_Write" xml:space="preserve">
+    <value>Es ändert etwas, das sich rückgängig machen lässt.</value>
+  </data>
+  <data name="ApprovalWhy_Destructive" xml:space="preserve">
+    <value>Es kann etwas tun, das sich nicht rückgängig machen lässt.</value>
+  </data>
+  <data name="ApprovalWhy_Unknown" xml:space="preserve">
+    <value>Niemand hat angegeben, was dieses Tool tut.</value>
+  </data>
+  <data name="ServerTool" xml:space="preserve">
+    <value>Server-Tool</value>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>Zulassen</value>
+  </data>
+  <data name="AllowForChat" xml:space="preserve">
+    <value>Für diesen Chat zulassen</value>
+  </data>
+  <data name="AllowAlways" xml:space="preserve">
+    <value>Immer zulassen</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Ablehnen</value>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>Zugelassen</value>
+  </data>
+  <data name="AllowedForChat" xml:space="preserve">
+    <value>Für diesen Chat zugelassen</value>
+  </data>
+  <data name="AllowedAlways" xml:space="preserve">
+    <value>Immer zugelassen</value>
+  </data>
+  <data name="Denied" xml:space="preserve">
+    <value>Abgelehnt</value>
+  </data>
+  <data name="NoAnswer" xml:space="preserve">
+    <value>Nicht rechtzeitig beantwortet</value>
+  </data>
+  <data name="ResetApprovals" xml:space="preserve">
+    <value>Freigaben zurücksetzen</value>
+  </data>
+  <data name="ResetApprovalsHint" xml:space="preserve">
+    <value>Wieder nachfragen vor den Tools, die Sie für diesen Chat oder immer zugelassen haben</value>
+  </data>
+  <data name="Notice_prompt_blocked" xml:space="preserve">
+    <value>Ihre Nachricht wurde nicht gesendet</value>
+  </data>
+  <data name="Notice_response_blocked" xml:space="preserve">
+    <value>Die Antwort wurde angehalten</value>
+  </data>
+  <data name="Notice_tool_denied" xml:space="preserve">
+    <value>Ein Tool wurde nicht zugelassen</value>
+  </data>
+  <data name="Notice_rate_limited" xml:space="preserve">
+    <value>Zu viele Anfragen</value>
+  </data>
+  <data name="Notice_round_limit" xml:space="preserve">
+    <value>Angehalten</value>
+  </data>
+  <data name="NoticeFallback" xml:space="preserve">
+    <value>Hinweis</value>
+  </data>
+  <data name="TryAgainIn" xml:space="preserve">
+    <value>Versuchen Sie es in {0} s erneut.</value>
+  </data>
+  <data name="Decision" xml:space="preserve">
+    <value>Entscheidung {0}</value>
+  </data>
+  <data name="PiiTitle" xml:space="preserve">
+    <value>Personenbezogene Daten geschützt</value>
+  </data>
+  <data name="PiiMessage_One" xml:space="preserve">
+    <value>{0} Wert vom Modell ferngehalten: {1}</value>
+  </data>
+  <data name="PiiMessage_Other" xml:space="preserve">
+    <value>{0} Werte vom Modell ferngehalten: {1}</value>
+  </data>
+  <data name="Thinking" xml:space="preserve">
+    <value>Denkt nach…</value>
+  </data>
+  <data name="ThoughtFor" xml:space="preserve">
+    <value>{0} s nachgedacht</value>
+  </data>
+  <data name="UsedReferences_One" xml:space="preserve">
+    <value>{0} Quelle verwendet</value>
+  </data>
+  <data name="UsedReferences_Other" xml:space="preserve">
+    <value>{0} Quellen verwendet</value>
+  </data>
+  <data name="Part" xml:space="preserve">
+    <value>Teil {0}</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>Quelle</value>
+  </data>
+  <data name="GreetingFallback" xml:space="preserve">
+    <value>Was möchten Sie {0} fragen?</value>
+  </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>Neuer Chat</value>
+  </data>
+  <data name="NewChatShortcut" xml:space="preserve">
+    <value>Neuer Chat (Strg+N)</value>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>Gestern</value>
+  </data>
+  <data name="Mode_Off_Label" xml:space="preserve">
+    <value>Aus</value>
+  </data>
+  <data name="Mode_Off_Description" xml:space="preserve">
+    <value>Keine Tools: Der Agent antwortet nur.</value>
+  </data>
+  <data name="Mode_ReadOnly_Label" xml:space="preserve">
+    <value>Nur lesen</value>
+  </data>
+  <data name="Mode_ReadOnly_Description" xml:space="preserve">
+    <value>Nur Tools, die nichts ändern.</value>
+  </data>
+  <data name="Mode_Ask_Label" xml:space="preserve">
+    <value>Nachfragen</value>
+  </data>
+  <data name="Mode_Ask_Description" xml:space="preserve">
+    <value>Fragt, bevor etwas geändert wird.</value>
+  </data>
+  <data name="Mode_Auto_Label" xml:space="preserve">
+    <value>Automatisch</value>
+  </data>
+  <data name="Mode_Auto_Description" xml:space="preserve">
+    <value>Führt Tools aus, die etwas ändern; fragt weiterhin vor allem, was sich nicht rückgängig machen lässt.</value>
+  </data>
+  <data name="LimitedTo" xml:space="preserve">
+    <value>{0} Von Ihrer Organisation auf „{1}“ beschränkt.</value>
+  </data>
+  <data name="ToolModeMenu" xml:space="preserve">
+    <value>Tools in diesem Chat</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>Chats</value>
+  </data>
+  <data name="NoHistory" xml:space="preserve">
+    <value>Noch keine Chats.</value>
+  </data>
+  <data name="DeleteSession" xml:space="preserve">
+    <value>Chat löschen</value>
+  </data>
+  <data name="ShowEarlier" xml:space="preserve">
+    <value>Frühere Nachrichten anzeigen</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>Erneut versuchen</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Kopieren</value>
+  </data>
+  <data name="CopyCode" xml:space="preserve">
+    <value>Code kopieren</value>
+  </data>
+  <data name="NotSent" xml:space="preserve">
+    <value>Nicht gesendet</value>
+  </data>
+  <data name="EditAndResend" xml:space="preserve">
+    <value>Bearbeiten und erneut senden</value>
+  </data>
+  <data name="ComposerPlaceholder" xml:space="preserve">
+    <value>Stellen Sie eine Frage, oder sagen Sie dem Agenten, was er tun soll</value>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>Nachricht</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Senden</value>
+  </data>
+  <data name="SendShortcut" xml:space="preserve">
+    <value>Senden (Eingabetaste)</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stoppen</value>
+  </data>
+  <data name="StopShortcut" xml:space="preserve">
+    <value>Stoppen (Esc)</value>
+  </data>
+  <data name="RemoveAttachment" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="IncludeAttachment" xml:space="preserve">
+    <value>Mit der nächsten Nachricht senden</value>
+  </data>
+</root>

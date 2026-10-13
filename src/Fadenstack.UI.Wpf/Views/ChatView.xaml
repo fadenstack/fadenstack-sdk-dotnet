@@ -56,7 +56,7 @@
                                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
                             </Border.Effect>
                             <StackPanel>
-                                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="Tools in this chat" Margin="8,4,8,4" />
+                                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text ToolModeMenu}" Margin="8,4,8,4" />
                                 <ItemsControl ItemsSource="{Binding ToolModes}" Focusable="False">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -70,17 +70,17 @@
                                            Margin="8,6,8,4" />
                                 <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" />
                                 <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
-                                        Command="{Binding ResetApprovalsCommand}" Content="Reset approvals"
-                                        ToolTip="Ask again before the tools you allowed for this chat or always" />
+                                        Command="{Binding ResetApprovalsCommand}" Content="{local:Text ResetApprovals}"
+                                        ToolTip="{local:Text ResetApprovalsHint}" />
                             </StackPanel>
                         </Border>
                     </Popup>
-                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="Chats" Margin="4,0,0,0"
-                                  AutomationProperties.Name="Chats" IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}"
+                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text History}" Margin="4,0,0,0"
+                                  AutomationProperties.Name="{local:Text History}" IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=HistoryMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE81C;" />
                     </ToggleButton>
-                    <Button Style="{StaticResource Fadenstack.GhostButton}" ToolTip="New chat (Ctrl+N)" AutomationProperties.Name="New chat"
+                    <Button Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text NewChatShortcut}" AutomationProperties.Name="{local:Text NewChat}"
                             Margin="4,0,0,0" Command="{Binding NewChatCommand}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE710;" />
                     </Button>
@@ -136,14 +136,14 @@
             <Button Style="{StaticResource Fadenstack.GhostButton.HideDisabled}" Command="{Binding LoadEarlierCommand}"
                     VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,8,0,0" Background="{DynamicResource Fadenstack.Surface}"
                     BorderBrush="{DynamicResource Fadenstack.Border}" Padding="12,4">
-                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="Show earlier messages" />
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text ShowEarlier}" />
             </Button>
 
             <Border VerticalAlignment="Top" Margin="12" Padding="12,8" CornerRadius="{StaticResource Fadenstack.Radius.Control}" BorderThickness="3,0,0,0"
                     BorderBrush="{DynamicResource Fadenstack.Danger}" Background="{DynamicResource Fadenstack.BlockedBackground}"
                     Visibility="{Binding Error, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="Try again"
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{local:Text Retry}"
                             Command="{Binding InitializeCommand}" Margin="12,0,0,0" />
                     <TextBlock Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </DockPanel>
@@ -173,7 +173,7 @@
                                     Background="{DynamicResource Fadenstack.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4">
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="2" Command="{Binding ToggleCommand}"
-                                            ToolTip="Include with the next message" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                            ToolTip="{local:Text IncludeAttachment}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                                         <TextBlock x:Name="Eye" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE7B3;" />
                                     </Button>
                                     <TextBlock x:Name="ChipIcon" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE8A5;" Margin="0,0,4,0"
@@ -181,7 +181,7 @@
                                                Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
                                     <TextBlock x:Name="ChipTitle" Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
                                                ToolTip="{Binding Subtitle}" FontSize="12" />
-                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="Remove"
+                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="{local:Text RemoveAttachment}"
                                             Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
                                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE711;" />
@@ -202,13 +202,13 @@
                          TextWrapping="Wrap" MaxHeight="200" MinHeight="40" VerticalScrollBarVisibility="Auto"
                          BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Fadenstack.Foreground}"
                          CaretBrush="{DynamicResource Fadenstack.Foreground}" Padding="0,2" IsEnabled="{Binding IsReady}"
-                         b:ComposerFocus.Chat="{Binding}" AutomationProperties.Name="Message">
+                         b:ComposerFocus.Chat="{Binding}" AutomationProperties.Name="{local:Text Message}">
                     <TextBox.InputBindings>
                         <!-- Enter sends; Shift+Enter is a new line (AcceptsReturn) -->
                         <KeyBinding Key="Enter" Command="{Binding SendCommand}" />
                     </TextBox.InputBindings>
                 </TextBox>
-                <TextBlock Grid.Row="1" Text="Ask a question, or tell the agent what to do" IsHitTestVisible="False"
+                <TextBlock Grid.Row="1" Text="{local:Text ComposerPlaceholder}" IsHitTestVisible="False"
                            Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Padding="2,2" VerticalAlignment="Top">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
@@ -223,12 +223,12 @@
                 </TextBlock>
                 <DockPanel Grid.Row="2" Margin="0,6,0,0">
                     <Grid DockPanel.Dock="Right">
-                        <Button Style="{StaticResource Fadenstack.PrimaryButton}" Padding="8,5" ToolTip="Send (Enter)" AutomationProperties.Name="Send"
+                        <Button Style="{StaticResource Fadenstack.PrimaryButton}" Padding="8,5" ToolTip="{local:Text SendShortcut}" AutomationProperties.Name="{local:Text Send}"
                                 Command="{Binding SendCommand}"
                                 Visibility="{Binding IsBusy, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
                             <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="13" Text="&#xE724;" Foreground="{DynamicResource Fadenstack.AccentForeground}" />
                         </Button>
-                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Padding="8,5" ToolTip="Stop (Esc)" AutomationProperties.Name="Stop"
+                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Padding="8,5" ToolTip="{local:Text StopShortcut}" AutomationProperties.Name="{local:Text Stop}"
                                 Command="{Binding StopCommand}"
                                 Visibility="{Binding IsBusy, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                             <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="13" Text="&#xE71A;" />
@@ -261,12 +261,12 @@
                         <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding NewChatCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE710;" Margin="0,0,6,0" />
-                                <TextBlock Text="New chat" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="{local:Text NewChat}" FontSize="12" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
-                        <TextBlock Text="Chats" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{local:Text History}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Fadenstack.Muted}" Text="No chats yet." Margin="8,4,8,8"
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Fadenstack.Muted}" Text="{local:Text NoHistory}" Margin="8,4,8,8"
                                Visibility="{Binding Sessions.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}, ConverterParameter=invert}" />
                     <ItemsControl ItemsSource="{Binding Sessions}" Focusable="False"
                                   VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
@@ -296,7 +296,7 @@
                                         </DockPanel>
                                     </Button>
                                     <Button x:Name="Delete" Style="{StaticResource Fadenstack.GhostButton}" HorizontalAlignment="Right" Margin="0,0,4,0"
-                                            ToolTip="Delete chat" AutomationProperties.Name="Delete chat" Visibility="Hidden"
+                                            ToolTip="{local:Text DeleteSession}" AutomationProperties.Name="{local:Text DeleteSession}" Visibility="Hidden"
                                             Command="{Binding DataContext.DeleteSessionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}">
                                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="&#xE74D;" />

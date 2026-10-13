@@ -49,10 +49,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _approvals = approvals ?? throw new ArgumentNullException(nameof(approvals));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _options = options ?? new AgentChatOptions();
+        Strings = _options.Strings ?? UiStrings.Current;
         _batcher = new RenderBatcher(dispatcher, _options.RenderInterval);
         _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new FallbackRenderer() }).ToList();
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
-            .Select(m => new ToolModeOption(m)));
+            .Select(m => new ToolModeOption(m, Strings)));
         _selectedMode = ToolModes[2];
         _approvals.Requested += OnApprovalRequested;
 
@@ -85,6 +86,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     // -- state ---------------------------------------------------------------------------------------
+
+    /// <summary>The chat's texts (<see cref="AgentChatOptions.Strings"/>): the skin binds its labels to them.</summary>
+    public UiStrings Strings { get; }
+
 
     public string Title
     {
@@ -210,7 +215,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             var ceiling = _agent.Ceiling;
             var effective = Fadenstack.Tools.ToolModes.Narrowest(_selectedMode.Mode, ceiling);
             return effective == _selectedMode.Mode ? _selectedMode.Description
-                : $"{_selectedMode.Description} Limited to {ToolModes.First(o => o.Mode == effective).Label} by your organisation.";
+                : Strings.LimitedTo(_selectedMode.Description, ToolModes.First(o => o.Mode == effective).Label);
         }
     }
 
@@ -261,7 +266,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             await _agent.StartAsync();
             var profile = _agent.Profile;
             Title = profile.Name;
-            Greeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : $"Ask {profile.Name} anything.";
+            Greeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : Strings.GreetingFallback(profile.Name);
             Suggestions.Clear();
             if (Ui(profile.Ui, "suggestions") is { ValueKind: JsonValueKind.Array } suggestions)
             {
@@ -452,7 +457,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         Sessions.Clear();
         foreach (var s in sessions)
         {
-            Sessions.Add(new SessionItemViewModel(s.Id, s.Title, s.LastActivity, now));
+            Sessions.Add(new SessionItemViewModel(s.Id, s.Title, s.LastActivity, now, Strings));
         }
         MarkCurrent();
     }
@@ -549,7 +554,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
                     var title = a.Title;
-                    _batcher.Enqueue(() => turn.AddPart(new Parts.NoticePart(Parts.NoticeSeverity.Warning, $"{title} was not attached", e.Message)));
+                    _batcher.Enqueue(() => turn.AddPart(new Parts.NoticePart(Parts.NoticeSeverity.Warning, Strings.NotAttached(title), e.Message)));
                 }
             }
             if (_session is null)
@@ -679,7 +684,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         var item = Sessions.FirstOrDefault(s => s.Id == _session.Id);
         if (item is null)
         {
-            item = new SessionItemViewModel(_session.Id, text.Length <= 60 ? text : text.Substring(0, 57) + "...", now, now);
+            item = new SessionItemViewModel(_session.Id, text.Length <= 60 ? text : text.Substring(0, 57) + "...", now, now, Strings);
             Sessions.Insert(0, item);
         }
         else

@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Markup;
+using Fadenstack.UI.ViewModels;
 using Microsoft.Win32;
 
 namespace Fadenstack.UI.Wpf.Views;
@@ -17,7 +19,8 @@ public enum ChatTheme
 
 /// <summary>
 /// The chat panel for an <see cref="ViewModels.AgentChatViewModel"/> (set it as the DataContext). Everything it
-/// shows comes from the view model; the code here only picks the colours.
+/// shows comes from the view model, its texts too (<see cref="AgentChatViewModel.Strings"/>); the code here only
+/// picks the colours and gives the panel the texts' language and direction.
 /// </summary>
 public partial class ChatView : UserControl
 {
@@ -36,6 +39,7 @@ public partial class ChatView : UserControl
     {
         InitializeComponent();
         ApplyTheme();
+        DataContextChanged += (_, _) => ApplyStrings();
     }
 
     public ChatTheme Theme
@@ -48,6 +52,21 @@ public partial class ChatView : UserControl
     {
         get => GetValue(ComposerToolbarProperty);
         set => SetValue(ComposerToolbarProperty, value);
+    }
+
+    /// <summary>The view model's texts for everything in the panel (<see cref="ChatText"/>), with their language and direction.</summary>
+    private void ApplyStrings()
+    {
+        var strings = (DataContext as AgentChatViewModel)?.Strings;
+        ChatText.SetStrings(this, strings);
+        if (strings is null)
+        {
+            ClearValue(LanguageProperty);
+            ClearValue(FlowDirectionProperty);
+            return;
+        }
+        Language = XmlLanguage.GetLanguage(strings.Language);
+        FlowDirection = strings.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
     }
 
     private void ApplyTheme()

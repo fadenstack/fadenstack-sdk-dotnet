@@ -28,6 +28,7 @@ public enum TurnState
 public sealed class TurnViewModel : ObservableObject
 {
     private readonly AgentChatViewModel? _chat;
+    private readonly UiStrings _strings;
     private readonly int _previewLength;
     private readonly Dictionary<string, ToolCallPart> _tools = new();
     private MarkdownPart? _text;
@@ -41,6 +42,7 @@ public sealed class TurnViewModel : ObservableObject
     internal TurnViewModel(AgentChatViewModel? chat, string userText, DateTimeOffset timestamp, int previewLength, TurnState state = TurnState.Running)
     {
         _chat = chat;
+        _strings = chat?.Strings ?? UiStrings.Current;
         UserText = userText;
         Timestamp = timestamp;
         _previewLength = previewLength;
@@ -52,6 +54,9 @@ public sealed class TurnViewModel : ObservableObject
     }
 
     public string? Id { get; internal set; }
+
+    /// <summary>The chat's texts, for renderers that add parts.</summary>
+    public UiStrings Strings => _strings;
 
     public string UserText { get; }
 
@@ -98,9 +103,9 @@ public sealed class TurnViewModel : ObservableObject
     /// </summary>
     public string StatusText => _state switch
     {
-        TurnState.Running => _text is null && _tools.Count == 0 ? "Working..." : "",
-        TurnState.Stopped => "Stopped",
-        TurnState.Failed => "Something went wrong",
+        TurnState.Running => _text is null && _tools.Count == 0 ? _strings.Working : "",
+        TurnState.Stopped => _strings.Stopped,
+        TurnState.Failed => _strings.Failed,
         _ => "",
     };
 
@@ -157,7 +162,7 @@ public sealed class TurnViewModel : ObservableObject
     {
         if (_reasoning is null)
         {
-            _reasoning = new ReasoningPart(now);
+            _reasoning = new ReasoningPart(now, _strings);
             Parts.Add(_reasoning);
         }
         _reasoning.Append(text);
@@ -166,7 +171,7 @@ public sealed class TurnViewModel : ObservableObject
     internal void ToolStarted(ToolCallStarted e)
     {
         CloseText();
-        var part = new ToolCallPart(e.CallId, e.Name, e.Source, e.Class, e.Arguments, _previewLength);
+        var part = new ToolCallPart(e.CallId, e.Name, e.Source, e.Class, e.Arguments, _previewLength, _strings);
         _tools[Key(e.CallId, e.Name)] = part;
         Parts.Add(part);
         OnPropertyChanged(nameof(StatusText));
@@ -176,7 +181,7 @@ public sealed class TurnViewModel : ObservableObject
     {
         if (!_tools.TryGetValue(Key(e.CallId, e.Name), out var part))
         {
-            part = new ToolCallPart(e.CallId, e.Name, e.Source, ToolClass.Unknown, null, _previewLength);
+            part = new ToolCallPart(e.CallId, e.Name, e.Source, ToolClass.Unknown, null, _previewLength, _strings);
             _tools[Key(e.CallId, e.Name)] = part;
             Parts.Add(part);
         }
@@ -186,7 +191,7 @@ public sealed class TurnViewModel : ObservableObject
     internal void AddApproval(PendingApproval pending)
     {
         CloseText();
-        AddApprovalPart(new ApprovalPart(pending, _previewLength));
+        AddApprovalPart(new ApprovalPart(pending, _previewLength, _strings));
         if (_tools.TryGetValue(Key(pending.Request.CallId, pending.Request.ToolName), out var tool))
         {
             tool.State = ToolCallState.WaitingForApproval;
@@ -234,7 +239,7 @@ public sealed class TurnViewModel : ObservableObject
         {
             State = TurnState.Blocked;
         }
-        AddPart(NoticePart.From(notice));
+        AddPart(NoticePart.From(notice, _strings));
     }
 
     internal void Complete(AgentResult result, DateTimeOffset now)
@@ -243,7 +248,7 @@ public sealed class TurnViewModel : ObservableObject
         Outcome = result.Outcome;
         if (result.Usage?.TotalTokenCount is { } tokens && tokens > 0)
         {
-            UsageText = $"{tokens:N0} tokens";
+            UsageText = _strings.Tokens(tokens);
         }
         Finish(result.Outcome == ChatOutcome.PromptBlocked ? TurnState.Blocked : TurnState.Completed, now);
     }
@@ -268,7 +273,7 @@ public sealed class TurnViewModel : ObservableObject
 
     internal ToolCallPart AddRestoredTool(string callId, string name, string source, ToolClass toolClass)
     {
-        var part = new ToolCallPart(callId, name, source, toolClass, null, _previewLength);
+        var part = new ToolCallPart(callId, name, source, toolClass, null, _previewLength, _strings);
         _tools[Key(callId, name)] = part;
         Parts.Add(part);
         return part;
@@ -289,7 +294,7 @@ public sealed class TurnViewModel : ObservableObject
             tool.State = ToolCallState.Cancelled;
         }
         var elapsed = now - Timestamp;
-        DurationText = elapsed.TotalSeconds >= 1 ? $"{elapsed.TotalSeconds:0.0} s" : "";
+        DurationText = elapsed.TotalSeconds >= 1 ? _strings.Duration(elapsed) : "";
         State = state;
         OnPropertyChanged(nameof(AnswerText));
     }

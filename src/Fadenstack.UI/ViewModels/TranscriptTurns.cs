@@ -90,7 +90,7 @@ internal static class TranscriptTurns
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
                         : Json.Str(d, "scope") == ApprovalScopes.Always ? ApprovalState.ApprovedAlways
                         : Json.Bool(d, "for_session") ? ApprovalState.ApprovedForSession : ApprovalState.Approved;
-                    turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength));
+                    turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength, chat.Strings));
                     break;
                 case EntryTypes.GovernanceNotice:
                     turn.Parts.Add(NoticePart.From(new GovernanceNotice
@@ -100,7 +100,7 @@ internal static class TranscriptTurns
                         Category = Json.Str(d, "category"),
                         Message = Json.Str(d, "message") ?? "",
                         DecisionId = Json.Str(d, "decision_id"),
-                    }));
+                    }, chat.Strings));
                     break;
                 case EntryTypes.TurnEnd:
                     state = entry.Status switch
@@ -113,7 +113,7 @@ internal static class TranscriptTurns
                     outcome = Enum.TryParse<ChatOutcome>(Json.Str(d, "outcome"), out var o) ? o : null;
                     if (d.ValueKind == JsonValueKind.Object && d.TryGetProperty("usage", out var u) && Json.Long(u, "total_tokens") is { } tokens and > 0)
                     {
-                        usage = $"{tokens:N0} tokens";
+                        usage = chat.Strings.Tokens(tokens);
                     }
                     break;
             }

@@ -30,6 +30,13 @@ public sealed class AgentChatOptions
     public Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.Now;
 
     /// <summary>
+    /// The chat's texts. By default <see cref="UiStrings.Current"/>: the current UI language, from the package's
+    /// resources. An add-in passes the host application's language (<c>UiStrings.For(officeLanguage)</c>), or its own
+    /// resources to add a language or change words (<c>new UiStrings(culture, MyTexts.ResourceManager)</c>).
+    /// </summary>
+    public UiStrings? Strings { get; set; }
+
+    /// <summary>
     /// Runs before every message goes -- from the composer, a suggestion, Retry, or Edit and resend -- for what the
     /// host does first: check it may still send, take the context its tools read, add attachments (they go with this
     /// message). It runs on the UI thread; the chat is busy meanwhile and Stop cancels the token. When it throws,
@@ -58,16 +65,11 @@ public sealed class ToolModeOption : ObservableObject
 {
     private bool _isAvailable = true;
 
-    internal ToolModeOption(ToolMode mode)
+    internal ToolModeOption(ToolMode mode, UiStrings strings)
     {
         Mode = mode;
-        (Label, Description) = mode switch
-        {
-            ToolMode.Off => ("Off", "No tools: the agent only answers."),
-            ToolMode.ReadOnly => ("Read only", "Only tools that change nothing."),
-            ToolMode.Ask => ("Ask", "Asks before anything that changes something."),
-            _ => ("Auto", "Runs tools that change things; still asks before anything that cannot be undone."),
-        };
+        Label = strings.ModeLabel(mode);
+        Description = strings.ModeDescription(mode);
     }
 
     public ToolMode Mode { get; }
@@ -89,17 +91,19 @@ public sealed class ToolModeOption : ObservableObject
 /// <summary>A session in the history list.</summary>
 public sealed class SessionItemViewModel : ObservableObject
 {
+    private readonly UiStrings _strings;
     private string _title;
     private DateTimeOffset _lastActivity;
     private string _whenText;
     private bool _isCurrent;
 
-    internal SessionItemViewModel(string id, string? title, DateTimeOffset lastActivity, DateTimeOffset now)
+    internal SessionItemViewModel(string id, string? title, DateTimeOffset lastActivity, DateTimeOffset now, UiStrings strings)
     {
         Id = id;
-        _title = string.IsNullOrWhiteSpace(title) ? "New chat" : title!;
+        _strings = strings;
+        _title = string.IsNullOrWhiteSpace(title) ? strings.NewChat : title!;
         _lastActivity = lastActivity;
-        _whenText = When(lastActivity, now);
+        _whenText = When(lastActivity, now, strings);
     }
 
     public string Id { get; }
@@ -127,21 +131,22 @@ public sealed class SessionItemViewModel : ObservableObject
     internal void Touch(DateTimeOffset at, DateTimeOffset now)
     {
         _lastActivity = at;
-        WhenText = When(at, now);
+        WhenText = When(at, now, _strings);
     }
 
-    internal static string When(DateTimeOffset at, DateTimeOffset now)
+    /// <summary>The time today, "Yesterday", the weekday this week, else the date (written in the format culture).</summary>
+    internal static string When(DateTimeOffset at, DateTimeOffset now, UiStrings strings)
     {
         var local = at.ToLocalTime();
         var today = now.ToLocalTime().Date;
         if (local.Date == today)
         {
-            return local.ToString("t");
+            return local.ToString("t", strings.FormatCulture);
         }
         if (local.Date == today.AddDays(-1))
         {
-            return "Yesterday";
+            return strings.Yesterday;
         }
-        return (today - local.Date).TotalDays < 7 ? local.ToString("dddd") : local.ToString("d");
+        return (today - local.Date).TotalDays < 7 ? local.ToString("dddd", strings.FormatCulture) : local.ToString("d", strings.FormatCulture);
     }
 }

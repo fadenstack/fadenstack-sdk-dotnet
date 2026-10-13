@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- The chat's texts in zh-Hans: the same names as UiText.resx. -->
+  <data name="Working" xml:space="preserve">
+    <value>处理中…</value>
+  </data>
+  <data name="Stopped" xml:space="preserve">
+    <value>已停止</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>出了点问题</value>
+  </data>
+  <data name="Tokens" xml:space="preserve">
+    <value>{0:N0} 个 token</value>
+  </data>
+  <data name="NotAttached" xml:space="preserve">
+    <value>未能附加 {0}</value>
+  </data>
+  <data name="DurationSeconds" xml:space="preserve">
+    <value>{0:0.0} s</value>
+  </data>
+  <data name="DurationMilliseconds" xml:space="preserve">
+    <value>{0:0} ms</value>
+  </data>
+  <data name="ToolRunning" xml:space="preserve">
+    <value>正在运行 {0}</value>
+  </data>
+  <data name="ToolWaiting" xml:space="preserve">
+    <value>{0} 正在等待您的审批</value>
+  </data>
+  <data name="ToolRan" xml:space="preserve">
+    <value>已运行 {0}</value>
+  </data>
+  <data name="ToolFailed" xml:space="preserve">
+    <value>{0} 运行失败</value>
+  </data>
+  <data name="ToolDenied" xml:space="preserve">
+    <value>{0} 未运行</value>
+  </data>
+  <data name="ToolStopped" xml:space="preserve">
+    <value>{0} 已停止</value>
+  </data>
+  <data name="ToolClass_Read" xml:space="preserve">
+    <value>读取</value>
+  </data>
+  <data name="ToolClass_Write" xml:space="preserve">
+    <value>写入</value>
+  </data>
+  <data name="ToolClass_Destructive" xml:space="preserve">
+    <value>不可撤销</value>
+  </data>
+  <data name="ToolClass_Unknown" xml:space="preserve">
+    <value>未分类</value>
+  </data>
+  <data name="ToolSource_host" xml:space="preserve">
+    <value>在此应用中运行</value>
+  </data>
+  <data name="ToolSource_mcp" xml:space="preserve">
+    <value>在 MCP 服务器上运行</value>
+  </data>
+  <data name="ToolSource_gateway" xml:space="preserve">
+    <value>在服务器上运行</value>
+  </data>
+  <data name="MoreCharacters" xml:space="preserve">
+    <value>…（还有 {0:N0} 个字符）</value>
+  </data>
+  <data name="Arguments" xml:space="preserve">
+    <value>输入</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>输出</value>
+  </data>
+  <data name="ApprovalTitle" xml:space="preserve">
+    <value>运行 {0}？</value>
+  </data>
+  <data name="ApprovalClass_Read" xml:space="preserve">
+    <value>读取</value>
+  </data>
+  <data name="ApprovalClass_Write" xml:space="preserve">
+    <value>更改数据</value>
+  </data>
+  <data name="ApprovalClass_Destructive" xml:space="preserve">
+    <value>无法撤销</value>
+  </data>
+  <data name="ApprovalClass_Unknown" xml:space="preserve">
+    <value>未分类</value>
+  </data>
+  <data name="ApprovalWhy_Read" xml:space="preserve">
+    <value>它只读取。</value>
+  </data>
+  <data name="ApprovalWhy_Write" xml:space="preserve">
+    <value>它会更改内容，但可以撤销。</value>
+  </data>
+  <data name="ApprovalWhy_Destructive" xml:space="preserve">
+    <value>它可能执行无法撤销的操作。</value>
+  </data>
+  <data name="ApprovalWhy_Unknown" xml:space="preserve">
+    <value>没有人说明此工具的作用。</value>
+  </data>
+  <data name="ServerTool" xml:space="preserve">
+    <value>服务器工具</value>
+  </data>
+  <data name="Allow" xml:space="preserve">
+    <value>允许</value>
+  </data>
+  <data name="AllowForChat" xml:space="preserve">
+    <value>在此聊天中允许</value>
+  </data>
+  <data name="AllowAlways" xml:space="preserve">
+    <value>始终允许</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>拒绝</value>
+  </data>
+  <data name="Allowed" xml:space="preserve">
+    <value>已允许</value>
+  </data>
+  <data name="AllowedForChat" xml:space="preserve">
+    <value>已在此聊天中允许</value>
+  </data>
+  <data name="AllowedAlways" xml:space="preserve">
+    <value>已始终允许</value>
+  </data>
+  <data name="Denied" xml:space="preserve">
+    <value>已拒绝</value>
+  </data>
+  <data name="NoAnswer" xml:space="preserve">
+    <value>未及时答复</value>
+  </data>
+  <data name="ResetApprovals" xml:space="preserve">
+    <value>重置审批</value>
+  </data>
+  <data name="ResetApprovalsHint" xml:space="preserve">
+    <value>对已在此聊天中允许或始终允许的工具重新询问</value>
+  </data>
+  <data name="Notice_prompt_blocked" xml:space="preserve">
+    <value>您的消息未发送</value>
+  </data>
+  <data name="Notice_response_blocked" xml:space="preserve">
+    <value>回答已被停止</value>
+  </data>
+  <data name="Notice_tool_denied" xml:space="preserve">
+    <value>某个工具未获允许</value>
+  </data>
+  <data name="Notice_rate_limited" xml:space="preserve">
+    <value>请求过多</value>
+  </data>
+  <data name="Notice_round_limit" xml:space="preserve">
+    <value>已停止</value>
+  </data>
+  <data name="NoticeFallback" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="TryAgainIn" xml:space="preserve">
+    <value>请在 {0} 秒后重试。</value>
+  </data>
+  <data name="Decision" xml:space="preserve">
+    <value>决定 {0}</value>
+  </data>
+  <data name="PiiTitle" xml:space="preserve">
+    <value>个人数据已受保护</value>
+  </data>
+  <data name="PiiMessage_One" xml:space="preserve">
+    <value>已对模型隐藏 {0} 个值：{1}</value>
+  </data>
+  <data name="PiiMessage_Other" xml:space="preserve">
+    <value>已对模型隐藏 {0} 个值：{1}</value>
+  </data>
+  <data name="Thinking" xml:space="preserve">
+    <value>思考中…</value>
+  </data>
+  <data name="ThoughtFor" xml:space="preserve">
+    <value>思考了 {0} 秒</value>
+  </data>
+  <data name="UsedReferences_One" xml:space="preserve">
+    <value>引用了 {0} 个来源</value>
+  </data>
+  <data name="UsedReferences_Other" xml:space="preserve">
+    <value>引用了 {0} 个来源</value>
+  </data>
+  <data name="Part" xml:space="preserve">
+    <value>第 {0} 部分</value>
+  </data>
+  <data name="Source" xml:space="preserve">
+    <value>来源</value>
+  </data>
+  <data name="GreetingFallback" xml:space="preserve">
+    <value>您可以向 {0} 提出任何问题。</value>
+  </data>
+  <data name="NewChat" xml:space="preserve">
+    <value>新建聊天</value>
+  </data>
+  <data name="NewChatShortcut" xml:space="preserve">
+    <value>新建聊天 (Ctrl+N)</value>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>昨天</value>
+  </data>
+  <data name="Mode_Off_Label" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Mode_Off_Description" xml:space="preserve">
+    <value>不使用工具：智能体只回答。</value>
+  </data>
+  <data name="Mode_ReadOnly_Label" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="Mode_ReadOnly_Description" xml:space="preserve">
+    <value>只使用不做任何更改的工具。</value>
+  </data>
+  <data name="Mode_Ask_Label" xml:space="preserve">
+    <value>询问</value>
+  </data>
+  <data name="Mode_Ask_Description" xml:space="preserve">
+    <value>在做任何更改之前先询问。</value>
+  </data>
+  <data name="Mode_Auto_Label" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="Mode_Auto_Description" xml:space="preserve">
+    <value>运行会做更改的工具；对无法撤销的操作仍会先询问。</value>
+  </data>
+  <data name="LimitedTo" xml:space="preserve">
+    <value>{0} 您的组织将其限制为“{1}”。</value>
+  </data>
+  <data name="ToolModeMenu" xml:space="preserve">
+    <value>此聊天中的工具</value>
+  </data>
+  <data name="History" xml:space="preserve">
+    <value>聊天</value>
+  </data>
+  <data name="NoHistory" xml:space="preserve">
+    <value>还没有聊天。</value>
+  </data>
+  <data name="DeleteSession" xml:space="preserve">
+    <value>删除聊天</value>
+  </data>
+  <data name="ShowEarlier" xml:space="preserve">
+    <value>显示更早的消息</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="CopyCode" xml:space="preserve">
+    <value>复制代码</value>
+  </data>
+  <data name="NotSent" xml:space="preserve">
+    <value>未发送</value>
+  </data>
+  <data name="EditAndResend" xml:space="preserve">
+    <value>编辑并重新发送</value>
+  </data>
+  <data name="ComposerPlaceholder" xml:space="preserve">
+    <value>提出问题，或告诉智能体要做什么</value>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>消息</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>发送</value>
+  </data>
+  <data name="SendShortcut" xml:space="preserve">
+    <value>发送 (Enter)</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="StopShortcut" xml:space="preserve">
+    <value>停止 (Esc)</value>
+  </data>
+  <data name="RemoveAttachment" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="IncludeAttachment" xml:space="preserve">
+    <value>随下一条消息发送</value>
+  </data>
+</root>

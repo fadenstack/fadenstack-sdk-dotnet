@@ -359,7 +359,7 @@
                 CornerRadius="{StaticResource Fadenstack.Radius.Container}" Margin="0,2,0,12">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="12,5,5,0">
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="Copy code"
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{v:Text CopyCode}"
                             Command="{Binding DataContext.CopyCodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                             CommandParameter="{Binding}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE8C8;" />
@@ -432,7 +432,7 @@
     <DataTemplate DataType="{x:Type parts:ToolCallPart}">
         <StackPanel Margin="0,1,0,3">
             <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding ToggleCommand}" HorizontalAlignment="Left"
-                    ToolTip="{Binding Source}">
+                    ToolTip="{Binding SourceLabel}">
                 <StackPanel Orientation="Horizontal">
                     <Grid Width="16" Height="16">
                         <Control x:Name="Busy" Style="{StaticResource Fadenstack.Spinner}" Visibility="Collapsed" />
@@ -462,11 +462,11 @@
                     BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="12,10">
                 <StackPanel>
                     <StackPanel Visibility="{Binding ArgumentsText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
-                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="Input" Margin="0,0,0,2" />
+                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{v:Text Arguments}" Margin="0,0,0,2" />
                         <TextBlock Style="{StaticResource Fadenstack.Mono}" Text="{Binding ArgumentsText}" Margin="0,0,0,8" />
                     </StackPanel>
                     <StackPanel Visibility="{Binding ResultText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
-                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="Output" Margin="0,0,0,2" />
+                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{v:Text Result}" Margin="0,0,0,2" />
                         <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                             <TextBlock Style="{StaticResource Fadenstack.Mono}" Text="{Binding ResultText}" />
                         </ScrollViewer>
@@ -520,12 +520,12 @@
                     </ScrollViewer>
                 </Border>
                 <WrapPanel Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="Allow" Command="{Binding AllowCommand}" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="Allow for this chat" Command="{Binding AllowForSessionCommand}" Margin="0,0,8,0"
+                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}" Margin="0,0,8,0" />
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" Margin="0,0,8,0"
                             Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="Allow always" Command="{Binding AllowAlwaysCommand}" Margin="0,0,8,0"
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" Margin="0,0,8,0"
                             Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="Deny" Command="{Binding DenyCommand}" />
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                 </WrapPanel>
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"
                            Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
@@ -737,9 +737,9 @@
             </ItemsControl>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0"
                         Visibility="{Binding IsPromptBlocked, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="Not sent" Foreground="{DynamicResource Fadenstack.Danger}" Margin="0,0,6,0" />
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{v:Text NotSent}" Foreground="{DynamicResource Fadenstack.Danger}" Margin="0,0,6,0" />
                 <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding EditCommand}">
-                    <TextBlock Foreground="{DynamicResource Fadenstack.Link}" FontSize="12" Text="Edit and resend" />
+                    <TextBlock Foreground="{DynamicResource Fadenstack.Link}" FontSize="12" Text="{v:Text EditAndResend}" />
                 </Button>
             </StackPanel>
 
@@ -763,10 +763,10 @@
 
             <StackPanel Orientation="Horizontal" Margin="26,2,0,0"
                         Visibility="{Binding IsRunning, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
-                <Button Style="{StaticResource Fadenstack.GhostButton.HideDisabled}" Command="{Binding CopyCommand}" ToolTip="Copy">
+                <Button Style="{StaticResource Fadenstack.GhostButton.HideDisabled}" Command="{Binding CopyCommand}" ToolTip="{v:Text Copy}">
                     <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="&#xE8C8;" />
                 </Button>
-                <Button Style="{StaticResource Fadenstack.GhostButton.HideDisabled}" Command="{Binding RetryCommand}" ToolTip="Try again">
+                <Button Style="{StaticResource Fadenstack.GhostButton.HideDisabled}" Command="{Binding RetryCommand}" ToolTip="{v:Text Retry}">
                     <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="&#xE72C;" />
                 </Button>
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Margin="8,0,0,0" Text="{Binding DurationText}" />
