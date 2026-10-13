@@ -13,6 +13,21 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <!-- The chat's texts in de: the same names as UiText.resx. -->
+  <data name="LanguageName" xml:space="preserve">
+    <value>Deutsch</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Einstellungen</value>
+  </data>
+  <data name="LanguageMenu" xml:space="preserve">
+    <value>Sprache</value>
+  </data>
+  <data name="LanguageAutomatic" xml:space="preserve">
+    <value>Automatisch ({0})</value>
+  </data>
+  <data name="LanguageLocked" xml:space="preserve">
+    <value>Von Ihrer Organisation festgelegt</value>
+  </data>
   <data name="Working" xml:space="preserve">
     <value>Arbeitet…</value>
   </data>

@@ -13,6 +13,21 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <!-- The chat's texts in zh-Hans: the same names as UiText.resx. -->
+  <data name="LanguageName" xml:space="preserve">
+    <value>中文（简体）</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="LanguageMenu" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="LanguageAutomatic" xml:space="preserve">
+    <value>自动（{0}）</value>
+  </data>
+  <data name="LanguageLocked" xml:space="preserve">
+    <value>由您的组织设置</value>
+  </data>
   <data name="Working" xml:space="preserve">
     <value>处理中…</value>
   </data>

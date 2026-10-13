@@ -84,6 +84,48 @@
                             Margin="4,0,0,0" Command="{Binding NewChatCommand}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE710;" />
                     </Button>
+                    <!-- The settings: the language, and the host's own items (SettingsContent). Shown when there is something to set. -->
+                    <ToggleButton x:Name="SettingsButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text Settings}"
+                                  AutomationProperties.Name="{local:Text Settings}" Margin="4,0,0,0" Visibility="Collapsed"
+                                  IsChecked="{Binding IsSettingsOpen, Mode=TwoWay}"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=SettingsMenu, Converter={StaticResource Fadenstack.InverseBool}}">
+                        <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE713;" />
+                    </ToggleButton>
+                    <Popup x:Name="SettingsMenu" IsOpen="{Binding IsSettingsOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=SettingsButton}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="0,4,8,12" MinWidth="220">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                            </Border.Effect>
+                            <StackPanel>
+                                <StackPanel Visibility="{Binding HasLanguageSettings, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text LanguageMenu}" Margin="8,4,8,4" />
+                                    <ItemsControl ItemsSource="{Binding LanguageOptions}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:LanguageOption}">
+                                                <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                                        Command="{Binding DataContext.SetLanguageCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Label}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Grid Width="20">
+                                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;" Foreground="{DynamicResource Fadenstack.Accent}"
+                                                                       Visibility="{Binding IsSelected, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Label}" Language="{Binding Language, ConverterCulture=en-US}" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text LanguageLocked}" Margin="8,4,8,4"
+                                               Visibility="{Binding IsLanguageLocked, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                </StackPanel>
+                                <Border x:Name="SettingsSeparator" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" Visibility="Collapsed" />
+                                <ContentPresenter x:Name="SettingsHost" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                 </StackPanel>
                 <local:AgentAvatar Small="True" Width="24" Height="24" Margin="0,0,10,0" />
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

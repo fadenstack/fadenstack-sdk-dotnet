@@ -66,6 +66,22 @@ public sealed class UiStrings
     /// <summary>The text named <paramref name="name"/>: the host's, else the package's; null when neither has one.</summary>
     public string? Find(string name) => _found.GetOrAdd(name, Lookup);
 
+    // -- the language and the settings ----------------------------------------------------------------
+
+    /// <summary>The language's name in itself ("Deutsch"): the settings list each language by it, so anyone finds their own.</summary>
+    public string LanguageName => Text();
+
+    public string Settings => Text();
+
+    /// <summary>The heading of the languages in the settings.</summary>
+    public string LanguageMenu => Text();
+
+    /// <summary>"Automatic (English)": follow the host's language, named in it.</summary>
+    public string LanguageAutomatic(string name) => Fill(name);
+
+    /// <summary>Under the languages when the organisation fixed one.</summary>
+    public string LanguageLocked => Text();
+
     // -- the turn ------------------------------------------------------------------------------------
 
     public string Working => Text();

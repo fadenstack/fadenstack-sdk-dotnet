@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -33,7 +34,14 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private List<List<TranscriptEntry>> _history = new();
     private int _loadedFrom;
     private string _title = "";
-    private string _greeting = "";
+    private string? _profileGreeting;
+    private readonly IReadOnlyList<string> _languages;
+    private readonly IPreferenceStore _preferences;
+    private readonly string? _locked;
+    private UiStrings _strings;
+    private string _language = Automatic;
+    private IReadOnlyList<LanguageOption> _languageOptions = Array.Empty<LanguageOption>();
+    private bool _isSettingsOpen;
     private string _input = "";
     private bool _isReady;
     private bool _isBusy;
@@ -49,7 +57,15 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _approvals = approvals ?? throw new ArgumentNullException(nameof(approvals));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _options = options ?? new AgentChatOptions();
-        Strings = _options.Strings ?? UiStrings.Current;
+        _languages = ((IEnumerable<string>?)_options.Languages ?? UiStrings.BuiltInLanguages).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        _preferences = _options.Preferences ?? PreferenceDefaults.Create();
+        _locked = _options.Strings is null && _options.LockedLanguage is { } locked ? Nearest(Culture(locked)) : null;
+        if (CanChangeLanguage && Offered(Read()) is { } saved)
+        {
+            _language = saved;
+        }
+        _strings = Resolve();
+        _languageOptions = BuildLanguageOptions();
         _batcher = new RenderBatcher(dispatcher, _options.RenderInterval);
         _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new FallbackRenderer() }).ToList();
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
@@ -58,6 +74,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _approvals.Requested += OnApprovalRequested;
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
+        SetLanguageCommand = new RelayCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
         SendCommand = new AsyncRelayCommand(() => SendAsync(Input), () => CanSend);
         SendSuggestionCommand = new AsyncRelayCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy);
         StopCommand = new RelayCommand(Stop, () => _isBusy);
@@ -87,8 +104,42 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     // -- state ---------------------------------------------------------------------------------------
 
-    /// <summary>The chat's texts (<see cref="AgentChatOptions.Strings"/>): the skin binds its labels to them.</summary>
-    public UiStrings Strings { get; }
+    /// <summary>The settings' pick that follows the host's language.</summary>
+    public const string Automatic = "auto";
+
+    private const string LanguagePreference = "language";
+
+    /// <summary>The chat's texts, in the language the user picked (or the host's): the skin binds its labels to them.</summary>
+    public UiStrings Strings
+    {
+        get => _strings;
+        private set => SetProperty(ref _strings, value);
+    }
+
+    /// <summary>The settings' language: <see cref="Automatic"/> (the host's language) or a tag of <see cref="LanguageOptions"/>.</summary>
+    public string Language => _locked ?? _language;
+
+    /// <summary>The languages to pick from, "Automatic" first, each named in itself; none when the host fixed the texts.</summary>
+    public IReadOnlyList<LanguageOption> LanguageOptions => _languageOptions;
+
+    /// <summary>The user can pick a language: the host did not fix the texts, nor the organisation the language.</summary>
+    public bool CanChangeLanguage => _options.Strings is null && _locked is null && _languages.Count > 1;
+
+    /// <summary>The organisation fixed the language: the settings show it without a choice.</summary>
+    public bool IsLanguageLocked => _options.Strings is null && _locked is not null;
+
+    /// <summary>The settings have a language to show: a choice, or the one fixed.</summary>
+    public bool HasLanguageSettings => CanChangeLanguage || IsLanguageLocked;
+
+    /// <summary>The settings menu is open (presentation state, so the skin needs no code).</summary>
+    public bool IsSettingsOpen
+    {
+        get => _isSettingsOpen;
+        set => SetProperty(ref _isSettingsOpen, value);
+    }
+
+    /// <summary>Picks a language (its id: <see cref="Automatic"/> or a tag).</summary>
+    public IRelayCommand<string> SetLanguageCommand { get; }
 
 
     public string Title
@@ -98,11 +149,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>The agent's greeting for an empty chat (profile <c>ui.greeting</c>).</summary>
-    public string Greeting
-    {
-        get => _greeting;
-        private set => SetProperty(ref _greeting, value);
-    }
+    public string Greeting => _profileGreeting ?? (_title.Length > 0 ? Strings.GreetingFallback(_title) : "");
 
     /// <summary>Prompts to start with (profile <c>ui.suggestions</c>).</summary>
     public ObservableCollection<string> Suggestions { get; } = new();
@@ -266,7 +313,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             await _agent.StartAsync();
             var profile = _agent.Profile;
             Title = profile.Name;
-            Greeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : Strings.GreetingFallback(profile.Name);
+            _profileGreeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : null;
+            OnPropertyChanged(nameof(Greeting));
             Suggestions.Clear();
             if (Ui(profile.Ui, "suggestions") is { ValueKind: JsonValueKind.Array } suggestions)
             {
@@ -383,6 +431,29 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Picks the panel's language (<see cref="Automatic"/> for the host's) and remembers it on this computer. Everything
+    /// on screen, the conversation too, is drawn again in it. Nothing changes when the language is fixed. Call on the UI thread.
+    /// </summary>
+    public void SetLanguage(string id)
+    {
+        IsSettingsOpen = false;
+        if (!CanChangeLanguage || (id != Automatic && Offered(id) is null))
+        {
+            return;
+        }
+        _language = id == Automatic ? Automatic : Offered(id)!;
+        ApplyLanguage();
+        try
+        {
+            _preferences.Set(LanguagePreference, _language == Automatic ? null : _language);
+        }
+        catch (Exception)
+        {
+            // not remembered: still this chat's language
+        }
+    }
+
     /// <summary>Starts a new chat; the session is created with its first message.</summary>
     public void NewChat()
     {
@@ -479,6 +550,101 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private void Stop() => _stop?.Cancel();
 
+    /// <summary>The texts for the language: the host's fixed ones, the organisation's, the user's pick, or the host's language.</summary>
+    private UiStrings Resolve()
+    {
+        if (_options.Strings is { } fixedTexts)
+        {
+            return fixedTexts;
+        }
+        var id = _locked ?? _language;
+        return new UiStrings(Culture(id == Automatic ? AutomaticTag() : id), _options.TextOverrides);
+    }
+
+    /// <summary>The offered language nearest the host's.</summary>
+    private string AutomaticTag() => Nearest(_options.AutomaticLanguage ?? CultureInfo.CurrentUICulture);
+
+    /// <summary>The offered language nearest <paramref name="culture"/>: de-AT finds de, zh-CN zh-Hans; English when none.</summary>
+    private string Nearest(CultureInfo culture)
+    {
+        for (var c = culture; !Equals(c, CultureInfo.InvariantCulture); c = c.Parent)
+        {
+            if (Offered(c.Name) is { } offered)
+            {
+                return offered;
+            }
+        }
+        return Offered("en") ?? _languages[0];
+    }
+
+    private string? Offered(string? tag) => tag is null ? null : _languages.FirstOrDefault(l => string.Equals(l, tag, StringComparison.OrdinalIgnoreCase));
+
+    private static CultureInfo Culture(string tag)
+    {
+        try
+        {
+            return CultureInfo.GetCultureInfo(tag);
+        }
+        catch (CultureNotFoundException)
+        {
+            return CultureInfo.InvariantCulture;
+        }
+    }
+
+    private string? Read()
+    {
+        try
+        {
+            return _preferences.Get(LanguagePreference);
+        }
+        catch (Exception)
+        {
+            return null; // the store failed: the automatic language
+        }
+    }
+
+    private IReadOnlyList<LanguageOption> BuildLanguageOptions()
+    {
+        if (_options.Strings is not null)
+        {
+            return Array.Empty<LanguageOption>();
+        }
+        var automatic = new UiStrings(Culture(AutomaticTag()), _options.TextOverrides);
+        var chosen = Language;
+        return new[] { new LanguageOption(Automatic, Strings.LanguageAutomatic(automatic.LanguageName), Strings.Language, chosen == Automatic) }
+            .Concat(_languages.Select(tag =>
+            {
+                var texts = new UiStrings(Culture(tag), _options.TextOverrides);
+                return new LanguageOption(tag, texts.LanguageName, texts.Language, string.Equals(chosen, tag, StringComparison.OrdinalIgnoreCase));
+            }))
+            .ToList();
+    }
+
+    /// <summary>Every text on screen in the new language: the conversation's, the history's, the menus'.</summary>
+    private void ApplyLanguage()
+    {
+        var strings = Resolve();
+        Strings = strings;
+        foreach (var option in ToolModes)
+        {
+            option.Retext(strings);
+        }
+        var now = _options.Clock();
+        foreach (var session in Sessions)
+        {
+            session.Retext(strings, now);
+        }
+        foreach (var turn in Turns)
+        {
+            turn.Retext(strings);
+        }
+        _languageOptions = BuildLanguageOptions();
+        OnPropertyChanged(nameof(Language));
+        OnPropertyChanged(nameof(LanguageOptions));
+        OnPropertyChanged(nameof(Greeting));
+        OnPropertyChanged(nameof(ToolModeHint));
+    }
+
     private async Task LoadEarlierAsync()
     {
         if (_loadedFrom == 0)
@@ -554,7 +720,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
                     var title = a.Title;
-                    _batcher.Enqueue(() => turn.AddPart(new Parts.NoticePart(Parts.NoticeSeverity.Warning, Strings.NotAttached(title), e.Message)));
+                    _batcher.Enqueue(() => turn.AddPart(Parts.NoticePart.Localized(Strings, Parts.NoticeSeverity.Warning, s => (s.NotAttached(title), e.Message, null))));
                 }
             }
             if (_session is null)

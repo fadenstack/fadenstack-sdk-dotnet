@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
@@ -30,9 +32,29 @@ public sealed class AgentChatOptions
     public Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.Now;
 
     /// <summary>
-    /// The chat's texts. By default <see cref="UiStrings.Current"/>: the current UI language, from the package's
-    /// resources. An add-in passes the host application's language (<c>UiStrings.For(officeLanguage)</c>), or its own
-    /// resources to add a language or change words (<c>new UiStrings(culture, MyTexts.ResourceManager)</c>).
+    /// What "Automatic" means in the panel's settings: the host's language (an add-in passes Office's UI language);
+    /// <see cref="CultureInfo.CurrentUICulture"/> by default. The panel starts in it until the user picks another.
+    /// </summary>
+    public CultureInfo? AutomaticLanguage { get; set; }
+
+    /// <summary>The languages the user can pick, by tag: <see cref="UiStrings.BuiltInLanguages"/> by default. Add the ones <see cref="TextOverrides"/> has.</summary>
+    public IList<string>? Languages { get; set; }
+
+    /// <summary>The host's own resources (a .resx with the same names): its words, and the texts of the languages it adds.</summary>
+    public ResourceManager? TextOverrides { get; set; }
+
+    /// <summary>A language the organisation fixed (a policy): the panel uses it, and its settings show it without a choice.</summary>
+    public string? LockedLanguage { get; set; }
+
+    /// <summary>
+    /// Where the user's pick is kept: by default a <see cref="FilePreferenceStore"/>
+    /// (<c>%APPDATA%\Fadenstack\preferences.json</c>), shared by every Fadenstack panel of the user on this computer.
+    /// </summary>
+    public IPreferenceStore? Preferences { get; set; }
+
+    /// <summary>
+    /// Texts fixed by the host instead of a language the user picks: the panel then offers no choice. Most hosts leave
+    /// it out and pass <see cref="AutomaticLanguage"/>.
     /// </summary>
     public UiStrings? Strings { get; set; }
 
@@ -60,23 +82,46 @@ public sealed class OutgoingMessage
     public string Text { get; }
 }
 
+/// <summary>A language in the panel's settings: <c>auto</c> (the host's) or a tag, named in itself ("Deutsch").</summary>
+public sealed class LanguageOption
+{
+    internal LanguageOption(string id, string label, string language, bool isSelected)
+    {
+        Id = id;
+        Label = label;
+        Language = language;
+        IsSelected = isSelected;
+    }
+
+    public string Id { get; }
+
+    public string Label { get; }
+
+    /// <summary>The language the label is written in, for the item's <c>xml:lang</c>.</summary>
+    public string Language { get; }
+
+    public bool IsSelected { get; }
+
+    public override string ToString() => Label;
+}
+
 /// <summary>A mode in the picker, with what it means; above the ceiling it cannot be picked.</summary>
 public sealed class ToolModeOption : ObservableObject
 {
     private bool _isAvailable = true;
+    private UiStrings _strings;
 
     internal ToolModeOption(ToolMode mode, UiStrings strings)
     {
         Mode = mode;
-        Label = strings.ModeLabel(mode);
-        Description = strings.ModeDescription(mode);
+        _strings = strings;
     }
 
     public ToolMode Mode { get; }
 
-    public string Label { get; }
+    public string Label => _strings.ModeLabel(Mode);
 
-    public string Description { get; }
+    public string Description => _strings.ModeDescription(Mode);
 
     /// <summary>False above the ceiling the server sets for the agent.</summary>
     public bool IsAvailable
@@ -86,12 +131,20 @@ public sealed class ToolModeOption : ObservableObject
     }
 
     public override string ToString() => Label;
+
+    internal void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(Description));
+    }
 }
 
 /// <summary>A session in the history list.</summary>
 public sealed class SessionItemViewModel : ObservableObject
 {
-    private readonly UiStrings _strings;
+    private readonly bool _untitled;
+    private UiStrings _strings;
     private string _title;
     private DateTimeOffset _lastActivity;
     private string _whenText;
@@ -101,7 +154,8 @@ public sealed class SessionItemViewModel : ObservableObject
     {
         Id = id;
         _strings = strings;
-        _title = string.IsNullOrWhiteSpace(title) ? strings.NewChat : title!;
+        _untitled = string.IsNullOrWhiteSpace(title);
+        _title = _untitled ? strings.NewChat : title!;
         _lastActivity = lastActivity;
         _whenText = When(lastActivity, now, strings);
     }
@@ -132,6 +186,16 @@ public sealed class SessionItemViewModel : ObservableObject
     {
         _lastActivity = at;
         WhenText = When(at, now, _strings);
+    }
+
+    internal void Retext(UiStrings strings, DateTimeOffset now)
+    {
+        _strings = strings;
+        if (_untitled)
+        {
+            Title = strings.NewChat;
+        }
+        WhenText = When(_lastActivity, now, strings);
     }
 
     /// <summary>The time today, "Yesterday", the weekday this week, else the date (written in the format culture).</summary>

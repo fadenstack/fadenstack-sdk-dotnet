@@ -67,8 +67,8 @@ internal sealed class PiiRenderer : IAgentEventRenderer
             if (found.Count > 0)
             {
                 var total = found.Sum(f => f.Count);
-                turn.AddPart(new NoticePart(NoticeSeverity.Info, turn.Strings.PiiTitle,
-                    turn.Strings.PiiMessage(total, string.Join(", ", found.Select(f => $"{f.Count} {Pretty(f.Type)}")))));
+                var list = string.Join(", ", found.Select(f => $"{f.Count} {Pretty(f.Type)}"));
+                turn.AddPart(NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.PiiTitle, s.PiiMessage(total, list), null)));
             }
         }
         return true;
@@ -93,7 +93,7 @@ internal sealed class FallbackRenderer : IAgentEventRenderer
             return true;
         }
         var message = e.Value.ValueKind == JsonValueKind.Object && Json.Str(e.Value, "message") is { } m ? m : e.Kind;
-        turn.AddPart(new NoticePart(NoticeSeverity.Info, turn.Strings.NoticeFallback, message));
+        turn.AddPart(NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.NoticeFallback, message, null)));
         return true;
     }
 }

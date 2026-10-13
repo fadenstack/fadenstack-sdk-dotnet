@@ -13,6 +13,9 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <!-- A language the SDK does not ship, added by a host (two texts; the rest stay English). -->
+  <data name="LanguageName" xml:space="preserve">
+    <value>Italiano</value>
+  </data>
   <data name="Send" xml:space="preserve">
     <value>Invia</value>
   </data>

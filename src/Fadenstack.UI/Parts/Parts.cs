@@ -19,6 +19,8 @@ namespace Fadenstack.UI.Parts;
 /// </summary>
 public abstract class ResponsePart : ObservableObject
 {
+    /// <summary>The language changed: the part's texts are worked out in it, and every binding reads them again.</summary>
+    internal virtual void Retext(UiStrings strings) => OnPropertyChanged(string.Empty);
 }
 
 /// <summary>Answer text as Markdown blocks, growing while it streams.</summary>
@@ -64,26 +66,21 @@ public sealed class ReasoningPart : ResponsePart
     private readonly StringBuilder _text = new();
     private readonly DateTimeOffset _started;
     private bool _isStreaming = true;
-    private readonly UiStrings _strings;
+    private UiStrings _strings;
     private bool _isExpanded;
-    private string _title;
+    private int? _seconds;
 
     internal ReasoningPart(DateTimeOffset started, UiStrings strings)
     {
         _started = started;
         _strings = strings;
-        _title = strings.Thinking;
         ToggleCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
     /// <summary>The text is built only when shown.</summary>
     public string Text => _isExpanded ? _text.ToString() : "";
 
-    public string Title
-    {
-        get => _title;
-        private set => SetProperty(ref _title, value);
-    }
+    public string Title => _seconds is { } seconds ? _strings.ThoughtFor(seconds) : _strings.Thinking;
 
     public bool IsStreaming
     {
@@ -117,8 +114,14 @@ public sealed class ReasoningPart : ResponsePart
     internal void Complete(DateTimeOffset now)
     {
         IsStreaming = false;
-        var seconds = Math.Max(1, (int)Math.Round((now - _started).TotalSeconds));
-        Title = _strings.ThoughtFor(seconds);
+        _seconds = Math.Max(1, (int)Math.Round((now - _started).TotalSeconds));
+        OnPropertyChanged(nameof(Title));
+    }
+
+    internal override void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        base.Retext(strings);
     }
 }
 
@@ -136,7 +139,7 @@ public enum ToolCallState
 public sealed class ToolCallPart : ResponsePart
 {
     private readonly int _previewLength;
-    private readonly UiStrings _strings;
+    private UiStrings _strings;
     private ToolCallState _state;
     private TimeSpan? _duration;
     private bool _isExpanded;
@@ -267,6 +270,12 @@ public sealed class ToolCallPart : ResponsePart
         }
     }
 
+    internal override void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        base.Retext(strings);
+    }
+
     internal static string Preview(string? text, int length, UiStrings strings) =>
         text is null ? "" : text.Length <= length ? text : text.Substring(0, length) + "\n" + strings.MoreCharacters(text.Length - length);
 
@@ -305,7 +314,9 @@ public enum ApprovalState
 public sealed class ApprovalPart : ResponsePart
 {
     private readonly PendingApproval? _pending;
-    private readonly UiStrings _strings;
+    private readonly string _arguments;
+    private readonly int _previewLength;
+    private UiStrings _strings;
     private ApprovalState _state;
 
     internal ApprovalPart(PendingApproval pending, int previewLength, UiStrings strings)
@@ -319,7 +330,8 @@ public sealed class ApprovalPart : ResponsePart
         Request = request;
         _strings = strings;
         _state = state;
-        ArgumentsText = ToolCallPart.Preview(Arguments(request), previewLength, strings);
+        _arguments = Arguments(request);
+        _previewLength = previewLength;
         AllowCommand = new RelayCommand(() => Decide(ApprovalDecision.Approve(), ApprovalState.Approved), () => IsPending);
         AllowForSessionCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForSession(), ApprovalState.ApprovedForSession),
             () => IsPending && CanAllowForSession);
@@ -349,7 +361,7 @@ public sealed class ApprovalPart : ResponsePart
     /// <summary>Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, what its class means.</summary>
     public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason : _strings.ApprovalWhy(Request.ToolClass);
 
-    public string ArgumentsText { get; }
+    public string ArgumentsText => ToolCallPart.Preview(_arguments, _previewLength, _strings);
 
     public ApprovalState State
     {
@@ -388,6 +400,12 @@ public sealed class ApprovalPart : ResponsePart
 
     public IRelayCommand DenyCommand { get; }
 
+    internal override void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        base.Retext(strings);
+    }
+
     private void Decide(ApprovalDecision decision, ApprovalState state)
     {
         if (_pending is null || !_pending.Resolve(decision))
@@ -420,22 +438,38 @@ public enum NoticeSeverity
 /// <summary>A refusal, a limit, an error, or a feature's notice ("3 names masked locally").</summary>
 public sealed class NoticePart : ResponsePart
 {
+    private readonly (string Title, string Message, string? Detail) _fixed;
+    private readonly Func<UiStrings, (string Title, string Message, string? Detail)>? _texts;
+    private UiStrings? _strings;
+
+    /// <summary>A notice with its own texts (a module's: in the module's words).</summary>
     public NoticePart(NoticeSeverity severity, string title, string message, string? detail = null)
     {
         Severity = severity;
-        Title = title;
-        Message = message;
-        Detail = detail;
+        _fixed = (title, message, detail);
+    }
+
+    private NoticePart(NoticeSeverity severity, UiStrings strings, Func<UiStrings, (string Title, string Message, string? Detail)> texts)
+        : this(severity, "", "")
+    {
+        _strings = strings;
+        _texts = texts;
     }
 
     public NoticeSeverity Severity { get; }
 
-    public string Title { get; }
+    public string Title => Current.Title;
 
-    public string Message { get; }
+    public string Message => Current.Message;
 
     /// <summary>For support: the decision id of a refusal.</summary>
-    public string? Detail { get; }
+    public string? Detail => Current.Detail;
+
+    private (string Title, string Message, string? Detail) Current => _texts is not null && _strings is not null ? _texts(_strings) : _fixed;
+
+    /// <summary>A notice in the panel's words: in its language, and again in the next one the user picks.</summary>
+    internal static NoticePart Localized(UiStrings strings, NoticeSeverity severity, Func<UiStrings, (string Title, string Message, string? Detail)> texts) =>
+        new(severity, strings, texts);
 
     internal static NoticePart From(GovernanceNotice notice, UiStrings strings)
     {
@@ -445,9 +479,19 @@ public sealed class NoticePart : ResponsePart
             "tool_denied" or "rate_limited" => NoticeSeverity.Warning,
             _ => NoticeSeverity.Info,
         };
-        var title = strings.NoticeTitle(notice.Outcome) ?? strings.NoticeFallback;
-        var message = notice.RetryAfter is { } wait ? $"{notice.Message} {strings.TryAgainIn(Math.Ceiling(wait.TotalSeconds))}" : notice.Message;
-        return new NoticePart(severity, title, message, notice.DecisionId is null ? null : strings.Decision(notice.DecisionId));
+        return Localized(strings, severity, s => (
+            s.NoticeTitle(notice.Outcome) ?? s.NoticeFallback,
+            notice.RetryAfter is { } wait ? $"{notice.Message} {s.TryAgainIn(Math.Ceiling(wait.TotalSeconds))}" : notice.Message,
+            notice.DecisionId is null ? null : s.Decision(notice.DecisionId)));
+    }
+
+    internal override void Retext(UiStrings strings)
+    {
+        if (_texts is not null)
+        {
+            _strings = strings;
+        }
+        base.Retext(strings);
     }
 }
 
@@ -456,7 +500,7 @@ public sealed record Citation(string Title, string? Detail, double? Score);
 /// <summary>"Used 3 references", expandable.</summary>
 public sealed class CitationsPart : ResponsePart
 {
-    private readonly UiStrings _strings;
+    private UiStrings _strings;
     private bool _isExpanded;
 
     /// <param name="citations">The references, in order.</param>
@@ -479,6 +523,12 @@ public sealed class CitationsPart : ResponsePart
     }
 
     public IRelayCommand ToggleCommand { get; }
+
+    internal override void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        base.Retext(strings);
+    }
 
     internal void Add(IEnumerable<Citation> more)
     {

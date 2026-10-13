@@ -45,7 +45,7 @@ internal static class TranscriptTurns
         };
         var state = TurnState.Stopped; // a turn without an end was interrupted
         ChatOutcome? outcome = null;
-        var usage = "";
+        long? usage = null;
         foreach (var entry in entries)
         {
             var d = entry.Data;
@@ -113,7 +113,7 @@ internal static class TranscriptTurns
                     outcome = Enum.TryParse<ChatOutcome>(Json.Str(d, "outcome"), out var o) ? o : null;
                     if (d.ValueKind == JsonValueKind.Object && d.TryGetProperty("usage", out var u) && Json.Long(u, "total_tokens") is { } tokens and > 0)
                     {
-                        usage = chat.Strings.Tokens(tokens);
+                        usage = tokens;
                     }
                     break;
             }

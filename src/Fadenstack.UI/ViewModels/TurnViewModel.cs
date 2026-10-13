@@ -28,7 +28,7 @@ public enum TurnState
 public sealed class TurnViewModel : ObservableObject
 {
     private readonly AgentChatViewModel? _chat;
-    private readonly UiStrings _strings;
+    private UiStrings _strings;
     private readonly int _previewLength;
     private readonly Dictionary<string, ToolCallPart> _tools = new();
     private MarkdownPart? _text;
@@ -36,8 +36,8 @@ public sealed class TurnViewModel : ObservableObject
     private TurnState _state;
     private ChatOutcome? _outcome;
     private string? _error;
-    private string _usageText = "";
-    private string _durationText = "";
+    private long? _tokens;
+    private TimeSpan? _elapsed;
 
     internal TurnViewModel(AgentChatViewModel? chat, string userText, DateTimeOffset timestamp, int previewLength, TurnState state = TurnState.Running)
     {
@@ -115,17 +115,9 @@ public sealed class TurnViewModel : ObservableObject
         private set => SetProperty(ref _error, value);
     }
 
-    public string UsageText
-    {
-        get => _usageText;
-        private set => SetProperty(ref _usageText, value);
-    }
+    public string UsageText => _tokens is { } tokens ? _strings.Tokens(tokens) : "";
 
-    public string DurationText
-    {
-        get => _durationText;
-        private set => SetProperty(ref _durationText, value);
-    }
+    public string DurationText => _elapsed is { TotalSeconds: >= 1 } elapsed ? _strings.Duration(elapsed) : "";
 
     /// <summary>The answer's Markdown, for copying.</summary>
     public string AnswerText => string.Join("\n\n", Parts.OfType<MarkdownPart>().Select(p => p.Text).Where(t => t.Length > 0));
@@ -248,7 +240,8 @@ public sealed class TurnViewModel : ObservableObject
         Outcome = result.Outcome;
         if (result.Usage?.TotalTokenCount is { } tokens && tokens > 0)
         {
-            UsageText = _strings.Tokens(tokens);
+            _tokens = tokens;
+            OnPropertyChanged(nameof(UsageText));
         }
         Finish(result.Outcome == ChatOutcome.PromptBlocked ? TurnState.Blocked : TurnState.Completed, now);
     }
@@ -262,11 +255,22 @@ public sealed class TurnViewModel : ObservableObject
     }
 
     /// <summary>For a turn read back from the transcript.</summary>
-    internal void Restore(TurnState state, ChatOutcome? outcome, string usage)
+    internal void Restore(TurnState state, ChatOutcome? outcome, long? tokens)
     {
         _state = state;
         _outcome = outcome;
-        _usageText = usage;
+        _tokens = tokens;
+    }
+
+    /// <summary>The language changed: the turn and its parts are drawn again in it.</summary>
+    internal void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        foreach (var part in Parts)
+        {
+            part.Retext(strings);
+        }
+        OnPropertyChanged(string.Empty);
     }
 
     internal void AddRestoredText(string text) => Parts.Add(new MarkdownPart(text, clipboard: _chat?.Clipboard));
@@ -293,8 +297,8 @@ public sealed class TurnViewModel : ObservableObject
         {
             tool.State = ToolCallState.Cancelled;
         }
-        var elapsed = now - Timestamp;
-        DurationText = elapsed.TotalSeconds >= 1 ? _strings.Duration(elapsed) : "";
+        _elapsed = now - Timestamp;
+        OnPropertyChanged(nameof(DurationText));
         State = state;
         OnPropertyChanged(nameof(AnswerText));
     }

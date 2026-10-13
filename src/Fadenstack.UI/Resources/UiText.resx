@@ -14,6 +14,26 @@
   </resheader>
   <!-- Every text the chat shows, in English: the one place to change them. Each translation (UiText.<language>.resx)
        has the same names; UiStrings reads them. {0}, {1}: what the code fills in, as the comments say. -->
+  <data name="LanguageName" xml:space="preserve">
+    <value>English</value>
+    <comment>The language's name in itself: the settings list each language by it</comment>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>The settings button and menu</comment>
+  </data>
+  <data name="LanguageMenu" xml:space="preserve">
+    <value>Language</value>
+    <comment>The heading of the languages in the settings</comment>
+  </data>
+  <data name="LanguageAutomatic" xml:space="preserve">
+    <value>Automatic ({0})</value>
+    <comment>{0}: the host's language, named in itself</comment>
+  </data>
+  <data name="LanguageLocked" xml:space="preserve">
+    <value>Set by your organisation</value>
+    <comment>Under the languages when the organisation fixed one</comment>
+  </data>
   <data name="Working" xml:space="preserve">
     <value>Working...</value>
     <comment>The turn's line before anything arrives</comment>
