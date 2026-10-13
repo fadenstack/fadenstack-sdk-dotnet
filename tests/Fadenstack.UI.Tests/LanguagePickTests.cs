@@ -121,6 +121,70 @@ public class LanguagePickTests
     }
 
     [Fact]
+    public async Task It_follows_the_language_the_user_picked_in_another_client_and_remembers_it_here()
+    {
+        var preferences = new MemoryPreferenceStore();
+        preferences.Set("language", "fr");
+        var chat = Chat(new Gateway(userLanguage: "de-AT"), o =>
+        {
+            o.AutomaticLanguage = C("en");
+            o.Preferences = preferences;
+        });
+        Assert.Equal("fr", chat.Strings.Language); // this computer's, until the server answers
+        await chat.InitializeAsync();
+        Assert.Equal(("de", "de", "de"), (chat.Language, chat.Strings.Language, preferences.Get("language")));
+
+        var chinese = Chat(new Gateway(userLanguage: "zh"), o => o.AutomaticLanguage = C("en")); // as the console writes it
+        await chinese.InitializeAsync();
+        Assert.Equal("zh-Hans", chinese.Language);
+    }
+
+    [Fact]
+    public async Task A_pick_is_kept_for_the_user_so_every_client_follows_and_Automatic_forgets_it()
+    {
+        var gateway = new Gateway();
+        var chat = Chat(gateway, o => o.AutomaticLanguage = C("en"));
+        await chat.InitializeAsync();
+        await chat.SetLanguageAsync("es");
+        Assert.Equal("es", gateway.UserLanguage);
+        await chat.SetLanguageAsync(AgentChatViewModel.Automatic);
+        Assert.Null(gateway.UserLanguage);
+        var forget = gateway.Server.Requests.Last(r => r.Method == "PATCH");
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, forget.Json.GetProperty("language").ValueKind); // sent, as null
+    }
+
+    [Fact]
+    public async Task A_language_not_offered_a_fixed_one_or_a_pick_made_while_starting_stays()
+    {
+        var italian = Chat(new Gateway(userLanguage: "it"), o => o.AutomaticLanguage = C("de"));
+        await italian.InitializeAsync();
+        Assert.Equal((AgentChatViewModel.Automatic, "de"), (italian.Language, italian.Strings.Language));
+
+        var gateway = new Gateway(userLanguage: "fr");
+        var locked = Chat(gateway, o => o.LockedLanguage = "de");
+        await locked.InitializeAsync();
+        await locked.SetLanguageAsync("es");
+        Assert.Equal(("de", "fr"), (locked.Strings.Language, gateway.UserLanguage));
+        Assert.DoesNotContain(gateway.Server.Requests, r => r.Method == "PATCH");
+
+        var early = Chat(new Gateway(userLanguage: "fr"), o => o.AutomaticLanguage = C("en"));
+        await early.SetLanguageAsync("es");
+        await early.InitializeAsync();
+        Assert.Equal("es", early.Language);
+    }
+
+    [Fact]
+    public async Task The_language_still_changes_when_the_server_cannot_keep_it()
+    {
+        var gateway = new Gateway();
+        gateway.Server.Json("PATCH", "/v1/agents/docs-assistant/user", new { detail = "down" }, System.Net.HttpStatusCode.ServiceUnavailable);
+        var chat = Chat(gateway, o => o.AutomaticLanguage = C("en"));
+        await chat.InitializeAsync();
+        await chat.SetLanguageAsync("de");
+        Assert.Equal(("de", "de", (string?)null), (chat.Language, chat.Strings.Language, chat.Error));
+    }
+
+    [Fact]
     public void The_host_offers_its_own_languages_from_its_resources()
     {
         var host = new ResourceManager("Fadenstack.UI.Tests.HostTexts", typeof(LanguagePickTests).Assembly);

@@ -117,7 +117,7 @@ chat.Attachments.Add(new AttachmentViewModel(
 
 The panel has no text of its own. Every text it shows is in the resources of `Fadenstack.UI`: `Resources/UiText.resx` holds the English texts, and `UiText.de.resx`, `UiText.fr.resx`, `UiText.es.resx` and `UiText.zh-Hans.resx` the German, French, Spanish and Simplified Chinese ones. They are the one place to change a word. The view models read them through `UiStrings`, and the WPF skin binds its buttons, tooltips and screen-reader names to the same texts.
 
-**The user picks the language** in the panel's settings (the gear in the header): *Automatic*, or one of the languages, each listed in its own name (Deutsch, Français, 中文（简体）), so anyone finds their own. The whole panel changes at once, the conversation too, and the choice is remembered for every Fadenstack panel of the user on this computer, so a language picked in Word is Excel's too. Your add-in only says what *Automatic* means, the language the host runs in:
+**The user picks the language** in the panel's settings (the gear in the header): *Automatic*, or one of the languages, each listed in its own name (Deutsch, Français, 中文（简体）), so anyone finds their own. The whole panel changes at once, the conversation too, and the choice is remembered for every Fadenstack panel of the user on this computer, so a language picked in Word is Excel's too, and for the user on the server, so their other devices, the browser agent and the console follow it. Your add-in only says what *Automatic* means, the language the host runs in:
 
 ```csharp
 using System.Globalization;
@@ -141,7 +141,9 @@ Without `AutomaticLanguage`, *Automatic* is `CultureInfo.CurrentUICulture`. A cu
 | `Preferences` | Where the choice is kept (`IPreferenceStore`). By default a `FilePreferenceStore`: `%APPDATA%\Fadenstack\preferences.json`. `MemoryPreferenceStore` keeps nothing, for tests. |
 | `Strings` | Texts you fix instead (`UiStrings.For(culture)`): the panel then offers no choice. |
 
-`chat.SetLanguage("fr")` (or `SetLanguageCommand`) and `chat.SetLanguage(AgentChatViewModel.Automatic)` do from code what the settings do; `Language`, `LanguageOptions` and `CanChangeLanguage` say what they show.
+`chat.SetLanguage("fr")` (or `SetLanguageCommand`) and `chat.SetLanguage(AgentChatViewModel.Automatic)` do from code what the settings do; `await chat.SetLanguageAsync("fr")` also waits until the server kept it. `Language`, `LanguageOptions` and `CanChangeLanguage` say what they show.
+
+**The language follows the user.** The agent's profile carries the language the user picked anywhere (`agent.Profile.User.Language`, a tag such as `de` or `zh-Hans`), and the panel takes it over this computer's when it starts, if it offers that language (`zh` is Simplified Chinese; a language it lacks changes nothing). A pick in the settings is sent back (`agent.SetUserLanguageAsync(tag)`, `PATCH /v1/agents/{agent}/user`); *Automatic* sends `null`, so each client follows its host again. A server that cannot keep it, or an older one without the route, leaves the pick on this computer. A language your organisation locked is never sent, and a language from the server never overrides it.
 
 Numbers and dates follow the format culture, `CultureInfo.CurrentCulture`, so an English panel on a German system writes 1.234 and 13.10.2026.
 

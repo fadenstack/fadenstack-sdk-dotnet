@@ -40,6 +40,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private readonly string? _locked;
     private UiStrings _strings;
     private string _language = Automatic;
+    private bool _languagePicked;
     private IReadOnlyList<LanguageOption> _languageOptions = Array.Empty<LanguageOption>();
     private bool _isSettingsOpen;
     private string _input = "";
@@ -312,6 +313,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             await _agent.StartAsync();
             var profile = _agent.Profile;
+            AdoptUserLanguage(profile.User?.Language);
             Title = profile.Name;
             _profileGreeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : null;
             OnPropertyChanged(nameof(Greeting));
@@ -432,16 +434,24 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Picks the panel's language (<see cref="Automatic"/> for the host's) and remembers it on this computer. Everything
-    /// on screen, the conversation too, is drawn again in it. Nothing changes when the language is fixed. Call on the UI thread.
+    /// Picks the panel's language (<see cref="Automatic"/> for the host's) and remembers it on this computer and for the
+    /// user, so all their clients and the console follow it. Everything on screen, the conversation too, is drawn again
+    /// in it at once. Nothing changes when the language is fixed. Call on the UI thread.
     /// </summary>
-    public void SetLanguage(string id)
+    public void SetLanguage(string id) => _ = SetLanguageAsync(id);
+
+    /// <summary>
+    /// <see cref="SetLanguage"/>, settling once the server kept the pick (or could not: the pick still holds on this
+    /// computer). Call on the UI thread.
+    /// </summary>
+    public async Task SetLanguageAsync(string id)
     {
         IsSettingsOpen = false;
         if (!CanChangeLanguage || (id != Automatic && Offered(id) is null))
         {
             return;
         }
+        _languagePicked = true;
         _language = id == Automatic ? Automatic : Offered(id)!;
         ApplyLanguage();
         try
@@ -451,6 +461,14 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         catch (Exception)
         {
             // not remembered: still this chat's language
+        }
+        try
+        {
+            await _agent.SetUserLanguageAsync(_language == Automatic ? null : _language);
+        }
+        catch (Exception)
+        {
+            // not kept for the user (an older server, no network): this computer still remembers it
         }
     }
 
@@ -564,8 +582,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The offered language nearest the host's.</summary>
     private string AutomaticTag() => Nearest(_options.AutomaticLanguage ?? CultureInfo.CurrentUICulture);
 
-    /// <summary>The offered language nearest <paramref name="culture"/>: de-AT finds de, zh-CN zh-Hans; English when none.</summary>
-    private string Nearest(CultureInfo culture)
+    /// <summary>The offered language nearest <paramref name="culture"/>: de-AT finds de, zh-CN and zh zh-Hans; English when none.</summary>
+    private string Nearest(CultureInfo culture) => NearestOffered(culture) ?? Offered("en") ?? _languages[0];
+
+    private string? NearestOffered(CultureInfo culture)
     {
         for (var c = culture; !Equals(c, CultureInfo.InvariantCulture); c = c.Parent)
         {
@@ -574,7 +594,51 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 return offered;
             }
         }
-        return Offered("en") ?? _languages[0];
+        // A language alone, as the console writes it: zh is zh-CN, whose parent is zh-Hans.
+        if (culture.IsNeutralCulture && !Equals(culture, CultureInfo.InvariantCulture))
+        {
+            try
+            {
+                var specific = CultureInfo.CreateSpecificCulture(culture.Name);
+                if (!Equals(specific, culture) && !Equals(specific, CultureInfo.InvariantCulture))
+                {
+                    return NearestOffered(specific);
+                }
+            }
+            catch (CultureNotFoundException)
+            {
+                // none: as it is
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// The language the user picked in another client or the console wins over this computer's, when the panel offers it
+    /// (de-AT is German, zh Simplified Chinese; a language it lacks changes nothing). A pick made here since the panel
+    /// opened stays.
+    /// </summary>
+    private void AdoptUserLanguage(string? tag)
+    {
+        if (string.IsNullOrEmpty(tag) || _languagePicked || !CanChangeLanguage)
+        {
+            return;
+        }
+        var culture = Culture(tag!);
+        if (Equals(culture, CultureInfo.InvariantCulture) || NearestOffered(culture) is not { } key || key == _language)
+        {
+            return;
+        }
+        _language = key;
+        ApplyLanguage();
+        try
+        {
+            _preferences.Set(LanguagePreference, key);
+        }
+        catch (Exception)
+        {
+            // not remembered on this computer: the profile says it again next time
+        }
     }
 
     private string? Offered(string? tag) => tag is null ? null : _languages.FirstOrDefault(l => string.Equals(l, tag, StringComparison.OrdinalIgnoreCase));

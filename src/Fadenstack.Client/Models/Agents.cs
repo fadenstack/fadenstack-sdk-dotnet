@@ -38,6 +38,19 @@ public sealed record AgentProfile
 
     public string Edition { get; init; } = "community";
     public List<string> Features { get; init; } = new();
+
+    /// <summary>The signed-in user's own settings, shared by all their clients and the console.</summary>
+    public UserSettings User { get; init; } = new();
+}
+
+/// <summary>
+/// What every client of a user shares (<c>user</c> in the profile; <see cref="Resources.AgentResource.SetUserLanguageAsync"/>
+/// changes it).
+/// </summary>
+public sealed record UserSettings
+{
+    /// <summary>The language the user picked, in any client or the console (a BCP 47 tag); null: each client follows its host.</summary>
+    public string? Language { get; init; }
 }
 
 /// <summary>One tool of an agent's host tool contract.</summary>

@@ -49,6 +49,19 @@ public sealed class AgentResource
     public Task<ImagesResponse> GenerateImagesAsync(ImageRequest request, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<ImagesResponse>(Route("images/generations"), request, cancellationToken);
 
+    /// <summary>
+    /// Keeps the language the user picked (a BCP 47 tag such as <c>de</c> or <c>zh-Hans</c>) for all their clients and the
+    /// console; null forgets it, so each client follows its host. Returns the language kept. An older server, without the
+    /// route, answers 404.
+    /// </summary>
+    public async Task<string?> SetUserLanguageAsync(string? language, CancellationToken cancellationToken = default)
+    {
+        // A dictionary, so a null is sent as null ("forget it"), not left out ("change nothing").
+        var body = new Dictionary<string, string?> { ["language"] = language };
+        var kept = await _transport.PatchAsync<UserSettings>(Route("user"), body, cancellationToken).ConfigureAwait(false);
+        return string.IsNullOrEmpty(kept?.Language) ? null : kept!.Language;
+    }
+
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },
