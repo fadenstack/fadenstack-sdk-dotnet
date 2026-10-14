@@ -489,7 +489,9 @@ internal sealed class LiveCheck
 
     private async Task<string> ContractEnforcedAsync()
     {
-        // stamp_page is outside the contract: the SDK drops it, and a client that sends it anyway is refused.
+        // stamp_page is outside the contract: the SDK drops it, and a client that sends it anyway does not get it
+        // to the model. Servers from 0.4.5 hold such a tool back for review and answer, naming it in
+        // X-Faden-Held-Tools; older ones refused the request (4xx).
         var token = await Tokens.GetAccessTokenAsync();
         using var http = Http(token);
         var body = new
@@ -500,8 +502,10 @@ internal sealed class LiveCheck
         };
         var response = await http.PostAsync(Gateway($"v1/agents/{_slug}/chat/completions"), Json(body));
         var text = await response.Content.ReadAsStringAsync();
-        Expect((int)response.StatusCode is >= 400 and < 500, $"a tool outside the contract got {(int)response.StatusCode}");
-        return $"{(int)response.StatusCode}: {Short(text, 140)}";
+        var held = response.Headers.TryGetValues("X-Faden-Held-Tools", out var values) ? string.Join(",", values) : "";
+        Expect((int)response.StatusCode is >= 400 and < 500 || (response.IsSuccessStatusCode && held.Contains("stamp_page")),
+            $"a tool outside the contract got {(int)response.StatusCode} without being held back");
+        return response.IsSuccessStatusCode ? $"held back: {held}" : $"{(int)response.StatusCode}: {Short(text, 140)}";
     }
 
     private async Task<string> PlainRouteRefusedAsync()
