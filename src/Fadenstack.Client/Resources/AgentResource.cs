@@ -62,6 +62,39 @@ public sealed class AgentResource
         return string.IsNullOrEmpty(kept?.Language) ? null : kept!.Language;
     }
 
+    /// <summary>
+    /// The skills the signed-in user can pick for a message in this agent's chats (they go as
+    /// <see cref="Chat.FadenstackChatOptions.Skills"/>): the ones a chat could be given, <paramref name="query"/> narrowing
+    /// them by name or description (at most 200 characters), at most <paramref name="limit"/> (1 to 100). A server without
+    /// skills, or an older one without the route, offers none (<see cref="SkillList.Available"/> false).
+    /// </summary>
+    public async Task<SkillList> ListSkillsAsync(string? query = null, int? limit = null, CancellationToken cancellationToken = default)
+    {
+        var parameters = new List<string>();
+        if (query?.Trim() is { Length: > 0 } q)
+        {
+            parameters.Add("q=" + Uri.EscapeDataString(Cut(q, 200)));
+        }
+        if (limit is { } l)
+        {
+            parameters.Add("limit=" + Math.Max(1, Math.Min(100, l)).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+        var route = parameters.Count == 0 ? "skills" : "skills?" + string.Join("&", parameters);
+        try
+        {
+            var list = await _transport.GetAsync<SkillListWire>(Route(route), cancellationToken).ConfigureAwait(false);
+            return list?.ToList() ?? new SkillList();
+        }
+        catch (FadenstackApiException e) when (e.Status == System.Net.HttpStatusCode.NotFound && e.Code != "agent_not_found")
+        {
+            return new SkillList(); // no route: a server from before skills
+        }
+    }
+
+    /// <summary>At most <paramref name="length"/> characters, never half a surrogate pair (it could not be sent).</summary>
+    private static string Cut(string text, int length) =>
+        text.Length <= length ? text : text.Substring(0, char.IsHighSurrogate(text[length - 1]) ? length - 1 : length);
+
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },

@@ -78,11 +78,15 @@ public sealed class AgentSession
         SendAsync(message, Array.Empty<MessageAttachment>(), cancellationToken);
 
     /// <summary>Sends a message with attached context and waits for the turn to end.</summary>
-    public async Task<AgentResult> SendAsync(string message, IReadOnlyList<MessageAttachment> attachments,
-        CancellationToken cancellationToken = default)
+    public Task<AgentResult> SendAsync(string message, IReadOnlyList<MessageAttachment> attachments,
+        CancellationToken cancellationToken = default) =>
+        SendAsync(message, new SendOptions { Attachments = attachments ?? Array.Empty<MessageAttachment>() }, cancellationToken);
+
+    /// <summary>Sends a message with what goes with it (attachments, picked skills) and waits for the turn to end.</summary>
+    public async Task<AgentResult> SendAsync(string message, SendOptions options, CancellationToken cancellationToken = default)
     {
         AgentResult? result = null;
-        await foreach (var e in StreamAsync(message, attachments, cancellationToken).ConfigureAwait(false))
+        await foreach (var e in StreamAsync(message, options, cancellationToken).ConfigureAwait(false))
         {
             if (e is TurnCompleted completed)
             {
@@ -94,10 +98,15 @@ public sealed class AgentSession
 
     /// <summary>Sends a message and streams what happens. Leaving the stream early cancels the turn.</summary>
     public IAsyncEnumerable<AgentEvent> StreamAsync(string message, CancellationToken cancellationToken = default) =>
-        StreamAsync(message, Array.Empty<MessageAttachment>(), cancellationToken);
+        StreamAsync(message, new SendOptions(), cancellationToken);
 
     /// <summary>Sends a message with attached context and streams what happens.</summary>
-    public async IAsyncEnumerable<AgentEvent> StreamAsync(string message, IReadOnlyList<MessageAttachment> attachments,
+    public IAsyncEnumerable<AgentEvent> StreamAsync(string message, IReadOnlyList<MessageAttachment> attachments,
+        CancellationToken cancellationToken = default) =>
+        StreamAsync(message, new SendOptions { Attachments = attachments ?? Array.Empty<MessageAttachment>() }, cancellationToken);
+
+    /// <summary>Sends a message with what goes with it (attachments, picked skills) and streams what happens.</summary>
+    public async IAsyncEnumerable<AgentEvent> StreamAsync(string message, SendOptions options,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (!await _turn.WaitAsync(0, cancellationToken).ConfigureAwait(false))
@@ -106,7 +115,7 @@ public sealed class AgentSession
         }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var channel = Channel.CreateUnbounded<AgentEvent>(new UnboundedChannelOptions { SingleReader = true });
-        var run = RunAsync(message, attachments ?? Array.Empty<MessageAttachment>(), channel.Writer, stop.Token);
+        var run = RunAsync(message, options ?? new SendOptions(), channel.Writer, stop.Token);
         try
         {
             while (await channel.Reader.WaitToReadAsync(CancellationToken.None).ConfigureAwait(false))
@@ -169,14 +178,15 @@ public sealed class AgentSession
         return null;
     }
 
-    private async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, ChannelWriter<AgentEvent> writer,
+    private async Task RunAsync(string message, SendOptions options, ChannelWriter<AgentEvent> writer,
         CancellationToken cancellationToken)
     {
         try
         {
             await Task.Yield(); // the caller gets the stream before the first request goes out
             var turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
-            await turn.RunAsync(message, attachments, cancellationToken).ConfigureAwait(false);
+            await turn.RunAsync(message, options.Attachments ?? Array.Empty<MessageAttachment>(), options.Skills ?? Array.Empty<PickedSkill>(),
+                cancellationToken).ConfigureAwait(false);
             writer.TryComplete();
         }
         catch (Exception e)
@@ -265,6 +275,7 @@ public sealed class AgentSession
         private GovernanceNotice? _blocked;
         private bool _toolDenied;
         private ToolMode _mode;
+        private IReadOnlyList<string> _skills = Array.Empty<string>();
 
         // Pictures the turn's tools returned, by call; only the newest goes back to the model.
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
@@ -279,17 +290,25 @@ public sealed class AgentSession
 
         private FadenstackAgent Agent => _session._agent;
 
-        public async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, CancellationToken cancellationToken)
+        public async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, IReadOnlyList<PickedSkill> skills,
+            CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
-            object user = attachments.Count == 0 ? new { text = message } : new
+            var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
+            _skills = picked.Select(s => s.Slug).ToList();
+            var user = new Dictionary<string, object?> { ["text"] = message };
+            if (attachments.Count > 0)
             {
-                text = message,
-                attachments = attachments.Select(a => new
+                user["attachments"] = attachments.Select(a => new
                 {
                     title = a.Title, content = a.Content, source = a.Source, kind = a.Kind, reference = a.Reference, media_type = a.MediaType,
-                }).ToList(),
-            };
+                }).ToList();
+            }
+            if (picked.Count > 0)
+            {
+                // The name too: a chat opened again shows the skill as it was called then.
+                user["skills"] = picked.Select(s => new { slug = s.Slug, name = string.IsNullOrEmpty(s.Name) ? s.Slug : s.Name }).ToList();
+            }
             await _session.AppendAsync(EntryTypes.UserMessage, _id, user).ConfigureAwait(false);
             await _session.AppendAsync(EntryTypes.TurnStart, _id, new
             {
@@ -370,6 +389,8 @@ public sealed class AgentSession
             {
                 options.Tools = null;
             }
+            // On every call of the turn, not the first only: the gateway gives a request the skills it names.
+            options.WithSkills(_skills);
             var history = _session._context.Build(_session._entries);
             AttachNewestPicture(history);
             var text = new StringBuilder();

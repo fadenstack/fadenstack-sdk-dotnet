@@ -20,12 +20,19 @@ public sealed class Gateway
 
     private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
 
+    /// <param name="vision">Whether the agent's model sees pictures, as JSON (<c>null</c>: not said, as an older server).</param>
+    /// <param name="skills">The skills its users can pick (<c>GET .../skills</c>; the profile says <c>skills: true</c>). Null:
+    /// the server has no skills module, and the route answers <c>available: false</c>.</param>
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
-        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null", string? userLanguage = null)
+        string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null", string? userLanguage = null,
+        IReadOnlyList<FakeSkill>? skills = null)
     {
         UserLanguage = userLanguage;
+        var skillsModule = skills is null ? "false" : "true";
         Server = new FakeServer()
-            .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK, Profile(contract, ceiling, modules, localMcp, vision)))
+            .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK,
+                Profile(contract, ceiling, modules, localMcp, vision, skillsModule)))
+            .Skills("/v1/agents/docs-assistant/skills", skills)
             .On("PATCH", "/v1/agents/docs-assistant/user", r =>
             {
                 if (r.Json.TryGetProperty("language", out var language))
@@ -48,12 +55,13 @@ public sealed class Gateway
     public string? UserLanguage { get; private set; }
 
     /// <summary>The agent profile, with the language the user picked as it is now.</summary>
-    private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision)
+    private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision, string skills)
     {
         var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
         return $$"""
                 {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
-                 "model":"qwen3-32b","vision":{{vision}},"host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
+                 "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},
+                 "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"],
                  "user":{"language":{{language}} } }
@@ -61,6 +69,9 @@ public sealed class Gateway
     }
 
     public List<Recorded> ChatRequests => Server.Requests.Where(r => r.Path == Chat).ToList();
+
+    /// <summary>The times the skills were listed (<c>GET .../skills</c>).</summary>
+    public List<Recorded> SkillRequests => Server.Requests.Where(r => r.Path.EndsWith("/skills")).ToList();
 
     public List<Recorded> Reports => Server.Requests.Where(r => r.Path.EndsWith("/events")).ToList();
 

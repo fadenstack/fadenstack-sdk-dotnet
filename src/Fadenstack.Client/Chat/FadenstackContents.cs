@@ -64,7 +64,10 @@ public static class FadenstackChatOptions
     /// <summary>A server session, for the plain routes (web chat and API sessions); agents have none.</summary>
     public const string SessionId = "faden.session_id";
 
-    /// <summary>Skills picked by slug for this message (plain routes).</summary>
+    /// <summary>
+    /// Skills picked by slug for this message: the gateway gives the request what they say (an agent's chat and the
+    /// plain routes). Each request names them; a later one without them has none.
+    /// </summary>
     public const string Skills = "faden.skills";
 
     /// <summary>Set on a response the gateway refused: <c>prompt_blocked</c> or <c>response_blocked</c>.</summary>
@@ -95,6 +98,20 @@ public static class FadenstackChatOptions
     {
         options.AdditionalProperties ??= new AdditionalPropertiesDictionary();
         options.AdditionalProperties[SessionId] = sessionId;
+        return options;
+    }
+
+    /// <summary>The skills (<see cref="Models.SkillOption.Slug"/>) the user picked for this request; none, nothing is sent.</summary>
+    public static ChatOptions WithSkills(this ChatOptions options, IEnumerable<string> slugs)
+    {
+        var picked = slugs.Where(s => !string.IsNullOrEmpty(s)).Distinct(StringComparer.Ordinal).ToArray();
+        if (picked.Length == 0)
+        {
+            options.AdditionalProperties?.Remove(Skills);
+            return options;
+        }
+        options.AdditionalProperties ??= new AdditionalPropertiesDictionary();
+        options.AdditionalProperties[Skills] = picked;
         return options;
     }
 

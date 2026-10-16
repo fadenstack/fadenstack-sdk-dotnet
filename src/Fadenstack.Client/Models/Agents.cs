@@ -22,6 +22,12 @@ public sealed record AgentProfile
     /// <summary>Whether the server has an image model the agent's tools can use.</summary>
     public bool Images { get; init; }
 
+    /// <summary>
+    /// Whether the user can pick skills for a message (<see cref="Resources.AgentResource.ListSkillsAsync"/>): the server
+    /// runs the skills module.
+    /// </summary>
+    public bool Skills { get; init; }
+
     public string? InstructionsSha256 { get; init; }
 
     /// <summary>The tools the host application may offer; any other tool is refused.</summary>

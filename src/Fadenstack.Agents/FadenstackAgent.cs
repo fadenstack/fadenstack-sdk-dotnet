@@ -138,6 +138,20 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>
+    /// The skills the user can pick for a message (<see cref="SendOptions.Skills"/>); none when the profile says the server
+    /// offers no skills. <paramref name="query"/> narrows them by name or description on the server.
+    /// </summary>
+    public async Task<IReadOnlyList<SkillOption>> ListSkillsAsync(string? query = null, CancellationToken cancellationToken = default)
+    {
+        if (_profile is { Skills: false })
+        {
+            return Array.Empty<SkillOption>();
+        }
+        var list = await Client.Agent!.ListSkillsAsync(query, 100, cancellationToken).ConfigureAwait(false);
+        return list.Skills;
+    }
+
+    /// <summary>
     /// Tells the server what this app brings: every host tool with the class its developer gave it -- also those the
     /// contract does not list yet, which is how the server learns of them -- and the app's context and greeting.
     /// Never fails the start: an older server without the route, or no network, just means no report.

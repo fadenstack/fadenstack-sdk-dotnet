@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace Fadenstack.Agents;
 
 /// <summary>
-/// Context the user attached to a message: a selection, a range, a slide, a file's text. It is sent with the
+/// Context the user attached to a message: a selection, a range, a slide, a file's text, a picture. It is sent with the
 /// message and kept with it in the local transcript, so later turns still see what the question was about.
 /// </summary>
 public sealed record MessageAttachment
@@ -9,17 +11,27 @@ public sealed record MessageAttachment
     /// <summary>What the user sees on the chip: "Sheet1!A1:D20", "Selection", "Slide 3".</summary>
     public string Title { get; init; } = "";
 
-    /// <summary>The text the model gets (Markdown by default).</summary>
+    /// <summary>
+    /// The text the model gets (Markdown by default). For a picture (<see cref="MediaType"/> <c>image/...</c>), its
+    /// <c>data:</c> URL: the model sees it, for a model that sees pictures.
+    /// </summary>
     public string Content { get; init; } = "";
 
     /// <summary>Where it comes from: a context provider's id (<c>excel</c>, <c>word</c>).</summary>
     public string? Source { get; init; }
 
-    /// <summary>What it is: <c>selection</c>, <c>range</c>, <c>slide</c>, <c>document</c>.</summary>
+    /// <summary>What it is: <c>selection</c>, <c>range</c>, <c>slide</c>, <c>document</c>, <c>picture</c>.</summary>
     public string? Kind { get; init; }
 
     /// <summary>An id the agent's context tools can read again, e.g. for the rows after a truncated range.</summary>
     public string? Reference { get; init; }
 
     public string MediaType { get; init; } = "text/markdown";
+
+    /// <summary>A picture: its <see cref="Content"/> is a <c>data:</c> URL the model sees, not text.</summary>
+    [JsonIgnore]
+    public bool IsPicture => IsPictureType(MediaType);
+
+    internal static bool IsPictureType(string? mediaType) =>
+        mediaType is not null && mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 }
