@@ -100,6 +100,22 @@ public class HistoryPictureTests
     }
 
     [Fact]
+    public void Are_left_out_with_a_turn_the_app_closed_on_unless_it_is_the_one_running()
+    {
+        var cut = new[]
+        {
+            Entry(EntryTypes.UserMessage, "t1", new { text = "compare", attachments = new[] { new { title = "P", content = Picture(1), media_type = "image/png" } } }),
+            Entry(EntryTypes.AssistantMessage, "t1", new { text = "", tool_calls = new[] { new { id = "c1", name = "read_context", arguments = "{}" } }, origin = "model" }),
+        };
+        var running = new ContextBuilder().Build(cut);
+        Assert.Equal(new[] { ChatRole.User, ChatRole.Assistant }, running.Select(m => m.Role));
+
+        // The app closed before the tool's result: the next request carries no call without its result.
+        var later = new ContextBuilder().Build(cut.Append(Entry(EntryTypes.UserMessage, "t2", new { text = "again" })).ToList());
+        Assert.Equal(new[] { "text:again" }, Parts(Assert.Single(later)));
+    }
+
+    [Fact]
     public void Are_left_out_of_a_message_whose_turn_failed_with_the_rest_of_it()
     {
         var entries = new[]

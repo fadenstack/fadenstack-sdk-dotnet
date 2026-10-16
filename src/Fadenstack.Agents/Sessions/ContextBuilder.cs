@@ -6,8 +6,9 @@ namespace Fadenstack.Agents.Sessions;
 
 /// <summary>
 /// Builds a request's history from the transcript, with the session rule applied on the device:
-/// a refused prompt, a failed or cancelled turn is left out whole; of a refused answer only the question
-/// stays; consecutive user messages are merged; and the oldest turns go when the history passes the budget.
+/// a refused prompt, a failed or cancelled turn is left out whole, as is an older turn without an end (the app closed
+/// while it ran); of a refused answer only the question stays; consecutive user messages are merged; and the oldest
+/// turns go when the history passes the budget.
 /// Pictures the user attached go with the newest messages only (<see cref="MaxHistoryPictures"/>).
 /// </summary>
 public sealed class ContextBuilder
@@ -28,9 +29,13 @@ public sealed class ContextBuilder
     {
         var status = entries.Where(e => e.Type == EntryTypes.TurnEnd && e.TurnId is not null)
             .GroupBy(e => e.TurnId!).ToDictionary(g => g.Key, g => g.Last().Status ?? TurnStatus.Ok);
+        var newest = entries.LastOrDefault(e => e.TurnId is not null)?.TurnId;
         bool Included(TranscriptEntry entry)
         {
-            var turnStatus = status.TryGetValue(entry.TurnId!, out var s) ? s : TurnStatus.Ok; // in progress: all of it
+            // The newest turn without an end is in progress: all of it. An older one was cut off (the app closed while it
+            // ran): left out as a cancelled one is, so no tool call goes without its result.
+            var turnStatus = status.TryGetValue(entry.TurnId!, out var s) ? s
+                : entry.TurnId == newest ? TurnStatus.Ok : TurnStatus.Cancelled;
             if (turnStatus is TurnStatus.PromptBlocked or TurnStatus.Error or TurnStatus.Cancelled)
             {
                 return false;

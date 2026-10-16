@@ -106,6 +106,7 @@ public class SessionTests : IDisposable
         {
             new TranscriptEntry { Type = EntryTypes.UserMessage, TurnId = $"t{i}", Data = Json(JsonSerializer.Serialize(new { text = $"q{i} " + new string('x', 400) })) },
             new TranscriptEntry { Type = EntryTypes.AssistantMessage, TurnId = $"t{i}", Data = Json(JsonSerializer.Serialize(new { text = $"a{i}" })) },
+            new TranscriptEntry { Type = EntryTypes.TurnEnd, TurnId = $"t{i}", Status = TurnStatus.Ok, Data = Json("{}") },
         }).ToList();
         var history = new ContextBuilder { TokenBudget = 350 }.Build(entries); // ~1400 characters: three turns
         Assert.Equal(new[] { "q8", "a8", "q9", "a9", "q10", "a10" }, history.Select(m => m.Text.Split(' ')[0]));
