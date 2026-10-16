@@ -36,7 +36,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private List<List<TranscriptEntry>> _history = new();
     private int _loadedFrom;
     private string _title = "";
-    private string? _profileGreeting;
+    private Dictionary<string, JsonElement>? _profileUi;
     private readonly IReadOnlyList<string> _languages;
     private readonly IPreferenceStore _preferences;
     private readonly string? _locked;
@@ -163,10 +163,15 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _title, value);
     }
 
-    /// <summary>The agent's greeting for an empty chat (profile <c>ui.greeting</c>).</summary>
-    public string Greeting => _profileGreeting ?? (_title.Length > 0 ? Strings.GreetingFallback(_title) : "");
+    /// <summary>
+    /// The agent's greeting for an empty chat (profile <c>ui.greeting</c>), in the panel's language when the definition
+    /// has it (<c>ui.languages.&lt;tag&gt;.greeting</c>).
+    /// </summary>
+    public string Greeting => UiField("greeting") is { ValueKind: JsonValueKind.String } greeting
+        ? greeting.GetString() ?? ""
+        : _title.Length > 0 ? Strings.GreetingFallback(_title) : "";
 
-    /// <summary>Prompts to start with (profile <c>ui.suggestions</c>).</summary>
+    /// <summary>Prompts to start with (profile <c>ui.suggestions</c>), in the panel's language when the definition has them.</summary>
     public ObservableCollection<string> Suggestions { get; } = new();
 
     public ObservableCollection<TurnViewModel> Turns { get; } = new();
@@ -356,16 +361,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(CanAttachPictures));
             AdoptUserLanguage(profile.User?.Language);
             Title = profile.Name;
-            _profileGreeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : null;
+            _profileUi = profile.Ui;
             OnPropertyChanged(nameof(Greeting));
-            Suggestions.Clear();
-            if (Ui(profile.Ui, "suggestions") is { ValueKind: JsonValueKind.Array } suggestions)
-            {
-                foreach (var s in suggestions.EnumerateArray().Where(s => s.ValueKind == JsonValueKind.String).Take(6))
-                {
-                    Suggestions.Add(s.GetString()!);
-                }
-            }
+            RefreshSuggestions();
             var ceiling = _agent.Ceiling;
             foreach (var option in ToolModes)
             {
@@ -816,7 +814,62 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Language));
         OnPropertyChanged(nameof(LanguageOptions));
         OnPropertyChanged(nameof(Greeting));
+        RefreshSuggestions();
         OnPropertyChanged(nameof(ToolModeHint));
+    }
+
+    /// <summary>The agent's suggestions in the panel's language (six at most).</summary>
+    private void RefreshSuggestions()
+    {
+        var suggestions = UiField("suggestions") is { ValueKind: JsonValueKind.Array } list
+            ? list.EnumerateArray().Where(s => s.ValueKind == JsonValueKind.String).Select(s => s.GetString()!).Take(6).ToList()
+            : new List<string>();
+        if (suggestions.SequenceEqual(Suggestions))
+        {
+            return;
+        }
+        Suggestions.Clear();
+        foreach (var suggestion in suggestions)
+        {
+            Suggestions.Add(suggestion);
+        }
+    }
+
+    /// <summary>
+    /// A field of the agent's <c>ui</c> in the panel's language: <c>ui.languages</c> may carry the greeting and suggestions
+    /// per language tag ("de", "zh-Hans"; "de" also serves "de-AT"), the definition's own serve the rest.
+    /// </summary>
+    private JsonElement? UiField(string name)
+    {
+        if (_profileUi is null)
+        {
+            return null;
+        }
+        if (_profileUi.TryGetValue("languages", out var languages) && languages.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var tag in LanguageTags(Strings))
+            {
+                foreach (var own in languages.EnumerateObject())
+                {
+                    if (string.Equals(own.Name, tag, StringComparison.OrdinalIgnoreCase) && own.Value.ValueKind == JsonValueKind.Object
+                        && own.Value.TryGetProperty(name, out var value))
+                    {
+                        return value;
+                    }
+                }
+            }
+        }
+        return _profileUi.TryGetValue(name, out var field) ? field : null;
+    }
+
+    /// <summary>The chat's language, the most specific tag first ("de-AT", "de"), then the one its texts are in.</summary>
+    private static IEnumerable<string> LanguageTags(UiStrings strings)
+    {
+        for (var culture = strings.Culture; !Equals(culture, CultureInfo.InvariantCulture); culture = culture.Parent)
+        {
+            yield return culture.Name;
+        }
+        yield return strings.Language;
     }
 
     private async Task LoadEarlierAsync()
@@ -1063,7 +1116,4 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         DeleteSessionCommand.NotifyCanExecuteChanged();
         ResetApprovalsCommand.NotifyCanExecuteChanged();
     }
-
-    private static JsonElement? Ui(Dictionary<string, JsonElement>? ui, string key) =>
-        ui is not null && ui.TryGetValue(key, out var v) ? v : null;
 }

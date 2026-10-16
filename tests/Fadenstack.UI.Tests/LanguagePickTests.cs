@@ -88,6 +88,40 @@ public class LanguagePickTests
         Assert.Equal(("de", "read_page ausgeführt", (string?)null), (chat.Strings.Language, tool.Title, preferences.Get("language")));
     }
 
+    private const string PerLanguage = """
+        {"greeting":"I read pages.","suggestions":["Summarise this page"],
+         "languages":{"de":{"greeting":"Ich lese Seiten.","suggestions":["Diese Seite zusammenfassen"]},"fr":{"greeting":"Je lis les pages."}}}
+        """;
+
+    [Fact]
+    public async Task The_agents_greeting_and_suggestions_are_in_the_panels_language_and_follow_a_change_of_it()
+    {
+        var chat = Chat(new Gateway(ui: PerLanguage), o => o.AutomaticLanguage = C("en-GB"));
+        await chat.InitializeAsync();
+        Assert.Equal(("I read pages.", "Summarise this page"), (chat.Greeting, string.Join("|", chat.Suggestions)));
+        var changed = new List<string?>();
+        chat.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        await chat.SetLanguageAsync("de");
+        Assert.Equal(("Ich lese Seiten.", "Diese Seite zusammenfassen"), (chat.Greeting, string.Join("|", chat.Suggestions)));
+        Assert.Contains(nameof(AgentChatViewModel.Greeting), changed);
+        await chat.SetLanguageAsync("fr");
+        Assert.Equal(("Je lis les pages.", "Summarise this page"), (chat.Greeting, string.Join("|", chat.Suggestions))); // French has no suggestions of its own
+        await chat.SetLanguageAsync("es");
+        Assert.Equal("I read pages.", chat.Greeting);
+    }
+
+    [Fact]
+    public async Task A_language_the_definition_has_serves_its_regions_too()
+    {
+        var chat = Chat(new Gateway(ui: PerLanguage), o => o.Strings = UiStrings.For(C("de-AT")));
+        await chat.InitializeAsync();
+        Assert.Equal(("de-AT", "Ich lese Seiten."), (chat.Strings.Culture.Name, chat.Greeting));
+        var plain = Chat(new Gateway(), o => o.Strings = UiStrings.For(C("de-AT")));
+        await plain.InitializeAsync();
+        Assert.Equal("Was möchten Sie Docs fragen?", plain.Greeting); // no ui at all: the panel's own greeting
+    }
+
     [Fact]
     public void The_language_the_organisation_fixed_is_kept_and_the_users_old_pick_is_not()
     {

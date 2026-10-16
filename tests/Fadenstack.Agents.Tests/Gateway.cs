@@ -23,15 +23,16 @@ public sealed class Gateway
     /// <param name="vision">Whether the agent's model sees pictures, as JSON (<c>null</c>: not said, as an older server).</param>
     /// <param name="skills">The skills its users can pick (<c>GET .../skills</c>; the profile says <c>skills: true</c>). Null:
     /// the server has no skills module, and the route answers <c>available: false</c>.</param>
+    /// <param name="ui">The definition's <c>ui</c> (greeting, suggestions, their languages), as JSON.</param>
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
         string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null", string? userLanguage = null,
-        IReadOnlyList<FakeSkill>? skills = null)
+        IReadOnlyList<FakeSkill>? skills = null, string ui = "null")
     {
         UserLanguage = userLanguage;
         var skillsModule = skills is null ? "false" : "true";
         Server = new FakeServer()
             .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK,
-                Profile(contract, ceiling, modules, localMcp, vision, skillsModule)))
+                Profile(contract, ceiling, modules, localMcp, vision, skillsModule, ui)))
             .Skills("/v1/agents/docs-assistant/skills", skills)
             .On("PATCH", "/v1/agents/docs-assistant/user", r =>
             {
@@ -55,12 +56,12 @@ public sealed class Gateway
     public string? UserLanguage { get; private set; }
 
     /// <summary>The agent profile, with the language the user picked as it is now.</summary>
-    private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision, string skills)
+    private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision, string skills, string ui)
     {
         var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
         return $$"""
                 {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
-                 "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},
+                 "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"],
