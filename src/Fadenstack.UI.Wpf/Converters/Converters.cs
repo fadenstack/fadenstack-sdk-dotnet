@@ -34,6 +34,21 @@ public sealed class EmptyToCollapsedConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
 }
 
+/// <summary>
+/// A picture's <c>data:</c> URL → a small bitmap, for its chip (<c>ConverterParameter</c> = the pixels to decode it at,
+/// default 64: sharp at 16 px on a 300 % screen, and little memory). Nothing for anything else.
+/// </summary>
+public sealed class DataUrlToImageConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var size = parameter is string p && int.TryParse(p, NumberStyles.Integer, CultureInfo.InvariantCulture, out var s) ? s : 64;
+        return Services.Pictures.FromDataUrl(value as string, size) ?? DependencyProperty.UnsetValue;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => Binding.DoNothing;
+}
+
 /// <summary>A nesting level → a left indent (<c>ConverterParameter</c> = pixels per level, default 18).</summary>
 public sealed class LevelToIndentConverter : IValueConverter
 {

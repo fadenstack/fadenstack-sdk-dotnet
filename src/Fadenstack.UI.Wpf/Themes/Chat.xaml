@@ -16,6 +16,7 @@
     <c:InverseBoolConverter x:Key="Fadenstack.InverseBool" />
     <c:EmptyToCollapsedConverter x:Key="Fadenstack.EmptyToCollapsed" />
     <c:LevelToIndentConverter x:Key="Fadenstack.LevelToIndent" />
+    <c:DataUrlToImageConverter x:Key="Fadenstack.DataUrlToImage" />
 
     <!-- ===== Shape ======================================================================================== -->
     <!--
@@ -724,14 +725,30 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate>
+                    <!-- What went with the message: a skill (marked), a picture (small), context -->
+                    <DataTemplate DataType="{x:Type vm:AttachmentChip}">
                         <Border CornerRadius="{StaticResource Fadenstack.Radius.Chip}" BorderThickness="1" BorderBrush="{DynamicResource Fadenstack.Border}" Padding="6,1" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="10" Text="&#xE8A5;" Margin="0,0,4,0"
+                                <Border x:Name="Thumbnail" Width="14" Height="14" CornerRadius="3" Margin="0,0,5,0" Visibility="Collapsed">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding Image, Converter={StaticResource Fadenstack.DataUrlToImage}}" Stretch="UniformToFill" />
+                                    </Border.Background>
+                                </Border>
+                                <TextBlock x:Name="Mark" Style="{StaticResource Fadenstack.Icon}" FontSize="10" Text="&#xE8A5;" Margin="0,0,4,0"
                                            Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
                                 <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding Title}" ToolTip="{Binding Subtitle}" />
                             </StackPanel>
                         </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsSkill}" Value="True">
+                                <Setter TargetName="Mark" Property="Text" Value="&#xE945;" />
+                                <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Fadenstack.Accent}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasImage}" Value="True">
+                                <Setter TargetName="Thumbnail" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Mark" Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

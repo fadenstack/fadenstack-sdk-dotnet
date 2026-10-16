@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Fadenstack.UI.ViewModels;assembly=Fadenstack.UI"
+             xmlns:m="clr-namespace:Fadenstack.Models;assembly=Fadenstack.Client"
              xmlns:b="clr-namespace:Fadenstack.UI.Wpf.Behaviors"
              xmlns:local="clr-namespace:Fadenstack.UI.Wpf.Views"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=vm:AgentChatViewModel}"
@@ -192,59 +193,179 @@
             </Border>
         </Grid>
 
-        <!-- Composer -->
+        <!--
+            The skills $ lists: above the composer, as wide as it, over the conversation's end. In the tree, not a popup,
+            so it moves with the panel and never floats over other windows. The active one is the list's selection.
+        -->
+        <Border x:Name="SkillPicker" Grid.Row="1" VerticalAlignment="Bottom" Margin="12,0,12,0" Padding="6"
+                Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                CornerRadius="{StaticResource Fadenstack.Radius.Container}"
+                Visibility="{Binding SkillPicker.IsOpen, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text Skills}" Margin="8,4,8,4" />
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding SkillPicker.Note}" TextWrapping="Wrap" Margin="8,2,8,6"
+                           Visibility="{Binding SkillPicker.Note, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                <ListBox ItemsSource="{Binding SkillPicker.Options}" SelectedIndex="{Binding SkillPicker.ActiveIndex, Mode=OneWay}"
+                         Focusable="False" MaxHeight="320" b:ScrollSelection.IntoView="True"
+                         AutomationProperties.AutomationId="{Binding SkillPicker.Key}" AutomationProperties.Name="{local:Text Skills}"
+                         Visibility="{Binding SkillPicker.HasOptions, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Row" CornerRadius="{StaticResource Fadenstack.Radius.Control}" Background="Transparent" Margin="0,1">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type m:SkillOption}">
+                            <!-- Picked on press, without the focus leaving the composer (and the caret its place). -->
+                            <Button Style="{StaticResource Fadenstack.GhostButton}" Focusable="False" ClickMode="Press"
+                                    HorizontalContentAlignment="Stretch" Padding="8,6" AutomationProperties.Name="{Binding Name}"
+                                    Command="{Binding DataContext.SkillPicker.PickCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Fadenstack.Icon}" FontSize="13" Text="&#xE945;"
+                                               Foreground="{DynamicResource Fadenstack.Accent}" VerticalAlignment="Top" Margin="0,2,10,0" />
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="Description" Style="{StaticResource Fadenstack.Muted}" Text="{Binding Description}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Description}" Value="">
+                                    <Setter TargetName="Description" Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{local:Text SkillPickerHint}" Margin="8,4,8,2"
+                           Visibility="{Binding SkillPicker.HasOptions, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Composer: a pasted picture, or picture files dropped on it, go with the next message -->
         <Border Grid.Row="2" Margin="12,4,12,12" Padding="12,8,6,6" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
-                BorderBrush="{DynamicResource Fadenstack.Border}" Background="{DynamicResource Fadenstack.Surface}">
+                BorderBrush="{DynamicResource Fadenstack.Border}" Background="{DynamicResource Fadenstack.Surface}"
+                b:PictureInput.Chat="{Binding}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <!-- Attached context: chips; an implicit one (the current selection) can be switched off -->
-                <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" Margin="0,0,0,6"
-                              Visibility="{Binding Attachments.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:AttachmentViewModel}">
-                            <Border x:Name="Chip" CornerRadius="{StaticResource Fadenstack.Radius.Chip}" BorderThickness="1" BorderBrush="{DynamicResource Fadenstack.Border}"
-                                    Background="{DynamicResource Fadenstack.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4">
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="2" Command="{Binding ToggleCommand}"
-                                            ToolTip="{local:Text IncludeAttachment}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                                        <TextBlock x:Name="Eye" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE7B3;" />
-                                    </Button>
-                                    <TextBlock x:Name="ChipIcon" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE8A5;" Margin="0,0,4,0"
-                                               Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
-                                               Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
-                                    <TextBlock x:Name="ChipTitle" Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
-                                               ToolTip="{Binding Subtitle}" FontSize="12" />
-                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="{local:Text RemoveAttachment}"
-                                            Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
-                                        <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE711;" />
-                                    </Button>
-                                </StackPanel>
-                            </Border>
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsIncluded}" Value="False">
-                                    <Setter TargetName="ChipTitle" Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
-                                    <Setter TargetName="Eye" Property="Text" Value="&#xED1A;" />
-                                    <Setter TargetName="Chip" Property="Background" Value="Transparent" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel>
+                    <!-- The skills picked for the next message -->
+                    <ItemsControl ItemsSource="{Binding PickedSkills}" Focusable="False" Margin="0,0,0,6"
+                                  Visibility="{Binding PickedSkills.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type m:SkillOption}">
+                                <Border x:Name="Chip" CornerRadius="{StaticResource Fadenstack.Radius.Chip}" BorderThickness="1" BorderBrush="{DynamicResource Fadenstack.Border}"
+                                        Background="{DynamicResource Fadenstack.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4" ToolTip="{Binding Description}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE945;" Margin="0,0,4,0"
+                                                   Foreground="{DynamicResource Fadenstack.Accent}" />
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" FontSize="12" />
+                                        <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{local:Text Skill}" Margin="6,0,0,0" />
+                                        <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="{local:Text RemoveAttachment}"
+                                                AutomationProperties.Name="{local:Text RemoveAttachment}"
+                                                Command="{Binding DataContext.RemoveSkillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}">
+                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE711;" />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Description}" Value="">
+                                        <Setter TargetName="Chip" Property="ToolTip" Value="{x:Null}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <!-- Attached context: chips, a picture's small; an implicit one (the current selection) can be switched off -->
+                    <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" Margin="0,0,0,6"
+                                  Visibility="{Binding Attachments.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:AttachmentViewModel}">
+                                <Border x:Name="Chip" CornerRadius="{StaticResource Fadenstack.Radius.Chip}" BorderThickness="1" BorderBrush="{DynamicResource Fadenstack.Border}"
+                                        Background="{DynamicResource Fadenstack.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="2" Command="{Binding ToggleCommand}"
+                                                ToolTip="{local:Text IncludeAttachment}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                            <TextBlock x:Name="Eye" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE7B3;" />
+                                        </Button>
+                                        <Border x:Name="Thumbnail" Width="16" Height="16" CornerRadius="3" Margin="0,0,5,0" Visibility="Collapsed">
+                                            <Border.Background>
+                                                <ImageBrush ImageSource="{Binding Image, Converter={StaticResource Fadenstack.DataUrlToImage}}" Stretch="UniformToFill" />
+                                            </Border.Background>
+                                        </Border>
+                                        <TextBlock x:Name="ChipIcon" Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE8A5;" Margin="0,0,4,0"
+                                                   Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                                                   Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+                                        <TextBlock x:Name="ChipTitle" Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Subtitle}" FontSize="12" />
+                                        <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="{local:Text RemoveAttachment}"
+                                                Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}" Visibility="{Binding IsImplicit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
+                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE711;" />
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsIncluded}" Value="False">
+                                        <Setter TargetName="ChipTitle" Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+                                        <Setter TargetName="Eye" Property="Text" Value="&#xED1A;" />
+                                        <Setter TargetName="Chip" Property="Background" Value="Transparent" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding HasImage}" Value="True">
+                                        <Setter TargetName="Thumbnail" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="ChipIcon" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
                 <TextBox x:Name="Composer" Grid.Row="1" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                          TextWrapping="Wrap" MaxHeight="200" MinHeight="40" VerticalScrollBarVisibility="Auto"
                          BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Fadenstack.Foreground}"
                          CaretBrush="{DynamicResource Fadenstack.Foreground}" Padding="0,2" IsEnabled="{Binding IsReady}"
-                         b:ComposerFocus.Chat="{Binding}" AutomationProperties.Name="{local:Text Message}">
+                         b:ComposerFocus.Chat="{Binding}" b:SkillKeys.Picker="{Binding SkillPicker}" AutomationProperties.Name="{local:Text Message}">
                     <TextBox.InputBindings>
                         <!-- Enter sends; Shift+Enter is a new line (AcceptsReturn) -->
                         <KeyBinding Key="Enter" Command="{Binding SendCommand}" />
