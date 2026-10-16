@@ -34,7 +34,7 @@ The rules:
 - The tool's name is the method's name in snake_case, without an `Async` suffix: `ReadPageAsync` becomes `read_page`. Set `Name` on the attribute to choose another.
 - The description comes from `[Description]` on the method. The model reads it to decide when to call the tool, so say what the tool does and what it returns.
 - `[AgentTool(ToolClass.Read)]` gives the tool its class. Without a class, the tool is `Unknown`.
-- `OpenWorld = true` marks a tool that reaches outside the organisation. It is recorded and shown; no tool mode acts on it yet.
+- `OpenWorld = true` marks a tool that reaches outside the organisation, such as a web search. It is recorded, and its approval request says so (`ApprovalRequest.OpenWorld`): the chat panel's card says that what it is given leaves the organisation. No tool mode acts on it yet.
 - Tool names must be unique. `Build()` throws when two tools share a name.
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.

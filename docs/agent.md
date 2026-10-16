@@ -240,13 +240,31 @@ var result = await session.SendAsync("What does this range sum to?", new[]
 | Property | Meaning |
 |---|---|
 | `Title` | What the user sees, for example `Selection` or `Slide 3`. |
-| `Content` | The text the model gets. |
-| `MediaType` | The content's type, `text/markdown` by default. |
+| `Content` | The text the model gets; for a picture, its `data:` URL. |
+| `MediaType` | The content's type, `text/markdown` by default; `image/...` for a picture. |
 | `Source` | Where it comes from, for example `excel`. |
-| `Kind` | What it is, for example `selection`, `range` or `document`. |
+| `Kind` | What it is, for example `selection`, `range`, `document` or `picture`. |
 | `Reference` | An id your tools can read again, for example to fetch the rest of a truncated range. |
 
 The model gets each attachment before the question, in a block of its own. Attachments are kept with the message in the session, so later turns still see what the question was about.
+
+### Pictures
+
+An attachment whose `MediaType` is `image/...` is a picture: its `Content` is a `data:image/...;base64,` URL, and the model gets it as an image before the text. Send pictures only when `agent.Profile.Vision` is true: a model that does not see pictures cannot use them. The history carries the pictures of the newest messages only, `ContextBuilder.MaxHistoryPictures` (4) in all, because each costs the model about as much as a page of text; older ones are named in their place. The newest message keeps all of its own.
+
+## Pick skills
+
+When the server runs the skills module (`agent.Profile.Skills`), the user can pick skills for a message. `agent.ListSkillsAsync(query)` lists the ones they can pick (none on a server without skills), and `SendOptions.Skills` sends them with the message:
+
+```csharp
+var skills = await agent.ListSkillsAsync("reply");
+var result = await session.SendAsync("Answer this mail.", new SendOptions
+{
+    Skills = new[] { new PickedSkill(skills[0].Slug, skills[0].Name) },
+});
+```
+
+Every model call of the turn gets the skills, and the session keeps them with the message. The next message has none unless they are picked again.
 
 ## Cancellation
 
@@ -254,7 +272,7 @@ Pass a `CancellationToken` to `StreamAsync` or `SendAsync`. Cancelling it stops 
 
 Leaving an `await foreach` over `StreamAsync` early, for example with `break`, also cancels the turn. No exception is thrown in that case.
 
-A cancelled turn is recorded as cancelled in the session and is never sent to the model again. The session goes on with the next message.
+A cancelled turn is recorded as cancelled in the session and is never sent to the model again. The session goes on with the next message. So is a turn the app closed on before it ended: once a newer turn starts, it is left out like a cancelled one, so no tool call goes to the model without its result.
 
 ## Reasoning, rounds and history
 

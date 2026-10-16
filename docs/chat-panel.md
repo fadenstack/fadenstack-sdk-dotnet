@@ -59,16 +59,18 @@ When the panel closes, dispose the view model and then the agent.
 ## What the panel shows
 
 - **The header** shows the agent's name, the tool-mode picker with a line on what the picked mode means, the list of chats on this device, and a button for a new chat. If the user may not pick a mode, the picker shows it greyed out.
-- **An empty chat** shows the agent's greeting and suggested prompts, from the agent's profile (`ui.greeting`, `ui.suggestions`).
+- **An empty chat** shows the agent's greeting and suggested prompts, from the agent's profile (`ui.greeting`, `ui.suggestions`). The definition may carry them per language (`ui.languages.<tag>.greeting` and `.suggestions`; `de` also serves `de-AT`): the panel shows the ones for its language, and others when the user picks another.
 - **The answer streams as Markdown**: headings, lists, code blocks with a copy button, tables, quotes, rules and links. Text and tool calls appear in the order they happened.
 - **Each tool call is one line**: "Running read_page" while it runs, then "Ran read_page" with its class and duration. It expands to its arguments and result.
-- **Approvals are cards** in the answer, above the call they are for, with *Allow* and *Deny*, and *Allow for this chat* and *Allow always* where the request offers them: never for destructive or unclassified tools, nor for a call an administrator's rule covers. Destructive and unclassified tools are marked. A call that an earlier approval lets through gets no card, also when a session is opened again.
+- **Approvals are cards** in the answer, above the call they are for, with *Allow* and *Deny*, and *Allow for this chat* and *Allow always* where the request offers them: never for destructive or unclassified tools, nor for a call an administrator's rule covers. Destructive and unclassified tools are marked. A call that an earlier approval lets through gets no card, also when a session is opened again. A card for a tool that reaches outside the organisation (`OpenWorld`, such as a web search) says that what it is given leaves the organisation; a destructive one still says it cannot be undone.
 - **The tool-mode menu** ends with *Reset approvals*, which forgets what the user allowed always for this agent on this device and what they allowed for the current chat (`ResetApprovalsCommand`).
 - **Refusals and limits are notices** in the answer. A refused prompt is marked *Not sent*, with *Edit and resend*. A notice shows the server's decision id for support.
 - **Citations** ("Used 3 references") and **the model's reasoning** ("Thinking...", then how long it thought) are collapsed until the user opens them. Personal data the server kept from the model is reported as a notice.
 - **Gateway events the panel does not know** appear as generic notices.
 - **Under each answer** are its token count, its duration, a copy button, and a retry button for an answer that failed or was stopped.
 - **The composer** shows attached context as chips and the current tool mode. *Enter* sends, *Shift+Enter* starts a new line, *Esc* stops the running turn, and *Ctrl+N* starts a new chat.
+- **Skills**: on a server with skills, `$` at the end of the text (or `/` as the whole of it) opens the skills the user can pick, narrowed as they type. *Up* and *Down* move, *Enter* or *Tab* picks, *Esc* closes the list. A picked skill is a chip for the next message only, and shows under the message when it is sent.
+- **Pictures**: for a model that sees pictures, a pasted picture, or picture files pasted or dropped on the composer, go with the next message, at most 1600 pixels on the longer side, as JPEG. A chip shows each small. For another model the panel says it does not see pictures. Pasted text stays text.
 
 ## Built for long sessions
 
@@ -95,6 +97,7 @@ chat.Attachments.Add(new AttachmentViewModel(
 - An implicit chip stays between messages, and the user can switch it off for the next message. Other chips go with one message and are then removed.
 - `AttachmentViewModel.FromContent(attachment)` makes a chip from content you already have.
 - If reading the content fails, the message is sent without it and the turn shows a warning.
+- `chat.AttachPicture(dataUrl, title, kind)` adds a picture the host took, such as a screenshot of the document. It returns false, and `Error` says why, when the agent's model does not see pictures (`CanAttachPictures`). `Pictures.ToDataUrl(bitmap)` and `Pictures.ReadFile(path)` in `Fadenstack.UI.Wpf.Services` make the data URL.
 
 `ChatView.ComposerToolbar` takes your own content for the composer's bottom left, for example an *Add context* button; it gets the panel's colours. `chat.RequestComposerFocus()` moves the focus to the composer.
 
@@ -285,7 +288,9 @@ For your own skin, or to drive the chat from the host:
 | `InitializeAsync()` | Starts the agent and reads the session list. |
 | `SendAsync(text)` | Sends a message, after `BeforeSend`; completes when the turn has ended and been shown. |
 | `NewChat()`, `OpenSessionAsync(id)`, `RefreshSessionsAsync()` | Chats on this device. |
-| `Turns`, `Sessions`, `Attachments`, `Suggestions` | The collections the panel binds to. |
+| `Turns`, `Sessions`, `Attachments`, `PickedSkills`, `Suggestions` | The collections the panel binds to. |
+| `SkillPicker`, `CanPickSkills`, `RemoveSkill(slug)` | The skills `$` lists: open, its options, the active one, `Move(step)`, `Pick()`, `Close()`. |
+| `AttachPicture(dataUrl)`, `CanAttachPictures`, `PictureNotRead(name)` | Pictures for the next message. |
 | `Title`, `Greeting`, `Input`, `SelectedToolMode`, `ToolModes`, `ToolModeHint` | The header, the composer and the mode picker. |
 | `IsReady`, `IsBusy`, `CanSend`, `IsEmpty`, `HasEarlierTurns`, `SignInRequired`, `Error` | State. |
 | `Strings` | The texts the panel shows, for a skin's labels; they change when the user picks another language. |

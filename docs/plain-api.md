@@ -83,7 +83,7 @@ var response = await client.Chat.GetResponseAsync(question, options);
 | `WithSession(sessionId)` | Uses a server session (see below) for this request. |
 | `WithToolMode(mode)` | The tool mode for this request. Without it, the client's `ToolMode` option applies, which is `Ask` by default. |
 | `WithConversation(conversationId, turnId)` | Names the conversation and turn. Only an agent's route reads them, to group usage per conversation without keeping the conversation; the plain routes ignore them. |
-| `FadenstackChatOptions.Skills` | A key for `AdditionalProperties`: the skills to use for this message, by slug. |
+| `FadenstackChatOptions.Skills` | A key for `AdditionalProperties`: the skills to use for this message, by slug. `options.WithSkills(slugs)` sets it; `client.Agent.ListSkillsAsync(query, limit)` lists the ones the user can pick. |
 
 With `GatewayEvents` on (the default), the response also carries the gateway's events as `FadenstackEventContent` items, such as citations.
 

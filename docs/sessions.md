@@ -37,9 +37,10 @@ Entries are only ever appended. A turn that was stopped is still recorded, as st
 
 `session.History` shows what the next request would carry. It is built from the transcript by these rules:
 
-- A refused prompt, a failed turn and a cancelled turn are left out entirely.
+- A refused prompt, a failed turn and a cancelled turn are left out entirely, and so is an older turn without an end (the app closed while it ran). Only the newest turn may still be running.
 - Of a turn whose answer was stopped, only the question stays.
 - Consecutive user messages are merged into one.
+- Pictures the user attached go with the newest messages only, four in all; older ones are named in their place. A picture counts as 4,000 characters of the budget.
 - When the history is larger than the agent's history budget (`UseHistoryBudget`), the oldest turns are left out. The current turn is always sent.
 
 ## Retention
