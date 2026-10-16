@@ -34,14 +34,15 @@ internal static class TranscriptTurns
     public static TurnViewModel Build(AgentChatViewModel chat, List<TranscriptEntry> entries, int previewLength)
     {
         var user = entries.FirstOrDefault(e => e.Type == EntryTypes.UserMessage);
-        var turn = new TurnViewModel(chat, Json.Str(user?.Data ?? default, "text") ?? "", user?.Timestamp ?? entries[0].Timestamp,
+        var data = user?.Data ?? default;
+        var turn = new TurnViewModel(chat, Json.Str(data, "text") ?? "", user?.Timestamp ?? entries[0].Timestamp,
             previewLength, TurnState.Completed)
         {
             Id = entries[0].TurnId,
-            Attachments = user is not null && user.Data.ValueKind == JsonValueKind.Object && user.Data.TryGetProperty("attachments", out var list)
-                && list.ValueKind == JsonValueKind.Array
-                ? list.EnumerateArray().Select(a => new AttachmentChip(Json.Str(a, "title") ?? "", Json.Str(a, "kind"))).ToList()
-                : Array.Empty<AttachmentChip>(),
+            // The skills the user picked, then what they attached: as the chips were when it was sent.
+            Attachments = Items(data, "skills").Select(s => new AttachmentChip(Json.Str(s, "name") ?? Json.Str(s, "slug") ?? "", null) { IsSkill = true })
+                .Concat(Items(data, "attachments").Select(Chip))
+                .ToList(),
         };
         var state = TurnState.Stopped; // a turn without an end was interrupted
         ChatOutcome? outcome = null;
@@ -120,5 +121,19 @@ internal static class TranscriptTurns
         }
         turn.Restore(state, outcome, usage);
         return turn;
+    }
+
+    private static IEnumerable<JsonElement> Items(JsonElement data, string name) =>
+        data.ValueKind == JsonValueKind.Object && data.TryGetProperty(name, out var list) && list.ValueKind == JsonValueKind.Array
+            ? list.EnumerateArray()
+            : Enumerable.Empty<JsonElement>();
+
+    /// <summary>An attachment's chip; a picture's shows it small.</summary>
+    private static AttachmentChip Chip(JsonElement attachment)
+    {
+        var content = Json.Str(attachment, "content");
+        var picture = MessageAttachment.IsPictureType(Json.Str(attachment, "media_type"))
+            && content is not null && content.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase);
+        return new AttachmentChip(Json.Str(attachment, "title") ?? "", Json.Str(attachment, "kind")) { Image = picture ? content : null };
     }
 }

@@ -304,4 +304,37 @@
   <data name="IncludeAttachment" xml:space="preserve">
     <value>随下一条消息发送</value>
   </data>
+  <data name="Skills" xml:space="preserve">
+    <value>技能</value>
+  </data>
+  <data name="Skill" xml:space="preserve">
+    <value>技能</value>
+  </data>
+  <data name="SkillsLoading" xml:space="preserve">
+    <value>正在加载技能…</value>
+  </data>
+  <data name="NoSkills" xml:space="preserve">
+    <value>您没有可用的技能。</value>
+  </data>
+  <data name="NoSkillMatches" xml:space="preserve">
+    <value>没有与“{0}”匹配的技能。</value>
+  </data>
+  <data name="SkillsFailed" xml:space="preserve">
+    <value>无法加载技能。</value>
+  </data>
+  <data name="SkillPickerHint" xml:space="preserve">
+    <value>按 Enter 选择技能，按 Esc 关闭列表。</value>
+  </data>
+  <data name="Picture" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="PastedPicture" xml:space="preserve">
+    <value>粘贴的图片</value>
+  </data>
+  <data name="PicturesNotSeen" xml:space="preserve">
+    <value>此智能体的模型无法查看图片。</value>
+  </data>
+  <data name="PictureNotRead" xml:space="preserve">
+    <value>无法将 {0} 读取为图片。</value>
+  </data>
 </root>

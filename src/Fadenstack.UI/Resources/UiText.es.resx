@@ -304,4 +304,37 @@
   <data name="IncludeAttachment" xml:space="preserve">
     <value>Incluir en el próximo mensaje</value>
   </data>
+  <data name="Skills" xml:space="preserve">
+    <value>Habilidades</value>
+  </data>
+  <data name="Skill" xml:space="preserve">
+    <value>Habilidad</value>
+  </data>
+  <data name="SkillsLoading" xml:space="preserve">
+    <value>Cargando habilidades…</value>
+  </data>
+  <data name="NoSkills" xml:space="preserve">
+    <value>No tiene habilidades disponibles.</value>
+  </data>
+  <data name="NoSkillMatches" xml:space="preserve">
+    <value>Ninguna habilidad coincide con «{0}».</value>
+  </data>
+  <data name="SkillsFailed" xml:space="preserve">
+    <value>No se pudieron cargar las habilidades.</value>
+  </data>
+  <data name="SkillPickerHint" xml:space="preserve">
+    <value>Intro elige la habilidad, Esc cierra la lista.</value>
+  </data>
+  <data name="Picture" xml:space="preserve">
+    <value>Imagen</value>
+  </data>
+  <data name="PastedPicture" xml:space="preserve">
+    <value>Imagen pegada</value>
+  </data>
+  <data name="PicturesNotSeen" xml:space="preserve">
+    <value>El modelo de este agente no ve imágenes.</value>
+  </data>
+  <data name="PictureNotRead" xml:space="preserve">
+    <value>{0} no se pudo leer como imagen.</value>
+  </data>
 </root>

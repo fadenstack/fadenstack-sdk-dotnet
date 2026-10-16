@@ -26,9 +26,17 @@ public sealed class AttachmentViewModel : ObservableObject
         ToggleCommand = new RelayCommand(() => IsIncluded = !IsIncluded, () => IsImplicit);
     }
 
-    /// <summary>An attachment whose content is already known.</summary>
+    /// <summary>An attachment whose content is already known; a picture shows small on its chip.</summary>
     public static AttachmentViewModel FromContent(MessageAttachment attachment) =>
-        new(attachment.Title, attachment.Kind, _ => Task.FromResult<MessageAttachment?>(attachment));
+        new(attachment.Title, attachment.Kind, _ => Task.FromResult<MessageAttachment?>(attachment))
+        {
+            Image = attachment.IsPicture ? attachment.Content : null,
+        };
+
+    /// <summary>A picture's <c>data:</c> URL: the chip shows it small.</summary>
+    public string? Image { get; init; }
+
+    public bool HasImage => Image is not null;
 
     public string Title
     {
@@ -59,5 +67,14 @@ public sealed class AttachmentViewModel : ObservableObject
     internal Task<MessageAttachment?> ResolveAsync(CancellationToken cancellationToken) => _resolve(cancellationToken);
 }
 
-/// <summary>What a sent message had attached, as shown under it.</summary>
-public sealed record AttachmentChip(string Title, string? Subtitle);
+/// <summary>What a sent message had attached, as shown under it: context, a picture, or a skill the user picked.</summary>
+public sealed record AttachmentChip(string Title, string? Subtitle)
+{
+    /// <summary>A picture: its <c>data:</c> URL, shown small.</summary>
+    public string? Image { get; init; }
+
+    /// <summary>A skill the user picked for the message (the chip shows its name).</summary>
+    public bool IsSkill { get; init; }
+
+    public bool HasImage => Image is not null;
+}

@@ -32,6 +32,7 @@ public sealed record MessageAttachment
     [JsonIgnore]
     public bool IsPicture => IsPictureType(MediaType);
 
-    internal static bool IsPictureType(string? mediaType) =>
+    /// <summary>Whether a media type is a picture's (<c>image/...</c>), as the transcript keeps an attachment's.</summary>
+    public static bool IsPictureType(string? mediaType) =>
         mediaType is not null && mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
 }

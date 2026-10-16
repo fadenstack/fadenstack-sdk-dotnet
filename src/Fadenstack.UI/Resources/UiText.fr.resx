@@ -304,4 +304,37 @@
   <data name="IncludeAttachment" xml:space="preserve">
     <value>Joindre au prochain message</value>
   </data>
+  <data name="Skills" xml:space="preserve">
+    <value>Compétences</value>
+  </data>
+  <data name="Skill" xml:space="preserve">
+    <value>Compétence</value>
+  </data>
+  <data name="SkillsLoading" xml:space="preserve">
+    <value>Chargement des compétences…</value>
+  </data>
+  <data name="NoSkills" xml:space="preserve">
+    <value>Aucune compétence n'est disponible pour vous.</value>
+  </data>
+  <data name="NoSkillMatches" xml:space="preserve">
+    <value>Aucune compétence ne correspond à « {0} ».</value>
+  </data>
+  <data name="SkillsFailed" xml:space="preserve">
+    <value>Les compétences n'ont pas pu être chargées.</value>
+  </data>
+  <data name="SkillPickerHint" xml:space="preserve">
+    <value>Entrée choisit la compétence, Échap ferme la liste.</value>
+  </data>
+  <data name="Picture" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="PastedPicture" xml:space="preserve">
+    <value>Image collée</value>
+  </data>
+  <data name="PicturesNotSeen" xml:space="preserve">
+    <value>Le modèle de cet agent ne voit pas les images.</value>
+  </data>
+  <data name="PictureNotRead" xml:space="preserve">
+    <value>{0} n'a pas pu être lu comme image.</value>
+  </data>
 </root>

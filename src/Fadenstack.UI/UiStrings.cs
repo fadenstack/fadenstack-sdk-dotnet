@@ -243,6 +243,39 @@ public sealed class UiStrings
 
     public string IncludeAttachment => Text();
 
+    // -- skills ($ or / in the composer) ---------------------------------------------------------------
+
+    /// <summary>The skill picker's name.</summary>
+    public string Skills => Text();
+
+    /// <summary>The second line of a picked skill's chip.</summary>
+    public string Skill => Text();
+
+    public string SkillsLoading => Text();
+
+    public string NoSkills => Text();
+
+    /// <summary>"No skill matches "contr"."</summary>
+    public string NoSkillMatches(string query) => Fill(query);
+
+    public string SkillsFailed => Text();
+
+    /// <summary>Under the picker: how to use it.</summary>
+    public string SkillPickerHint => Text();
+
+    // -- pictures -------------------------------------------------------------------------------------
+
+    /// <summary>The second line of a picture's chip.</summary>
+    public string Picture => Text();
+
+    /// <summary>A pasted picture's name.</summary>
+    public string PastedPicture => Text();
+
+    /// <summary>Said when a picture is added for an agent whose model does not see pictures.</summary>
+    public string PicturesNotSeen => Text();
+
+    public string PictureNotRead(string name) => Fill(name);
+
     // -- lookup --------------------------------------------------------------------------------------
 
     private string Text([CallerMemberName] string name = "") => this[name];

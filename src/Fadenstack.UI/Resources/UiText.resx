@@ -402,4 +402,48 @@
     <value>Include with the next message</value>
     <comment>Switches an offered chip on and off</comment>
   </data>
+  <data name="Skills" xml:space="preserve">
+    <value>Skills</value>
+    <comment>The skill picker's name ($ in the composer)</comment>
+  </data>
+  <data name="Skill" xml:space="preserve">
+    <value>Skill</value>
+    <comment>The second line of a picked skill's chip</comment>
+  </data>
+  <data name="SkillsLoading" xml:space="preserve">
+    <value>Loading skills...</value>
+    <comment>The skill picker while it reads the list</comment>
+  </data>
+  <data name="NoSkills" xml:space="preserve">
+    <value>No skills are available to you.</value>
+    <comment>The skill picker when the user has no skills to pick</comment>
+  </data>
+  <data name="NoSkillMatches" xml:space="preserve">
+    <value>No skill matches "{0}".</value>
+    <comment>{0}: what the user typed after the $</comment>
+  </data>
+  <data name="SkillsFailed" xml:space="preserve">
+    <value>The skills could not be loaded.</value>
+    <comment>The skill picker when the list could not be read</comment>
+  </data>
+  <data name="SkillPickerHint" xml:space="preserve">
+    <value>Enter picks the skill, Esc closes the list.</value>
+    <comment>Under the skill picker: how to use it</comment>
+  </data>
+  <data name="Picture" xml:space="preserve">
+    <value>Picture</value>
+    <comment>The second line of a picture's chip</comment>
+  </data>
+  <data name="PastedPicture" xml:space="preserve">
+    <value>Pasted picture</value>
+    <comment>A pasted picture's name on its chip</comment>
+  </data>
+  <data name="PicturesNotSeen" xml:space="preserve">
+    <value>This agent's model does not see pictures.</value>
+    <comment>Said when a picture is added for an agent whose model does not see pictures</comment>
+  </data>
+  <data name="PictureNotRead" xml:space="preserve">
+    <value>{0} could not be read as a picture.</value>
+    <comment>{0}: the file's name</comment>
+  </data>
 </root>

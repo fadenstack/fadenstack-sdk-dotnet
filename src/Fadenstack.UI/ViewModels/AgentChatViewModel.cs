@@ -3,8 +3,10 @@ using System.Globalization;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Text.RegularExpressions;
 using Fadenstack.Agents;
 using Fadenstack.Agents.Sessions;
+using Fadenstack.Models;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
 
@@ -51,6 +53,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _signInRequired;
     private string? _error;
     private ToolModeOption _selectedMode;
+    private AgentProfile? _profile;
 
     public AgentChatViewModel(FadenstackAgent agent, ApprovalBroker approvals, IUiDispatcher dispatcher, AgentChatOptions? options = null)
     {
@@ -73,6 +76,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             .Select(m => new ToolModeOption(m, Strings)));
         _selectedMode = ToolModes[2];
         _approvals.Requested += OnApprovalRequested;
+        SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
         SetLanguageCommand = new RelayCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
@@ -92,6 +96,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 Attachments.Remove(a);
             }
         });
+        RemoveSkillCommand = new RelayCommand<SkillOption>(s =>
+        {
+            if (s is not null)
+            {
+                RemoveSkill(s.Slug);
+            }
+        });
         SelectToolModeCommand = new RelayCommand<ToolModeOption>(option =>
         {
             if (option is { IsAvailable: true })
@@ -109,6 +120,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public const string Automatic = "auto";
 
     private const string LanguagePreference = "language";
+
+    /// <summary>A picture's media type, from its <c>data:</c> URL.</summary>
+    private static readonly Regex PictureType = new(@"^data:(image/[\w.+-]+)[;,]", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     /// <summary>The chat's texts, in the language the user picked (or the host's): the skin binds its labels to them.</summary>
     public UiStrings Strings
@@ -160,6 +174,18 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>Context that goes with the next message (chips in the composer).</summary>
     public ObservableCollection<AttachmentViewModel> Attachments { get; } = new();
 
+    /// <summary>The skills list the composer opens on <c>$</c> (or <c>/</c> at the start); skins draw it while it is open.</summary>
+    public SkillPickerViewModel SkillPicker { get; }
+
+    /// <summary>The skills picked for the next message (chips in the composer); sending takes them.</summary>
+    public ObservableCollection<SkillOption> PickedSkills { get; } = new();
+
+    /// <summary>The server offers skills: typing <c>$</c> in the composer lists them.</summary>
+    public bool CanPickSkills => _profile?.Skills == true;
+
+    /// <summary>The agent's model sees pictures: a picture can go with a message (<see cref="AttachPicture"/>).</summary>
+    public bool CanAttachPictures => _profile?.Vision == true;
+
     public bool IsEmpty => Turns.Count == 0;
 
     /// <summary>Older turns of an opened session that are not shown yet.</summary>
@@ -169,6 +195,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public string? CurrentSessionId => _session?.Id;
 
+    /// <summary>The composer's text; a <c>$</c> at its end (or <c>/</c> as the whole of it) opens the skill picker, narrowed by what follows.</summary>
     public string Input
     {
         get => _input;
@@ -178,6 +205,14 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             {
                 OnPropertyChanged(nameof(CanSend));
                 SendCommand.NotifyCanExecuteChanged();
+                if (CanPickSkills && SkillToken.Find(value) is { } token)
+                {
+                    SkillPicker.Show(token.Query);
+                }
+                else
+                {
+                    SkillPicker.Close();
+                }
             }
         }
     }
@@ -291,6 +326,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public IRelayCommand<AttachmentViewModel> RemoveAttachmentCommand { get; }
 
+    /// <summary>Takes a picked skill off the next message (its chip's remove button).</summary>
+    public IRelayCommand<SkillOption> RemoveSkillCommand { get; }
+
     public IRelayCommand<ToolModeOption> SelectToolModeCommand { get; }
 
     /// <summary>
@@ -313,6 +351,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             await _agent.StartAsync();
             var profile = _agent.Profile;
+            _profile = profile;
+            OnPropertyChanged(nameof(CanPickSkills));
+            OnPropertyChanged(nameof(CanAttachPictures));
             AdoptUserLanguage(profile.User?.Language);
             Title = profile.Name;
             _profileGreeting = Ui(profile.Ui, "greeting") is { ValueKind: JsonValueKind.String } g ? g.GetString() ?? "" : null;
@@ -387,20 +428,25 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             {
                 Input = "";
             }
+            SkillPicker.Close();
             var attached = Attachments.Where(a => a.Sends).ToList();
             foreach (var a in attached.Where(a => !a.IsImplicit))
             {
                 Attachments.Remove(a);
             }
+            var skills = PickedSkills.ToList(); // for this message only
+            PickedSkills.Clear();
             var started = new TurnViewModel(this, text, _options.Clock(), _options.PreviewLength)
             {
-                Attachments = attached.Select(a => new AttachmentChip(a.Title, a.Subtitle)).ToList(),
+                Attachments = skills.Select(s => new AttachmentChip(s.Name, null) { IsSkill = true })
+                    .Concat(attached.Select(a => new AttachmentChip(a.Title, a.Subtitle) { Image = a.Image }))
+                    .ToList(),
             };
             turn = started;
             Turns.Add(started);
             OnPropertyChanged(nameof(IsEmpty));
             _current = started;
-            await Task.Run(() => RunTurnAsync(started, text, attached, _selectedMode.Mode, stop.Token));
+            await Task.Run(() => RunTurnAsync(started, text, attached, skills, _selectedMode.Mode, stop.Token));
             await _batcher.WhenFlushedAsync();
         }
         finally
@@ -487,6 +533,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             Attachments.Remove(a);
         }
+        PickedSkills.Clear();
         SetProperty(ref _selectedMode, ToolModes.FirstOrDefault(o => o.Mode == _agent.DefaultToolMode && o.IsAvailable) ?? ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
         OnPropertyChanged(nameof(ToolModeHint));
         OnPropertyChanged(nameof(IsEmpty));
@@ -557,8 +604,70 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         RequestComposerFocus();
     }
 
+    /// <summary>
+    /// A picture for the next message, as a chip: pasted, dropped, or taken by the host (a screenshot). Only for a model
+    /// that sees pictures (<see cref="CanAttachPictures"/>): otherwise nothing is added, <see cref="Error"/> says why, and
+    /// it returns false.
+    /// </summary>
+    /// <param name="dataUrl">The picture as a <c>data:image/...</c> URL, already as small as it should go (the WPF skin's
+    /// <c>Pictures.ToDataUrl</c> makes one).</param>
+    /// <param name="title">Its name on the chip; "Pasted picture" by default.</param>
+    /// <param name="kind">Where it comes from, for the model (<c>screenshot</c>, <c>file</c>); <c>picture</c> by default.</param>
+    public bool AttachPicture(string dataUrl, string? title = null, string? kind = null)
+    {
+        if (dataUrl is null || !dataUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("A picture is a data:image/... URL.", nameof(dataUrl));
+        }
+        if (!CanAttachPictures)
+        {
+            Error = Strings.PicturesNotSeen;
+            return false;
+        }
+        var name = string.IsNullOrWhiteSpace(title) ? Strings.PastedPicture : title!.Trim();
+        var attachment = new MessageAttachment
+        {
+            Title = name,
+            Content = dataUrl,
+            Kind = string.IsNullOrEmpty(kind) ? "picture" : kind,
+            MediaType = PictureType.Match(dataUrl) is { Success: true } m ? m.Groups[1].Value : "image/png",
+        };
+        Attachments.Add(new AttachmentViewModel(name, Strings.Picture, _ => Task.FromResult<MessageAttachment?>(attachment)) { Image = dataUrl });
+        RequestComposerFocus();
+        return true;
+    }
+
+    /// <summary>Says that a file the user added could not be read as a picture (<see cref="Error"/>).</summary>
+    public void PictureNotRead(string name) => Error = Strings.PictureNotRead(name);
+
+    /// <summary>Takes a picked skill off the next message.</summary>
+    public void RemoveSkill(string slug)
+    {
+        foreach (var skill in PickedSkills.Where(s => s.Slug == slug).ToList())
+        {
+            PickedSkills.Remove(skill);
+        }
+    }
+
     /// <summary>Asks the skin to put the focus in the composer (e.g. after a host attached the selection).</summary>
     public void RequestComposerFocus() => ComposerFocusRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>The picker's choice: the <c>$...</c> the user typed goes, the skill goes with the next message.</summary>
+    private void PickSkill(SkillOption skill)
+    {
+        if (SkillToken.Find(_input) is { } token)
+        {
+            // One space before the token stays, so what the user types next does not stick to their text.
+            var before = _input.Substring(0, token.Start);
+            var kept = before.TrimEnd();
+            Input = kept.Length < before.Length ? kept + before[kept.Length] : kept;
+        }
+        if (!PickedSkills.Any(s => s.Slug == skill.Slug))
+        {
+            PickedSkills.Add(skill);
+        }
+        RequestComposerFocus();
+    }
 
     public void Dispose()
     {
@@ -702,6 +811,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             turn.Retext(strings);
         }
+        SkillPicker.Retext();
         _languageOptions = BuildLanguageOptions();
         OnPropertyChanged(nameof(Language));
         OnPropertyChanged(nameof(LanguageOptions));
@@ -766,8 +876,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     // -- the turn, on a background thread -------------------------------------------------------------
 
-    private async Task RunTurnAsync(TurnViewModel turn, string text, IReadOnlyList<AttachmentViewModel> attached, ToolMode mode,
-        CancellationToken cancellationToken)
+    private async Task RunTurnAsync(TurnViewModel turn, string text, IReadOnlyList<AttachmentViewModel> attached, IReadOnlyList<SkillOption> skills,
+        ToolMode mode, CancellationToken cancellationToken)
     {
         try
         {
@@ -793,7 +903,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 _batcher.Enqueue(() => OnPropertyChanged(nameof(CurrentSessionId)));
             }
             _session.ToolMode = mode;
-            await foreach (var e in _session.StreamAsync(text, attachments, cancellationToken).ConfigureAwait(false))
+            var options = new SendOptions
+            {
+                Attachments = attachments,
+                Skills = skills.Select(s => new PickedSkill(s.Slug, s.Name)).ToList(),
+            };
+            await foreach (var e in _session.StreamAsync(text, options, cancellationToken).ConfigureAwait(false))
             {
                 Apply(turn, e);
             }
