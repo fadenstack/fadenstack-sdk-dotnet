@@ -127,6 +127,12 @@
   <data name="ServerTool" xml:space="preserve">
     <value>Herramienta del servidor</value>
   </data>
+  <data name="ApprovalOutside" xml:space="preserve">
+    <value>Sale de la organización</value>
+  </data>
+  <data name="ApprovalOutsideWhy" xml:space="preserve">
+    <value>Lo que recibe sale de su organización: va a otro sitio.</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>Permitir</value>
   </data>

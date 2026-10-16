@@ -356,10 +356,23 @@ public sealed class ApprovalPart : ResponsePart
 
     public bool IsDestructive => Request.ToolClass is ToolClass.Destructive or ToolClass.Unknown;
 
-    public string ClassLabel => Request.Source == "gateway" ? _strings.ServerTool : _strings.ApprovalClassLabel(Request.ToolClass);
+    /// <summary>
+    /// The card's badge: a server tool; for the agent's own tools, that it goes outside (a web search) or what its class
+    /// means. Reaching outside matters more than changing nothing here; a destructive tool still says what it is.
+    /// </summary>
+    public string ClassLabel => Request.Source == "gateway" ? _strings.ServerTool
+        : GoesOutside ? _strings.ApprovalOutside
+        : _strings.ApprovalClassLabel(Request.ToolClass);
 
-    /// <summary>Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, what its class means.</summary>
-    public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason : _strings.ApprovalWhy(Request.ToolClass);
+    /// <summary>
+    /// Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, that what it is given
+    /// leaves the organisation (a web search) or what its class means.
+    /// </summary>
+    public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason
+        : GoesOutside ? _strings.ApprovalOutsideWhy
+        : _strings.ApprovalWhy(Request.ToolClass);
+
+    private bool GoesOutside => Request.OpenWorld && Request.ToolClass != ToolClass.Destructive;
 
     public string ArgumentsText => ToolCallPart.Preview(_arguments, _previewLength, _strings);
 

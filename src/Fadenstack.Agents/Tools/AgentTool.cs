@@ -24,7 +24,10 @@ public sealed class AgentToolAttribute : Attribute
 
     public string? Name { get; set; }
 
-    /// <summary>Reaches outside the organisation (recorded and shown; no mode acts on it yet).</summary>
+    /// <summary>
+    /// Reaches outside the organisation (a web search, opening a page): recorded, and an approval card says that what it
+    /// is given leaves the organisation (<see cref="ApprovalRequest.OpenWorld"/>); no mode acts on it yet.
+    /// </summary>
     public bool OpenWorld { get; set; }
 }
 
@@ -54,6 +57,7 @@ public sealed class AgentTool
     /// <summary>The MCP server's label, for an MCP tool.</summary>
     public string? Server { get; }
 
+    /// <summary>Reaches outside the organisation (a web search, opening a page); null when nobody said.</summary>
     public bool? OpenWorld { get; }
 
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>

@@ -166,6 +166,14 @@
     <value>Server tool</value>
     <comment>A tool the server runs</comment>
   </data>
+  <data name="ApprovalOutside" xml:space="preserve">
+    <value>Goes outside</value>
+    <comment>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page)</comment>
+  </data>
+  <data name="ApprovalOutsideWhy" xml:space="preserve">
+    <value>What it is given leaves your organisation: it goes to another site.</value>
+    <comment>Why a card asks about a tool that reaches outside the organisation</comment>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>Allow</value>
     <comment>A card's button</comment>

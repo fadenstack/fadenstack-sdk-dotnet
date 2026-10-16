@@ -679,6 +679,7 @@ public sealed class AgentSession
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
+                    OpenWorld = tool.OpenWorld == true,
                 }, rule, null, cancellationToken).ConfigureAwait(false);
                 if (!settled.Approved)
                 {

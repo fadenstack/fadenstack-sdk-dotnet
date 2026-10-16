@@ -31,6 +31,12 @@ public sealed record ApprovalRequest
 
     /// <summary>An admin's "Ask first" rule covers the call: <see cref="Reason"/> is the admin's message. It asks every time.</summary>
     public bool RequiredByRule { get; init; }
+
+    /// <summary>
+    /// The tool reaches outside the organisation (a web search, opening a page; <see cref="AgentTool.OpenWorld"/>): what it
+    /// is given goes to another site. The card says so instead of what its class means.
+    /// </summary>
+    public bool OpenWorld { get; init; }
 }
 
 /// <summary>What the user decided.</summary>

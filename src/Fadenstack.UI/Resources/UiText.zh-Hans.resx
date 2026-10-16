@@ -127,6 +127,12 @@
   <data name="ServerTool" xml:space="preserve">
     <value>服务器工具</value>
   </data>
+  <data name="ApprovalOutside" xml:space="preserve">
+    <value>发送到外部</value>
+  </data>
+  <data name="ApprovalOutsideWhy" xml:space="preserve">
+    <value>它收到的内容会离开您的组织，发送到其他网站。</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>允许</value>
   </data>

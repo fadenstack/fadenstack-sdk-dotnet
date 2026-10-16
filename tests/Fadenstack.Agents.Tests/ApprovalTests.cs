@@ -61,6 +61,23 @@ public class ApprovalTests
     }
 
     [Fact]
+    public async Task A_request_for_a_tool_that_reaches_outside_says_so()
+    {
+        var gateway = new Gateway(contract: WebTools.Contract)
+            .Calls(("call-1", "search_web", """{"query":"pumps"}""")).Says("Found some.")
+            .Calls(("call-2", "fill_field", """{"query":"pumps"}""")).Says("Filled.");
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder().AddTools(new WebTools())
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("Search the web for pumps.");
+        await session.SendAsync("Fill it in.");
+
+        Assert.Equal(new[] { ("search_web", true), ("fill_field", false) }, requests.Select(r => (r.ToolName, r.OpenWorld)));
+    }
+
+    [Fact]
     public async Task An_admins_rule_asks_even_for_a_read_tool_and_offers_this_call_only_with_the_admins_message()
     {
         var gateway = MarkedCall(new Gateway(), "call-1", "read_page", """{"page":1}""",

@@ -137,6 +137,12 @@ public sealed class UiStrings
 
     public string ServerTool => Text();
 
+    /// <summary>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page).</summary>
+    public string ApprovalOutside => Text();
+
+    /// <summary>Why a card asks about a tool that reaches outside the organisation.</summary>
+    public string ApprovalOutsideWhy => Text();
+
     public string Allow => Text();
 
     public string AllowForChat => Text();
