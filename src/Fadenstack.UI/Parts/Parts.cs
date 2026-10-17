@@ -374,6 +374,9 @@ public sealed class ApprovalPart : ResponsePart
 
     private bool GoesOutside => Request.OpenWorld && Request.ToolClass != ToolClass.Destructive;
 
+    /// <summary>What the call acts on, as the tool describes it (<c>button "Send" on mail.example.com</c>), or "".</summary>
+    public string Target => Request.Target ?? "";
+
     public string ArgumentsText => ToolCallPart.Preview(_arguments, _previewLength, _strings);
 
     public ApprovalState State

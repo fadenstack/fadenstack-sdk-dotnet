@@ -289,6 +289,9 @@
   <data name="ComposerPlaceholder" xml:space="preserve">
     <value>Haga una pregunta o diga al agente qué hacer</value>
   </data>
+  <data name="AiNotice" xml:space="preserve">
+    <value>Las respuestas las genera una IA y pueden contener errores. Compruebe lo importante.</value>
+  </data>
   <data name="Message" xml:space="preserve">
     <value>Mensaje</value>
   </data>

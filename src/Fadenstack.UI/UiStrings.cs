@@ -234,6 +234,12 @@ public sealed class UiStrings
 
     public string ComposerPlaceholder => Text();
 
+    /// <summary>
+    /// Under the message box: that the answers come from an AI and can be wrong (the EU AI Act asks that people know
+    /// they deal with an AI). A host's empty text hides it, where it says so in another place the user always sees.
+    /// </summary>
+    public string AiNotice => Text();
+
     /// <summary>The composer's name for screen readers.</summary>
     public string Message => Text();
 

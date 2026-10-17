@@ -34,6 +34,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -406,6 +407,11 @@
                 </DockPanel>
             </Grid>
         </Border>
+
+        <!-- Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides it. -->
+        <TextBlock x:Name="AiNotice" Grid.Row="3" Text="{local:Text AiNotice}" Margin="12,-8,12,8" FontSize="11" TextWrapping="Wrap"
+                   TextAlignment="Center" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                   Visibility="{Binding Text, RelativeSource={RelativeSource Self}, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
 
         <!--
             The chats: a dropdown under the header, as wide as the panel, so the conversation stays in view and a

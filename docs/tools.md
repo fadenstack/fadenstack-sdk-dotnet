@@ -39,6 +39,8 @@ The rules:
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.
 
+A tool can say what a call acts on, for the approval card: `AddTool(new AgentTool(function, ToolClass.Destructive) { Describe = (args, ct) => ... })`, returning text such as `button "Send" on mail.example.com`. The agent calls it only when it asks the user, and the card shows it above the arguments (`ApprovalRequest.Target`), since `ref: e12` tells the user little. Null, empty, an exception or no answer within 3 seconds leaves the card with the arguments.
+
 ## Parameters and return values
 
 Tools are Microsoft.Extensions.AI functions, so the usual rules of `AIFunctionFactory` apply:
@@ -131,6 +133,8 @@ The request tells you what to show:
 | `CanAllowForSession` | Whether you may offer "Allow for this chat". |
 | `CanAllowAlways` | Whether you may offer "Allow always". |
 | `RequiredByRule` | An administrator's "Ask first" rule covers the call. `Reason` is the administrator's message. |
+| `OpenWorld` | The tool reaches outside the organisation: what it is given goes to another site. |
+| `Target` | What the call acts on, as the tool's `Describe` says it, one line of at most 300 characters; null when the tool does not say. Show it. |
 
 The decision is one of four:
 

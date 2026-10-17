@@ -60,6 +60,13 @@ public sealed class AgentTool
     /// <summary>Reaches outside the organisation (a web search, opening a page); null when nobody said.</summary>
     public bool? OpenWorld { get; }
 
+    /// <summary>
+    /// What a call acts on, in the user's words (<c>button "Send" on mail.example.com</c>), for the approval card
+    /// (<see cref="ApprovalRequest.Target"/>): called only when the user is asked, so they see what the call will touch,
+    /// not only its arguments. Null, empty, a failure or no answer within 3 seconds shows the arguments alone.
+    /// </summary>
+    public Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<string?>>? Describe { get; init; }
+
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>
     public static IReadOnlyList<AgentTool> From(object target)
     {

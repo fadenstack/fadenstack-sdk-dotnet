@@ -37,6 +37,13 @@ public sealed record ApprovalRequest
     /// is given goes to another site. The card says so instead of what its class means.
     /// </summary>
     public bool OpenWorld { get; init; }
+
+    /// <summary>
+    /// What the call acts on, as the tool describes it (<see cref="AgentTool.Describe"/>; <c>button "Send" on
+    /// mail.example.com</c>), one line of at most 300 characters: the card shows it, so the user sees what they allow,
+    /// not only the arguments. Null for a tool that does not say.
+    /// </summary>
+    public string? Target { get; init; }
 }
 
 /// <summary>What the user decided.</summary>

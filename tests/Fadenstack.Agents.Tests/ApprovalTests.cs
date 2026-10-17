@@ -77,6 +77,100 @@ public class ApprovalTests
         Assert.Equal(new[] { ("search_web", true), ("fill_field", false) }, requests.Select(r => (r.ToolName, r.OpenWorld)));
     }
 
+    /// <summary>publish_post (destructive: asks every time) and fill_field (write), with what a call acts on.</summary>
+    private static IReadOnlyList<AgentTool> Described(Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<string?>> describe, List<string>? ran = null) => new[]
+    {
+        new AgentTool(Microsoft.Extensions.AI.AIFunctionFactory.Create(new Func<string, string>(q => { ran?.Add(q); return "published"; }), "publish_post"),
+            ToolClass.Destructive) { Describe = describe },
+        new AgentTool(Microsoft.Extensions.AI.AIFunctionFactory.Create(new Func<string, string>(q => "filled"), "fill_field"),
+            ToolClass.Write) { Describe = describe },
+    };
+
+    private static AgentBuilder WithTools(AgentBuilder builder, IEnumerable<AgentTool> tools)
+    {
+        foreach (var tool in tools)
+        {
+            builder.AddTool(tool);
+        }
+        return builder;
+    }
+
+    [Fact]
+    public async Task What_a_call_acts_on_is_on_the_card_as_the_tool_says_it_in_one_line()
+    {
+        var gateway = new Gateway(contract: WebTools.Contract).Calls(("call-1", "publish_post", """{"q":"e5"}""")).Says("Done.");
+        var requests = new List<ApprovalRequest>();
+        var ran = new List<string>();
+        using var agent = WithTools(gateway.Builder(), Described((args, _) => Task.FromResult<string?>($"button \"Publish\"\n on example.com ({args["q"]})"), ran))
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("Publish it.");
+
+        var request = Assert.Single(requests);
+        Assert.Equal("button \"Publish\" on example.com (e5)", request.Target);
+        Assert.Equal(new[] { "e5" }, ran);
+    }
+
+    [Fact]
+    public async Task A_tool_that_fails_to_say_or_says_nothing_leaves_the_card_with_the_arguments_and_the_call_still_asks()
+    {
+        var describes = new Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<string?>>[]
+        {
+            (_, _) => throw new InvalidOperationException("gone"),
+            (_, _) => Task.FromException<string?>(new InvalidOperationException("gone")),
+            (_, _) => Task.FromResult<string?>(null),
+            (_, _) => Task.FromResult<string?>("  "),
+        };
+        foreach (var describe in describes)
+        {
+            var gateway = new Gateway(contract: WebTools.Contract).Calls(("call-1", "publish_post", """{"q":"e5"}""")).Says("Done.");
+            var requests = new List<ApprovalRequest>();
+            using var agent = WithTools(gateway.Builder(), Described(describe))
+                .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+            var session = await agent.StartSessionAsync();
+
+            await session.SendAsync("Publish it.");
+
+            Assert.Null(Assert.Single(requests).Target);
+        }
+    }
+
+    [Fact]
+    public async Task A_target_is_clipped_to_300_characters()
+    {
+        var gateway = new Gateway(contract: WebTools.Contract).Calls(("call-1", "publish_post", """{"q":"e5"}""")).Says("Done.");
+        var requests = new List<ApprovalRequest>();
+        using var agent = WithTools(gateway.Builder(), Described((_, _) => Task.FromResult<string?>(new string('x', 500))))
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("Publish it.");
+
+        var target = Assert.Single(requests).Target!;
+        Assert.Equal(300, target.Length);
+        Assert.EndsWith("…", target);
+    }
+
+    [Fact]
+    public async Task A_call_allowed_for_this_chat_runs_without_asking_the_tool_what_it_acts_on()
+    {
+        var gateway = new Gateway(contract: WebTools.Contract)
+            .Calls(("call-1", "fill_field", """{"q":"e2"}""")).Says("Filled.")
+            .Calls(("call-2", "fill_field", """{"q":"e2"}""")).Says("Filled again.");
+        var described = 0;
+        var requests = new List<ApprovalRequest>();
+        using var agent = WithTools(gateway.Builder(), Described((_, _) => { described++; return Task.FromResult<string?>("field e2"); }))
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.ApproveForSession()); }).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("Fill it.");
+        await session.SendAsync("Fill it again.");
+
+        Assert.Single(requests);
+        Assert.Equal(1, described);
+    }
+
     [Fact]
     public async Task An_admins_rule_asks_even_for_a_read_tool_and_offers_this_call_only_with_the_admins_message()
     {

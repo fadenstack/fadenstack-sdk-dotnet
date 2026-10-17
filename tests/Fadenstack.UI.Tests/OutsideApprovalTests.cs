@@ -49,5 +49,25 @@ public class OutsideApprovalTests
         await chat.SetLanguageAsync("de");
         var card = chat.Turns[0].Parts.OfType<ApprovalPart>().Single();
         Assert.Equal(("Geht nach außen", "Was es bekommt, verlässt Ihre Organisation: Es geht an eine andere Website."), (card.ClassLabel, card.Reason));
+        Assert.Equal("", card.Target); // the tool does not say what it acts on
+    }
+
+    [Fact]
+    public async Task A_card_shows_what_the_call_acts_on_as_the_tool_says_it()
+    {
+        var gateway = new Gateway(contract: WebTools.Contract).Calls(("call-1", "publish_post", """{"query":"e5"}""")).Says("Published.");
+        var broker = new ApprovalBroker();
+        var publish = new Fadenstack.Agents.AgentTool(Microsoft.Extensions.AI.AIFunctionFactory.Create(new Func<string, string>(_ => "published"), "publish_post"),
+            Fadenstack.Tools.ToolClass.Destructive) { Describe = (args, _) => Task.FromResult<string?>($"button \"Publish\" on example.com ({args["query"]})") };
+        var agent = gateway.Builder().AddTool(publish).UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions
+        {
+            RenderInterval = TimeSpan.Zero, Preferences = new MemoryPreferenceStore(), AutomaticLanguage = CultureInfo.GetCultureInfo("en-GB"),
+        });
+        await chat.InitializeAsync();
+
+        await CardAsync(chat, "Publish it.");
+
+        Assert.Equal("button \"Publish\" on example.com (e5)", chat.Turns[0].Parts.OfType<ApprovalPart>().Single().Target);
     }
 }

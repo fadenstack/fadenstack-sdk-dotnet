@@ -90,7 +90,7 @@ public sealed class FadenstackAgent : IDisposable
                 }
                 var risk = ToolModes.ParseClass(entry?.Risk);
                 tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld));
+                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe });
             }
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
             foreach (var source in _settings.Sources)

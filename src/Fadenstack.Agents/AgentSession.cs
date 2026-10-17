@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Chat;
@@ -680,7 +681,8 @@ public sealed class AgentSession
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = tool.OpenWorld == true,
-                }, rule, null, cancellationToken).ConfigureAwait(false);
+                }, rule, null, cancellationToken,
+                    tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
                 if (!settled.Approved)
                 {
                     _toolDenied = true;
@@ -730,6 +732,52 @@ public sealed class AgentSession
             }
         }
 
+        /// <summary>How long a tool may take to say what a call acts on before the card is shown without it.</summary>
+        private static readonly TimeSpan DescribeTimeout = TimeSpan.FromSeconds(3);
+
+        /// <summary>What the card shows of a target at most.</summary>
+        private const int MaxTargetChars = 300;
+
+        /// <summary>
+        /// What the call acts on, as the tool says (one line, clipped), or null: a tool that fails or takes too long only
+        /// leaves the card with the arguments. A stopped turn stops here too.
+        /// </summary>
+        private static async Task<string?> DescribeTargetAsync(AgentTool tool, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
+        {
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            limit.CancelAfter(DescribeTimeout);
+            string? text;
+            try
+            {
+                var describing = tool.Describe!(new Dictionary<string, object?>(arguments), limit.Token);
+                var late = Task.Delay(Timeout.Infinite, limit.Token);
+                if (await Task.WhenAny(describing, late).ConfigureAwait(false) != describing)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return null;
+                }
+                text = await describing.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            finally
+            {
+                limit.Cancel(); // ends the wait above
+            }
+            var line = text is null ? "" : Regex.Replace(text, @"\s+", " ").Trim();
+            if (line.Length == 0)
+            {
+                return null;
+            }
+            return line.Length > MaxTargetChars ? line.Substring(0, MaxTargetChars - 1) + "…" : line;
+        }
+
         private ToolInvoker Invoker()
         {
             ToolInvoker invoker = (i, ct) => i.Tool.Function.InvokeAsync(i.Arguments, ct).AsTask();
@@ -748,8 +796,10 @@ public sealed class AgentSession
         /// bypass mode approves; a destructive or unclassified tool asks (once only); what the user allowed always,
         /// then what they allowed for this chat, approves; else the user is asked, and may allow once, for this chat or
         /// always. Every outcome goes in the transcript and the server's record, with what let the call through.
+        /// <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
         /// </summary>
-        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken)
+        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken,
+            Func<Task<string?>>? target = null)
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
@@ -764,7 +814,8 @@ public sealed class AgentSession
                 await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
                 return new Settled(true, false, null);
             }
-            request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule };
+            var described = target is null ? null : await target().ConfigureAwait(false);
+            request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule, Target = described };
             Emit(new ApprovalRequested(request));
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (timeout is { } t)

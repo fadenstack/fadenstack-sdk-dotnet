@@ -289,6 +289,9 @@
   <data name="ComposerPlaceholder" xml:space="preserve">
     <value>提出问题，或告诉智能体要做什么</value>
   </data>
+  <data name="AiNotice" xml:space="preserve">
+    <value>回答由人工智能生成，可能有误。请核实重要信息。</value>
+  </data>
   <data name="Message" xml:space="preserve">
     <value>消息</value>
   </data>

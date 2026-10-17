@@ -514,6 +514,9 @@
                 </DockPanel>
                 <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
                            Visibility="{Binding Reason, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                <!-- What the call acts on, as the tool says it: "button "Send" on mail.example.com" -->
+                <TextBlock Text="{Binding Target}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
+                           Visibility="{Binding Target, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                 <Border Background="{DynamicResource Fadenstack.CodeBackground}" CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="10,6" Margin="0,8,0,0"
                         Visibility="{Binding ArgumentsText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
