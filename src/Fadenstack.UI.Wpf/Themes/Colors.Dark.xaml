@@ -13,9 +13,14 @@
     <SolidColorBrush x:Key="Fadenstack.Border" Color="#454545" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#F2F2F2" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#ABABAB" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.Accent" Color="#2B7CD3" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#3B8DE0" po:Freeze="True" />
+    <!--
+        The accent fills buttons under white text (4.5:1 or more, hover too); as icons, marks and lines on the dark
+        surfaces it is lighter (AccentIcon, 3:1 or more on each, the pressed grey too). Same hue.
+    -->
+    <SolidColorBrush x:Key="Fadenstack.Accent" Color="#2976C9" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#256CB8" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#498FDA" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Hover" Color="#333333" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#3D3D3D" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Link" Color="#6AA8F0" po:Freeze="True" />
@@ -31,9 +36,25 @@
     <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#213A26" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#3E2427" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Focus" Color="#6AA8F0" po:Freeze="True" />
+    <!--
+        The keyboard-focus ring on a link (About's, the line under the composer, an answer's), in the focus colour: the
+        system's black dashes vanish on dark colours. The brush is taken when the colours load (StaticResource): a
+        focus ring is drawn over the window, where the panel's resources cannot be looked up.
+    -->
+    <Style x:Key="Fadenstack.LinkFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3,-1" Stroke="{StaticResource Fadenstack.Focus}" StrokeThickness="2" RadiusX="3" RadiusY="3"
+                               SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#66000000" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#5C5C5C" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#808080" po:Freeze="True" />
+    <!-- The scroll thumb shows where the conversation is: 3:1 or more on the background and the surfaces. -->
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#747474" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#909090" po:Freeze="True" />
     <!-- The agent avatar (AgentAvatar): paper plates, the rose thread plate, the hollow under the lid. -->
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateTop" Color="#F3F4F6" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateSide" Color="#AEB7C6" po:Freeze="True" />

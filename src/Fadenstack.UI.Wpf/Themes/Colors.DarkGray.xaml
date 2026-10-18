@@ -14,12 +14,18 @@
     <SolidColorBrush x:Key="Fadenstack.SurfaceAlt" Color="#585858" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Border" Color="#6A6A6A" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#F5F5F5" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#C6C6C6" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.Accent" Color="#2B7CD3" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#3B8DE0" po:Freeze="True" />
+    <!-- Muted text keeps 4.5:1 on every grey it sits on: the surfaces, code, hover and pressed. -->
+    <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#D2D2D2" po:Freeze="True" />
+    <!--
+        The accent fills buttons under white text (4.5:1 or more, hover too), as in the dark colours; on grey no blue
+        that dark reaches 3:1 as an icon, so icons, marks and lines take a light tint of it (AccentIcon). Same hue.
+    -->
+    <SolidColorBrush x:Key="Fadenstack.Accent" Color="#2976C9" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#256CB8" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#FFFFFF" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#87B5E6" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Hover" Color="#555555" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#5F5F5F" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#5A5A5A" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Link" Color="#94C4F7" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Danger" Color="#FF9AA1" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Warning" Color="#F4C860" po:Freeze="True" />
@@ -33,9 +39,25 @@
     <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#34513A" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#583A3E" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Focus" Color="#94C4F7" po:Freeze="True" />
+    <!--
+        The keyboard-focus ring on a link (About's, the line under the composer, an answer's), in the focus colour: the
+        system's black dashes vanish on dark colours. The brush is taken when the colours load (StaticResource): a
+        focus ring is drawn over the window, where the panel's resources cannot be looked up.
+    -->
+    <Style x:Key="Fadenstack.LinkFocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3,-1" Stroke="{StaticResource Fadenstack.Focus}" StrokeThickness="2" RadiusX="3" RadiusY="3"
+                               SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#66000000" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#747474" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#969696" po:Freeze="True" />
+    <!-- The scroll thumb shows where the conversation is: 3:1 or more on the background and the surfaces. -->
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#9E9E9E" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#B4B4B4" po:Freeze="True" />
     <!-- The agent avatar (AgentAvatar): as in the dark colours. -->
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateTop" Color="#F3F4F6" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateSide" Color="#AEB7C6" po:Freeze="True" />

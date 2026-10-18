@@ -18,4 +18,8 @@
     <Compile Include="..\..\samples\Fadenstack.Samples.Wpf\DemoGateway.cs" Link="DemoGateway.cs" />
     <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->
+    <None Include="..\..\src\Fadenstack.UI.Wpf\Themes\Colors.*.xaml" Link="Themes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

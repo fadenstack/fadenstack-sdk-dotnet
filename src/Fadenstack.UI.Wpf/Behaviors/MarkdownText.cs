@@ -70,6 +70,8 @@ public static class MarkdownText
         {
             var link = new Hyperlink(run) { NavigateUri = uri, ToolTip = uri.AbsoluteUri };
             link.SetResourceReference(TextElement.ForegroundProperty, "Fadenstack.Link");
+            // The keyboard-focus ring in the theme's focus colour (the system's black dashes vanish on dark colours).
+            link.SetResourceReference(FrameworkContentElement.FocusVisualStyleProperty, "Fadenstack.LinkFocusVisual");
             link.RequestNavigate += (_, e) =>
             {
                 OpenLink(e.Uri);

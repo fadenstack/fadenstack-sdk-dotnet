@@ -125,7 +125,7 @@
                                                         CommandParameter="{Binding Id}" AutomationProperties.Name="{Binding Label}">
                                                     <StackPanel Orientation="Horizontal">
                                                         <Grid Width="20">
-                                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;" Foreground="{DynamicResource Fadenstack.Accent}"
+                                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;" Foreground="{DynamicResource Fadenstack.AccentIcon}"
                                                                        Visibility="{Binding IsSelected, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                                         </Grid>
                                                         <TextBlock Text="{Binding Label}" Language="{Binding Language, ConverterCulture=en-US}" />
@@ -273,7 +273,7 @@
                                     CommandParameter="{Binding}">
                                 <DockPanel>
                                     <TextBlock DockPanel.Dock="Left" Style="{StaticResource Fadenstack.Icon}" FontSize="13" Text="&#xE945;"
-                                               Foreground="{DynamicResource Fadenstack.Accent}" VerticalAlignment="Top" Margin="0,2,10,0" />
+                                               Foreground="{DynamicResource Fadenstack.AccentIcon}" VerticalAlignment="Top" Margin="0,2,10,0" />
                                     <StackPanel>
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                         <TextBlock x:Name="Description" Style="{StaticResource Fadenstack.Muted}" Text="{Binding Description}"
@@ -299,7 +299,7 @@
             popup, so it moves with the panel (an Office task pane) and keeps the keyboard there. Escape, Close, and a press
             anywhere outside it close it (ChatView.xaml.cs).
         -->
-        <Border x:Name="AboutCard" Grid.Row="1" VerticalAlignment="Top" Margin="8,4,8,8" Padding="14,6,6,12"
+        <Border x:Name="AboutCard" Grid.Row="1" VerticalAlignment="Top" Margin="8,4,8,8" Padding="11,6,6,12"
                 Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
                 CornerRadius="{StaticResource Fadenstack.Radius.Container}" KeyboardNavigation.TabNavigation="Cycle"
                 AutomationProperties.Name="{local:Text About}"
@@ -312,7 +312,7 @@
             </Border.InputBindings>
             <!-- The title and Close stay outside the scrolled part, so nothing clips Close's focus ring. -->
             <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                <DockPanel DockPanel.Dock="Top" Margin="3,0,0,6">
                     <Button x:Name="AboutClose" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}"
                             Command="{Binding CloseAboutCommand}" ToolTip="{local:Text Close}" AutomationProperties.Name="{local:Text Close}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE711;" />
@@ -320,7 +320,8 @@
                     <TextBlock Text="{local:Text About}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </DockPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                    <StackPanel Margin="0,0,8,0">
+                    <!-- 3 in, inside the scrolled part, so a link's focus ring is not clipped at its left. -->
+                    <StackPanel Margin="3,0,8,0">
                         <!-- The agent: name, version or draft, model -->
                         <DockPanel Margin="0,0,0,10" Visibility="{Binding About.HasAgent, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                             <local:AgentAvatar DockPanel.Dock="Left" Small="True" Width="28" Height="28" Margin="0,0,10,0" VerticalAlignment="Top" />
@@ -346,6 +347,7 @@
                                     <TextBlock Margin="0,2" TextWrapping="Wrap">
                                         <Hyperlink Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                    CommandParameter="{Binding}" ToolTip="{Binding Url.AbsoluteUri}" AutomationProperties.Name="{Binding Name}"
+                                                   FocusVisualStyle="{DynamicResource Fadenstack.LinkFocusVisual}"
                                                    Foreground="{DynamicResource Fadenstack.Link}"><Run Text="{Binding Label, Mode=OneWay}" /><Run Text=" " /><Run
                                                 FontFamily="{DynamicResource Fadenstack.IconFont}" FontSize="9" Text="&#xE8A7;" /></Hyperlink>
                                     </TextBlock>
@@ -384,7 +386,7 @@
                                         Background="{DynamicResource Fadenstack.SurfaceAlt}" Padding="6,2,2,2" Margin="0,0,6,4" ToolTip="{Binding Description}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE945;" Margin="0,0,4,0"
-                                                   Foreground="{DynamicResource Fadenstack.Accent}" />
+                                                   Foreground="{DynamicResource Fadenstack.AccentIcon}" />
                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" FontSize="12" />
                                         <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{local:Text Skill}" Margin="6,0,0,0" />
                                         <Button Style="{StaticResource Fadenstack.GhostButton}" Padding="3" Margin="2,0,0,0" ToolTip="{local:Text RemoveAttachment}"

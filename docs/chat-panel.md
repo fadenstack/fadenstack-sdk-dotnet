@@ -113,7 +113,9 @@ chat.Attachments.Add(new AttachmentViewModel(
 | `Dark` | Dark. |
 | `DarkGray` | Dark surfaces on mid-grey, for hosts whose own chrome is grey rather than black. |
 
-`ChatView.PaletteUri(theme)` returns the resource dictionary of a theme's colours, and `ChatView.SystemUsesDarkMode()` tells whether Windows is in dark app mode, for hosts that draw around the panel in the same colours.
+`ChatView.PaletteUri(theme)` returns the resource dictionary of a theme's colours, and `ChatView.SystemUsesDarkMode()` tells whether Windows is in dark app mode, for hosts that draw around the panel in the same colours. In it, `Fadenstack.Accent` fills a button under white text; `Fadenstack.AccentIcon` is the accent as an icon, mark or line on the panel's surfaces (in the dark themes a lighter blue, which stands out on grey).
+
+In every theme, text reads at 4.5:1 or more on whatever it sits on, hover and pressed included, and icons, marks, focus rings and the scroll thumb at 3:1 or more (WCAG 2.2 AA). The tests check it.
 
 `AgentAvatar` is the agent's picture as a WPF control. Set `Small` at sizes of 32 pixels and below; `ThreadBrush` and `ThreadSideBrush` recolour it for a custom agent.
 

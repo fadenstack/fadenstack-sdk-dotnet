@@ -178,6 +178,7 @@ public partial class ChatView : UserControl
                 ToolTip = link.Url.AbsoluteUri,
             };
             hyperlink.SetResourceReference(TextElement.ForegroundProperty, "Fadenstack.ForegroundMuted");
+            hyperlink.SetResourceReference(FrameworkContentElement.FocusVisualStyleProperty, "Fadenstack.LinkFocusVisual");
             AutomationProperties.SetName(hyperlink, link.Name);
             BrandingLine.Inlines.Add(hyperlink);
         }

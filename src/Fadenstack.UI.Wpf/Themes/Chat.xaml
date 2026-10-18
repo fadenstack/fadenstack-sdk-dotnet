@@ -314,7 +314,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Control">
-                    <Path x:Name="Arc" Stroke="{DynamicResource Fadenstack.Accent}" StrokeThickness="2" StrokeStartLineCap="Round"
+                    <Path x:Name="Arc" Stroke="{DynamicResource Fadenstack.AccentIcon}" StrokeThickness="2" StrokeStartLineCap="Round"
                           StrokeEndLineCap="Round" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
                           Data="M 7,1 A 6,6 0 1 1 1,7">
                         <Path.RenderTransform>
@@ -512,12 +512,12 @@
     <!-- The approval card: answered in place, like Copilot's "Allow" / "Deny". -->
     <DataTemplate DataType="{x:Type parts:ApprovalPart}">
         <Border x:Name="Card" Margin="0,6,0,8" Padding="14,12" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
-                BorderBrush="{DynamicResource Fadenstack.Accent}" Background="{DynamicResource Fadenstack.Surface}" MaxWidth="640"
+                BorderBrush="{DynamicResource Fadenstack.AccentIcon}" Background="{DynamicResource Fadenstack.Surface}" MaxWidth="640"
                 HorizontalAlignment="Left">
             <StackPanel>
                 <DockPanel>
                     <TextBlock x:Name="Glyph" DockPanel.Dock="Left" Style="{StaticResource Fadenstack.Icon}" Text="&#xE946;"
-                               Foreground="{DynamicResource Fadenstack.Accent}" Margin="0,0,10,0" />
+                               Foreground="{DynamicResource Fadenstack.AccentIcon}" Margin="0,0,10,0" />
                     <Border DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Badge}">
                         <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding ClassLabel}" />
                     </Border>
@@ -554,16 +554,16 @@
                 <Setter TargetName="Glyph" Property="Text" Value="&#xE7BA;" />
                 <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Fadenstack.Warning}" />
             </DataTrigger>
+            <!-- Answered: the grey border and the state line say so. Not faded: at 85 % its muted text fell under 4.5:1. -->
             <DataTrigger Binding="{Binding IsPending}" Value="False">
                 <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
-                <Setter TargetName="Card" Property="Opacity" Value="0.85" />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type parts:NoticePart}">
         <Border x:Name="Box" Margin="0,4,0,8" Padding="12,8" CornerRadius="{StaticResource Fadenstack.Radius.Control}" BorderThickness="3,0,0,0"
-                BorderBrush="{DynamicResource Fadenstack.Accent}" Background="{DynamicResource Fadenstack.InfoBackground}">
+                BorderBrush="{DynamicResource Fadenstack.AccentIcon}" Background="{DynamicResource Fadenstack.InfoBackground}">
             <StackPanel>
                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,2,0,0" />
@@ -691,7 +691,7 @@
             <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Label}" Margin="0,0,0,4" />
             <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding Value, Mode=OneWay, TargetNullValue=0}"
                          IsIndeterminate="{Binding IsIndeterminate, Mode=OneWay}" BorderThickness="0"
-                         Foreground="{DynamicResource Fadenstack.Accent}" Background="{DynamicResource Fadenstack.SurfaceAlt}" />
+                         Foreground="{DynamicResource Fadenstack.AccentIcon}" Background="{DynamicResource Fadenstack.SurfaceAlt}" />
         </StackPanel>
     </DataTemplate>
 
@@ -758,7 +758,7 @@
                         <DataTemplate.Triggers>
                             <DataTrigger Binding="{Binding IsSkill}" Value="True">
                                 <Setter TargetName="Mark" Property="Text" Value="&#xE945;" />
-                                <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Fadenstack.Accent}" />
+                                <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Fadenstack.AccentIcon}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding HasImage}" Value="True">
                                 <Setter TargetName="Thumbnail" Property="Visibility" Value="Visible" />
@@ -771,9 +771,11 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0"
                         Visibility="{Binding IsPromptBlocked, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{v:Text NotSent}" Foreground="{DynamicResource Fadenstack.Danger}" Margin="0,0,6,0" />
-                <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding EditCommand}">
-                    <TextBlock Foreground="{DynamicResource Fadenstack.Link}" FontSize="12" Text="{v:Text EditAndResend}" />
-                </Button>
+                <!-- A link, like About's: link colour on a button's hover or pressed fill falls under 4.5:1. -->
+                <TextBlock FontSize="12" VerticalAlignment="Center">
+                    <Hyperlink Command="{Binding EditCommand}" Foreground="{DynamicResource Fadenstack.Link}"
+                               FocusVisualStyle="{DynamicResource Fadenstack.LinkFocusVisual}"><Run Text="{v:Text EditAndResend}" /></Hyperlink>
+                </TextBlock>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,12,0,6">

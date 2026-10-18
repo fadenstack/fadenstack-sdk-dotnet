@@ -16,6 +16,8 @@
     <SolidColorBrush x:Key="Fadenstack.Accent" Color="#0F6CBD" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#115EA3" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#FFFFFF" po:Freeze="True" />
+    <!-- The accent as icons, check marks, the spinner and accent lines on the panel's own surfaces (3:1 or more on each). -->
+    <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#0F6CBD" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Hover" Color="#F0F0F0" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#E3E3E3" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Link" Color="#0F6CBD" po:Freeze="True" />
@@ -31,9 +33,15 @@
     <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#DFF6DD" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#FDE7E9" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Focus" Color="#0F6CBD" po:Freeze="True" />
+    <!--
+        The keyboard-focus ring on a link (About's, the line under the composer, an answer's): the system's black
+        dashes, which show on these light colours (the dark colours draw their own in the focus colour).
+    -->
+    <Style x:Key="Fadenstack.LinkFocusVisual" BasedOn="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}" />
     <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#33000000" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#C2C2C2" po:Freeze="True" />
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#9E9E9E" po:Freeze="True" />
+    <!-- The scroll thumb shows where the conversation is: 3:1 or more on the background and the surfaces. -->
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#8C8C8C" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#7A7A7A" po:Freeze="True" />
     <!-- The agent avatar (AgentAvatar): navy plates, the rose thread plate, the hollow under the lid. -->
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateTop" Color="#1C2436" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateSide" Color="#0A0E1A" po:Freeze="True" />
