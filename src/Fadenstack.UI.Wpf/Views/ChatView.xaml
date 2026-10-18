@@ -50,10 +50,11 @@
                             <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE70D;" Margin="6,0,0,0" />
                         </StackPanel>
                     </ToggleButton>
+                    <!-- Under the button, its end edge under the button's, kept over the panel (ChatView.xaml.cs places it). -->
                     <Popup x:Name="ModeMenu" IsOpen="{Binding IsModeMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ModeButton}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                           Placement="Custom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                         <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
-                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="0,4,8,12">
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="8,4,8,12">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
                             </Border.Effect>
@@ -77,7 +78,7 @@
                             </StackPanel>
                         </Border>
                     </Popup>
-                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text History}" Margin="4,0,0,0"
+                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostToggle}" ToolTip="{local:Text History}" Margin="4,0,0,0"
                                   AutomationProperties.Name="{local:Text History}" IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=HistoryMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE81C;" />
@@ -86,17 +87,30 @@
                             Margin="4,0,0,0" Command="{Binding NewChatCommand}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE710;" />
                     </Button>
-                    <!-- The settings: the language, the host's own items (SettingsContent), and About last. Always shown. -->
-                    <ToggleButton x:Name="SettingsButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text Settings}"
+                    <!--
+                        The settings: the language, the host's own items (SettingsContent), and About last. Always shown.
+                        The gear looks pressed while its menu is open, and while About, which the menu opened, is.
+                    -->
+                    <ToggleButton x:Name="SettingsButton" ToolTip="{local:Text Settings}"
                                   AutomationProperties.Name="{local:Text Settings}" Margin="4,0,0,0"
                                   IsChecked="{Binding IsSettingsOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=SettingsMenu, Converter={StaticResource Fadenstack.InverseBool}}">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton" BasedOn="{StaticResource Fadenstack.GhostToggle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAboutOpen}" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE713;" />
                     </ToggleButton>
+                    <!-- Under the gear, its end edge under the gear's, kept over the panel (ChatView.xaml.cs places it). -->
                     <Popup x:Name="SettingsMenu" IsOpen="{Binding IsSettingsOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=SettingsButton}"
-                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                           Placement="Custom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                         <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
-                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="0,4,8,12" MinWidth="220">
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="8,4,8,12" MinWidth="220">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
                             </Border.Effect>
@@ -285,7 +299,7 @@
             popup, so it moves with the panel (an Office task pane) and keeps the keyboard there. Escape, Close, and a press
             anywhere outside it close it (ChatView.xaml.cs).
         -->
-        <Border x:Name="AboutCard" Grid.Row="1" VerticalAlignment="Top" Margin="8,4,8,8" Padding="14,10,6,12"
+        <Border x:Name="AboutCard" Grid.Row="1" VerticalAlignment="Top" Margin="8,4,8,8" Padding="14,6,6,12"
                 Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
                 CornerRadius="{StaticResource Fadenstack.Radius.Container}" KeyboardNavigation.TabNavigation="Cycle"
                 AutomationProperties.Name="{local:Text About}"
@@ -296,52 +310,53 @@
             <Border.InputBindings>
                 <KeyBinding Key="Escape" Command="{Binding CloseAboutCommand}" />
             </Border.InputBindings>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                <StackPanel Margin="0,0,8,0">
-                    <DockPanel Margin="0,0,0,10">
-                        <Button x:Name="AboutClose" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Margin="0,-4,-8,0"
-                                Command="{Binding CloseAboutCommand}" ToolTip="{local:Text Close}" AutomationProperties.Name="{local:Text Close}">
-                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE711;" />
-                        </Button>
-                        <TextBlock Text="{local:Text About}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    </DockPanel>
-                    <!-- The agent: name, version or draft, model -->
-                    <DockPanel Margin="0,0,0,10" Visibility="{Binding About.HasAgent, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                        <local:AgentAvatar DockPanel.Dock="Left" Small="True" Width="28" Height="28" Margin="0,0,10,0" VerticalAlignment="Top" />
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="{Binding About.AgentName}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
-                                       Visibility="{Binding About.AgentDetail, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                        </StackPanel>
-                    </DockPanel>
-                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.AppText}" TextWrapping="Wrap" Margin="0,0,0,3"
-                               Visibility="{Binding About.AppText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.SdkText}" TextWrapping="Wrap" Margin="0,0,0,3" />
-                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.ServerText}" TextWrapping="Wrap"
-                               Visibility="{Binding About.ServerText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                    <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,10,0,6" />
-                    <!-- Links: Help (the organisation's server), Fadenstack, Developer docs; each opens in the browser -->
-                    <ItemsControl ItemsSource="{Binding About.Links}" Focusable="False">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:PanelLink}">
-                                <TextBlock Margin="0,3,16,3">
-                                    <Hyperlink Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                               CommandParameter="{Binding}" ToolTip="{Binding Url.AbsoluteUri}" AutomationProperties.Name="{Binding Name}"
-                                               Foreground="{DynamicResource Fadenstack.Link}"><Run Text="{Binding Label, Mode=OneWay}" /><Run Text=" " /><Run
-                                            FontFamily="{DynamicResource Fadenstack.IconFont}" FontSize="9" Text="&#xE8A7;" /></Hyperlink>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
-                            Command="{Binding CopyDetailsCommand}" Content="{local:Text CopyDetails}" />
-                </StackPanel>
-            </ScrollViewer>
+            <!-- The title and Close stay outside the scrolled part, so nothing clips Close's focus ring. -->
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <Button x:Name="AboutClose" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}"
+                            Command="{Binding CloseAboutCommand}" ToolTip="{local:Text Close}" AutomationProperties.Name="{local:Text Close}">
+                        <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE711;" />
+                    </Button>
+                    <TextBlock Text="{local:Text About}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </DockPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <StackPanel Margin="0,0,8,0">
+                        <!-- The agent: name, version or draft, model -->
+                        <DockPanel Margin="0,0,0,10" Visibility="{Binding About.HasAgent, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                            <local:AgentAvatar DockPanel.Dock="Left" Small="True" Width="28" Height="28" Margin="0,0,10,0" VerticalAlignment="Top" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding About.AgentName}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
+                                           Visibility="{Binding About.AgentDetail, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.AppText}" TextWrapping="Wrap" Margin="0,0,0,3"
+                                   Visibility="{Binding About.AppText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.SdkText}" TextWrapping="Wrap" Margin="0,0,0,3" />
+                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding About.ServerText}" TextWrapping="Wrap"
+                                   Visibility="{Binding About.ServerText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                        <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,10,0,6" />
+                        <!--
+                            Links: Help (the organisation's server), Fadenstack, Developer docs; each opens in the browser. One per
+                            line, so nothing wraps unevenly, whatever the language makes of their names.
+                        -->
+                        <ItemsControl ItemsSource="{Binding About.Links}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PanelLink}">
+                                    <TextBlock Margin="0,2" TextWrapping="Wrap">
+                                        <Hyperlink Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                   CommandParameter="{Binding}" ToolTip="{Binding Url.AbsoluteUri}" AutomationProperties.Name="{Binding Name}"
+                                                   Foreground="{DynamicResource Fadenstack.Link}"><Run Text="{Binding Label, Mode=OneWay}" /><Run Text=" " /><Run
+                                                FontFamily="{DynamicResource Fadenstack.IconFont}" FontSize="9" Text="&#xE8A7;" /></Hyperlink>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                                Command="{Binding CopyDetailsCommand}" Content="{local:Text CopyDetails}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
         <!-- Composer: a pasted picture, or picture files dropped on it, go with the next message -->
@@ -485,17 +500,23 @@
 
         <!--
             Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides
-            it. After it, as muted, the "Fadenstack" link (unless the host turned Branding off). ChatView.xaml.cs fills it.
+            it. Below it, on a small line of its own and as muted, the "Fadenstack" link (unless the host turned Branding
+            off). ChatView.xaml.cs fills them.
         -->
-        <TextBlock x:Name="AiNotice" Grid.Row="3" Margin="12,-8,12,8" FontSize="11" TextWrapping="Wrap"
-                   TextAlignment="Center" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <StackPanel x:Name="Footer" Grid.Row="3" Margin="12,-8,12,8">
+            <TextBlock x:Name="AiNotice" FontSize="11" TextWrapping="Wrap" TextAlignment="Center"
+                       Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <TextBlock x:Name="BrandingLine" FontSize="11" TextAlignment="Center" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+        </StackPanel>
 
         <!--
             The chats: a dropdown under the header, as wide as the panel, so the conversation stays in view and a
-            narrow pane (an Office task pane) crops nothing. Its items sit 6 in from its 12 corners.
+            narrow pane (an Office task pane) crops nothing. Its items sit 6 in from its 12 corners. Placed by
+            ChatView.xaml.cs, 8 in from both edges ("Bottom" lined its border up with the panel's left edge and its
+            shadow's margin hung outside).
         -->
         <Popup x:Name="HistoryMenu" IsOpen="{Binding IsHistoryOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=Header}"
-               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
+               Placement="Custom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade"
                Width="{Binding ActualWidth, ElementName=Header}">
             <Border Margin="8,4,8,16" Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}"
                     BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" MaxHeight="440">

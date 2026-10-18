@@ -187,7 +187,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public bool Branding => _options.Branding;
 
     /// <summary>
-    /// The footer's "Fadenstack" link, after the AI notice under the composer (<c>ref=&lt;app&gt;-panel</c>); null when the
+    /// The footer's "Fadenstack" link, on its own line under the AI notice (<c>ref=&lt;app&gt;-panel</c>); null when the
     /// host turned <see cref="AgentChatOptions.Branding"/> off.
     /// </summary>
     public PanelLink? BrandingLink

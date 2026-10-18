@@ -73,8 +73,8 @@ public sealed class AgentChatOptions
     public Action<OutgoingMessage>? AfterSend { get; set; }
 
     /// <summary>
-    /// Whether the line under the composer ends with a small "Fadenstack" link to fadenstack.com (default true). False
-    /// hides that link only: About, in the settings, stays.
+    /// Whether a small "Fadenstack" link to fadenstack.com shows on its own line under the AI notice (default true). False
+    /// hides that line only: the notice and About, in the settings, stay.
     /// </summary>
     public bool Branding { get; set; } = true;
 

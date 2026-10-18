@@ -188,6 +188,15 @@
         </Style.Triggers>
     </Style>
 
+    <!-- An icon button that opens a menu (the history, the settings): it looks pressed while its menu is open. -->
+    <Style x:Key="Fadenstack.GhostToggle" TargetType="ToggleButton" BasedOn="{StaticResource Fadenstack.GhostButton}">
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <Style x:Key="Fadenstack.PrimaryButton" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
