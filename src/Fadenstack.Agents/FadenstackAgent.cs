@@ -174,7 +174,11 @@ public sealed class FadenstackAgent : IDisposable
                 Class = t.Class,
                 OpenWorld = t.OpenWorld,
                 Outputs = t.Outputs.Count == 0 ? null
-                    : t.Outputs.Select(o => new ManifestOutput { Argument = o.Argument, MediaType = o.MediaType, EditKind = o.EditKind }).ToList(),
+                    : t.Outputs.Select(o => new ManifestOutput
+                    {
+                        // A kind decided per call is no default to state: left out, as the TypeScript SDK leaves it.
+                        Argument = o.Argument, MediaType = o.MediaType, EditKind = o.EditKindOf is null ? o.EditKind : null,
+                    }).ToList(),
             }).ToList(),
             Context = app.Context,
             Ui = app.Ui,

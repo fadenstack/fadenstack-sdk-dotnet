@@ -57,14 +57,18 @@ public sealed record ManifestTool
     public IReadOnlyList<ManifestOutput>? Outputs { get; init; }
 }
 
-/// <summary>An argument whose content a tool puts where people read it: its media type and its default edit kind.</summary>
+/// <summary>
+/// An argument whose content a tool puts where people read it: its media type and its edit kind. On the wire
+/// <c>{"argument", "media_type", "edit_kind"}</c> in the tool's <c>outputs</c> list, as the TypeScript SDK sends it.
+/// </summary>
 public sealed record ManifestOutput
 {
     public string Argument { get; init; } = "";
 
     public string MediaType { get; init; } = "";
 
-    public EditKind EditKind { get; init; }
+    /// <summary>The edit kind when it is fixed; null (left out) when the tool decides it per call.</summary>
+    public EditKind? EditKind { get; init; }
 }
 
 /// <summary>Something the app offers the agent to read, by its id (<c>doc:selection</c>).</summary>

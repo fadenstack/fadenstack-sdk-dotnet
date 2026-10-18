@@ -77,9 +77,9 @@ public class ToolSeamTests
 
         var manifest = await Until(() => gateway.Manifests.FirstOrDefault());
         var tools = manifest.Json.GetProperty("tools").EnumerateArray().ToDictionary(t => t.GetProperty("name").GetString()!);
-        var said = tools["insert_reply"].GetProperty("outputs")[0];
-        Assert.Equal(("text", "text/markdown", "generated"), (said.GetProperty("argument").GetString(), said.GetProperty("media_type").GetString(),
-            said.GetProperty("edit_kind").GetString()));
+        // The exact JSON, as the TypeScript SDK sends it: a fixed edit kind is sent, one decided per call left out.
+        Assert.Equal("""[{"argument":"text","media_type":"text/markdown","edit_kind":"generated"}]""", tools["insert_reply"].GetProperty("outputs").GetRawText());
+        Assert.Equal("""[{"argument":"text","media_type":"text/plain"}]""", tools["improve"].GetProperty("outputs").GetRawText());
         Assert.False(tools["read_page"].TryGetProperty("outputs", out _));
     }
 
