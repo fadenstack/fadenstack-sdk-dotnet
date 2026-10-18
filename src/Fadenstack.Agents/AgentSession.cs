@@ -691,9 +691,12 @@ public sealed class AgentSession
                 }
             }
             var askedFor = asking.Elapsed;
+            using var services = new ToolServices(Agent.Settings.ToolServices);
             try
             {
-                var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments), _session.Id, _id);
+                var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
+                    Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
+                services.Bind(invocation);
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
                 return (text, "ok", askedFor, pictures);

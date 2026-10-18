@@ -55,6 +55,7 @@ Stages run in the order of their `order` value, whatever order they are added in
 |---|---|
 | `StageOrder.Context` | Context added to a request. |
 | `StageOrder.Pii` | Personal data masked on the device. |
+| `StageOrder.Provenance` | Content marking: the turn's receipts, and the check that tools mark what they place. |
 | `StageOrder.Custom` | Your own stages. |
 
 A lower value sits further from the transport. A request passes the stages from the lowest value to the highest and then goes to the gateway: context first, then masking, then custom stages. A tool call passes them in the same order on the way to the tool, and the result comes back through them in reverse. Give each of your stages its own value when their order matters.
@@ -117,7 +118,13 @@ public sealed class ToolLogStage : IToolStage
 }
 ```
 
-A `ToolInvocation` carries the `Tool`, the model's `Call`, the `Arguments` the tool gets (a stage may change them, for example to put masked values back), the tool's `Class`, and the `SessionId` and `TurnId`. Call `next` to go on to the next stage and finally the tool; what you return is the tool's result.
+A `ToolInvocation` carries the `Tool`, the model's `Call`, the `Arguments` the tool gets (a stage may change them, for example to put masked values back), the tool's `Class`, the `SessionId` and `TurnId`, and the `Agent` it runs in. Call `next` to go on to the next stage and finally the tool; what you return is the tool's result.
+
+A stage can also:
+
+- get the call's tool services with `GetService<T>()`: the same instance the tool gets (see [Services a call gets](tools.md#services-a-call-gets); a module adds them with `builder.AddToolService<T>(factory)`);
+- write an entry of its own type into the session's transcript with `RecordAsync(type, data)`, such as `provenance.placed`. The SDK's own entry types are refused, since they make the history the model gets; keep content out of the data;
+- tell the user something about the call with `NoticeAsync(notice)`: it goes into the turn's notices and the transcript, and raises a `NoticeRaised` event.
 
 ## Tool sources
 

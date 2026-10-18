@@ -76,13 +76,16 @@ public static class WorkspaceTools
                 Description = method.GetCustomAttribute<DescriptionAttribute>()?.Description,
                 ConfigureParameterBinding = p => IsWorkspace(p.ParameterType)
                     ? new AIFunctionFactoryOptions.ParameterBindingOptions { ExcludeFromSchema = true, BindParameter = BindWorkspace }
-                    : default,
+                    : AgentTool.ToolServiceBinding(p),
             });
             if (bound)
             {
                 function = new WorkspaceFunction(function, provider.Info, marker.Class, directory, options);
             }
-            tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null));
+            tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null)
+            {
+                Outputs = AgentTool.OutputsOf(method, instance),
+            });
         }
         if (tools.Count == 0)
         {

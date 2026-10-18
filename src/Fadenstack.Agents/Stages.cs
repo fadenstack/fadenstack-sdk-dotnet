@@ -4,34 +4,48 @@ using Microsoft.Extensions.AI;
 namespace Fadenstack.Agents;
 
 /// <summary>
-/// Where a stage sits: the builder owns the order. Outgoing: context → local PII masking →
-/// transport. Tool call: approval (the loop) → unmask arguments → run → mask the result. A lower number is
-/// further from the transport; modules pick their slot, not their call order.
+/// Where a stage sits: the builder owns the order. Outgoing: context → local PII masking → content provenance →
+/// transport. Tool call: approval (the loop) → unmask arguments → check the content the tool places is marked → run →
+/// mask the result. A lower number is further from the transport; modules pick their slot, not their call order.
 /// </summary>
 public static class StageOrder
 {
     public const int Context = 100;
     public const int Pii = 200;
+
+    /// <summary>Content marking (<c>Fadenstack.Provenance</c>): the turn's receipts, and the check that tools mark what they place.</summary>
+    public const int Provenance = 300;
+
     public const int Custom = 500;
 }
 
 /// <summary>One tool call on its way to the tool.</summary>
 public sealed class ToolInvocation
 {
-    internal ToolInvocation(AgentTool tool, FunctionCallContent call, AIFunctionArguments arguments, string sessionId, string turnId)
+    private readonly Func<string, object, Task>? _record;
+    private readonly Func<Governance.GovernanceNotice, Task>? _notice;
+
+    internal ToolInvocation(AgentTool tool, FunctionCallContent call, AIFunctionArguments arguments, string sessionId, string turnId,
+        FadenstackAgent? agent = null, Func<string, object, Task>? record = null, Func<Governance.GovernanceNotice, Task>? notice = null)
     {
         Tool = tool;
         Call = call;
         Arguments = arguments;
         SessionId = sessionId;
         TurnId = turnId;
+        Agent = agent;
+        _record = record;
+        _notice = notice;
     }
 
     public AgentTool Tool { get; }
 
     public FunctionCallContent Call { get; }
 
-    /// <summary>The arguments the tool gets; a stage may change them (e.g. put masked values back).</summary>
+    /// <summary>
+    /// The arguments the tool gets; a stage may change them (e.g. put masked values back). Their
+    /// <see cref="AIFunctionArguments.Services"/> are the call's tool services (<see cref="AgentBuilder.AddToolService{T}"/>).
+    /// </summary>
     public AIFunctionArguments Arguments { get; }
 
     public ToolClass Class => Tool.Class;
@@ -39,6 +53,30 @@ public sealed class ToolInvocation
     public string SessionId { get; }
 
     public string TurnId { get; }
+
+    /// <summary>The agent the call runs in: its client, its profile; null outside a session.</summary>
+    public FadenstackAgent? Agent { get; }
+
+    /// <summary>A tool service of this call (<see cref="AgentBuilder.AddToolService{T}"/>): the same instance the tool gets; null when none is added.</summary>
+    public T? GetService<T>() where T : class => Arguments.Services?.GetService(typeof(T)) as T;
+
+    /// <summary>
+    /// Writes an entry of <paramref name="type"/> (a name of the module's own, such as <c>provenance.placed</c>) into the
+    /// session's transcript, in this call's turn: names, counts and outcomes, never more than the call itself carries.
+    /// The SDK's own types (<see cref="Sessions.EntryTypes"/>) are not taken: they make the history the model gets.
+    /// </summary>
+    public Task RecordAsync(string type, object data)
+    {
+        if (string.IsNullOrWhiteSpace(type) || Sessions.EntryTypes.All.Contains(type))
+        {
+            throw new ArgumentException($"'{type}' is not an entry type a stage or tool service may write.", nameof(type));
+        }
+        return _record is null ? Task.CompletedTask : _record(type, data ?? throw new ArgumentNullException(nameof(data)));
+    }
+
+    /// <summary>Tells the user something about this call: the turn's notices, the transcript, a <see cref="NoticeRaised"/> event.</summary>
+    public Task NoticeAsync(Governance.GovernanceNotice notice) =>
+        _notice is null ? Task.CompletedTask : _notice(notice ?? throw new ArgumentNullException(nameof(notice)));
 }
 
 public delegate Task<object?> ToolInvoker(ToolInvocation invocation, CancellationToken cancellationToken);

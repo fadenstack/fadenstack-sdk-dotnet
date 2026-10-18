@@ -31,6 +31,73 @@ public sealed class AgentToolAttribute : Attribute
     public bool OpenWorld { get; set; }
 }
 
+/// <summary>
+/// Says that a tool puts content a model wrote where people read it (a document, a mail, a web page): which argument
+/// carries it, its media type, and what kind of edit it makes. <c>[AgentTool(ToolClass.Write), Emits("text",
+/// "text/markdown", EditKind.Generated)]</c>. Metadata only: with <c>Fadenstack.Provenance</c> the tool places the
+/// content through <c>IProvenance.PlaceAsync</c>, which marks it, and a call that places nothing is recorded as
+/// unmarked. Once per argument.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+public sealed class EmitsAttribute : Attribute
+{
+    public EmitsAttribute(string argument, string mediaType, EditKind editKind = EditKind.Generated)
+    {
+        Argument = argument;
+        MediaType = mediaType;
+        EditKind = editKind;
+    }
+
+    /// <summary>The parameter that carries the content, by its name in the method.</summary>
+    public string Argument { get; }
+
+    /// <summary><c>text/plain</c>, <c>text/markdown</c>, <c>text/html</c>, <c>image/png</c>, ...</summary>
+    public string MediaType { get; }
+
+    /// <summary>The kind of edit the tool makes, unless <see cref="EditKindFrom"/> decides per call.</summary>
+    public EditKind EditKind { get; }
+
+    /// <summary>
+    /// A method of the same class that decides the edit kind from a call's arguments:
+    /// <c>EditKind Name(IReadOnlyDictionary&lt;string, object?&gt; arguments)</c>, static or not.
+    /// </summary>
+    public string? EditKindFrom { get; set; }
+}
+
+/// <summary>
+/// Marks a type (or a parameter) that a tool gets from its call's tool services rather than from the model: a tool
+/// method's parameter of such a type is bound from <see cref="AIFunctionArguments.Services"/> and left out of the
+/// tool's JSON schema. Modules add the services with <see cref="AgentBuilder.AddToolService{T}"/>.
+/// </summary>
+[AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Parameter, Inherited = false)]
+public sealed class ToolServiceAttribute : Attribute
+{
+}
+
+/// <summary>Content for people a tool writes: the argument that carries it, its media type, and the kind of edit.</summary>
+public sealed record ToolOutput
+{
+    public ToolOutput(string argument, string mediaType, EditKind editKind = EditKind.Generated)
+    {
+        Argument = string.IsNullOrWhiteSpace(argument) ? throw new ArgumentException("An output names its argument.", nameof(argument)) : argument;
+        MediaType = string.IsNullOrWhiteSpace(mediaType) ? throw new ArgumentException("An output has a media type.", nameof(mediaType)) : mediaType;
+        EditKind = editKind;
+    }
+
+    public string Argument { get; }
+
+    public string MediaType { get; }
+
+    /// <summary>The kind of edit, unless <see cref="EditKindOf"/> decides per call.</summary>
+    public EditKind EditKind { get; }
+
+    /// <summary>Decides the edit kind from a call's arguments (an "improve" tool that only corrects for light changes).</summary>
+    public Func<IReadOnlyDictionary<string, object?>, EditKind>? EditKindOf { get; init; }
+
+    /// <summary>The edit kind of one call.</summary>
+    public EditKind EditKindFor(IReadOnlyDictionary<string, object?> arguments) => EditKindOf?.Invoke(arguments) ?? EditKind;
+}
+
 /// <summary>A tool the agent can run: the function, what it does, and where it runs.</summary>
 public sealed class AgentTool
 {
@@ -67,6 +134,12 @@ public sealed class AgentTool
     /// </summary>
     public Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<string?>>? Describe { get; init; }
 
+    /// <summary>
+    /// The content for people the tool writes (<see cref="EmitsAttribute"/>): which argument, its media type, the kind of
+    /// edit. Empty for a tool that writes none.
+    /// </summary>
+    public IReadOnlyList<ToolOutput> Outputs { get; init; } = Array.Empty<ToolOutput>();
+
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>
     public static IReadOnlyList<AgentTool> From(object target)
     {
@@ -85,14 +158,88 @@ public sealed class AgentTool
             {
                 Name = marker.Name ?? SnakeCase(method.Name),
                 Description = method.GetCustomAttribute<DescriptionAttribute>()?.Description,
+                ConfigureParameterBinding = ToolServiceBinding,
             });
-            tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null));
+            tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null)
+            {
+                Outputs = OutputsOf(method, instance),
+            });
         }
         if (tools.Count == 0)
         {
             throw new ArgumentException($"{type.Name} has no public methods marked [AgentTool].", nameof(target));
         }
         return tools;
+    }
+
+    /// <summary>
+    /// For <see cref="AIFunctionFactoryOptions.ConfigureParameterBinding"/>: a parameter whose type (or itself) is marked
+    /// <see cref="ToolServiceAttribute"/> is bound from the call's tool services and left out of the JSON schema; any
+    /// other parameter is bound as usual. A parameter with a default gets it when no module added the service.
+    /// </summary>
+    public static AIFunctionFactoryOptions.ParameterBindingOptions ToolServiceBinding(ParameterInfo parameter) =>
+        IsToolService(parameter)
+            ? new AIFunctionFactoryOptions.ParameterBindingOptions { ExcludeFromSchema = true, BindParameter = BindToolService }
+            : default;
+
+    internal static bool IsToolService(ParameterInfo parameter) =>
+        parameter.IsDefined(typeof(ToolServiceAttribute), false) || parameter.ParameterType.IsDefined(typeof(ToolServiceAttribute), false);
+
+    private static object? BindToolService(ParameterInfo parameter, AIFunctionArguments arguments)
+    {
+        if (arguments.Services?.GetService(parameter.ParameterType) is { } service)
+        {
+            return service;
+        }
+        if (parameter.HasDefaultValue)
+        {
+            return parameter.DefaultValue;
+        }
+        throw new InvalidOperationException(
+            $"'{parameter.Name}' needs {parameter.ParameterType.Name}: add the module that provides it to the agent's builder.");
+    }
+
+    /// <summary>The method's <see cref="EmitsAttribute"/>s as outputs; each must name one of its parameters.</summary>
+    internal static IReadOnlyList<ToolOutput> OutputsOf(MethodInfo method, object? instance)
+    {
+        var emits = method.GetCustomAttributes<EmitsAttribute>().ToList();
+        if (emits.Count == 0)
+        {
+            return Array.Empty<ToolOutput>();
+        }
+        var parameters = method.GetParameters().Select(p => p.Name).ToList();
+        var outputs = new List<ToolOutput>();
+        foreach (var e in emits)
+        {
+            if (!parameters.Contains(e.Argument))
+            {
+                throw new ArgumentException($"{method.Name} emits '{e.Argument}', which is not one of its parameters.");
+            }
+            if (outputs.Any(o => o.Argument == e.Argument))
+            {
+                throw new ArgumentException($"{method.Name} emits '{e.Argument}' twice.");
+            }
+            outputs.Add(new ToolOutput(e.Argument, e.MediaType, e.EditKind) { EditKindOf = Decider(method, instance, e.EditKindFrom) });
+        }
+        return outputs;
+    }
+
+    private static Func<IReadOnlyDictionary<string, object?>, EditKind>? Decider(MethodInfo tool, object? instance, string? name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return null;
+        }
+        var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
+        var method = tool.DeclaringType!.GetMethods(flags).FirstOrDefault(m => m.Name == name && m.ReturnType == typeof(EditKind)
+            && m.GetParameters() is { Length: 1 } p && p[0].ParameterType == typeof(IReadOnlyDictionary<string, object?>));
+        if (method is null || (!method.IsStatic && instance is null))
+        {
+            throw new ArgumentException(
+                $"{tool.Name}: EditKindFrom names '{name}', which is not an 'EditKind {name}(IReadOnlyDictionary<string, object?>)' it can call.");
+        }
+        var target = method.IsStatic ? null : instance;
+        return arguments => (EditKind)method.Invoke(target, new object[] { arguments })!;
     }
 
     internal static string SnakeCase(string name)

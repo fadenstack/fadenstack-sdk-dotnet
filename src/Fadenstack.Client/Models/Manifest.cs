@@ -52,6 +52,19 @@ public sealed record ManifestTool
     public ToolClass Class { get; init; } = ToolClass.Unknown;
 
     public bool? OpenWorld { get; init; }
+
+    /// <summary>The content for people it writes, and what kind of edit it makes; null for a tool that declares none.</summary>
+    public IReadOnlyList<ManifestOutput>? Outputs { get; init; }
+}
+
+/// <summary>An argument whose content a tool puts where people read it: its media type and its default edit kind.</summary>
+public sealed record ManifestOutput
+{
+    public string Argument { get; init; } = "";
+
+    public string MediaType { get; init; } = "";
+
+    public EditKind EditKind { get; init; }
 }
 
 /// <summary>Something the app offers the agent to read, by its id (<c>doc:selection</c>).</summary>

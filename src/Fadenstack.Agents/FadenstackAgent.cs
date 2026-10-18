@@ -93,7 +93,7 @@ public sealed class FadenstackAgent : IDisposable
                 }
                 var risk = ToolModes.ParseClass(entry?.Risk);
                 tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe });
+                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs });
             }
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
             foreach (var source in _settings.Sources)
@@ -173,6 +173,8 @@ public sealed class FadenstackAgent : IDisposable
                 Parameters = t.Function.JsonSchema,
                 Class = t.Class,
                 OpenWorld = t.OpenWorld,
+                Outputs = t.Outputs.Count == 0 ? null
+                    : t.Outputs.Select(o => new ManifestOutput { Argument = o.Argument, MediaType = o.MediaType, EditKind = o.EditKind }).ToList(),
             }).ToList(),
             Context = app.Context,
             Ui = app.Ui,

@@ -38,6 +38,13 @@ public static class EntryTypes
     public const string GovernanceNotice = "governance.notice";
     public const string Compaction = "compaction";
     public const string TurnEnd = "assistant.turn_end";
+
+    /// <summary>The SDK's own types; a module's entries use names of their own (<see cref="ToolInvocation.RecordAsync"/>).</summary>
+    public static IReadOnlyList<string> All { get; } = new[]
+    {
+        SessionStart, UserMessage, TurnStart, AssistantMessage, ToolStart, ToolComplete, ApprovalDecision, GovernanceNotice,
+        Compaction, TurnEnd,
+    };
 }
 
 /// <summary>How a turn ended; blocked, failed and cancelled turns are not sent to the model again.</summary>

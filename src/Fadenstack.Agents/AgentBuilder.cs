@@ -16,6 +16,7 @@ public sealed class AgentBuilder
     private readonly List<IToolSource> _sources = new();
     private readonly List<(int Order, Func<IChatClient, IChatClient> Wrap)> _chatStages = new();
     private readonly List<(int Order, IToolStage Stage)> _toolStages = new();
+    private readonly Dictionary<Type, Func<ToolInvocation, object>> _toolServices = new();
     private readonly List<string> _modules = new();
     private FadenstackClient? _client;
     private FadenstackClientOptions? _options;
@@ -207,6 +208,22 @@ public sealed class AgentBuilder
         return this;
     }
 
+    /// <summary>
+    /// A service each tool call gets (<see cref="AIFunctionArguments.Services"/>), made by <paramref name="factory"/> the
+    /// first time the call or one of its stages asks for it, and the same instance for both. A tool method's
+    /// parameter of a type marked <see cref="ToolServiceAttribute"/> is bound to it and left out of the tool's schema;
+    /// any tool can also take an <see cref="IServiceProvider"/>. One factory per type: a later one replaces it.
+    /// </summary>
+    public AgentBuilder AddToolService<T>(Func<ToolInvocation, T> factory) where T : class
+    {
+        if (factory is null)
+        {
+            throw new ArgumentNullException(nameof(factory));
+        }
+        _toolServices[typeof(T)] = invocation => factory(invocation);
+        return this;
+    }
+
     public AgentBuilder Use(IFadenstackModule module)
     {
         if (module is null)
@@ -257,6 +274,7 @@ public sealed class AgentBuilder
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
+            ToolServices = new Dictionary<Type, Func<ToolInvocation, object>>(_toolServices),
             Modules = _modules.ToList(),
             Approvals = _approvals,
             Sessions = _sessions,
@@ -298,6 +316,7 @@ internal sealed class AgentSettings
     public List<AgentTool> Tools { get; init; } = new();
     public List<IToolSource> Sources { get; init; } = new();
     public List<IToolStage> ToolStages { get; init; } = new();
+    public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
     public ISessionStore? Sessions { get; init; }

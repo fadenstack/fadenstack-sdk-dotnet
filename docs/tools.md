@@ -62,6 +62,31 @@ When a tool throws, the model gets `Error:` followed by the exception's message,
 
 When the model sends arguments that are not valid JSON, the tool is not run and the model gets an error.
 
+### Services a call gets
+
+A parameter whose type is marked `[ToolService]` is not shown to the model either. The call gets it from its tool services: a module adds a factory with `builder.AddToolService<T>(invocation => ...)`, the factory runs the first time the call or one of its stages asks for the service, and both get the same instance. `Fadenstack.Provenance` gives tools `IProvenance` this way. A parameter with a default value gets the default when no module added the service; without one, the call fails with a message that names the missing service. A tool can also take an `IServiceProvider` and ask it for the services itself.
+
+## Content for people
+
+A tool that puts content a model wrote where people read it -- text into a document, a mail, a web page, a picture onto a slide -- says so with `[Emits]`: the argument that carries the content, its media type, and the kind of edit.
+
+```csharp
+[AgentTool(ToolClass.Write), Emits("text", "text/markdown", EditKind.Generated), Description("Inserts a reply at the cursor.")]
+public Task<string> InsertReplyAsync(string text, IProvenance provenance, CancellationToken ct) => ...;
+```
+
+| Edit kind | Meaning | Marked by default |
+|---|---|---|
+| `Generated` | New content | Yes |
+| `Rewritten` | Changes style, structure or meaning | Yes |
+| `Summarised` | A summary of existing content | Yes |
+| `Translated` | A translation | No |
+| `Corrected` | Spelling, grammar, minor stylistic polish | No |
+| `Formatted` | Layout, styles, format conversion | No |
+| `Extracted` | Existing content selected or structured, not summarised | No |
+
+`EditKindFrom` names a method of the same class, `EditKind Name(IReadOnlyDictionary<string, object?> arguments)`, that decides the kind per call. An `[Emits]` that names no parameter of the method throws `ArgumentException` when the tools are added. The declarations are in `AgentTool.Outputs` (also for tools you build yourself) and in the app's manifest. They are metadata only: [Content provenance](provenance.md) marks what the tool places.
+
 ## Tool classes
 
 Every tool has a class that says what it does:
