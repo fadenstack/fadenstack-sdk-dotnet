@@ -44,6 +44,19 @@
           ],
           "default": null,
           "title": "Reason"
+        },
+        "verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "for an applied layer: read back from the host after placing (true), or not readable there (false); none when the SDK did not try",
+          "title": "Verified"
         }
       },
       "required": [
@@ -93,8 +106,17 @@
       "type": "string"
     },
     "record_id": {
-      "title": "Record Id",
-      "type": "string"
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the placement's signed record; none for content exempt from marking",
+      "title": "Record Id"
     },
     "sink_kind": {
       "description": "e.g. word.range, html.editor, nextcloud.file",
@@ -107,7 +129,6 @@
     }
   },
   "required": [
-    "record_id",
     "tool",
     "sink_kind",
     "media_type",

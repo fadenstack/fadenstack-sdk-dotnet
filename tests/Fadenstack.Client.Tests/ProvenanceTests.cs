@@ -80,8 +80,27 @@ public class ProvenanceTests
     [InlineData(typeof(SignedReceipt), "signed-receipt")]
     [InlineData(typeof(ReceiptWatermark), "watermark-status")]
     [InlineData(typeof(ProvenanceAnchors), "anchors")]
+    [InlineData(typeof(VerifyRequest), "verify-request")]
+    [InlineData(typeof(VerifyFinding), "verify-finding")]
+    [InlineData(typeof(VerifyResult), "verify-result")]
     public void Each_contract_type_has_its_schemas_fields_and_writes_every_required_one(Type type, string schema) =>
         SameFields(type, Schema(schema));
+
+    [Fact]
+    public void A_placement_report_names_no_record_when_it_has_none_and_a_layer_says_whether_it_was_read_back()
+    {
+        var report = JsonSerializer.SerializeToElement(new PlacementReport
+        {
+            Tool = "t", SinkKind = "unmarked", MediaType = "text/plain",
+            Layers = { new LayerOutcome { Layer = MarkLayer.Metadata, Method = "html-attribute", Applied = true, Verified = false } },
+        }, FadenstackJson.Options);
+        Assert.False(report.TryGetProperty("record_id", out _));
+        Assert.False(report.GetProperty("layers")[0].GetProperty("verified").GetBoolean());
+        Assert.DoesNotContain("record_id", Schema("placement-report").GetProperty("required").EnumerateArray().Select(e => e.GetString()));
+        var watermark = JsonSerializer.Deserialize<ReceiptWatermark>("""{"applied":"model","algorithm":"gumbel","tokenizer":"Qwen/Qwen2.5-0.5B-Instruct"}""",
+            FadenstackJson.Options)!;
+        Assert.Equal("Qwen/Qwen2.5-0.5B-Instruct", watermark.Tokenizer);
+    }
 
     [Fact]
     public void A_record_request_is_the_schemas_without_the_agent_which_the_route_sets() =>
@@ -110,6 +129,8 @@ public class ProvenanceTests
         Assert.Equal(Enum(Schema("provenance-policy").GetProperty("properties").GetProperty("on_missing")), Wire<MissingLayerPolicy>());
         Assert.Equal(Enum(Schema("generation-receipt").GetProperty("properties").GetProperty("kind")), Wire<ReceiptKind>());
         Assert.Equal(Enum(Schema("provenance-policy").GetProperty("properties").GetProperty("exempt_edit_kinds")), Wire<EditKind>());
+        Assert.Equal(Enum(Schema("verify-result").GetProperty("properties").GetProperty("verdict")), Wire<VerifyVerdict>());
+        Assert.Equal(Enum(Schema("verify-finding").GetProperty("properties").GetProperty("layer")).OrderBy(v => v), Wire<MarkLayer>().OrderBy(v => v));
     }
 
     [Fact]

@@ -178,13 +178,22 @@ public sealed record LayerOutcome
 
     /// <summary>Why not, when not applied: one of <see cref="ProvenanceReasons"/>; null when nobody knows.</summary>
     public string? Reason { get; init; }
+
+    /// <summary>
+    /// For an applied layer: read back from the host after placing (true), or not readable there (false); null when
+    /// nothing was read back to try (the server's record, a watermark).
+    /// </summary>
+    public bool? Verified { get; init; }
 }
 
 /// <summary>What the SDK reports after placing content (<c>POST /v1/agents/{agent}/provenance/placements</c>): never the content.</summary>
 public sealed record PlacementReport
 {
-    /// <summary>The signed record's id; empty for a placement recorded as exempt, which has no record.</summary>
-    public string RecordId { get; init; } = "";
+    /// <summary>
+    /// The signed record's id; null for a placement without one: exempt content, a record the server could not sign,
+    /// content a tool put in without the pipeline.
+    /// </summary>
+    public string? RecordId { get; init; }
 
     public string Tool { get; init; } = "";
 
@@ -239,6 +248,9 @@ public sealed record ReceiptWatermark
 
     /// <summary>The runtime's context width, for a model's watermark.</summary>
     public int? ContextWidth { get; init; }
+
+    /// <summary>The model repository whose tokenizer generation used, for a model's watermark.</summary>
+    public string? Tokenizer { get; init; }
 }
 
 /// <summary>One generation: a model wrote a text or made a picture. No content and no user.</summary>
@@ -292,4 +304,88 @@ public sealed record ProvenanceAnchors
     public List<string> TrustAnchors { get; init; } = new();
 
     public DetectorInfo Detector { get; init; } = new();
+}
+
+/// <summary>
+/// Content to check (<c>POST /v1/provenance/verify</c>): a text, or a file's bytes (base64) with its media type, never
+/// both. Nothing submitted is kept.
+/// </summary>
+public sealed record VerifyRequest
+{
+    public string? Text { get; init; }
+
+    /// <summary>A file's bytes, base64.</summary>
+    public string? File { get; init; }
+
+    public string? MediaType { get; init; }
+
+    /// <summary>Return the result signed, to download.</summary>
+    public bool Signed { get; init; }
+
+    /// <summary>A text to check.</summary>
+    public static VerifyRequest ForText(string text, bool signed = false) =>
+        new() { Text = text ?? throw new ArgumentNullException(nameof(text)), Signed = signed };
+
+    /// <summary>A file to check: its bytes and media type (<c>image/png</c>, a <c>.docx</c>'s).</summary>
+    public static VerifyRequest ForFile(byte[] bytes, string mediaType, bool signed = false) => new()
+    {
+        File = Convert.ToBase64String(bytes ?? throw new ArgumentNullException(nameof(bytes))),
+        MediaType = string.IsNullOrWhiteSpace(mediaType) ? throw new ArgumentException("A file needs its media type.", nameof(mediaType)) : mediaType,
+        Signed = signed,
+    };
+}
+
+/// <summary>What one detection mechanism found.</summary>
+public sealed record VerifyFinding
+{
+    public MarkLayer Layer { get; init; }
+
+    /// <summary><c>c2pa</c>, <c>trustmark-Q</c>, <c>record-hash</c>, <c>record-reference</c>, <c>vllm-gumbel</c>, ...</summary>
+    public string Method { get; init; } = "";
+
+    public bool Found { get; init; }
+
+    /// <summary>What it found, in plain words.</summary>
+    public string Detail { get; init; } = "";
+
+    public string? RecordId { get; init; }
+
+    public string? ReceiptId { get; init; }
+
+    /// <summary>The mechanism's own measure, e.g. a p-value.</summary>
+    public double? Score { get; init; }
+}
+
+/// <summary>The verdict of a check: <c>ai-generated</c>, <c>no-mark-found</c> or <c>inconclusive</c>.</summary>
+public enum VerifyVerdict
+{
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ai-generated")]
+    AiGenerated = 0,
+
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("no-mark-found")]
+    NoMarkFound,
+
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("inconclusive")]
+    Inconclusive,
+}
+
+/// <summary>A detection result: the verdict, the layers it rests on, signed on request (schema <c>VerifyResult</c>).</summary>
+public sealed record VerifyResult
+{
+    public string Contract { get; init; } = ProvenanceContract.Version;
+
+    public VerifyVerdict Verdict { get; init; }
+
+    public List<VerifyFinding> Findings { get; init; } = new();
+
+    /// <summary>SHA-256 of what was submitted, hex.</summary>
+    public string ContentHash { get; init; } = "";
+
+    /// <summary>The detection solution's identifier.</summary>
+    public string Detector { get; init; } = "";
+
+    public DateTimeOffset CheckedAt { get; init; }
+
+    /// <summary>A JWS over the result without the signature, when asked for.</summary>
+    public string? Signature { get; init; }
 }

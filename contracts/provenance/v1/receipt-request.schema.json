@@ -74,6 +74,20 @@
           "default": null,
           "title": "Reason"
         },
+        "tokenizer": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the model repository whose tokenizer generation used, for model watermarks",
+          "title": "Tokenizer"
+        },
         "vendor": {
           "anyOf": [
             {

@@ -44,6 +44,19 @@
           ],
           "default": null,
           "title": "Reason"
+        },
+        "verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "for an applied layer: read back from the host after placing (true), or not readable there (false); none when the SDK did not try",
+          "title": "Verified"
         }
       },
       "required": [

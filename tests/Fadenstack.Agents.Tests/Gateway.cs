@@ -49,6 +49,18 @@ public sealed class Gateway
                 contract = "provenance/v1", signing_chains = new[] { "-----BEGIN CERTIFICATE-----\ntest" },
                 trust_anchors = new[] { "-----BEGIN CERTIFICATE-----\ntest" }, detector = new { id = "fadenstack-provenance/test", methods = new[] { "record" } },
             })
+            // The detector: the agent's route takes its token; the user's route refuses an agent token, as the gateway does.
+            .On("POST", "/v1/agents/docs-assistant/provenance/verify", r => ProvenancePolicy is null ? ProvenanceOff() : Verify(r))
+            .On("POST", "/v1/provenance/verify", r => ProvenancePolicy is null ? ProvenanceOff()
+                : r.Header("authorization") == "Bearer agent-token" ? FakeServer.Respond(HttpStatusCode.Forbidden, new
+                {
+                    error = new
+                    {
+                        message = "Agent tokens are accepted only on their agent's routes (/v1/agents/{agent}/...).",
+                        type = "permission_error", code = "agent_token_not_allowed",
+                    },
+                })
+                : Verify(r))
             .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK,
                 Profile(contract, ceiling, modules, localMcp, vision, skillsModule, ui)))
             .Skills("/v1/agents/docs-assistant/skills", skills)
@@ -111,6 +123,38 @@ public sealed class Gateway
             signature = "eyJhbGciOiJFUzI1NiJ9.eyJ0ZXN0Ijp0cnVlfQ.c2ln",
             timestamp = (string?)null,
         };
+    }
+
+    /// <summary>The detector as the fake runs it: the text's hash looked up among the records the agent had signed.</summary>
+    private HttpResponseMessage Verify(Recorded request)
+    {
+        var body = request.Json;
+        var text = body.TryGetProperty("text", out var t) && t.ValueKind == System.Text.Json.JsonValueKind.String ? t.GetString() : null;
+        var file = body.TryGetProperty("file", out var f) && f.ValueKind == System.Text.Json.JsonValueKind.String ? f.GetString() : null;
+        if ((text is null) == (file is null))
+        {
+            return FakeServer.Respond(HttpStatusCode.BadRequest, new
+            {
+                error = new { message = "Send either text or file, not both and not neither.", type = "invalid_request_error", code = "validation_error" },
+            });
+        }
+        var sha = text is not null ? Models.ContentHash.TextSha256(text) : Models.ContentHash.BytesSha256(Convert.FromBase64String(file!));
+        var n = RecordRequests.FindIndex(r => r.Json.GetProperty("content_sha256").GetString() == sha);
+        var id = n < 0 ? null : $"5a0e2b5c-7f3e-4a51-9a40-{n + 1:D12}";
+        return FakeServer.Respond(HttpStatusCode.OK, new
+        {
+            contract = "provenance/v1", verdict = id is null ? "no-mark-found" : "ai-generated",
+            findings = new[]
+            {
+                new
+                {
+                    layer = "metadata", method = "record-hash", found = id is not null,
+                    detail = id is null ? "No record matches the content." : "A signed record of this installation matches the content.",
+                    record_id = id, receipt_id = (string?)null, score = (double?)null,
+                },
+            },
+            content_hash = sha, detector = "fadenstack-provenance/test", checked_at = "2026-10-18T09:30:00Z", signature = (string?)null,
+        });
     }
 
     /// <summary>An answer's receipt (<c>faden.provenance</c>): the model's watermark applied, or none and why.</summary>
