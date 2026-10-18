@@ -288,6 +288,14 @@ public sealed class UiStrings
 
     public string PictureNotRead(string name) => Fill(name);
 
+    // -- content marking (Fadenstack.Provenance) -------------------------------------------------------
+
+    /// <summary>
+    /// "AI-generated": what a passage an agent placed is called where it is marked for people, such as the
+    /// <c>title</c> of the HTML it went into (followed by the record's id) or a visible label.
+    /// </summary>
+    public string ProvenanceLabel => Text();
+
     // -- About (the settings' last item) --------------------------------------------------------------
 
     /// <summary>The settings' last item, and the heading of what it opens.</summary>

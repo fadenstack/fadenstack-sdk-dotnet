@@ -506,4 +506,12 @@
     <value>{0} (opens in your browser)</value>
     <comment>{0}: a link's text; the link's name for screen readers</comment>
   </data>
+  <data name="ProvenanceLabel" xml:space="preserve">
+    <value>AI-generated</value>
+    <comment>Content marking: what an AI-generated passage is called where it is marked for people (an HTML title, followed by the record's id; a visible label)</comment>
+  </data>
+  <data name="Notice_provenance_refused" xml:space="preserve">
+    <value>Not written: it could not be marked as AI-generated</value>
+    <comment>A notice's title: the agent's policy refuses to place content where it cannot be marked as AI-generated</comment>
+  </data>
 </root>

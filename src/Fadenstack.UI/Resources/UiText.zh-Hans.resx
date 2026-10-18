@@ -382,4 +382,10 @@
   <data name="OpensInBrowser" xml:space="preserve">
     <value>{0}（在浏览器中打开）</value>
   </data>
+  <data name="ProvenanceLabel" xml:space="preserve">
+    <value>AI 生成</value>
+  </data>
+  <data name="Notice_provenance_refused" xml:space="preserve">
+    <value>未写入：无法将其标记为 AI 生成的内容</value>
+  </data>
 </root>

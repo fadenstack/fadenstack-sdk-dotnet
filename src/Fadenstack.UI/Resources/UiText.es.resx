@@ -382,4 +382,10 @@
   <data name="OpensInBrowser" xml:space="preserve">
     <value>{0} (se abre en su navegador)</value>
   </data>
+  <data name="ProvenanceLabel" xml:space="preserve">
+    <value>Generado por IA</value>
+  </data>
+  <data name="Notice_provenance_refused" xml:space="preserve">
+    <value>No se escribió: no se pudo marcar como generado por IA</value>
+  </data>
 </root>

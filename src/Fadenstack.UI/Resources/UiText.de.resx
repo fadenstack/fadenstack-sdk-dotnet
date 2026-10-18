@@ -382,4 +382,10 @@
   <data name="OpensInBrowser" xml:space="preserve">
     <value>{0} (öffnet sich im Browser)</value>
   </data>
+  <data name="ProvenanceLabel" xml:space="preserve">
+    <value>KI-generiert</value>
+  </data>
+  <data name="Notice_provenance_refused" xml:space="preserve">
+    <value>Nicht geschrieben: Es konnte nicht als KI-generiert gekennzeichnet werden</value>
+  </data>
 </root>
