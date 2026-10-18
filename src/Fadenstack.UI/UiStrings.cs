@@ -290,11 +290,15 @@ public sealed class UiStrings
 
     // -- content marking (Fadenstack.Provenance) -------------------------------------------------------
 
+    /// <summary>"AI-generated": a visible label on content made with AI, where the organisation asks for one.</summary>
+    public string AiGenerated => Text();
+
     /// <summary>
-    /// "AI-generated": what a passage an agent placed is called where it is marked for people, such as the
-    /// <c>title</c> of the HTML it went into (followed by the record's id) or a visible label.
+    /// The tooltip (<c>title</c>) on content made with AI that an agent put into a page or a mail: <see cref="AiGenerated"/>,
+    /// a space, the record's id, in every language (the TypeScript SDK and the host agents write the same, and readers
+    /// find the id so).
     /// </summary>
-    public string ProvenanceLabel => Text();
+    public string AiGeneratedTitle(string record) => Fill(record);
 
     // -- About (the settings' last item) --------------------------------------------------------------
 

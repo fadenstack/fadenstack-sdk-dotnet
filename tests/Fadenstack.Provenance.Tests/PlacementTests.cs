@@ -59,9 +59,14 @@ public class PlacementTests
         Assert.Equal((id, "insert_reply", "html.editor", "medium"), (report.Json.GetProperty("record_id").GetString(),
             report.Json.GetProperty("tool").GetString(), report.Json.GetProperty("sink_kind").GetString(), report.Json.GetProperty("length_class").GetString()));
 
+        var reported = report.Json.GetProperty("layers").EnumerateArray().ToList();
+        Assert.True(reported.Single(l => l.GetProperty("method").GetString() == "html-attribute").GetProperty("verified").GetBoolean());
+        Assert.False(reported.Single(l => l.GetProperty("method").GetString() == "signed-record").TryGetProperty("verified", out _)); // nothing read back
+
         var placed = Assert.Single(Entries(session, ProvenanceEntries.Placed));
-        Assert.Equal((id, "rc-1", false), (placed.GetProperty("record_id").GetString(), placed.GetProperty("receipt_id").GetString(),
-            placed.GetProperty("exempt").GetBoolean()));
+        Assert.Equal((id, "rc-1", false, true, true, "text"), (placed.GetProperty("record_id").GetString(), placed.GetProperty("receipt_id").GetString(),
+            placed.GetProperty("exempt").GetBoolean(), placed.GetProperty("signed").GetBoolean(), placed.GetProperty("reported").GetBoolean(),
+            placed.GetProperty("argument").GetString()));
         Assert.True(placed.GetProperty("layers").EnumerateArray().Single(l => l.GetProperty("method").GetString() == "html-attribute").GetProperty("verified").GetBoolean());
         Assert.Empty(placed.GetProperty("missing").EnumerateArray());
         Assert.Empty(Entries(session, ProvenanceEntries.Unmarked));
@@ -114,11 +119,9 @@ public class PlacementTests
         await RunAsync(agent);
 
         var placement = Assert.Single(tools.Placed);
-        Assert.Equal(placement.RecordId, tools.Crm.Fields[KeyValueMarker.DefaultIdKey]);
-        var signed = JsonSerializer.Deserialize<SignedRecord>(tools.Crm.Fields[KeyValueMarker.DefaultSignedKey], Http.FadenstackJson.Options)!;
-        Assert.Equal((placement.RecordId, "eyJhbGciOiJFUzI1NiJ9.eyJ0ZXN0Ijp0cnVlfQ.c2ln"), (signed.Record.Id, signed.Signature));
+        Assert.Equal(new Dictionary<string, string> { ["ai-generated"] = "true", ["ai-record-id"] = placement.RecordId! }, tools.Crm.Fields);
         Assert.Equal(TestAgents.LongText, Assert.Single(tools.Crm.Notes)); // the note itself is unchanged
-        Assert.Contains(placement.Layers, l => l.Method == "key-value" && l.Verified);
+        Assert.Contains(placement.Layers, l => l.Method == "key-value" && l.Verified == true);
         Assert.Empty(placement.Missing);
         Assert.Equal($"Placed and marked as AI-generated (record {placement.RecordId}).", placement.Summary);
     }
@@ -137,8 +140,13 @@ public class PlacementTests
         var placement = Assert.Single(tools.Placed);
         Assert.Equal((true, "edit-kind", EditKind.Translated, (string?)null), (placement.Exempt, placement.ExemptBecause, placement.EditKind, placement.RecordId));
         var report = Assert.Single(gateway.Placements).Json;
-        Assert.Equal(("", "exempt-edit"), (report.GetProperty("record_id").GetString(), report.GetProperty("layers")[0].GetProperty("reason").GetString()));
-        Assert.Equal("translated", Assert.Single(Entries(session, ProvenanceEntries.Placed)).GetProperty("edit_kind").GetString());
+        Assert.False(report.TryGetProperty("record_id", out _)); // no record: none named
+        var layer = Assert.Single(report.GetProperty("layers").EnumerateArray());
+        Assert.Equal(("metadata", "record", false, "exempt-edit"), (layer.GetProperty("layer").GetString(), layer.GetProperty("method").GetString(),
+            layer.GetProperty("applied").GetBoolean(), layer.GetProperty("reason").GetString()));
+        var placed = Assert.Single(Entries(session, ProvenanceEntries.Placed));
+        Assert.Equal(("translated", true, "edit-kind"), (placed.GetProperty("edit_kind").GetString(), placed.GetProperty("exempt").GetBoolean(),
+            placed.GetProperty("exempt_because").GetString()));
     }
 
     [Fact]
@@ -190,11 +198,15 @@ public class PlacementTests
         Assert.Contains("the model's runtime does not watermark text", notice.Message);
         var completed = session.Transcript.Single(e => e.Type == EntryTypes.ToolComplete).Data;
         Assert.Equal("error", completed.GetProperty("outcome").GetString());
-        Assert.StartsWith("Error: Not written: this agent only places content it can mark as AI-generated", completed.GetProperty("result").GetString());
-        var placed = Assert.Single(Entries(session, ProvenanceEntries.Placed));
-        Assert.True(placed.GetProperty("refused").GetBoolean());
-        Assert.Equal("runtime-without-watermark", placed.GetProperty("missing")[0].GetProperty("reason").GetString());
-        Assert.Single(gateway.Placements); // the refusal is reported too
+        Assert.Equal("Error: Not written: this agent only places content it can mark as AI-generated, and here the model's runtime does not watermark text.",
+            completed.GetProperty("result").GetString());
+        var refused = Assert.Single(Entries(session, ProvenanceEntries.Refused));
+        var missing = Assert.Single(refused.GetProperty("missing").EnumerateArray());
+        Assert.Equal(("watermark", "model", "runtime-without-watermark"), (missing.GetProperty("layer").GetString(), missing.GetProperty("method").GetString(),
+            missing.GetProperty("reason").GetString()));
+        Assert.Empty(Entries(session, ProvenanceEntries.Placed));
+        Assert.Empty(gateway.Placements); // nothing placed: nothing reported
+        Assert.Empty(gateway.RecordRequests); // refused before anything was signed
     }
 
     [Fact]
@@ -229,6 +241,27 @@ public class PlacementTests
         Assert.Contains("this place cannot carry a machine-readable mark", Assert.Single(result.Notices).Message);
     }
 
+    [Fact]
+    public async Task With_the_policy_refuse_content_whose_record_cannot_be_signed_is_not_written()
+    {
+        var gateway = NewGateway("""{"on_missing":"refuse"}""")
+            .SaysAndCalls("Reply:", Gateway.Receipt("rc-7"), ("call-1", "insert_reply", Args(new { text = TestAgents.LongText })))
+            .Says("I could not insert it.");
+        gateway.ProvenanceDown = true; // receipts were signed; the signer is down now
+        var tools = new WritingTools();
+        using var agent = TestAgents.Build(gateway, tools);
+
+        var (session, result) = await RunAsync(agent);
+
+        Assert.Equal("", tools.Editor.Html);
+        Assert.Equal("Not written: this agent only places content it can mark as AI-generated, and here the provenance service could not sign a record of it.",
+            Assert.Single(result.Notices).Message);
+        var missing = Assert.Single(Assert.Single(Entries(session, ProvenanceEntries.Refused)).GetProperty("missing").EnumerateArray());
+        Assert.Equal(("metadata", "signed-record", "server-unavailable"), (missing.GetProperty("layer").GetString(), missing.GetProperty("method").GetString(),
+            missing.GetProperty("reason").GetString()));
+        Assert.Empty(gateway.Placements);
+    }
+
     /// <summary>An editor whose sink says it is a document and carries nothing.</summary>
     public sealed class SinkLessEditor
     {
@@ -250,9 +283,13 @@ public class PlacementTests
 
         Assert.Equal(TestAgents.LongText, tools.Editor.Html); // no record id to carry: no mark
         var placed = Assert.Single(Entries(session, ProvenanceEntries.Placed));
-        var reasons = placed.GetProperty("missing").EnumerateArray().Select(m => (m.GetProperty("layer").GetString()!, m.GetProperty("reason").GetString()!)).ToList();
-        Assert.Equal(new[] { ("metadata", "server-unavailable"), ("watermark", "server-unavailable") }, reasons);
+        var reasons = placed.GetProperty("missing").EnumerateArray()
+            .Select(m => (m.GetProperty("layer").GetString()!, m.GetProperty("method").GetString()!, m.GetProperty("reason").GetString()!)).ToList();
+        Assert.Equal(new[] { ("metadata", "signed-record", "server-unavailable"), ("watermark", "model", "server-unavailable") }, reasons);
         Assert.False(placed.TryGetProperty("record_id", out _)); // no record: none named
+        Assert.False(placed.GetProperty("signed").GetBoolean());
+        var layers = placed.GetProperty("layers").EnumerateArray().Select(l => l.GetProperty("method").GetString()).ToList();
+        Assert.Equal(new[] { "signed-record", "model" }, layers); // no marker ran
     }
 
     [Fact]
@@ -265,8 +302,13 @@ public class PlacementTests
         var (session, _) = await RunAsync(quiet);
 
         var unmarked = Assert.Single(Entries(session, ProvenanceEntries.Unmarked));
-        Assert.Equal(("forget_to_mark", "text"), (unmarked.GetProperty("tool").GetString(), unmarked.GetProperty("argument").GetString()));
+        Assert.Equal(("forget_to_mark", "text", "generated", "short", true), (unmarked.GetProperty("tool").GetString(), unmarked.GetProperty("argument").GetString(),
+            unmarked.GetProperty("edit_kind").GetString(), unmarked.GetProperty("length_class").GetString(), unmarked.GetProperty("reported").GetBoolean()));
         Assert.Equal("ok", session.Transcript.Single(e => e.Type == EntryTypes.ToolComplete).Data.GetProperty("outcome").GetString());
+        var report = Assert.Single(gateway.Placements).Json; // reported without a record
+        Assert.Equal(new[] { "edit_kind", "layers", "length_class", "media_type", "sink_kind", "tool" },
+            report.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.Equal(("unmarked", 0), (report.GetProperty("sink_kind").GetString(), report.GetProperty("layers").GetArrayLength()));
 
         using var strict = TestAgents.Build(gateway, tools, o => o.UseDevelopmentMode());
         var (strictSession, _) = await RunAsync(strict);
@@ -462,6 +504,6 @@ public class PlacementTests
         await RunAsync(agent);
 
         Assert.Single(tools.Plain);
-        Assert.Contains(Assert.Single(tools.Placed).Layers, l => l is { Method: "record", Reason: ProvenanceReasons.ServerUnavailable });
+        Assert.Contains(Assert.Single(tools.Placed).Layers, l => l is { Method: "signed-record", Reason: ProvenanceReasons.ServerUnavailable });
     }
 }

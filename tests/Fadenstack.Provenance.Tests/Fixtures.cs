@@ -27,7 +27,7 @@ public sealed class Crm
     {
         Container = true,
         KeyValue = KeyValueSink.From((k, v) => { Fields[k] = v; return Task.CompletedTask; },
-            k => Task.FromResult(Fields.TryGetValue(k, out var v) ? v : null), maxValueLength: 2000),
+            k => Task.FromResult(Fields.TryGetValue(k, out var v) ? v : null)),
     };
 }
 

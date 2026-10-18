@@ -19,7 +19,8 @@ public sealed record SinkInfo
 
     /// <summary>
     /// The content lands inside a structured file or page (a document, an HTML editor, a file): the marking needs
-    /// metadata in it, not only the watermark. Free-form text (a chat message, a plain field) is not a container.
+    /// signed metadata in it, not only the watermark. Free-form text (a chat message, a plain field) is not a
+    /// container. Default false.
     /// </summary>
     public bool Container { get; init; }
 
@@ -47,11 +48,20 @@ public sealed record SinkInfo
     public static SinkInfo Nothing(string kind) => new(kind);
 }
 
-/// <summary>The carriers the built-in markers use; a host marker may name its own (<c>part</c>, <c>range-tag</c>).</summary>
+/// <summary>
+/// The carriers the built-in markers use (the TypeScript SDK's <c>Carriers</c> are the same); a host marker may name
+/// its own (<c>part</c>, <c>range-tag</c>).
+/// </summary>
 public static class Carriers
 {
-    /// <summary>An attribute on the HTML the content is wrapped in (<see cref="HtmlAttributeMarker"/>).</summary>
+    /// <summary>
+    /// HTML the content is wrapped in, with <c>data-ai-generated</c> and a <c>title</c> (<see cref="HtmlAttributeMarker"/>
+    /// writes both on one element).
+    /// </summary>
     public const string HtmlAttribute = "html-attribute";
+
+    /// <summary>The same, for a host known to keep only the <c>title</c> (Gmail): <see cref="HtmlAttributeMarker"/> still writes both.</summary>
+    public const string HtmlTitle = "html-title";
 
     /// <summary>YAML front matter of a Markdown file (<see cref="MarkdownFrontMatterMarker"/>).</summary>
     public const string FrontMatter = "front-matter";
@@ -68,14 +78,15 @@ public static class Carriers
     /// <summary>The bytes of a picture or file placed as they are, so their own metadata stays (<see cref="ImageProvenanceGuard"/>).</summary>
     public const string Bytes = "bytes";
 
-    /// <summary>Invisible characters in the text itself (<see cref="UnicodeTextMarker"/>, opt-in).</summary>
-    public const string Text = "text";
+    /// <summary>Invisible characters in the text itself that the host keeps (<see cref="UnicodeTextMarker"/>, opt-in).</summary>
+    public const string UnicodeText = "unicode-text";
 }
 
 /// <summary>
-/// One place a host keeps a string for the content it holds: a hidden CRM field, a ticket's custom field, an
-/// object's metadata, a database column, a response header. The integrator writes about ten lines; the
-/// <see cref="KeyValueMarker"/> does the rest.
+/// A place a host keeps strings for the content it holds: a hidden CRM field, a ticket's custom field, an object's
+/// metadata, a database column, a response header. The integrator writes about ten lines; the
+/// <see cref="KeyValueMarker"/> does the rest. A host with one field may keep whatever was written last (the
+/// marker writes the record's id last).
 /// </summary>
 public interface IKeyValueSink
 {
@@ -83,9 +94,6 @@ public interface IKeyValueSink
 
     /// <summary>The value kept under <paramref name="key"/>, or null; a host that cannot read throws <see cref="NotSupportedException"/>.</summary>
     Task<string?> ReadAsync(string key, CancellationToken cancellationToken);
-
-    /// <summary>The longest value it keeps (255 for a Word document property); null when there is no limit.</summary>
-    int? MaxValueLength { get; }
 }
 
 /// <summary>An <see cref="IKeyValueSink"/> from two functions.</summary>
@@ -96,20 +104,15 @@ public sealed class KeyValueSink : IKeyValueSink
 
     /// <param name="write">Keeps a value under a key.</param>
     /// <param name="read">Reads it back; null when the host cannot (marks are then unverified).</param>
-    /// <param name="maxValueLength">The longest value the host keeps, if it has a limit.</param>
-    public KeyValueSink(Func<string, string, CancellationToken, Task> write, Func<string, CancellationToken, Task<string?>>? read = null,
-        int? maxValueLength = null)
+    public KeyValueSink(Func<string, string, CancellationToken, Task> write, Func<string, CancellationToken, Task<string?>>? read = null)
     {
         _write = write ?? throw new ArgumentNullException(nameof(write));
         _read = read;
-        MaxValueLength = maxValueLength;
     }
 
     /// <summary>A sink from functions without a cancellation token: <c>KeyValueSink.From((k, v) => crm.SetAsync(id, k, v), k => crm.GetAsync(id, k))</c>.</summary>
-    public static KeyValueSink From(Func<string, string, Task> write, Func<string, Task<string?>>? read = null, int? maxValueLength = null) =>
-        new((k, v, _) => write(k, v), read is null ? null : (k, _) => read(k), maxValueLength);
-
-    public int? MaxValueLength { get; }
+    public static KeyValueSink From(Func<string, string, Task> write, Func<string, Task<string?>>? read = null) =>
+        new((k, v, _) => write(k, v), read is null ? null : (k, _) => read(k));
 
     public Task WriteAsync(string key, string value, CancellationToken cancellationToken) => _write(key, value, cancellationToken);
 

@@ -39,20 +39,24 @@ public class MarkerTests
         var result = await MarkerTestKit.AssertAsync(new HtmlAttributeMarker(), Content("text/html", host.Sink("html.editor", Carriers.HtmlAttribute)),
             host.InsertAsync);
 
-        Assert.Equal((true, true, "html-attribute"), (result.Outcome.Applied, result.Outcome.Verified, result.Outcome.Method));
+        Assert.Equal((true, (bool?)true, "html-attribute"), (result.Outcome.Applied, result.Outcome.Verified, result.Outcome.Method));
         Assert.StartsWith($"<span data-ai-generated=\"{result.Record.Record.Id}\" title=\"AI-generated {result.Record.Record.Id}\">", host.Held);
     }
 
     [Fact]
-    public async Task The_html_title_is_in_the_users_language()
+    public async Task The_html_title_is_in_the_users_language_and_a_title_only_host_keeps_it()
     {
         var host = new Host();
         var content = Content("text/html", host.Sink("html.editor", Carriers.HtmlAttribute)) with { Texts = UiStrings.For(CultureInfo.GetCultureInfo("zh-Hans")) };
 
         var result = await MarkerTestKit.AssertAsync(new HtmlAttributeMarker(), content, host.InsertAsync);
 
-        Assert.Contains($"title=\"AI 生成 {result.Record.Record.Id}\"", host.Held);
+        Assert.Contains($"title=\"人工智能生成 {result.Record.Record.Id}\"", host.Held);
         Assert.Contains(new FoundMark(result.Record.Record.Id, ProvenanceReader.HtmlTitle), result.Found);
+
+        var gmail = new Host { Keep = s => System.Text.RegularExpressions.Regex.Replace(s, " data-ai-generated=\"[^\"]*\"", "") };
+        var kept = await MarkerTestKit.AssertAsync(new HtmlAttributeMarker(), Content("text/html", gmail.Sink("gmail", Carriers.HtmlTitle)), gmail.InsertAsync);
+        Assert.Equal(("html-title", (bool?)true, "title; data-ai-generated dropped"), (kept.Outcome.Method, kept.Outcome.Verified, kept.Outcome.Detail));
     }
 
     [Fact]
@@ -71,27 +75,22 @@ public class MarkerTests
     }
 
     [Fact]
-    public async Task A_key_value_field_keeps_the_id_and_the_signed_record_where_it_fits()
+    public async Task A_key_value_field_keeps_the_two_keys_front_matter_has_the_id_last()
     {
-        var fields = new Dictionary<string, string>();
-        IKeyValueSink Sink(int? max) => KeyValueSink.From((k, v) => { fields[k] = v; return Task.CompletedTask; },
-            k => Task.FromResult(fields.TryGetValue(k, out var v) ? v : null), max);
+        var fields = new List<KeyValuePair<string, string>>();
+        var sink = KeyValueSink.From((k, v) => { fields.Add(new(k, v)); return Task.CompletedTask; },
+            k => Task.FromResult<string?>(fields.LastOrDefault(f => f.Key == k).Value));
         var host = new Host();
 
-        var roomy = await MarkerTestKit.AssertAsync(new KeyValueMarker(),
-            Content("text/plain", new SinkInfo("crm.note", Carriers.KeyValue) { KeyValue = Sink(null) }), host.InsertAsync);
-        Assert.Equal("record id, signed record", roomy.Outcome.Detail);
-        Assert.Contains(KeyValueMarker.DefaultSignedKey, fields.Keys);
-
-        fields.Clear();
-        var tight = await MarkerTestKit.AssertAsync(new KeyValueMarker(),
-            Content("text/plain", new SinkInfo("crm.note", Carriers.KeyValue) { KeyValue = Sink(64) }), host.InsertAsync);
-        Assert.Equal("record id", tight.Outcome.Detail);
-        Assert.Equal(new[] { KeyValueMarker.DefaultIdKey }, fields.Keys);
+        var result = await MarkerTestKit.AssertAsync(new KeyValueMarker(),
+            Content("text/plain", new SinkInfo("crm.note", Carriers.KeyValue) { KeyValue = sink }), host.InsertAsync);
+        Assert.Equal(new[] { new KeyValuePair<string, string>("ai-generated", "true"), new KeyValuePair<string, string>("ai-record-id", result.Record.Record.Id) },
+            fields);
+        Assert.Equal((true, (bool?)true), (result.Outcome.Applied, result.Outcome.Verified));
 
         var unreadable = await MarkerTestKit.AssertAsync(new KeyValueMarker(),
             Content("text/plain", new SinkInfo("crm.note", Carriers.KeyValue) { KeyValue = KeyValueSink.From((_, _) => Task.CompletedTask) }), host.InsertAsync);
-        Assert.Equal((true, false), (unreadable.Outcome.Applied, unreadable.Outcome.Verified));
+        Assert.Equal((true, (bool?)false), (unreadable.Outcome.Applied, unreadable.Outcome.Verified));
     }
 
     [Fact]
@@ -109,7 +108,10 @@ public class MarkerTests
             Assert.True(result.Outcome.Verified);
             Assert.Equal(file + ".provenance.json", SidecarMarker.PathFor(file));
             Assert.Equal(new FoundMark(result.Record.Record.Id, "sidecar"), ProvenanceReader.ReadSidecar(file));
-            Assert.Contains("\"signature\":\"eyJhbGciOiJub25lIn0.", File.ReadAllText(SidecarMarker.PathFor(file)));
+            var json = File.ReadAllText(SidecarMarker.PathFor(file));
+            Assert.StartsWith("{\"contract\":\"provenance/v1\",\"record\":{\"contract\":\"provenance/v1\",\"id\":\"" + result.Record.Record.Id, json);
+            Assert.Contains("\"signature\":\"eyJhbGciOiJub25lIn0.", json);
+            Assert.DoesNotContain("timestamp", json); // none from this signer: left out, as the TypeScript SDK does
         }
         finally
         {
@@ -129,7 +131,8 @@ public class MarkerTests
 
         var result = await MarkerTestKit.AssertAsync(new HttpHeaderMarker(), Content("text/html", sink), new Host().InsertAsync);
 
-        Assert.Equal(result.Record.Record.Id, headers["X-Faden-Provenance"]);
+        Assert.Equal(result.Record.Record.Id, headers["X-AI-Generated"]);
+        Assert.Equal(new[] { "X-AI-Generated" }, headers.Keys);
         Assert.True(result.Outcome.Verified);
     }
 
@@ -151,15 +154,16 @@ public class MarkerTests
     {
         var host = new Host();
 
-        var result = await MarkerTestKit.AssertAsync(new UnicodeTextMarker(), Content("text/plain", host.Sink("chat")), host.InsertAsync);
+        var result = await MarkerTestKit.AssertAsync(new UnicodeTextMarker(), Content("text/plain", host.Sink("chat", Carriers.UnicodeText)), host.InsertAsync);
 
         var id = result.Record.Record.Id;
         Assert.Equal(MarkerTestKit.SampleText, ContentHash.Normalize(host.Held).Substring(0, MarkerTestKit.SampleText.Length));
         Assert.Equal(new[] { id }, UnicodeTextMarker.Decode(host.Held));
         Assert.Contains(new FoundMark(id, "unicode-text"), ProvenanceReader.Read(host.Held, "text/plain"));
+        Assert.False(new UnicodeTextMarker().Supports(host.Sink("chat"), "text/plain")); // only where the sink says it keeps them
 
         host.Keep = s => new string(s.Where(c => c < '︀' && !char.IsSurrogate(c)).ToArray()); // a filter that strips them
-        var stripped = await MarkerTestKit.RunAsync(new UnicodeTextMarker(), Content("text/plain", host.Sink("chat")), host.InsertAsync);
+        var stripped = await MarkerTestKit.RunAsync(new UnicodeTextMarker(), Content("text/plain", host.Sink("chat", Carriers.UnicodeText)), host.InsertAsync);
         Assert.Equal(ProvenanceReasons.StrippedByHost, stripped.Outcome.Reason);
     }
 
@@ -170,6 +174,7 @@ public class MarkerTests
         Assert.False(new HtmlAttributeMarker().Supports(nothing, "text/html"));
         Assert.False(new HtmlAttributeMarker().Supports(new SinkInfo("editor", Carriers.HtmlAttribute), "text/plain"));
         Assert.True(new HtmlAttributeMarker().Supports(new SinkInfo("editor", Carriers.HtmlAttribute), "text/html; charset=utf-8"));
+        Assert.True(new HtmlAttributeMarker().Supports(new SinkInfo("gmail", Carriers.HtmlTitle), "text/html"));
         Assert.False(new KeyValueMarker().Supports(new SinkInfo("crm", Carriers.KeyValue), "text/plain")); // no field given
         Assert.False(new SidecarMarker().Supports(new SinkInfo("file", Carriers.Sidecar), "text/plain")); // no file given
         Assert.True(new ServerSignedMarker().Supports(nothing, "text/plain"));
@@ -284,7 +289,7 @@ public class MarkerTests
         const string id = "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1";
         Assert.Equal("_faden_ai_5a0e2b5c7f3e4a519a406a1c", OfficeMarks.AnchorName(id));
         Assert.True(OfficeMarks.IsAnchor(OfficeMarks.AnchorName(id)));
-        Assert.True(OfficeMarks.IsAnchor(OfficeMarks.AnchorName("rec-1"))); // a short id is hashed to 24 hex digits
+        Assert.Throws<ArgumentException>(() => OfficeMarks.AnchorName("rec-1")); // record ids are UUIDs
         Assert.False(OfficeMarks.IsAnchor("_faden_ai_5a0e-2b5c"));
         Assert.True(OfficeMarks.AnchorName(id).Length <= 40 && OfficeMarks.AnchorName(id).All(c => char.IsLetterOrDigit(c) || c == '_'));
 

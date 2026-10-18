@@ -40,21 +40,23 @@ public sealed class MailTools
   sink prepare the content, the tool's own insert puts it in, the markers mark what landed and read it back, and the
   placement is reported -- which layers held, and a reason code for each that did not. Never the content.
 - **Exempt edits are recorded, not marked:** translations, corrections, formatting, extraction (`EditKind`), code and
-  data (`application/json`, `text/x-*`, ...), and short labels.
+  data (`application/json`, `text/x-*`, ...), and short labels. Short text is marked like any other; only the
+  model's watermark is not expected under 200 tokens. Without a signed record no mark is written.
 - **A tool that declares content and does not place it** is recorded as `provenance.unmarked`; in development mode
   (`DOTNET_ENVIRONMENT=Development`, or `UseDevelopmentMode()`) the call fails, so it cannot be missed.
 - **The agent's policy** comes from the server. By default content is placed and what could not be marked is
   recorded (`record`); with `refuse` content that cannot get a layer it needs is not placed, and the model and the
   user are told why. Local options can only make the policy stricter.
 
-Each placement leaves a `provenance.placed` entry in the session's transcript and a report on the server.
+Each placement leaves a `provenance.placed` entry in the session's transcript and a report on the server. The
+TypeScript SDK (`@fadenstack/provenance`) behaves the same and writes the same marks.
 
 ## How much an integration does: levels 0 to 3
 
 | Level | What you do | What you get |
 |---|---|---|
 | **0** | Declare `[Emits]` and call `PlaceAsync` with a sink that carries nothing: `SinkInfo.Nothing("chat.message")` | The model's watermark and the server's signed record; the report says `sink-cannot-carry` |
-| **1** | Give the SDK one place to keep a string: a `KeyValueSink` on a sink that carries `Carriers.KeyValue` | `KeyValueMarker` writes the record's id (and the signed record where it fits) and reads it back |
+| **1** | Give the SDK a place to keep strings: a `KeyValueSink` on a sink that carries `Carriers.KeyValue` | `KeyValueMarker` writes `ai-generated` = `true` and `ai-record-id` = the record's id and reads the id back |
 | **2** | Say which format the host stores | The built-in marker for it: HTML (`HtmlAttributeMarker`), Markdown (`MarkdownFrontMatterMarker`), a file beside the file (`SidecarMarker`), an HTTP response (`HttpHeaderMarker`), pictures (`ImageProvenanceGuard`) |
 | **3** | Write an `IContentMarker` for a host nothing else fits (a CAD annotation, a proprietary format) | Full control in `PrepareAsync` and `AttachAsync`; the marker test kit checks it |
 
@@ -63,8 +65,7 @@ Each placement leaves a `provenance.placed` entry in the session's transcript an
 ```csharp
 var noteField = KeyValueSink.From(
     write: (key, value) => crm.Notes.SetCustomFieldAsync(noteId, key, value),
-    read: key => crm.Notes.GetCustomFieldAsync(noteId, key),
-    maxValueLength: 4000);
+    read: key => crm.Notes.GetCustomFieldAsync(noteId, key));
 
 var sink = new SinkInfo("crm.note", Carriers.KeyValue) { Container = true, KeyValue = noteField };
 
@@ -94,17 +95,19 @@ public sealed class CrmNoteMarker : ContentMarker
 builder.Use(new ProvenanceModule(o => o.AddMarker(new CrmNoteMarker())));
 ```
 
-A mark carries the record's id and, where it fits, the signed record: never the user, the prompt or the document's
-name. A marker reports a mark as held only after reading it back; one it cannot read back is applied but unverified.
+A mark carries the record's id (and the signed record where there is room, as in a sidecar file): never the user, the
+prompt or the document's name. A marker reports a mark as held only after reading it back; one it cannot read back is
+applied but unverified (`Written`).
 
 ### Office documents and mails
 
 Host markers for Word, PowerPoint, Excel and Outlook are level-3 markers written with the Office object model.
 `OfficeMarks` holds their names and formats, so every marker and the server's detector agree: a hidden bookmark or
-name `OfficeMarks.AnchorName(id)` (`_faden_ai_` and 24 hex digits) around what was inserted, the signed records in a
-custom XML part (`OfficeMarks.CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`), the document
-property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters), the PowerPoint tag
-`FADEN_AI_RECORD`, and for Outlook drafts the named property `FadenProvenanceRecord` and the header `x-ai-generated`.
+name `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of the id) around what was inserted, the
+signed records in a custom XML part (`OfficeMarks.CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`),
+the document property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters), the
+PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `FadenProvenanceRecord` and the header
+`X-AI-Generated`.
 
 ## Extending
 

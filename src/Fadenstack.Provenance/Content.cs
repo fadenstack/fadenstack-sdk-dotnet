@@ -107,18 +107,19 @@ public sealed record PlacedContent
 }
 
 /// <summary>
-/// How one layer of one mark went. Only a mark read back where the host can be read counts as
-/// <see cref="Verified"/>; one written where nothing can be read back is applied but unverified.
+/// How one layer of one mark went. Only a mark read back where the host can be read counts as verified
+/// (<see cref="Held"/>); one written where nothing can be read back is applied and unverified (<see cref="Written"/>);
+/// for what nothing reads back -- the server's record, a watermark -- verification does not apply (<see cref="Recorded"/>).
 /// </summary>
 public sealed record MarkOutcome
 {
-    public MarkOutcome(MarkLayer layer, string method, bool applied, string? reason = null, bool verified = false)
+    public MarkOutcome(MarkLayer layer, string method, bool applied, string? reason = null, bool? verified = null)
     {
         Layer = layer;
         Method = string.IsNullOrWhiteSpace(method) ? throw new ArgumentException("An outcome names its method.", nameof(method)) : method;
         Applied = applied;
         Reason = applied ? null : reason;
-        Verified = applied && verified;
+        Verified = applied ? verified : null;
     }
 
     public MarkLayer Layer { get; }
@@ -131,8 +132,11 @@ public sealed record MarkOutcome
     /// <summary>Why not (<see cref="ProvenanceReasons"/>); null when applied or when nobody knows.</summary>
     public string? Reason { get; }
 
-    /// <summary>Read back after the host took it, and still there.</summary>
-    public bool Verified { get; }
+    /// <summary>
+    /// For an applied mark: read back after the host took it and still there (true), or the host cannot be read back
+    /// (false); null when there is nothing to read back, or the mark is not applied.
+    /// </summary>
+    public bool? Verified { get; }
 
     /// <summary>For the transcript only, never the content: which parts held (<c>title; data-ai-generated dropped</c>).</summary>
     public string? Detail { get; init; }
@@ -143,6 +147,10 @@ public sealed record MarkOutcome
 
     /// <summary>The mark was written; the host cannot be read back to check it.</summary>
     public static MarkOutcome Written(MarkLayer layer, string method, string? detail = null) =>
+        new(layer, method, true, verified: false) { Detail = detail };
+
+    /// <summary>Applied where nothing is read back from the host: the server's signed record, the model's watermark.</summary>
+    public static MarkOutcome Recorded(MarkLayer layer, string method, string? detail = null) =>
         new(layer, method, true) { Detail = detail };
 
     /// <summary>The mark is not there, and why (<see cref="ProvenanceReasons"/>).</summary>
@@ -150,7 +158,7 @@ public sealed record MarkOutcome
         new(layer, method, false, reason) { Detail = detail };
 
     /// <summary>As the server's placement report has it.</summary>
-    public LayerOutcome ToLayer() => new() { Layer = Layer, Method = Method, Applied = Applied, Reason = Reason };
+    public LayerOutcome ToLayer() => new() { Layer = Layer, Method = Method, Applied = Applied, Reason = Reason, Verified = Verified };
 }
 
 /// <summary>
@@ -198,7 +206,7 @@ public abstract class ContentMarker : IContentMarker
 /// <summary>How a placement went: the record, the layers, and whether a layer the content needs is missing.</summary>
 public sealed record Placement
 {
-    /// <summary>The signed record; null when the placement is exempt, refused before signing, or the server was unavailable.</summary>
+    /// <summary>The signed record; null when the placement is exempt, refused, or the server did not sign one.</summary>
     public SignedRecord? Record { get; init; }
 
     public string? RecordId => Record?.Record.Id;
@@ -206,10 +214,13 @@ public sealed record Placement
     /// <summary>Recorded as exempt (an exempt edit kind, code, a label, internal technical output): nothing was marked.</summary>
     public bool Exempt { get; init; }
 
-    /// <summary>Why exempt: <c>edit-kind</c>, <c>code</c>, <c>label</c>, <c>internal-technical</c>.</summary>
+    /// <summary>Why exempt: <c>internal-technical</c>, <c>edit-kind</c>, <c>code</c> or <c>label</c> (<see cref="ExemptReasons"/>).</summary>
     public string? ExemptBecause { get; init; }
 
-    /// <summary>Not placed: a layer the content needs was not possible and the policy refuses.</summary>
+    /// <summary>
+    /// Not placed: a layer the content needs was not possible and the policy refuses (the placement a
+    /// <see cref="ProvenanceRefusedException"/> carries; nothing was signed or reported for it).
+    /// </summary>
     public bool Refused { get; init; }
 
     public string Tool { get; init; } = "";
@@ -240,4 +251,20 @@ public sealed record Placement
         : $"Placed and marked as AI-generated (record {RecordId}).";
 
     public override string ToString() => Summary;
+}
+
+/// <summary>Why content needs no mark at all: no record, no marks (the TypeScript SDK's <c>ExemptReason</c>).</summary>
+public static class ExemptReasons
+{
+    /// <summary>The agent's policy marks its output internal and technical (GL 87).</summary>
+    public const string InternalTechnical = "internal-technical";
+
+    /// <summary>An exempt edit kind: a translation, a correction, formatting, an extract (by default).</summary>
+    public const string EditKind = "edit-kind";
+
+    /// <summary>Code or data (<c>application/json</c>, <c>text/x-python</c>, ...).</summary>
+    public const string Code = "code";
+
+    /// <summary>A label: at most three words and 40 characters without a sentence mark (GL 68).</summary>
+    public const string Label = "label";
 }

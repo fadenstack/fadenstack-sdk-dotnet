@@ -6,7 +6,8 @@ namespace Fadenstack.Provenance;
 /// The server's signed record of the placement: the record with the content's keyed hash, signed with the
 /// installation's key and time-stamped where a time-stamp authority answers. The detector finds unchanged content
 /// by its hash and answers with the record. It is evidence kept by the server, not a mark in the host: where the
-/// content lands in a container, a host marker is needed as well. Every placement gets it.
+/// content lands in a container, a host marker is needed as well. It runs only with a signed record (as every
+/// marker); without one the pipeline reports <c>signed-record</c> not applied, <c>server-unavailable</c>.
 /// </summary>
 public sealed class ServerSignedMarker : ContentMarker
 {
@@ -22,13 +23,15 @@ public sealed class ServerSignedMarker : ContentMarker
     public override bool Supports(SinkInfo sink, string mediaType) => true;
 
     public override Task<MarkOutcome> AttachAsync(PlacedContent placed, SignedRecord record, CancellationToken cancellationToken) =>
-        Task.FromResult(MarkOutcome.Held(MarkLayer.Metadata, Method, record.Timestamp is null ? "signed" : "signed, time-stamped"));
+        Task.FromResult(MarkOutcome.Recorded(MarkLayer.Metadata, Method, record.Timestamp is null ? "signed" : "signed, time-stamped"));
 }
 
 /// <summary>
 /// Records from the receipt whether the model's text carries a watermark (from the model's runtime, or from the
 /// remote provider), or a picture the provenance engine's; and if not, why. It never watermarks anything itself,
-/// and cannot check a watermark: the server's detector does.
+/// and cannot check a watermark: the server's detector does, so it never says verified. The methods:
+/// <c>vllm-&lt;algorithm&gt;</c> (a local model's runtime), <c>upstream-&lt;vendor&gt;</c> (a remote provider's own mark),
+/// the engine's algorithm, <c>trustmark</c> (a picture); <c>model</c> when the text carries none.
 /// </summary>
 public sealed class WatermarkStatus : ContentMarker
 {
@@ -51,7 +54,7 @@ public sealed class WatermarkStatus : ContentMarker
         {
             // The gateway marks every picture it makes before it leaves, or refuses it.
             return receipt?.ReceiptId is not null
-                ? MarkOutcome.Written(MarkLayer.Watermark, "trustmark", "picture with a receipt")
+                ? MarkOutcome.Recorded(MarkLayer.Watermark, "trustmark", "picture with a receipt")
                 : MarkOutcome.Missing(MarkLayer.Watermark, "trustmark", null, "no receipt");
         }
         if (content.IsShort)
@@ -60,7 +63,8 @@ public sealed class WatermarkStatus : ContentMarker
         }
         if (receipt is { Signed: null, Reason: { } unsigned })
         {
-            return MarkOutcome.Missing(MarkLayer.Watermark, "model", unsigned, "unsigned answer");
+            var reason = ProvenanceReasons.All.Contains(unsigned) ? unsigned : ProvenanceReasons.ServerUnavailable;
+            return MarkOutcome.Missing(MarkLayer.Watermark, "model", reason, "unsigned answer");
         }
         if (receipt?.Signed?.Receipt.Watermark is not { } watermark)
         {
@@ -68,10 +72,11 @@ public sealed class WatermarkStatus : ContentMarker
         }
         return watermark.Applied switch
         {
-            WatermarkApplied.Model => MarkOutcome.Written(MarkLayer.Watermark, "vllm-" + (watermark.Algorithm ?? "gumbel")),
-            WatermarkApplied.Engine => MarkOutcome.Written(MarkLayer.Watermark, watermark.Algorithm ?? "engine"),
-            WatermarkApplied.Upstream => MarkOutcome.Written(MarkLayer.Watermark, "upstream-" + (watermark.Vendor ?? "vendor")),
-            _ => MarkOutcome.Missing(MarkLayer.Watermark, "model", watermark.Reason),
+            WatermarkApplied.Model => MarkOutcome.Recorded(MarkLayer.Watermark, "vllm-" + (watermark.Algorithm ?? "gumbel")),
+            WatermarkApplied.Engine => MarkOutcome.Recorded(MarkLayer.Watermark, watermark.Algorithm ?? "engine"),
+            WatermarkApplied.Upstream => MarkOutcome.Recorded(MarkLayer.Watermark, "upstream-" + (watermark.Vendor ?? "vendor")),
+            _ => MarkOutcome.Missing(MarkLayer.Watermark, "model",
+                watermark.Reason is { } why && ProvenanceReasons.All.Contains(why) ? why : null),
         };
     }
 }

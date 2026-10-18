@@ -8,7 +8,25 @@ using Fadenstack.Tools;
 
 namespace Fadenstack.Provenance;
 
-/// <summary>The <see cref="IProvenance"/> of one tool call: places content through the markers and records each placement.</summary>
+/// <summary>
+/// The <see cref="IProvenance"/> of one tool call: places content through the markers and records each placement, in
+/// the order the TypeScript SDK's <c>placeContent</c> follows too:
+/// <list type="number">
+/// <item>the policy; the edit kind (the content's, else the tool's declared output's, else <c>generated</c>; then the
+/// classifier); the receipt (a picture's own, else the answer's); the integrator's facts;</item>
+/// <item>content exempt from marking (<c>internal-technical</c>, an exempt <c>edit-kind</c>, <c>code</c>, a <c>label</c>)
+/// is inserted as it is, with no record, and recorded as exempt;</item>
+/// <item>the markers that fit the sink, by layer (metadata, watermark, fingerprint, label);</item>
+/// <item>the layers the content needs -- signed metadata in a container or for a picture, the watermark for text from
+/// the short-text threshold and for pictures, the label while the policy asks for one -- checked as far as they can be
+/// before anything is signed; with <c>refuse</c>, a missing one refuses here;</item>
+/// <item>the server signs a record by the content's hash; without one, no marker runs (no mark carries an id the
+/// server does not know), and with <c>refuse</c> a needed metadata layer refuses here;</item>
+/// <item>the markers prepare, the host inserts, the markers attach and say whether their marks held;</item>
+/// <item>the placement is reported (no content), the observers told, the transcript written.</item>
+/// </list>
+/// A refusal is recorded (<c>provenance.refused</c>) and told to the user as a notice; nothing is signed or reported.
+/// </summary>
 internal sealed class ProvenanceCall : IProvenance
 {
     /// <summary>How long a placement report may take before the tool goes on without it.</summary>
@@ -16,7 +34,13 @@ internal sealed class ProvenanceCall : IProvenance
 
     private static readonly Regex Namespace = new(@"^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z0-9]+(-[a-z0-9]+)*)+$", RegexOptions.CultureInvariant);
     private static readonly Regex FactName = new(@"^[A-Za-z0-9_.-]{1,64}$", RegexOptions.CultureInvariant);
-    private static readonly string[] Reserved = { "c2pa", "com.fadenstack", "fadenstack", "iptc", "provenance" };
+    private static readonly string[] Reserved = { "c2pa", "stds", "iptc", "org.iptc", "com.fadenstack", "fadenstack", "provenance" };
+
+    /// <summary>The method of the layer an exempt placement reports: no record made.</summary>
+    private const string ExemptMethod = "record";
+
+    /// <summary>The method of a metadata layer no host marker fits.</summary>
+    private const string HostMethod = "host";
 
     private readonly ProvenanceState _state;
     private readonly ToolInvocation _call;
@@ -70,9 +94,10 @@ internal sealed class ProvenanceCall : IProvenance
         var length = !content.IsText ? LengthClass.Long
             : tokens < policy.ShortTextTokens ? LengthClass.Short
             : tokens < policy.ShortTextTokens * 5 ? LengthClass.Medium : LengthClass.Long;
+        var isImage = MediaTypes.IsImage(content.MediaType);
         // A picture's receipt is its own (the images route names it); the answer's receipt is about its text.
         var receipt = content.ReceiptId is { Length: > 0 } id ? new ProvenanceReceiptContent(null, id)
-            : MediaTypes.IsImage(content.MediaType) ? null : Receipt;
+            : isImage ? null : Receipt;
         var (facts, dropped) = Enrich(content, kind);
         var given = content with { Receipt = receipt, IsShort = isShort, Texts = Options.TextsFor(Language()), Facts = facts };
         var placement = new Placement
@@ -88,61 +113,66 @@ internal sealed class ProvenanceCall : IProvenance
             placement = placement with
             {
                 Exempt = true, ExemptBecause = exempt, Placed = landed,
-                Layers = new[] { MarkOutcome.Missing(MarkLayer.Metadata, "record", ProvenanceReasons.ExemptEdit, exempt) },
+                Layers = new[] { MarkOutcome.Missing(MarkLayer.Metadata, ExemptMethod, ProvenanceReasons.ExemptEdit, exempt) },
             };
             await FinishAsync(placement, extra, cancellationToken).ConfigureAwait(false);
             return placement;
         }
 
-        var signed = await SignAsync(given, kind, receipt, cancellationToken).ConfigureAwait(false);
         var markers = Options.MarkersFor(policy).Where(m => Supports(m, content)).OrderBy(m => (int)m.Layer).ToList();
         var inHost = markers.Where(m => m.Layer == MarkLayer.Metadata && m is not ServerSignedMarker).ToList();
-        var needsMetadata = content.Sink.Container || MediaTypes.IsImage(content.MediaType);
-        var needsWatermark = (content.IsText && !isShort) || MediaTypes.IsImage(content.MediaType);
+        var needs = new Needs(
+            Metadata: content.Sink.Container || isImage,
+            Watermark: (content.IsText && !isShort) || isImage,
+            Label: policy.VisibleLabel && content.IsText);
         var watermark = WatermarkStatus.Of(given);
 
-        var missing = new List<MarkOutcome>();
-        if (needsMetadata)
+        // What the content needs, checked before anything is signed or placed.
+        var before = new List<MarkOutcome>();
+        if (needs.Metadata)
         {
-            if (signed is null)
+            if (isImage && !(content.Bytes is { } picture && ImageMarks.Read(picture).HasC2pa))
             {
-                missing.Add(MarkOutcome.Missing(MarkLayer.Metadata, "record", ProvenanceReasons.ServerUnavailable));
+                before.Add(MarkOutcome.Missing(MarkLayer.Metadata, "c2pa", ProvenanceReasons.StrippedByHost, "no C2PA manifest before it was placed"));
             }
             else if (inHost.Count == 0)
             {
-                missing.Add(MarkOutcome.Missing(MarkLayer.Metadata, "host", ProvenanceReasons.SinkCannotCarry));
-            }
-            else if (content.Bytes is { } picture && MediaTypes.IsImage(content.MediaType) && !ImageMarks.Read(picture).HasC2pa)
-            {
-                missing.Add(MarkOutcome.Missing(MarkLayer.Metadata, "c2pa", ProvenanceReasons.StrippedByHost, "no C2PA manifest before it was placed"));
+                before.Add(MarkOutcome.Missing(MarkLayer.Metadata, HostMethod, ProvenanceReasons.SinkCannotCarry));
             }
         }
-        if (needsWatermark && !watermark.Applied)
+        if (needs.Watermark && !watermark.Applied)
         {
-            missing.Add(watermark);
+            before.Add(watermark);
+        }
+        if (needs.Label && !markers.Any(m => m.Layer == MarkLayer.Label))
+        {
+            before.Add(MarkOutcome.Missing(MarkLayer.Label, VisibleLabelMarker.MarkerName, ProvenanceReasons.SinkCannotCarry));
+        }
+        if (before.Count > 0 && policy.OnMissing == MissingLayerPolicy.Refuse)
+        {
+            await RefuseAsync(placement, extra, before).ConfigureAwait(false);
         }
 
-        if (missing.Count > 0 && policy.OnMissing == MissingLayerPolicy.Refuse)
+        var signed = await SignAsync(given, kind, receipt, cancellationToken).ConfigureAwait(false);
+        if (signed is null)
         {
-            var layers = new List<MarkOutcome>();
-            if (signed is not null)
+            var unsigned = new List<MarkOutcome>();
+            if (needs.Metadata && !before.Any(m => m.Layer == MarkLayer.Metadata))
             {
-                layers.Add(MarkOutcome.Held(MarkLayer.Metadata, ServerSignedMarker.Method));
+                unsigned.Add(MarkOutcome.Missing(MarkLayer.Metadata, ServerSignedMarker.Method, ProvenanceReasons.ServerUnavailable));
             }
-            layers.Add(watermark);
-            layers.AddRange(missing.Where(m => m.Layer != MarkLayer.Watermark));
-            placement = placement with { Refused = true, Record = signed, Layers = layers, Missing = missing };
-            await FinishAsync(placement, extra, cancellationToken).ConfigureAwait(false);
-            var message = RefusalMessage(missing);
-            await _call.NoticeAsync(new GovernanceNotice
+            if (needs.Label && !before.Any(m => m.Layer == MarkLayer.Label))
             {
-                Outcome = "provenance_refused", Stage = "tool", Category = "provenance", Message = message,
-            }).ConfigureAwait(false);
-            throw new ProvenanceRefusedException(message, missing, placement);
+                unsigned.Add(MarkOutcome.Missing(MarkLayer.Label, VisibleLabelMarker.MarkerName, ProvenanceReasons.ServerUnavailable));
+            }
+            if (unsigned.Count > 0 && policy.OnMissing == MissingLayerPolicy.Refuse)
+            {
+                await RefuseAsync(placement, extra, unsigned).ConfigureAwait(false);
+            }
         }
 
-        var outcomes = new List<MarkOutcome>();
-        var failed = new HashSet<IContentMarker>();
+        var outcomes = new List<(MarkOutcome Outcome, bool Counts)>();
+        var failed = new Dictionary<IContentMarker, string>();
         var marked = given;
         if (signed is not null)
         {
@@ -154,48 +184,90 @@ internal sealed class ProvenanceCall : IProvenance
                 }
                 catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
                 {
-                    failed.Add(marker);
-                    outcomes.Add(MarkOutcome.Missing(marker.Layer, marker.Name, null, "failed: " + e.GetType().Name));
+                    failed[marker] = e.GetType().Name;
                 }
             }
         }
         var placed = await insert(marked, cancellationToken).ConfigureAwait(false) ?? new PlacedContent(marked);
-        foreach (var marker in markers.Where(m => !failed.Contains(m)))
+        if (signed is not null)
         {
-            if (signed is null)
+            foreach (var marker in markers)
             {
-                continue; // the marks carry the record's id; without a record only the watermark is known
-            }
-            try
-            {
-                outcomes.Add(await marker.AttachAsync(placed, signed, cancellationToken).ConfigureAwait(false));
-            }
-            catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
-            {
-                outcomes.Add(MarkOutcome.Missing(marker.Layer, marker.Name, null, "failed: " + e.GetType().Name));
+                // The server's record is no mark in the content: it cannot make the metadata layer hold.
+                var counts = marker is not ServerSignedMarker;
+                if (failed.TryGetValue(marker, out var why))
+                {
+                    outcomes.Add((MarkOutcome.Missing(marker.Layer, marker.Name, null, "failed: " + why), counts));
+                    continue;
+                }
+                try
+                {
+                    outcomes.Add((await marker.AttachAsync(placed, signed, cancellationToken).ConfigureAwait(false), counts));
+                }
+                catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+                {
+                    outcomes.Add((MarkOutcome.Missing(marker.Layer, marker.Name, null, "failed: " + e.GetType().Name), counts));
+                }
             }
         }
-        if (!outcomes.Any(o => o.Layer == MarkLayer.Watermark) && (content.IsText || MediaTypes.IsImage(content.MediaType)))
-        {
-            outcomes.Add(watermark);
-        }
+
+        // What the pipeline knows itself: no record, no host marker, the watermark when no marker said.
         if (signed is null)
         {
-            outcomes.Insert(0, MarkOutcome.Missing(MarkLayer.Metadata, "record", ProvenanceReasons.ServerUnavailable));
+            outcomes.Add((MarkOutcome.Missing(MarkLayer.Metadata, ServerSignedMarker.Method, ProvenanceReasons.ServerUnavailable), true));
         }
         else if (inHost.Count == 0)
         {
-            outcomes.Add(MarkOutcome.Missing(MarkLayer.Metadata, "host", ProvenanceReasons.SinkCannotCarry));
+            outcomes.Add((MarkOutcome.Missing(MarkLayer.Metadata, HostMethod, ProvenanceReasons.SinkCannotCarry), true));
         }
-        else if (needsMetadata && !outcomes.Any(o => o.Layer == MarkLayer.Metadata && o.Applied && o.Method != ServerSignedMarker.Method)
-                 && !missing.Any(m => m.Layer == MarkLayer.Metadata)
-                 && outcomes.FirstOrDefault(o => o.Layer == MarkLayer.Metadata && o.Method != ServerSignedMarker.Method) is { } lost)
+        if ((content.IsText || isImage) && !outcomes.Any(o => o.Outcome.Layer == MarkLayer.Watermark))
         {
-            missing.Add(lost); // written, and the host did not keep it: recorded; the content is in place already
+            outcomes.Add((watermark, true));
         }
-        placement = placement with { Record = signed, Layers = outcomes, Missing = missing, Placed = placed };
+        foreach (var layer in new[] { MarkLayer.Metadata, MarkLayer.Watermark, MarkLayer.Label })
+        {
+            if (needs.Of(layer) && before.FirstOrDefault(m => m.Layer == layer) is { } known && !outcomes.Any(o => o.Outcome.Layer == layer && o.Counts))
+            {
+                outcomes.Add((known, true));
+            }
+        }
+        if (signed is null && needs.Label && !outcomes.Any(o => o.Outcome.Layer == MarkLayer.Label))
+        {
+            outcomes.Add((MarkOutcome.Missing(MarkLayer.Label, VisibleLabelMarker.MarkerName, ProvenanceReasons.ServerUnavailable), true));
+        }
+        // By layer, in the order they came within one.
+        var layers = outcomes.Select((o, i) => (o, i)).OrderBy(x => (int)x.o.Outcome.Layer).ThenBy(x => x.i).Select(x => x.o).ToList();
+
+        var missing = new List<MarkOutcome>();
+        foreach (var layer in new[] { MarkLayer.Metadata, MarkLayer.Watermark, MarkLayer.Label })
+        {
+            if (!needs.Of(layer))
+            {
+                continue;
+            }
+            var ofLayer = layers.Where(o => o.Outcome.Layer == layer && o.Counts).Select(o => o.Outcome).ToList();
+            if (ofLayer.Any(o => o.Applied))
+            {
+                continue;
+            }
+            missing.Add(ofLayer.FirstOrDefault(o => o.Reason is not null) ?? ofLayer.FirstOrDefault()
+                ?? before.FirstOrDefault(m => m.Layer == layer) ?? MarkOutcome.Missing(layer, "none", null));
+        }
+        placement = placement with { Record = signed, Layers = layers.Select(o => o.Outcome).ToList(), Missing = missing, Placed = placed };
         await FinishAsync(placement, extra, cancellationToken).ConfigureAwait(false);
         return placement;
+    }
+
+    /// <summary>The layers a placement needs.</summary>
+    private sealed record Needs(bool Metadata, bool Watermark, bool Label)
+    {
+        public bool Of(MarkLayer layer) => layer switch
+        {
+            MarkLayer.Metadata => Metadata,
+            MarkLayer.Watermark => Watermark,
+            MarkLayer.Label => Label,
+            _ => false,
+        };
     }
 
     /// <summary>What the transcript keeps of a placement beside the placement itself.</summary>
@@ -230,24 +302,25 @@ internal sealed class ProvenanceCall : IProvenance
             Trace.TraceWarning($"Provenance: the edit classifier failed ({e.GetType().Name}); the declared kind stays.");
             return (declared, new { from = declared.ToWire(), to = declared.ToWire(), reason = "the classifier failed" });
         }
-        if (decision.Kind == declared)
+        if (decision is null || decision.Kind == declared)
         {
             return (declared, null);
         }
+        var reason = decision.Reason?.Trim() is { Length: > 0 } r ? (r.Length > 200 ? r.Substring(0, 200) : r) : null;
         var lowers = policy.ExemptEditKinds.Contains(decision.Kind) && !policy.ExemptEditKinds.Contains(declared);
-        if (lowers && string.IsNullOrWhiteSpace(decision.Reason))
+        if (lowers && reason is null)
         {
             return (declared, new { from = declared.ToWire(), to = declared.ToWire(), reason = $"{decision.Kind.ToWire()} without a reason: not taken" });
         }
-        return (decision.Kind, new { from = declared.ToWire(), to = decision.Kind.ToWire(), reason = decision.Reason });
+        return (decision.Kind, new { from = declared.ToWire(), to = decision.Kind.ToWire(), reason });
     }
 
-    /// <summary>Why the content needs no mark, or null.</summary>
+    /// <summary>Why the content needs no mark at all, in this order, or null.</summary>
     private static string? Exempt(EditKind kind, MarkableContent content, ProvenancePolicy policy) =>
-        policy.InternalTechnical ? "internal-technical"
-        : policy.ExemptEditKinds.Contains(kind) ? "edit-kind"
-        : MediaTypes.IsCode(content.MediaType) ? "code"
-        : content.Text is { } text && Labels.IsLabel(text) ? "label"
+        policy.InternalTechnical ? ExemptReasons.InternalTechnical
+        : policy.ExemptEditKinds.Contains(kind) ? ExemptReasons.EditKind
+        : MediaTypes.IsCode(content.MediaType) ? ExemptReasons.Code
+        : content.Text is { } text && Labels.IsLabel(text, content.MediaType) ? ExemptReasons.Label
         : null;
 
     private static bool Supports(IContentMarker marker, MarkableContent content)
@@ -263,7 +336,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
     }
 
-    /// <summary>The server's signed record of the placement, with the content's hash only; null when it did not answer.</summary>
+    /// <summary>The server's signed record of the placement, with the content's hash only; null when it did not sign one.</summary>
     private async Task<SignedRecord?> SignAsync(MarkableContent content, EditKind kind, ProvenanceReceiptContent? receipt,
         CancellationToken cancellationToken)
     {
@@ -283,6 +356,7 @@ internal sealed class ProvenanceCall : IProvenance
         try
         {
             var signed = await Options.Backend.SignRecordAsync(agent, request, cancellationToken).ConfigureAwait(false);
+            // Marks carry the id: one that is not the server's kind of id is no record to carry.
             return ProvenanceJson.IsRecordId(signed?.Record.Id) ? signed : null;
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -316,7 +390,10 @@ internal sealed class ProvenanceCall : IProvenance
         }
     }
 
-    /// <summary>The enrichers' facts that pass: under their namespace, short, and nothing that looks like personal data.</summary>
+    /// <summary>
+    /// The enrichers' facts that pass: under their namespace, short, and nothing that looks like personal data. What is
+    /// dropped is said why, as the TypeScript SDK says it.
+    /// </summary>
     private (IReadOnlyDictionary<string, string> Facts, IReadOnlyList<string> Dropped) Enrich(MarkableContent content, EditKind kind)
     {
         var facts = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -345,7 +422,7 @@ internal sealed class ProvenanceCall : IProvenance
                 {
                     dropped.Add($"{pair.Key}: outside {space}");
                 }
-                else if (pair.Value is null || pair.Value.Length > 200)
+                else if (string.IsNullOrEmpty(pair.Value) || pair.Value.Length > 200)
                 {
                     dropped.Add($"{pair.Key}: empty or longer than 200 characters");
                 }
@@ -362,6 +439,33 @@ internal sealed class ProvenanceCall : IProvenance
         return (facts, dropped);
     }
 
+    /// <summary>Records the refusal, tells the user, and throws it with why in words the model can pass on. Nothing is reported.</summary>
+    private async Task RefuseAsync(Placement placement, Extra extra, IReadOnlyList<MarkOutcome> missing)
+    {
+        var refused = placement with { Refused = true, Missing = missing, Layers = missing };
+        lock (_placements)
+        {
+            _placements.Add(refused);
+        }
+        var message = RefusalMessage(missing);
+        await _call.RecordAsync(ProvenanceEntries.Refused, new
+        {
+            call_id = _call.Call.CallId,
+            tool = placement.Tool,
+            argument = placement.Argument,
+            sink_kind = placement.SinkKind,
+            media_type = placement.MediaType,
+            edit_kind = placement.EditKind.ToWire(),
+            length_class = placement.LengthClass.ToString().ToLowerInvariant(),
+            missing = missing.Select(m => new { layer = m.Layer.ToString().ToLowerInvariant(), method = m.Method, reason = m.Reason }).ToList(),
+        }).ConfigureAwait(false);
+        await _call.NoticeAsync(new GovernanceNotice
+        {
+            Outcome = "provenance_refused", Stage = "tool", Category = "provenance", Message = message,
+        }).ConfigureAwait(false);
+        throw new ProvenanceRefusedException(message, missing, refused);
+    }
+
     /// <summary>Reports the placement, tells the observers, writes the transcript entry, and counts it for the call.</summary>
     private async Task FinishAsync(Placement placement, Extra extra, CancellationToken cancellationToken)
     {
@@ -371,7 +475,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
         var report = new PlacementReport
         {
-            RecordId = placement.RecordId ?? "",
+            RecordId = placement.RecordId,
             Tool = placement.Tool,
             SinkKind = placement.SinkKind,
             MediaType = placement.MediaType,
@@ -379,6 +483,7 @@ internal sealed class ProvenanceCall : IProvenance
             LengthClass = placement.LengthClass,
             Layers = placement.Layers.Take(32).Select(l => l.ToLayer()).ToList(),
         };
+        var reported = false;
         if (_call.Agent is { } agent)
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -386,6 +491,7 @@ internal sealed class ProvenanceCall : IProvenance
             try
             {
                 await Options.Backend.ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
+                reported = true;
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
@@ -407,33 +513,35 @@ internal sealed class ProvenanceCall : IProvenance
         {
             call_id = _call.Call.CallId,
             tool = placement.Tool,
+            argument = placement.Argument,
+            record_id = placement.RecordId,
+            signed = placement.Record is not null,
+            receipt_id = extra.ReceiptId,
             sink_kind = placement.SinkKind,
             media_type = placement.MediaType,
             edit_kind = placement.EditKind.ToWire(),
             length_class = placement.LengthClass.ToString().ToLowerInvariant(),
-            argument = placement.Argument,
-            record_id = placement.RecordId,
-            receipt_id = extra.ReceiptId,
             exempt = placement.Exempt,
             exempt_because = placement.ExemptBecause,
-            refused = placement.Refused,
+            classified = extra.Classified,
             layers = placement.Layers.Select(l => new
             {
                 layer = l.Layer.ToString().ToLowerInvariant(), method = l.Method, applied = l.Applied, reason = l.Reason, verified = l.Verified,
                 detail = l.Detail,
             }).ToList(),
             missing = placement.Missing.Select(m => new { layer = m.Layer.ToString().ToLowerInvariant(), method = m.Method, reason = m.Reason }).ToList(),
-            classified = extra.Classified,
+            reported,
             facts = extra.Facts.Count == 0 ? null : extra.Facts,
             dropped_facts = extra.Dropped.Count == 0 ? null : extra.Dropped,
         }).ConfigureAwait(false);
     }
 
-    /// <summary>What the model and the user are told when the policy refuses.</summary>
-    private static string RefusalMessage(IReadOnlyList<MarkOutcome> missing)
+    /// <summary>What the model and the user are told when the policy refuses (the TypeScript SDK says the same).</summary>
+    internal static string RefusalMessage(IReadOnlyList<MarkOutcome> missing)
     {
         var why = missing.Select(m => m.Layer switch
         {
+            MarkLayer.Watermark when m.Method == "trustmark" => "the picture carries no watermark of this installation",
             MarkLayer.Watermark => m.Reason switch
             {
                 null => "it is not known whether the text carries the model's watermark",
@@ -446,6 +554,7 @@ internal sealed class ProvenanceCall : IProvenance
             _ => m.Reason switch
             {
                 ProvenanceReasons.ServerUnavailable => "the provenance service could not sign a record of it",
+                ProvenanceReasons.SinkCannotCarry when m.Layer == MarkLayer.Label => "this place cannot show a visible label",
                 ProvenanceReasons.SinkCannotCarry => "this place cannot carry a machine-readable mark",
                 ProvenanceReasons.StrippedByHost => "the picture lost its signed metadata before it was placed",
                 _ => "it could not be marked",

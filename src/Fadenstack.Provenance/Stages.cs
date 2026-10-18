@@ -4,15 +4,19 @@ using System.Text.Json;
 using Fadenstack.Agents;
 using Fadenstack.Chat;
 using Fadenstack.Models;
+using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
 
 namespace Fadenstack.Provenance;
 
-/// <summary>The transcript entries the module writes (names, counts and outcomes, never content).</summary>
+/// <summary>The transcript entries the module writes (names, counts and outcomes, never content); the TypeScript SDK's are the same.</summary>
 public static class ProvenanceEntries
 {
     /// <summary>One placement: tool, sink, media type, edit kind, length class, record, layers and reasons.</summary>
     public const string Placed = "provenance.placed";
+
+    /// <summary>Content not placed, as the policy says (<c>on_missing: refuse</c>): a layer it needs was not possible.</summary>
+    public const string Refused = "provenance.refused";
 
     /// <summary>A declared output a tool call did not place through the pipeline.</summary>
     public const string Unmarked = "provenance.unmarked";
@@ -37,7 +41,10 @@ internal sealed class ProvenanceState
 
     public ReceiptKeeper Receipts { get; } = new();
 
-    /// <summary>The agent's policy, tightened by the options; the contract's default while the server does not answer.</summary>
+    /// <summary>
+    /// The agent's policy, tightened by the options; while the server does not answer, the last one it gave, else the
+    /// contract's default.
+    /// </summary>
     public async Task<ProvenancePolicy> PolicyAsync(FadenstackAgent? agent, CancellationToken cancellationToken)
     {
         if (_policy is { } kept && DateTimeOffset.UtcNow < _until)
@@ -60,7 +67,12 @@ internal sealed class ProvenanceState
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceWarning($"Provenance: the policy could not be read ({e.GetType().Name}); the default applies.");
+                Trace.TraceWarning($"Provenance: the policy could not be read ({e.GetType().Name}); the last known or the default applies.");
+                if (_policy is { } last)
+                {
+                    _until = DateTimeOffset.UtcNow + PolicyRetry;
+                    return last;
+                }
                 policy = new ProvenancePolicy();
             }
             _policy = Options.Tighten(policy);
@@ -189,11 +201,16 @@ internal sealed class ReceiptStage : DelegatingChatClient
 
 /// <summary>
 /// After a tool that declares outputs (<c>[Emits]</c>) ran: each declared argument that carried content must have gone
-/// through <see cref="IProvenance.PlaceAsync"/>. One that did not is recorded as <c>provenance.unmarked</c>; in
-/// development mode the call fails, so an integrator cannot miss it.
+/// through <see cref="IProvenance.PlaceAsync"/>. One that did not is recorded as <c>provenance.unmarked</c> and reported
+/// without a record (<c>sink_kind</c> <c>unmarked</c>, no layers); in development mode the call fails, so an integrator
+/// cannot miss it. Content exempt from marking (the policy's internal switch, an exempt edit kind, code, a label) is
+/// left alone.
 /// </summary>
 internal sealed class OutputCheckStage : IToolStage
 {
+    /// <summary>How long the report of unmarked content may take before the call goes on without it.</summary>
+    private static readonly TimeSpan ReportTimeout = TimeSpan.FromSeconds(10);
+
     private readonly ProvenanceState _state;
 
     public OutputCheckStage(ProvenanceState state)
@@ -210,16 +227,26 @@ internal sealed class OutputCheckStage : IToolStage
         {
             return result;
         }
-        var unmarked = Unplaced(invocation, provenance.Placements);
+        var policy = await provenance.GetPolicyAsync(cancellationToken).ConfigureAwait(false);
+        var unmarked = Unplaced(invocation, provenance.Placements).Where(o => !IsExempt(o, invocation, policy)).ToList();
         if (unmarked.Count == 0)
         {
             return result;
         }
         foreach (var output in unmarked)
         {
+            var text = TextOf(invocation.Arguments.TryGetValue(output.Argument, out var value) ? value : null);
+            var kind = output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments));
+            var tokens = _state.Options.CountTokens(text);
+            var length = tokens < policy.ShortTextTokens ? LengthClass.Short : tokens < policy.ShortTextTokens * 5 ? LengthClass.Medium : LengthClass.Long;
+            var reported = await ReportAsync(invocation, new PlacementReport
+            {
+                Tool = invocation.Tool.Name, SinkKind = "unmarked", MediaType = output.MediaType, EditKind = kind, LengthClass = length,
+            }, cancellationToken).ConfigureAwait(false);
             await invocation.RecordAsync(ProvenanceEntries.Unmarked, new
             {
                 call_id = invocation.Call.CallId, tool = invocation.Tool.Name, argument = output.Argument, media_type = output.MediaType,
+                edit_kind = kind.ToWire(), length_class = length.ToString().ToLowerInvariant(), reported,
             }).ConfigureAwait(false);
         }
         var names = string.Join(", ", unmarked.Select(o => $"'{o.Argument}'"));
@@ -231,6 +258,49 @@ internal sealed class OutputCheckStage : IToolStage
                 unmarked);
         }
         return result;
+    }
+
+    /// <summary>Whether a declared output needs no mark: the policy's internal switch, an exempt edit kind, code, a label.</summary>
+    private static bool IsExempt(ToolOutput output, ToolInvocation invocation, ProvenancePolicy policy)
+    {
+        if (policy.InternalTechnical || MediaTypes.IsCode(output.MediaType)
+            || policy.ExemptEditKinds.Contains(output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments))))
+        {
+            return true;
+        }
+        var value = invocation.Arguments.TryGetValue(output.Argument, out var v) ? v : null;
+        return value is string or JsonElement { ValueKind: JsonValueKind.String } && Labels.IsLabel(TextOf(value), output.MediaType);
+    }
+
+    /// <summary>An argument's content as text: a string as it is, anything else as JSON.</summary>
+    private static string TextOf(object? value) => value switch
+    {
+        null => "",
+        string s => s,
+        JsonElement { ValueKind: JsonValueKind.String } e => e.GetString() ?? "",
+        JsonElement e => e.GetRawText(),
+        _ => JsonSerializer.Serialize(value),
+    };
+
+    /// <summary>Reports unmarked content; whether the server took the report.</summary>
+    private async Task<bool> ReportAsync(ToolInvocation invocation, PlacementReport report, CancellationToken cancellationToken)
+    {
+        if (invocation.Agent is not { } agent)
+        {
+            return false;
+        }
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        limit.CancelAfter(ReportTimeout);
+        try
+        {
+            await _state.Options.Backend.ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            Trace.TraceWarning($"Provenance: the unmarked content of '{report.Tool}' was not reported ({e.GetType().Name}).");
+            return false;
+        }
     }
 
     /// <summary>The declared outputs that carried content and were not placed: by argument name first, then in order.</summary>

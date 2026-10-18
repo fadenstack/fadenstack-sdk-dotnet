@@ -20,7 +20,7 @@ public class ReaderTests
     [InlineData("KI-generiert")]
     [InlineData("G&#233;n&#233;r&#233; par IA")]
     [InlineData("Generado por IA")]
-    [InlineData("AI 生成")]
+    [InlineData("人工智能生成")]
     public void A_title_is_ours_in_any_of_the_sdks_languages(string label) =>
         Assert.Equal(new[] { new FoundMark(Id, ProvenanceReader.HtmlTitle) }, ProvenanceReader.Read($"<span title=\"{label} {Id}\">x</span>", "text/html"));
 
@@ -52,7 +52,7 @@ public class ReaderTests
     [Fact]
     public async Task A_key_value_field_names_the_record()
     {
-        var sink = KeyValueSink.From((_, _) => Task.CompletedTask, k => Task.FromResult<string?>(k == KeyValueMarker.DefaultIdKey ? Id : null));
+        var sink = KeyValueSink.From((_, _) => Task.CompletedTask, k => Task.FromResult<string?>(k == "ai-record-id" ? Id : null));
 
         Assert.Equal(new FoundMark(Id, "key-value"), await ProvenanceReader.ReadAsync(sink));
         Assert.Null(await ProvenanceReader.ReadAsync(sink, "other"));
@@ -98,6 +98,13 @@ public class ReaderTests
         Assert.Equal(EditKind.Rewritten, SimilarityEditClassifier.Suggest(before, before + " We look forward to seeing you."));
         Assert.Equal(EditKind.Corrected, SimilarityEditClassifier.Suggest("泵下周需要检查密封。", "泵下周需要检查密封件。"));
         Assert.Equal(1.0, SimilarityEditClassifier.WordSimilarity(" a  b ", "a b"));
+        Assert.Equal(1.0, SimilarityEditClassifier.WordSimilarity("Hello,  World!", "hello world")); // case and punctuation aside
+        Assert.Equal(0.75, SimilarityEditClassifier.WordSimilarity("a b c d", "a x c d"));
+        Assert.Equal(0.8, SimilarityEditClassifier.WordSimilarity("会议在周五", "会议在周一"), 10); // each CJK character a word
+        // The reasons the TypeScript SDK gives too.
+        Assert.Equal((EditKind.Corrected, "small change: 95 % of words kept, the same 2 sentence(s)"),
+            SimilarityEditClassifier.Judge("Thank you for you message. The delivery arive on Friday.",
+                "Thank you for your message. The delivery arrives on Friday.", 0.85));
         var classifier = new SimilarityEditClassifier();
         Assert.Equal(EditKind.Generated, classifier.Classify(new EditInput(before, before, EditKind.Generated, "text/plain")).Kind); // new content stays new
         Assert.Equal(EditKind.Rewritten, classifier.Classify(new EditInput(null, before, EditKind.Rewritten, "text/plain")).Kind); // nothing to compare
@@ -113,6 +120,8 @@ public class ReaderTests
         Assert.Null(PersonalData.Find("M-2026-0042"));
         Assert.Null(PersonalData.Find("00000000-0000-4000-8000-000000000001"));
         Assert.Null(PersonalData.Find(Id));
+        Assert.Equal("IP address", PersonalData.Find("from 10.0.0.12"));
+        Assert.Null(PersonalData.Find("2026-10-18T09:30:00.123Z"));
     }
 
     [Fact]
@@ -125,5 +134,7 @@ public class ReaderTests
         Assert.False(Labels.IsLabel("Thanks!"));
         Assert.False(Labels.IsLabel("We will call you on Monday"));
         Assert.False(Labels.IsLabel("我们周一给您打电话。"));
+        Assert.True(Labels.IsLabel("<p><b>Approved</b></p>", "text/html")); // HTML: its text
+        Assert.False(Labels.IsLabel("<p>Approved.</p>", "text/html"));
     }
 }

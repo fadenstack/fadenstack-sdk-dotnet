@@ -35,7 +35,7 @@ public static class ProvenanceReader
 
     /// <summary>The label in every language the SDK ships: a title is ours only when it starts with one of them.</summary>
     private static readonly IReadOnlyList<string> Labels = UiStrings.BuiltInLanguages
-        .Select(l => UiStrings.For(CultureInfo.GetCultureInfo(l)).ProvenanceLabel).Distinct().ToList();
+        .Select(l => UiStrings.For(CultureInfo.GetCultureInfo(l)).AiGenerated).Distinct().ToList();
 
     /// <summary>The marks in a text of <paramref name="mediaType"/> (HTML, Markdown, plain text).</summary>
     public static IReadOnlyList<FoundMark> Read(string content, string mediaType)
@@ -80,19 +80,19 @@ public static class ProvenanceReader
     /// <summary>What a picture's bytes carry: C2PA, XMP, the IPTC digital source type.</summary>
     public static ImageMarks ReadImage(byte[] bytes) => ImageMarks.Read(bytes);
 
-    /// <summary>The record a host keeps in a key-value field (<see cref="KeyValueMarker"/>); null when there is none.</summary>
-    public static async Task<FoundMark?> ReadAsync(IKeyValueSink sink, string key = KeyValueMarker.DefaultIdKey,
+    /// <summary>The record a host keeps in a key-value field (<see cref="KeyValueMarker"/>, <c>ai-record-id</c>); null when there is none.</summary>
+    public static async Task<FoundMark?> ReadAsync(IKeyValueSink sink, string key = KeyValueMarker.RecordKey,
         CancellationToken cancellationToken = default)
     {
         var value = (await sink.ReadAsync(key, cancellationToken).ConfigureAwait(false))?.Trim();
         return ProvenanceJson.IsRecordId(value) ? new FoundMark(value!, KeyValueMarker.MarkerName) : null;
     }
 
-    /// <summary>The record an HTTP response names in <c>X-Faden-Provenance</c> (<see cref="HttpHeaderMarker"/>).</summary>
+    /// <summary>The record an <c>X-AI-Generated</c> header's value names (<see cref="HttpHeaderMarker"/>, an Outlook draft): the first id.</summary>
     public static FoundMark? ReadHeader(string? value)
     {
-        var id = Http.ProvenanceHeader.Parse(value).FirstOrDefault();
-        return ProvenanceJson.IsRecordId(id) ? new FoundMark(id!, HttpHeaderMarker.MarkerName) : null;
+        var id = Http.ProvenanceHeader.Parse(value).FirstOrDefault(ProvenanceJson.IsRecordId);
+        return id is null ? null : new FoundMark(id, HttpHeaderMarker.MarkerName);
     }
 
     /// <summary>The record in the sidecar file of <paramref name="filePath"/> (<see cref="SidecarMarker"/>); null when there is none.</summary>

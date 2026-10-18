@@ -506,9 +506,13 @@
     <value>{0} (opens in your browser)</value>
     <comment>{0}: a link's text; the link's name for screen readers</comment>
   </data>
-  <data name="ProvenanceLabel" xml:space="preserve">
+  <data name="AiGenerated" xml:space="preserve">
     <value>AI-generated</value>
-    <comment>Content marking: what an AI-generated passage is called where it is marked for people (an HTML title, followed by the record's id; a visible label)</comment>
+    <comment>Content marking: a visible label on content made with AI, where the organisation asks for one</comment>
+  </data>
+  <data name="AiGeneratedTitle" xml:space="preserve">
+    <value>AI-generated {0}</value>
+    <comment>Content marking: the title (tooltip) on HTML made with AI: the label, a space, {0} the record's id; the same in every language</comment>
   </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Not written: it could not be marked as AI-generated</value>

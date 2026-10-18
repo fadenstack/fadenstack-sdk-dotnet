@@ -178,7 +178,7 @@ public static class MarkerTestKit
         {
             found.AddRange(ProvenanceReader.Read(back, prepared.MediaType));
         }
-        if (keyValue is not null && keyValue.Values.TryGetValue(KeyValueMarker.DefaultIdKey, out var kept) && ProvenanceJson.IsRecordId(kept))
+        if (keyValue is not null && keyValue.Values.TryGetValue(KeyValueMarker.RecordKey, out var kept) && ProvenanceJson.IsRecordId(kept))
         {
             found.Add(new FoundMark(kept, KeyValueMarker.MarkerName));
         }
@@ -203,7 +203,7 @@ public static class MarkerTestKit
             problems.Add("a mark names another record: " + string.Join(", ", found.Where(f => f.RecordId != id).Select(f => f.RecordId).Distinct()));
         }
         // A metadata mark names the record; a label or a watermark need not.
-        if (marker.Layer == MarkLayer.Metadata && outcome.Verified && !found.Any(f => f.RecordId == id)
+        if (marker.Layer == MarkLayer.Metadata && outcome.Verified == true && !found.Any(f => f.RecordId == id)
             && (back is not null || keyValue is not null || headers is not null || readRecordId is not null))
         {
             problems.Add("it says the mark held, and reading back finds no mark of the record");
@@ -259,8 +259,6 @@ public static class MarkerTestKit
         public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public List<string> Writes { get; } = new();
-
-        public int? MaxValueLength => _inner.MaxValueLength;
 
         public async Task WriteAsync(string key, string value, CancellationToken cancellationToken)
         {

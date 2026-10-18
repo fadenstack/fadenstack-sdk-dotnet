@@ -25,22 +25,30 @@ internal static class MediaTypes
         return bare.StartsWith("text/", StringComparison.Ordinal) || bare == "application/xhtml+xml";
     }
 
-    /// <summary>Source code, scripts and structured data (JSON, XML, YAML, SQL, CSS): exempt from marking.</summary>
+    public static bool IsHtml(string mediaType) => Is(mediaType, "text/html") || Is(mediaType, "application/xhtml+xml");
+
+    /// <summary>
+    /// Source code, scripts and structured data (JSON, XML, YAML, SQL, CSS): exempt from marking. <c>text/x-*</c> (but
+    /// <c>text/x-markdown</c>), <c>+json</c>, <c>+xml</c> (but XHTML), and the types in <see cref="Code"/>; a picture
+    /// never is (<c>image/svg+xml</c>). The TypeScript SDK's <c>isCode</c> is the same.
+    /// </summary>
     public static bool IsCode(string mediaType)
     {
         var bare = Bare(mediaType);
         if (bare.StartsWith("image/", StringComparison.Ordinal))
         {
-            return false; // image/svg+xml is a picture
+            return false;
         }
-        return bare.StartsWith("text/x-", StringComparison.Ordinal) || bare.EndsWith("+json", StringComparison.Ordinal)
-            || bare.EndsWith("+xml", StringComparison.Ordinal) || Code.Contains(bare);
+        return (bare.StartsWith("text/x-", StringComparison.Ordinal) && bare != "text/x-markdown")
+            || bare.EndsWith("+json", StringComparison.Ordinal)
+            || (bare.EndsWith("+xml", StringComparison.Ordinal) && bare != "application/xhtml+xml")
+            || Code.Contains(bare);
     }
 
     private static readonly HashSet<string> Code = new(StringComparer.Ordinal)
     {
         "application/json", "application/xml", "text/xml", "application/javascript", "text/javascript", "application/x-yaml",
-        "application/yaml", "text/yaml", "application/sql", "text/css", "application/x-sh", "application/x-powershell",
+        "application/yaml", "text/yaml", "application/toml", "application/sql", "text/css", "application/x-sh", "application/x-powershell",
     };
 }
 
@@ -76,13 +84,17 @@ internal static class Labels
 {
     private static readonly char[] SentenceMarks = { '.', '!', '?', ';', '。', '！', '？' };
 
+    private static readonly Regex Tag = new("<[^>]*>", RegexOptions.CultureInvariant);
+
     /// <summary>
-    /// At most three words and 40 characters (eight CJK characters), without any sentence mark: "Approved",
-    /// "Q3 revenue". Anything that reads as a sentence is marked.
+    /// After the normalisation of hashing (HTML without its tags): empty, or at most three words and 40 characters
+    /// (eight characters for text with CJK characters) without any sentence mark (<c>. ! ? ; 。 ！ ？</c>): "Approved",
+    /// "Q3 revenue", <c>&lt;b&gt;Approved&lt;/b&gt;</c>. Anything that reads as a sentence is marked. The TypeScript
+    /// SDK's <c>isLabel</c> is the same.
     /// </summary>
-    public static bool IsLabel(string text)
+    public static bool IsLabel(string text, string mediaType = "text/plain")
     {
-        var normalized = ContentHash.Normalize(text);
+        var normalized = ContentHash.Normalize(MediaTypes.IsHtml(mediaType) ? Tag.Replace(text, " ") : text);
         if (normalized.Length == 0)
         {
             return true;
@@ -100,19 +112,36 @@ internal static class Labels
 /// <summary>Finds what looks like data about a person, so it never goes into a mark or a fact.</summary>
 internal static class PersonalData
 {
-    private static readonly Regex Email = new(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}", RegexOptions.CultureInvariant);
-    private static readonly Regex Phone = new(@"(?<![\w+\-])(\+|00|0)\d[\d \-/().]{6,}\d(?!\w)", RegexOptions.CultureInvariant);
-    private static readonly Regex Iban = new(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b", RegexOptions.CultureInvariant);
-    private static readonly Regex Uuid = new(@"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", RegexOptions.CultureInvariant);
+    // The TypeScript SDK's findPersonalData has the same patterns, in the same order.
+    private static readonly Regex Email = new(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}", RegexOptions.CultureInvariant);
+    private static readonly Regex Iban = new(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\b", RegexOptions.CultureInvariant);
+    private static readonly Regex Ip = new(@"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b", RegexOptions.CultureInvariant);
+    private static readonly Regex Phone = new(@"(?<![\w.:-])\+?\d[\d ()/.-]{5,}\d(?![\w-])", RegexOptions.CultureInvariant);
+    private static readonly Regex Uuid = new(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}", RegexOptions.CultureInvariant);
+    private static readonly Regex Time = new(@"\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?", RegexOptions.CultureInvariant);
 
     /// <summary>
-    /// What <paramref name="value"/> looks like it holds (<c>e-mail address</c>, <c>phone number</c>, <c>IBAN</c>), or null.
-    /// Ids (UUIDs, such as record ids) are not taken for phone numbers.
+    /// What <paramref name="value"/> looks like it holds (<c>e-mail address</c>, <c>IBAN</c>, <c>IP address</c>,
+    /// <c>phone number</c>: seven digits or more), or null. Ids (UUIDs, such as record ids) and times are left out first.
     /// </summary>
     public static string? Find(string value)
     {
-        value = Uuid.Replace(value, " ");
-        return Email.IsMatch(value) ? "e-mail address" : Iban.IsMatch(value) ? "IBAN" : Phone.IsMatch(value) ? "phone number" : null;
+        value = Time.Replace(Uuid.Replace(value, " "), " ");
+        if (Email.IsMatch(value))
+        {
+            return "e-mail address";
+        }
+        if (Iban.IsMatch(value))
+        {
+            return "IBAN";
+        }
+        if (Ip.IsMatch(value))
+        {
+            return "IP address";
+        }
+        // What the patterns before found is no phone number (an IBAN's digits).
+        value = Ip.Replace(Iban.Replace(value, " "), " ");
+        return Phone.Matches(value).Cast<Match>().Any(m => m.Value.Count(char.IsDigit) >= 7) ? "phone number" : null;
     }
 }
 
@@ -123,8 +152,18 @@ internal static class ProvenanceJson
 
     public static string Compact(object value) => JsonSerializer.Serialize(value, FadenstackJson.Options);
 
-    /// <summary>Whether a value is a record id as the server issues them: letters, digits, '-' and '_', 8 to 64 long.</summary>
+    /// <summary>Whether a value is a record id as the server issues them and marks carry them: a UUID.</summary>
     public static bool IsRecordId(string? value) => value is not null && RecordId.IsMatch(value);
 
-    private static readonly Regex RecordId = new("^[A-Za-z0-9][A-Za-z0-9_-]{7,63}$", RegexOptions.CultureInvariant);
+    private static readonly Regex RecordId = new("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        RegexOptions.CultureInvariant);
+}
+
+/// <summary>HTML attribute values as both SDKs write them: <c>&amp;</c>, <c>&lt;</c>, <c>&gt;</c> and <c>"</c> escaped, nothing else.</summary>
+internal static class HtmlText
+{
+    public static string Attribute(string value) =>
+        value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    public static string Escape(string value) => value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 }

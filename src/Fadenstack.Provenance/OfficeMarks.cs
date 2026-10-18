@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -39,18 +38,25 @@ public static class OfficeMarks
     /// <summary>The PowerPoint shape and slide tag that holds the record's id.</summary>
     public const string ShapeTag = "FADEN_AI_RECORD";
 
-    /// <summary>The internet header an Outlook draft carries the record's id in.</summary>
-    public const string MailHeader = "x-ai-generated";
+    /// <summary>
+    /// The internet header an Outlook draft carries the record's id in, spelled as every marker writes it (and as
+    /// <see cref="HttpHeaderMarker.Header"/>): <c>X-AI-Generated: &lt;record id&gt;</c>.
+    /// </summary>
+    public const string MailHeader = "X-AI-Generated";
 
     /// <summary>The MAPI named property (PS_PUBLIC_STRINGS) that holds the signed record of a draft.</summary>
     public const string MapiRecordProperty = "http://schemas.microsoft.com/mapi/string/{00020329-0000-0000-C000-000000000046}/FadenProvenanceRecord";
 
-    /// <summary>The MAPI property (PS_INTERNET_HEADERS) that sets <see cref="MailHeader"/> on a draft.</summary>
-    public const string MapiHeaderProperty = "http://schemas.microsoft.com/mapi/string/{00020386-0000-0000-C000-000000000046}/" + MailHeader;
+    /// <summary>
+    /// The MAPI property (PS_INTERNET_HEADERS) that sets <see cref="MailHeader"/> on a draft. Header names do not depend
+    /// on case; this property name keeps its lower-case spelling.
+    /// </summary>
+    public const string MapiHeaderProperty = "http://schemas.microsoft.com/mapi/string/{00020386-0000-0000-C000-000000000046}/x-ai-generated";
 
     /// <summary>
-    /// The bookmark or name of a record: <c>_faden_ai_</c> and 24 hex digits of the record's id (34 characters; Word
-    /// allows 40, and letters, digits and underscores only).
+    /// The bookmark or name of a record: <c>_faden_ai_</c> and the first 24 hex digits of the record's id, dashes removed
+    /// (34 characters; Word allows 40, and letters, digits and underscores only). The TypeScript SDK's
+    /// <c>officeAnchorName</c> is the same.
     /// </summary>
     public static string AnchorName(string recordId)
     {
@@ -59,12 +65,7 @@ public static class OfficeMarks
             throw new ArgumentException("A record id is needed.", nameof(recordId));
         }
         var hex = new string(recordId.Where(Uri.IsHexDigit).Take(24).ToArray()).ToLowerInvariant();
-        if (hex.Length < 24)
-        {
-            using var sha = SHA256.Create();
-            hex = string.Concat(sha.ComputeHash(Encoding.UTF8.GetBytes(recordId)).Take(12).Select(b => b.ToString("x2")));
-        }
-        return AnchorPrefix + hex;
+        return hex.Length < 24 ? throw new ArgumentException("A record id (a UUID) is needed for an anchor.", nameof(recordId)) : AnchorPrefix + hex;
     }
 
     /// <summary>Whether a bookmark or name is one of our anchors.</summary>
@@ -91,8 +92,11 @@ public static class OfficeMarks
     }
 
     /// <summary>
-    /// The custom XML part: one <c>record</c> per placement, with the record's id, its anchor (the bookmark, name or shape
-    /// it marks) and the signed record (the JWS) as its text; the time-stamp token where there is one.
+    /// The custom XML part: <c>&lt;provenance xmlns="https://fadenstack.com/ns/provenance/1.0"&gt;</c> with one
+    /// <c>&lt;record id="..." anchor="..." timestamp="..."&gt;JWS&lt;/record&gt;</c> per placement (its anchor: the
+    /// bookmark, name or shape it marks; <c>timestamp</c> only where there is one), no XML declaration, no white space
+    /// between elements. The TypeScript SDK's <c>officeCustomXmlPart</c> writes the same. The server's detector finds
+    /// the record ids in any <c>customXml/</c> part with the namespace and in <c>docProps/custom.xml</c>.
     /// </summary>
     public static string CustomXmlPart(IEnumerable<OfficeRecord> records)
     {
