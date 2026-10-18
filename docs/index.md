@@ -21,16 +21,17 @@ The SDK never receives the agent's instructions. Every model call goes through t
 | `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
 | `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
 | `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
+| `Fadenstack.Provenance` | Content provenance: what tools place where people read it is marked as AI-generated where the host can carry a mark, signed by the server and recorded ([Content provenance](provenance.md)). |
 | `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm, with its texts in English, German, French, Spanish and Simplified Chinese ([Languages](chat-panel.md#languages)). |
 | `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins. |
 
-Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.UI.Wpf` includes `Fadenstack.UI`.
+Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.Provenance` includes `Fadenstack.UI` (for the words its marks show people); `Fadenstack.UI.Wpf` includes `Fadenstack.UI`.
 
 ## Target frameworks
 
 | Package | Targets | Runs on |
 |---|---|---|
-| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
+| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.Provenance`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
 | `Fadenstack.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
 
 The `netstandard2.0` builds serve .NET Framework hosts, such as add-ins loaded by a native application. A .NET 8 or later application gets the `net8.0` builds. If you write a library on top of the SDK, read [Building a library](libraries.md) first.
@@ -112,12 +113,13 @@ public sealed class PageTools
 | `Fadenstack.Auth` | `AgentTokenProvider`, `StaticTokenProvider`, `ITokenProvider`, `ITokenStore`, `FileTokenStore`, `MemoryTokenStore` |
 | `Fadenstack.Chat` | `FadenstackChatOptions`, `FadenstackEventContent`, `GovernanceNoticeContent` |
 | `Fadenstack.Governance` | `ChatOutcome`, `GovernanceNotice` |
-| `Fadenstack.Tools` | `ToolClass`, `ToolMode`, `ToolModes` |
+| `Fadenstack.Tools` | `ToolClass`, `ToolMode`, `ToolModes`, `EditKind` |
 | `Fadenstack.Models`, `Fadenstack.Resources` | The profile, manifest and server records; the REST resources |
 | `Fadenstack.Http` | `FadenstackTransport`, `FadenstackJson` |
 | `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `AgentSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
 | `Fadenstack.Agents.Sessions` | `ISessionStore`, `FileSessionStore`, `MemorySessionStore`, `SessionRetention`, `TranscriptEntry` |
 | `Fadenstack.Mcp` | `LocalMcpServer`, `LocalMcpModule`, `AddLocalMcp` |
+| `Fadenstack.Provenance` | `ProvenanceModule`, `IProvenance`, `MarkableContent`, `SinkInfo`, `IContentMarker`, the built-in markers, `ProvenanceReader` |
 | `Fadenstack.UI.ViewModels`, `Fadenstack.UI.Parts`, `Fadenstack.UI.Services` | The chat view models, the answer parts, `ApprovalBroker`, `IUiDispatcher` |
 | `Fadenstack.UI.Wpf.Views`, `Fadenstack.UI.Wpf.Services` | `ChatView`, `ChatTheme`, `WpfDispatcher`, `WpfClipboard` |
 | `Microsoft.Extensions.DependencyInjection` | `AddFadenstackAgent` |
@@ -128,6 +130,7 @@ public sealed class PageTools
 - [Host tools](tools.md): tools, tool modes and approvals.
 - [Outcomes and errors](outcomes.md): how a turn ends, and what is thrown.
 - [Sessions on the device](sessions.md): storage, retention and your own store.
+- [Content provenance](provenance.md): marking what tools place as AI-generated.
 - [Chat panel](chat-panel.md): a ready chat UI for WPF hosts.
 - [Your first agent](../../get-started/first-agent.md): registering an agent on the server and signing in.
 - [TypeScript SDK](../typescript/index.md): the same agents, built in TypeScript.

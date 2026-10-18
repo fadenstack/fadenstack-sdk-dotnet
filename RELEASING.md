@@ -1,7 +1,7 @@
 # Releasing
 
 A tag publishes a release. `.github/workflows/release.yml` checks that the tag names the version, runs the tests
-on Windows, packs the five `Fadenstack.*` packages with their symbol packages, and pushes them to nuget.org with
+on Windows, packs the six `Fadenstack.*` packages with their symbol packages, and pushes them to nuget.org with
 trusted publishing: no API key is stored anywhere.
 
 1. Set `<Version>` in `Directory.Build.props` and commit.

@@ -44,12 +44,13 @@ personal data and audit. Agents need a Fadenstack server 0.4.2 or later.
 | [`Fadenstack.Client`](https://www.nuget.org/packages/Fadenstack.Client) | [![Fadenstack.Client](https://img.shields.io/nuget/vpre/Fadenstack.Client?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Client) | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources, typed errors |
 | [`Fadenstack.Agents`](https://www.nuget.org/packages/Fadenstack.Agents) | [![Fadenstack.Agents](https://img.shields.io/nuget/vpre/Fadenstack.Agents?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Agents) | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages |
 | [`Fadenstack.Mcp`](https://www.nuget.org/packages/Fadenstack.Mcp) | [![Fadenstack.Mcp](https://img.shields.io/nuget/vpre/Fadenstack.Mcp?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Mcp) | Local MCP servers as agent tools, under the agent's local MCP policy |
+| [`Fadenstack.Provenance`](https://www.nuget.org/packages/Fadenstack.Provenance) | [![Fadenstack.Provenance](https://img.shields.io/nuget/vpre/Fadenstack.Provenance?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.Provenance) | Content provenance: what tools place where people read it is marked as AI-generated, signed by the server and recorded |
 | [`Fadenstack.UI`](https://www.nuget.org/packages/Fadenstack.UI) | [![Fadenstack.UI](https://img.shields.io/nuget/vpre/Fadenstack.UI?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.UI) | Platform-neutral view models for a chat with an agent, with its texts in English, German, French, Spanish and Simplified Chinese |
 | [`Fadenstack.UI.Wpf`](https://www.nuget.org/packages/Fadenstack.UI.Wpf) | [![Fadenstack.UI.Wpf](https://img.shields.io/nuget/vpre/Fadenstack.UI.Wpf?label=&color=004880)](https://www.nuget.org/packages/Fadenstack.UI.Wpf) | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins |
 
 Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it
 (`Fadenstack.Auth`, `Fadenstack.Chat`, `Fadenstack.Tools`, ...). `Fadenstack.Client`,
-`Fadenstack.Agents`, `Fadenstack.Mcp` and `Fadenstack.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
+`Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.Provenance` and `Fadenstack.UI` target `netstandard2.0` (.NET Framework 4.7.2 and later)
 and `net8.0`. `Fadenstack.UI.Wpf` targets `net472` and `net8.0-windows`.
 
 

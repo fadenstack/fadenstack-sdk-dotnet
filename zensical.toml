@@ -10,6 +10,7 @@ nav = [
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },
   { "Local MCP servers" = "local-mcp.md" },
+  { "Content provenance" = "provenance.md" },
   { "Dependency injection" = "hosting.md" },
   { "Chat panel" = "chat-panel.md" },
   { "Without an agent" = "plain-api.md" },
