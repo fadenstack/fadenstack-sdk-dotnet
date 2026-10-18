@@ -19,18 +19,36 @@ public sealed class Gateway
         """;
 
     private readonly Queue<Func<Recorded, HttpResponseMessage>> _answers = new();
+    private int _records;
 
     /// <param name="vision">Whether the agent's model sees pictures, as JSON (<c>null</c>: not said, as an older server).</param>
     /// <param name="skills">The skills its users can pick (<c>GET .../skills</c>; the profile says <c>skills: true</c>). Null:
     /// the server has no skills module, and the route answers <c>available: false</c>.</param>
     /// <param name="ui">The definition's <c>ui</c> (greeting, suggestions, their languages), as JSON.</param>
+    /// <param name="provenancePolicy">The agent's marking policy (<c>GET .../provenance/policy</c>), as JSON; null: the
+    /// server has no provenance module, and the routes answer 503.</param>
     public Gateway(string? contract = null, string ceiling = "null", string modules = "[]",
         string localMcp = """{"mode":"disable","developer_mode":false}""", string vision = "null", string? userLanguage = null,
-        IReadOnlyList<FakeSkill>? skills = null, string ui = "null")
+        IReadOnlyList<FakeSkill>? skills = null, string ui = "null", string? provenancePolicy = """{"on_missing":"record","short_text_tokens":200}""")
     {
         UserLanguage = userLanguage;
         var skillsModule = skills is null ? "false" : "true";
+        ProvenancePolicy = provenancePolicy;
         Server = new FakeServer()
+            .On("GET", "/v1/agents/docs-assistant/provenance/policy", _ => ProvenancePolicy is null
+                ? ProvenanceOff()
+                : FakeServer.Respond(HttpStatusCode.OK, ProvenancePolicy))
+            .On("POST", "/v1/agents/docs-assistant/provenance/records", r => ProvenancePolicy is null || ProvenanceDown
+                ? ProvenanceOff()
+                : FakeServer.Respond(HttpStatusCode.OK, SignedRecord(r.Json)))
+            .On("POST", "/v1/agents/docs-assistant/provenance/placements", _ => ProvenancePolicy is null
+                ? ProvenanceOff()
+                : FakeServer.Respond(HttpStatusCode.Accepted, new { stored = true }))
+            .Json("GET", "/v1/provenance/anchors", new
+            {
+                contract = "provenance/v1", signing_chains = new[] { "-----BEGIN CERTIFICATE-----\ntest" },
+                trust_anchors = new[] { "-----BEGIN CERTIFICATE-----\ntest" }, detector = new { id = "fadenstack-provenance/test", methods = new[] { "record" } },
+            })
             .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK,
                 Profile(contract, ceiling, modules, localMcp, vision, skillsModule, ui)))
             .Skills("/v1/agents/docs-assistant/skills", skills)
@@ -54,6 +72,71 @@ public sealed class Gateway
 
     /// <summary>The language the user picked for all their clients, as the server keeps it (<c>PATCH .../user</c>).</summary>
     public string? UserLanguage { get; private set; }
+
+    /// <summary>The agent's marking policy as JSON; null: no provenance module (503).</summary>
+    public string? ProvenancePolicy { get; set; }
+
+    /// <summary>The provenance engine is down: records are not signed (503).</summary>
+    public bool ProvenanceDown { get; set; }
+
+    /// <summary>The records the agent had signed (<c>POST .../provenance/records</c>).</summary>
+    public List<Recorded> RecordRequests => Server.Requests.Where(r => r.Path.EndsWith("/provenance/records")).ToList();
+
+    /// <summary>The placement reports the agent sent (<c>POST .../provenance/placements</c>).</summary>
+    public List<Recorded> Placements => Server.Requests.Where(r => r.Path.EndsWith("/provenance/placements")).ToList();
+
+    private static HttpResponseMessage ProvenanceOff() => FakeServer.Respond(HttpStatusCode.ServiceUnavailable, new
+    {
+        error = new { message = "Content provenance is not switched on here.", type = "provenance_unavailable", code = "provenance_off" },
+    });
+
+    /// <summary>A record as the engine signs it: the request's fields, a new id, a test signature.</summary>
+    private object SignedRecord(System.Text.Json.JsonElement request)
+    {
+        string? Str(string name) => request.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+        var n = Interlocked.Increment(ref _records);
+        var kind = Str("edit_kind") ?? "generated";
+        return new
+        {
+            record = new
+            {
+                contract = "provenance/v1", id = $"5a0e2b5c-7f3e-4a51-9a40-{n:D12}",
+                digital_source_type = "http://cv.iptc.org/newscodes/digitalsourcetype/"
+                    + (kind == "generated" ? "trainedAlgorithmicMedia" : "compositeWithTrainedAlgorithmicMedia"),
+                edit_kind = kind, system = new { name = "Fadenstack", version = "0.5.0" }, provider = "Example GmbH",
+                model = Str("model") is { } model ? new { id = model, version = (string?)null } : null,
+                created_at = "2026-10-18T09:30:00Z", receipt_id = Str("receipt_id"), media_type = Str("media_type"),
+                content_hash = "c0ffee", hash_key_version = 1,
+            },
+            signature = "eyJhbGciOiJFUzI1NiJ9.eyJ0ZXN0Ijp0cnVlfQ.c2ln",
+            timestamp = (string?)null,
+        };
+    }
+
+    /// <summary>An answer's receipt (<c>faden.provenance</c>): the model's watermark applied, or none and why.</summary>
+    public static string Receipt(string id, string applied = "model", string? reason = null, string? algorithm = "gumbel") => Custom("faden.provenance", new
+    {
+        receipt = new
+        {
+            contract = "provenance/v1", id, kind = "text", model = new { id = "qwen3.8-27b", version = (string?)null },
+            created_at = "2026-10-18T09:30:00Z",
+            watermark = new { applied, algorithm = applied == "model" ? algorithm : null, reason },
+            output_hash = "ab12", hash_key_version = 1,
+        },
+        signature = "eyJhbGciOiJFUzI1NiJ9.e30.c2ln",
+        timestamp = (string?)null,
+    });
+
+    /// <summary>The event of an answer the engine could not sign.</summary>
+    public static string Unsigned => Custom("faden.provenance", new { receipt = (object?)null, status = "unsigned", reason = "server-unavailable" });
+
+    /// <summary>A streamed answer with text, then tool calls, and its receipt before the end.</summary>
+    public Gateway SaysAndCalls(string text, string receipt, params (string Id, string Name, string Arguments)[] calls) =>
+        Then(Text(text), ToolCalls(calls), Finish("tool_calls"), receipt, FakeServer.Done);
+
+    /// <summary>A streamed answer that calls tools, with a receipt before the end (as for an answer with text).</summary>
+    public Gateway CallsWithReceipt(string receipt, params (string Id, string Name, string Arguments)[] calls) =>
+        Then(ToolCalls(calls), Finish("tool_calls"), receipt, FakeServer.Done);
 
     /// <summary>The agent profile, with the language the user picked as it is now.</summary>
     private string Profile(string? contract, string ceiling, string modules, string localMcp, string vision, string skills, string ui)

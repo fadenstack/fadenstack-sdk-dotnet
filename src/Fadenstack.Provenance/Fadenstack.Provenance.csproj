@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Fadenstack.Provenance</RootNamespace>
+    <PackageId>Fadenstack.Provenance</PackageId>
+    <Description>Content provenance for Fadenstack agents: tools place what a model wrote through one pipeline that marks it as AI-generated where the host can carry a mark (HTML, Markdown, key-value fields, sidecar files, HTTP headers, pictures), has the server sign a record of each placement, and reports which layers held.</Description>
+    <PackageTags>$(PackageTags);provenance;content-credentials;ai-act</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+    <!-- The texts a mark shows people (UiStrings), in the SDK's five languages. -->
+    <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.Provenance.Tests" />
+  </ItemGroup>
+</Project>
