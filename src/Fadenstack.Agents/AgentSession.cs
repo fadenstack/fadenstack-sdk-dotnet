@@ -272,6 +272,7 @@ public sealed class AgentSession
         private readonly HashSet<string> _deniedByGateway = new();
         private readonly Dictionary<string, GatewayMark> _marks = new();
         private readonly StringBuilder _text = new();
+        private readonly List<ProvenanceReceiptContent> _receipts = new();
         private UsageDetails? _usage;
         private GovernanceNotice? _blocked;
         private bool _toolDenied;
@@ -396,6 +397,7 @@ public sealed class AgentSession
             AttachNewestPicture(history);
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();
+            var receipts = new List<ProvenanceReceiptContent>();
             await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
                 .ConfigureAwait(false))
             {
@@ -403,6 +405,9 @@ public sealed class AgentSession
                 {
                     switch (content)
                     {
+                        case ProvenanceReceiptContent p:
+                            receipts.Add(p);
+                            break;
                         case TextContent t when !string.IsNullOrEmpty(t.Text):
                             text.Append(t.Text);
                             Emit(new TextDelta(t.Text));
@@ -434,6 +439,7 @@ public sealed class AgentSession
                 calls.Clear(); // a refused answer's tool calls never run
             }
             _text.Append(text);
+            _receipts.AddRange(receipts);
             if (text.Length > 0 || calls.Count > 0)
             {
                 await _session.AppendAsync(EntryTypes.AssistantMessage, _id, new
@@ -441,6 +447,8 @@ public sealed class AgentSession
                     text = text.ToString(),
                     tool_calls = calls.Select(c => new { id = c.CallId, name = c.Name, arguments = Json(c.Arguments) }).ToList(),
                     origin = "model",
+                    // What made the answer, by the receipts' ids: never more of them than that.
+                    receipts = receipts.Count == 0 ? null : receipts.Select(ReceiptData).ToList(),
                 }).ConfigureAwait(false);
             }
             if (_blocked is not null)
@@ -936,9 +944,18 @@ public sealed class AgentSession
                     Text = _text.ToString(),
                     Notices = _notices.ToList(),
                     Usage = _usage,
+                    Receipts = _receipts.ToList(),
                 }));
             }
         }
+
+        /// <summary>A receipt as the transcript keeps it: its id and whether it was signed, never the receipt.</summary>
+        private static object ReceiptData(ProvenanceReceiptContent receipt) => new
+        {
+            receipt_id = receipt.ReceiptId,
+            status = receipt.Signed is not null ? "signed" : receipt.ReceiptId is not null ? "reference" : "unsigned",
+            reason = receipt.Signed is null && receipt.ReceiptId is null ? receipt.Reason : null,
+        };
 
         private void AddUsage(UsageDetails details)
         {

@@ -60,6 +60,12 @@ public sealed record AgentResult
 
     public UsageDetails? Usage { get; init; }
 
+    /// <summary>
+    /// The receipts of the turn's answers, in order: what the server said made them (none from a server that sends
+    /// none). The transcript keeps their ids on each answer's entry (<c>receipts</c>).
+    /// </summary>
+    public IReadOnlyList<ProvenanceReceiptContent> Receipts { get; init; } = Array.Empty<ProvenanceReceiptContent>();
+
     /// <summary>The first notice that decided the outcome, if any.</summary>
     public GovernanceNotice? Notice => Notices.Count == 0 ? null : Notices[0];
 }

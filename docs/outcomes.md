@@ -19,6 +19,7 @@ When the server refuses a prompt, stops an answer, denies a tool or applies a li
 | `Notices` | The `GovernanceNotice` values raised during the turn, in order. |
 | `Notice` | The first notice, or null when there was none. |
 | `Usage` | Token counts for the turn (`UsageDetails` from Microsoft.Extensions.AI), when the server reported them. |
+| `Receipts` | What the server said made the turn's answers, in order (`ProvenanceReceiptContent`): a signed receipt per model call, or one without `Signed` and with the `Reason` when the server could not sign it. Empty from a server that sends none. The transcript keeps each receipt's id with its answer (`receipts`). |
 | `TurnId` | The turn's id. |
 
 ```csharp
