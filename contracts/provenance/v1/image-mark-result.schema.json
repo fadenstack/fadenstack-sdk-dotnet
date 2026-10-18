@@ -1,0 +1,96 @@
+{
+  "$defs": {
+    "LayerOutcome": {
+      "additionalProperties": false,
+      "description": "One layer of one mark: applied, or not and why.",
+      "properties": {
+        "applied": {
+          "title": "Applied",
+          "type": "boolean"
+        },
+        "layer": {
+          "enum": [
+            "watermark",
+            "metadata",
+            "fingerprint",
+            "label"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "method": {
+          "description": "e.g. trustmark-Q, c2pa, xmp, vllm-gumbel, html-attribute",
+          "title": "Method",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "sink-cannot-carry",
+                "stripped-by-host",
+                "short-text",
+                "exempt-edit",
+                "no-watermark-remote-model",
+                "no-watermark-greedy",
+                "runtime-without-watermark",
+                "server-unavailable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "layer",
+        "method",
+        "applied"
+      ],
+      "title": "LayerOutcome",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/image-mark-result.schema.json",
+  "additionalProperties": false,
+  "description": "The marked picture, the receipt of its generation and the layers it carries.",
+  "properties": {
+    "image": {
+      "description": "the marked picture's bytes, base64",
+      "title": "Image",
+      "type": "string"
+    },
+    "layers": {
+      "items": {
+        "$ref": "#/$defs/LayerOutcome"
+      },
+      "title": "Layers",
+      "type": "array"
+    },
+    "media_type": {
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "title": "Media Type",
+      "type": "string"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "image",
+    "media_type",
+    "receipt_id",
+    "layers"
+  ],
+  "title": "ImageMarkResult",
+  "type": "object"
+}

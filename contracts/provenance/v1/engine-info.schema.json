@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "Capabilities": {
+      "additionalProperties": false,
+      "description": "Which layers this engine provides. A layer is listed once it works end to end.",
+      "properties": {
+        "detect": {
+          "default": false,
+          "title": "Detect",
+          "type": "boolean"
+        },
+        "images": {
+          "default": false,
+          "title": "Images",
+          "type": "boolean"
+        },
+        "receipts": {
+          "default": false,
+          "title": "Receipts",
+          "type": "boolean"
+        },
+        "records": {
+          "default": false,
+          "title": "Records",
+          "type": "boolean"
+        }
+      },
+      "title": "Capabilities",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/engine-info.schema.json",
+  "additionalProperties": false,
+  "description": "``GET /api/v1/provenance/info``: what the gateway and the backend check before they rely on the engine.",
+  "properties": {
+    "capabilities": {
+      "$ref": "#/$defs/Capabilities"
+    },
+    "contract": {
+      "const": "provenance/v1",
+      "default": "provenance/v1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "engine_version": {
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "plugins": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Plugins",
+      "type": "array"
+    }
+  },
+  "required": [
+    "engine_version",
+    "capabilities",
+    "plugins"
+  ],
+  "title": "EngineInfo",
+  "type": "object"
+}

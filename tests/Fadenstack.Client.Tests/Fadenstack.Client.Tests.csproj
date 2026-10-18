@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fadenstack.Client\Fadenstack.Client.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The provenance contract's schemas and hash vectors, as the engine exports them. -->
+    <None Include="..\..\contracts\provenance\v1\*.json" LinkBase="contracts\provenance\v1" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

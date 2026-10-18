@@ -46,8 +46,31 @@ public sealed class FadenstackChatClient : IChatClient
             return Refused(response, text) ?? throw ErrorReader.ToException(response, text);
         }
         using var doc = JsonDocument.Parse(text);
-        return ChatWire.Response(doc.RootElement);
+        var answer = ChatWire.Response(doc.RootElement);
+        WithReceipts(answer, ProvenanceHeader.Parse(FadenstackTransport.HeaderValue(response, ProvenanceHeader.Name)));
+        return answer;
     }
+
+    /// <summary>
+    /// The receipts a whole answer names in <c>X-Faden-Provenance</c>; the first is its text's when it has text, so
+    /// without a <c>faden.provenance</c> event the answer gets a receipt with that id.
+    /// </summary>
+    private static void WithReceipts(ChatResponse answer, IReadOnlyList<string> receipts)
+    {
+        if (receipts.Count == 0)
+        {
+            return;
+        }
+        answer.AdditionalProperties ??= new AdditionalPropertiesDictionary();
+        answer.AdditionalProperties[FadenstackChatOptions.Provenance] = receipts;
+        if (answer.GetProvenanceReceipt() is null && HasText(answer.Text) && answer.Messages.Count > 0)
+        {
+            answer.Messages[answer.Messages.Count - 1].Contents.Add(new ProvenanceReceiptContent(null, receipts[0]));
+        }
+    }
+
+    /// <summary>Whether a text holds anything once normalised, as the gateway decides whether an answer gets a receipt.</summary>
+    private static bool HasText(string? text) => Models.ContentHash.Normalize(text ?? "").Length > 0;
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
         ChatOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -169,6 +192,10 @@ public sealed class FadenstackChatClient : IChatClient
                 using var doc = JsonDocument.Parse(sse.Data);
                 var content = new FadenstackEventContent(doc.RootElement);
                 var update = Update(content);
+                if (content.Name == ChatWire.ProvenanceEvent)
+                {
+                    update.Contents.Add(ProvenanceReceiptContent.FromEvent(content.Value));
+                }
                 if (content.Name == "faden.governance" && content.Value.ValueKind == JsonValueKind.Object)
                 {
                     var notice = ChatWire.Notice(content.Value);

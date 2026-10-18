@@ -1,0 +1,42 @@
+[
+  {
+    "input": "The pump P-200 is due for a seal check next week.",
+    "normalized": "The pump P-200 is due for a seal check next week.",
+    "sha256": "ec4a77ce4bfe3b6000a0a58415d1a3efe515ed32013c8a5e86f8b1b4c11d1d09"
+  },
+  {
+    "input": "  The pump P-200\tis due\r\nfor a seal check\u00a0next week.  ",
+    "normalized": "The pump P-200 is due for a seal check next week.",
+    "sha256": "ec4a77ce4bfe3b6000a0a58415d1a3efe515ed32013c8a5e86f8b1b4c11d1d09"
+  },
+  {
+    "input": "Line one\n\nLine two\u2028Line three",
+    "normalized": "Line one Line two Line three",
+    "sha256": "0c889240c8d5e70ed644ee47432d97bd9d8844d5f87699739df4d4641912ec1e"
+  },
+  {
+    "input": "Cell\u0007 end\u0001 mark",
+    "normalized": "Cell end mark",
+    "sha256": "405554f0d96171b0f39ca4d67ccae85fb6f54cb27be9bfd7e623d62a9d291141"
+  },
+  {
+    "input": "Cafe\u0301 und Stra\u00dfe",
+    "normalized": "Caf\u00e9 und Stra\u00dfe",
+    "sha256": "7a1318ce084f835fe3e1a787b984d46b078a5ea1bcdc42a9501d11bbd24c8ab7"
+  },
+  {
+    "input": "Unicode spaces:\u2002en\u2003em\u3000ideographic\u202fnarrow",
+    "normalized": "Unicode spaces: en em ideographic narrow",
+    "sha256": "dca7a50271693ad02e16c0d41ec0b0d17d833720880d0f140450ef389923b709"
+  },
+  {
+    "input": "",
+    "normalized": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "input": "   ",
+    "normalized": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

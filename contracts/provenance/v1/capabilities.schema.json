@@ -1,0 +1,29 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/capabilities.schema.json",
+  "additionalProperties": false,
+  "description": "Which layers this engine provides. A layer is listed once it works end to end.",
+  "properties": {
+    "detect": {
+      "default": false,
+      "title": "Detect",
+      "type": "boolean"
+    },
+    "images": {
+      "default": false,
+      "title": "Images",
+      "type": "boolean"
+    },
+    "receipts": {
+      "default": false,
+      "title": "Receipts",
+      "type": "boolean"
+    },
+    "records": {
+      "default": false,
+      "title": "Records",
+      "type": "boolean"
+    }
+  },
+  "title": "Capabilities",
+  "type": "object"
+}

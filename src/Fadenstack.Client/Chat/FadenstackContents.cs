@@ -36,6 +36,55 @@ public sealed class FadenstackEventContent : AIContent
     public override string ToString() => $"faden event {Kind}";
 }
 
+/// <summary>
+/// An answer's generation receipt: the server's signed record that a model wrote it, with whether the text carries a
+/// watermark. Streamed, it comes as the <c>faden.provenance</c> event before the stream ends; a whole answer names it
+/// in <c>X-Faden-Provenance</c> (only the id). When the server could not sign one, <see cref="Signed"/> is null and
+/// <see cref="Reason"/> says why (<c>server-unavailable</c>). An answer of tool calls only gets none.
+/// </summary>
+public sealed class ProvenanceReceiptContent : AIContent
+{
+    public ProvenanceReceiptContent(Models.SignedReceipt? signed, string? receiptId = null, string? reason = null)
+    {
+        Signed = signed;
+        ReceiptId = signed?.Receipt.Id is { Length: > 0 } id ? id : receiptId;
+        Reason = reason;
+    }
+
+    /// <summary>The receipt and its signature; null when the answer is unsigned or only its id is known.</summary>
+    public Models.SignedReceipt? Signed { get; }
+
+    /// <summary>The receipt's id; null when the answer is unsigned.</summary>
+    public string? ReceiptId { get; }
+
+    /// <summary>Why the answer is unsigned (one of <see cref="Models.ProvenanceReasons"/>); null when it is signed.</summary>
+    public string? Reason { get; }
+
+    /// <summary>The <c>faden.provenance</c> event's value: <c>{receipt, signature, timestamp}</c>, or <c>{receipt: null, status: "unsigned", reason}</c>.</summary>
+    public static ProvenanceReceiptContent FromEvent(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("receipt", out var receipt)
+            && receipt.ValueKind == JsonValueKind.Object)
+        {
+            try
+            {
+                var signed = value.Deserialize<Models.SignedReceipt>(Http.FadenstackJson.Options);
+                if (signed is not null && signed.Receipt.Id.Length > 0)
+                {
+                    return new ProvenanceReceiptContent(signed);
+                }
+            }
+            catch (JsonException)
+            {
+                // a receipt this SDK cannot read: treated as none
+            }
+        }
+        return new ProvenanceReceiptContent(null, reason: ChatWire.Str(value, "reason") ?? Models.ProvenanceReasons.ServerUnavailable);
+    }
+
+    public override string ToString() => ReceiptId is null ? $"unsigned answer ({Reason})" : $"receipt {ReceiptId}";
+}
+
 /// <summary>A refusal: the prompt (<c>prompt_blocked</c>) or the answer (<c>response_blocked</c>).</summary>
 public sealed class GovernanceNoticeContent : AIContent
 {
@@ -76,6 +125,12 @@ public static class FadenstackChatOptions
     /// <summary>Set on a response the gateway refused: the <see cref="GovernanceNotice"/>.</summary>
     public const string Governance = "faden.governance";
 
+    /// <summary>
+    /// Set on a whole response with receipts: the ids in <c>X-Faden-Provenance</c> (its text's first when it has text, then
+    /// its pictures'), as a string array.
+    /// </summary>
+    public const string Provenance = "faden.provenance";
+
     public static ChatOptions WithConversation(this ChatOptions options, string conversationId, string? turnId = null)
     {
         options.AdditionalProperties ??= new AdditionalPropertiesDictionary();
@@ -114,6 +169,15 @@ public static class FadenstackChatOptions
         options.AdditionalProperties[Skills] = picked;
         return options;
     }
+
+    /// <summary>The receipt of a response's text: from its <c>faden.provenance</c> event, else its header; null when it has none.</summary>
+    public static ProvenanceReceiptContent? GetProvenanceReceipt(this ChatResponse response) =>
+        response.Messages.SelectMany(m => m.Contents).OfType<ProvenanceReceiptContent>().LastOrDefault();
+
+    /// <summary>The receipt ids of a whole response (<c>X-Faden-Provenance</c>): its text's first when it has text, then its pictures'.</summary>
+    public static IReadOnlyList<string> GetProvenanceReceiptIds(this ChatResponse response) =>
+        response.AdditionalProperties?.TryGetValue(Provenance, out var ids) == true && ids is IReadOnlyList<string> list
+            ? list : Array.Empty<string>();
 
     /// <summary>The refusal on a response, if the gateway refused it.</summary>
     public static GovernanceNotice? GetGovernanceNotice(this ChatResponse response) =>

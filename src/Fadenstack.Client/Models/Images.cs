@@ -34,6 +34,13 @@ public sealed record ImagesResponse
 
     /// <summary>The pictures, decoded.</summary>
     public IReadOnlyList<byte[]> Pictures => Data.Where(d => !string.IsNullOrEmpty(d.B64Json)).Select(d => Convert.FromBase64String(d.B64Json!)).ToList();
+
+    /// <summary>
+    /// The generation receipts of the pictures, in their order (<c>X-Faden-Provenance</c>): the server marked each picture
+    /// as AI-generated before it left. Empty from a server without the provenance module.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<string> Receipts { get; init; } = Array.Empty<string>();
 }
 
 public sealed record ImageData

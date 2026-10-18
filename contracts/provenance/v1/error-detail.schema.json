@@ -1,0 +1,21 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/error-detail.schema.json",
+  "additionalProperties": false,
+  "description": "The ``detail`` of an error answer: a stable code and a sentence for people.",
+  "properties": {
+    "code": {
+      "title": "Code",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "code",
+    "message"
+  ],
+  "title": "ErrorDetail",
+  "type": "object"
+}

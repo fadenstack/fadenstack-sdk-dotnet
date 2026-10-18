@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "ModelInfo": {
+      "additionalProperties": false,
+      "description": "The model that generated the content.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    },
+    "ProvenanceRecord": {
+      "additionalProperties": false,
+      "description": "One placement of generated content, signed by the server where C2PA cannot embed (sdk/13 \u00a72.1).",
+      "properties": {
+        "content_hash": {
+          "description": "HMAC-SHA-256 of the placed content, hex",
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "contract": {
+          "const": "provenance/v1",
+          "default": "provenance/v1",
+          "title": "Contract",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "digital_source_type": {
+          "title": "Digital Source Type",
+          "type": "string"
+        },
+        "edit_kind": {
+          "enum": [
+            "generated",
+            "rewritten",
+            "summarised",
+            "translated",
+            "corrected",
+            "formatted",
+            "extracted"
+          ],
+          "title": "Edit Kind",
+          "type": "string"
+        },
+        "hash_key_version": {
+          "title": "Hash Key Version",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "provider": {
+          "description": "the organisation running the server",
+          "title": "Provider",
+          "type": "string"
+        },
+        "receipt_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Receipt Id"
+        },
+        "system": {
+          "$ref": "#/$defs/SystemInfo"
+        }
+      },
+      "required": [
+        "id",
+        "digital_source_type",
+        "edit_kind",
+        "system",
+        "provider",
+        "created_at",
+        "media_type",
+        "content_hash",
+        "hash_key_version"
+      ],
+      "title": "ProvenanceRecord",
+      "type": "object"
+    },
+    "SystemInfo": {
+      "additionalProperties": false,
+      "description": "The AI system that made or placed the content.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "SystemInfo",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/signed-record.schema.json",
+  "additionalProperties": false,
+  "description": "A provenance record with its JWS and, where a time-stamp authority answered, its token.",
+  "properties": {
+    "record": {
+      "$ref": "#/$defs/ProvenanceRecord"
+    },
+    "signature": {
+      "title": "Signature",
+      "type": "string"
+    },
+    "timestamp": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timestamp"
+    }
+  },
+  "required": [
+    "record",
+    "signature"
+  ],
+  "title": "SignedRecord",
+  "type": "object"
+}

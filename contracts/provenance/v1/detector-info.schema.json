@@ -1,0 +1,24 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/detector-info.schema.json",
+  "additionalProperties": false,
+  "description": "The detection solution's identifier and what it checks (CoP 2.1.2: results name it).",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "methods": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Methods",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "methods"
+  ],
+  "title": "DetectorInfo",
+  "type": "object"
+}

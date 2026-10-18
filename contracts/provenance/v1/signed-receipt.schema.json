@@ -1,0 +1,211 @@
+{
+  "$defs": {
+    "GenerationReceipt": {
+      "additionalProperties": false,
+      "description": "One generation, signed by the server: a model wrote a text or made a picture.",
+      "properties": {
+        "contract": {
+          "const": "provenance/v1",
+          "default": "provenance/v1",
+          "title": "Contract",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "hash_key_version": {
+          "title": "Hash Key Version",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "text",
+            "image"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "model": {
+          "$ref": "#/$defs/ModelInfo"
+        },
+        "output_hash": {
+          "description": "HMAC-SHA-256 of the output, hex, with the hash key version below",
+          "title": "Output Hash",
+          "type": "string"
+        },
+        "watermark": {
+          "$ref": "#/$defs/WatermarkStatus"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "model",
+        "created_at",
+        "watermark",
+        "output_hash",
+        "hash_key_version"
+      ],
+      "title": "GenerationReceipt",
+      "type": "object"
+    },
+    "ModelInfo": {
+      "additionalProperties": false,
+      "description": "The model that generated the content.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    },
+    "WatermarkStatus": {
+      "additionalProperties": false,
+      "description": "Whether a generation carries a watermark, whose, and if not, why.",
+      "properties": {
+        "algorithm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Algorithm"
+        },
+        "applied": {
+          "enum": [
+            "model",
+            "engine",
+            "upstream",
+            "none"
+          ],
+          "title": "Applied",
+          "type": "string"
+        },
+        "context_width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "vLLM's context width, for model watermarks",
+          "title": "Context Width"
+        },
+        "key_version": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the watermark key's version, for model watermarks",
+          "title": "Key Version"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "sink-cannot-carry",
+                "stripped-by-host",
+                "short-text",
+                "exempt-edit",
+                "no-watermark-remote-model",
+                "no-watermark-greedy",
+                "runtime-without-watermark",
+                "server-unavailable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "vendor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the remote provider whose own mark it is, for upstream",
+          "title": "Vendor"
+        }
+      },
+      "required": [
+        "applied"
+      ],
+      "title": "WatermarkStatus",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/signed-receipt.schema.json",
+  "additionalProperties": false,
+  "description": "A receipt with its JWS (docs/api.md, Signatures) and, where a time-stamp authority answered, its token.",
+  "properties": {
+    "receipt": {
+      "$ref": "#/$defs/GenerationReceipt"
+    },
+    "signature": {
+      "title": "Signature",
+      "type": "string"
+    },
+    "timestamp": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "RFC 3161 time-stamp token, base64 DER",
+      "title": "Timestamp"
+    }
+  },
+  "required": [
+    "receipt",
+    "signature"
+  ],
+  "title": "SignedReceipt",
+  "type": "object"
+}

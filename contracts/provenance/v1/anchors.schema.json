@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "DetectorInfo": {
+      "additionalProperties": false,
+      "description": "The detection solution's identifier and what it checks (CoP 2.1.2: results name it).",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "methods": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Methods",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "methods"
+      ],
+      "title": "DetectorInfo",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/anchors.schema.json",
+  "additionalProperties": false,
+  "description": "``GET /api/v1/provenance/anchors``: what anyone needs to check this installation's signatures offline.",
+  "properties": {
+    "contract": {
+      "const": "provenance/v1",
+      "default": "provenance/v1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "detector": {
+      "$ref": "#/$defs/DetectorInfo"
+    },
+    "signing_chains": {
+      "description": "every signing certificate chain this installation used, PEM",
+      "items": {
+        "type": "string"
+      },
+      "title": "Signing Chains",
+      "type": "array"
+    },
+    "trust_anchors": {
+      "description": "the CA certificates those chains end in, PEM",
+      "items": {
+        "type": "string"
+      },
+      "title": "Trust Anchors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "signing_chains",
+    "trust_anchors",
+    "detector"
+  ],
+  "title": "Anchors",
+  "type": "object"
+}

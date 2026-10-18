@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "VerifyFinding": {
+      "additionalProperties": false,
+      "description": "What one detection mechanism found.",
+      "properties": {
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "found": {
+          "title": "Found",
+          "type": "boolean"
+        },
+        "layer": {
+          "enum": [
+            "watermark",
+            "metadata",
+            "fingerprint",
+            "label"
+          ],
+          "title": "Layer",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "receipt_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Receipt Id"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the mechanism's own measure, e.g. a p-value",
+          "title": "Score"
+        }
+      },
+      "required": [
+        "layer",
+        "method",
+        "found",
+        "detail"
+      ],
+      "title": "VerifyFinding",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/verify-result.schema.json",
+  "additionalProperties": false,
+  "description": "A detection result in plain words, which layers it rests on (CoP 2.3), signed on request (CoP 2.1.2).",
+  "properties": {
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    },
+    "content_hash": {
+      "description": "SHA-256 of what was submitted, hex",
+      "title": "Content Hash",
+      "type": "string"
+    },
+    "contract": {
+      "const": "provenance/v1",
+      "default": "provenance/v1",
+      "title": "Contract",
+      "type": "string"
+    },
+    "detector": {
+      "description": "the detection solution's identifier",
+      "title": "Detector",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/VerifyFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "signature": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "JWS over this result without the signature, on request",
+      "title": "Signature"
+    },
+    "verdict": {
+      "enum": [
+        "ai-generated",
+        "no-mark-found",
+        "inconclusive"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "required": [
+    "verdict",
+    "findings",
+    "content_hash",
+    "detector",
+    "checked_at"
+  ],
+  "title": "VerifyResult",
+  "type": "object"
+}

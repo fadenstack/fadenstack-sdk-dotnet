@@ -14,9 +14,13 @@ public sealed class AgentResource
     {
         _transport = transport;
         _agent = agent;
+        Provenance = new AgentProvenanceResource(transport, agent);
     }
 
     private Uri Route(string rest) => _transport.Gateway($"v1/agents/{Uri.EscapeDataString(_agent)}/{rest}");
+
+    /// <summary>Content marking: the agent's policy, signed records of what it places, placement reports.</summary>
+    public AgentProvenanceResource Provenance { get; }
 
     /// <summary>The agent's current version: model, tool contract, local MCP mode, tool modes; not its instructions.</summary>
     public Task<AgentProfile> GetProfileAsync(CancellationToken cancellationToken = default) =>
@@ -46,8 +50,12 @@ public sealed class AgentResource
     /// Pictures from a prompt, by the image model the server runs (<see cref="AgentProfile.Images"/> says whether
     /// it has one); for a tool that puts a picture into a document. The prompt is checked like any text.
     /// </summary>
-    public Task<ImagesResponse> GenerateImagesAsync(ImageRequest request, CancellationToken cancellationToken = default) =>
-        _transport.PostAsync<ImagesResponse>(Route("images/generations"), request, cancellationToken);
+    public async Task<ImagesResponse> GenerateImagesAsync(ImageRequest request, CancellationToken cancellationToken = default)
+    {
+        var (images, receipts) = await _transport.SendJsonAsync<ImagesResponse>(System.Net.Http.HttpMethod.Post, Route("images/generations"),
+            request, ProvenanceHeader.Name, cancellationToken).ConfigureAwait(false);
+        return images with { Receipts = ProvenanceHeader.Parse(receipts) };
+    }
 
     /// <summary>
     /// Keeps the language the user picked (a BCP 47 tag such as <c>de</c> or <c>zh-Hans</c>) for all their clients and the

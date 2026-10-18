@@ -11,6 +11,9 @@ internal static class ChatWire
     /// <summary>Microsoft.Extensions.AI's defaults, compact (they indent).</summary>
     internal static readonly JsonSerializerOptions Compact = new(AIJsonUtilities.DefaultOptions) { WriteIndented = false };
 
+    /// <summary>The custom event an answer's generation receipt comes in.</summary>
+    internal const string ProvenanceEvent = "faden.provenance";
+
     public static JsonObject Request(IEnumerable<ChatMessage> messages, ChatOptions? options, string model, bool stream)
     {
         var body = new JsonObject
@@ -293,7 +296,12 @@ internal static class ChatWire
         {
             foreach (var e in events.EnumerateArray())
             {
-                message.Contents.Add(new FadenstackEventContent(e));
+                var content = new FadenstackEventContent(e);
+                message.Contents.Add(content);
+                if (content.Name == ProvenanceEvent)
+                {
+                    message.Contents.Add(ProvenanceReceiptContent.FromEvent(content.Value));
+                }
             }
         }
         if (root.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array

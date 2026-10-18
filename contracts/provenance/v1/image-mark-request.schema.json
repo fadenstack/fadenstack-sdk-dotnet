@@ -1,0 +1,53 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/image-mark-request.schema.json",
+  "additionalProperties": false,
+  "description": "``POST /api/v1/provenance/images/mark``: a generated picture, before it leaves the gateway.",
+  "properties": {
+    "agent": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agent"
+    },
+    "edit_kind": {
+      "default": "generated",
+      "enum": [
+        "generated",
+        "rewritten"
+      ],
+      "title": "Edit Kind",
+      "type": "string"
+    },
+    "image": {
+      "description": "the picture's bytes, base64",
+      "title": "Image",
+      "type": "string"
+    },
+    "media_type": {
+      "enum": [
+        "image/png",
+        "image/jpeg",
+        "image/webp"
+      ],
+      "title": "Media Type",
+      "type": "string"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    }
+  },
+  "required": [
+    "image",
+    "media_type",
+    "model"
+  ],
+  "title": "ImageMarkRequest",
+  "type": "object"
+}

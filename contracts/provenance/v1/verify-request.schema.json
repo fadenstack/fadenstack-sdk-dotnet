@@ -1,0 +1,52 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/verify-request.schema.json",
+  "additionalProperties": false,
+  "description": "``POST /api/v1/provenance/verify``: content to check. Nothing submitted is kept.",
+  "properties": {
+    "file": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "a file's bytes, base64",
+      "title": "File"
+    },
+    "media_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Media Type"
+    },
+    "signed": {
+      "default": false,
+      "description": "return the result signed, to download (CoP 2.1.2)",
+      "title": "Signed",
+      "type": "boolean"
+    },
+    "text": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text"
+    }
+  },
+  "title": "VerifyRequest",
+  "type": "object"
+}

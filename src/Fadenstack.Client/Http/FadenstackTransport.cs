@@ -91,7 +91,15 @@ public sealed class FadenstackTransport : IDisposable
     }
 
     /// <summary>JSON in, JSON out; errors as typed exceptions.</summary>
-    public async Task<T> SendJsonAsync<T>(HttpMethod method, Uri url, object? body, CancellationToken cancellationToken)
+    public async Task<T> SendJsonAsync<T>(HttpMethod method, Uri url, object? body, CancellationToken cancellationToken) =>
+        (await SendJsonAsync<T>(method, url, body, null, cancellationToken).ConfigureAwait(false)).Value;
+
+    /// <summary>
+    /// JSON in, JSON out, and the answer's header <paramref name="header"/> (its values joined by commas; null when it has
+    /// none), e.g. the receipts in <c>X-Faden-Provenance</c>.
+    /// </summary>
+    public async Task<(T Value, string? Header)> SendJsonAsync<T>(HttpMethod method, Uri url, object? body, string? header,
+        CancellationToken cancellationToken)
     {
         using var response = await SendAsync(() => JsonRequest(method, url, body),
             HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
@@ -100,12 +108,19 @@ public sealed class FadenstackTransport : IDisposable
         {
             throw ErrorReader.ToException(response, text);
         }
+        var value = header is null ? null : HeaderValue(response, header);
         if (typeof(T) == typeof(bool) || string.IsNullOrWhiteSpace(text))
         {
-            return default!;
+            return (default!, value);
         }
-        return JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!;
+        return (JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!, value);
     }
+
+    /// <summary>A response header's values, joined by commas, from the headers or the content's headers; null when absent.</summary>
+    internal static string? HeaderValue(HttpResponseMessage response, string name) =>
+        response.Headers.TryGetValues(name, out var values) || response.Content.Headers.TryGetValues(name, out values)
+            ? string.Join(",", values)
+            : null;
 
     public Task<T> GetAsync<T>(Uri url, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Get, url, null, cancellationToken);

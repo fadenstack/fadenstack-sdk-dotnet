@@ -1,0 +1,55 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/provenance-policy.schema.json",
+  "additionalProperties": false,
+  "description": "The marking policy in an agent's profile; local options may only tighten it.",
+  "properties": {
+    "exempt_edit_kinds": {
+      "items": {
+        "enum": [
+          "generated",
+          "rewritten",
+          "summarised",
+          "translated",
+          "corrected",
+          "formatted",
+          "extracted"
+        ],
+        "type": "string"
+      },
+      "title": "Exempt Edit Kinds",
+      "type": "array"
+    },
+    "internal_technical": {
+      "default": false,
+      "description": "the GL 87 switch (D9), per agent, recorded",
+      "title": "Internal Technical",
+      "type": "boolean"
+    },
+    "on_missing": {
+      "default": "record",
+      "enum": [
+        "record",
+        "refuse"
+      ],
+      "title": "On Missing",
+      "type": "string"
+    },
+    "output_log": {
+      "default": false,
+      "title": "Output Log",
+      "type": "boolean"
+    },
+    "short_text_tokens": {
+      "default": 200,
+      "title": "Short Text Tokens",
+      "type": "integer"
+    },
+    "visible_label": {
+      "default": false,
+      "title": "Visible Label",
+      "type": "boolean"
+    }
+  },
+  "title": "ProvenancePolicy",
+  "type": "object"
+}

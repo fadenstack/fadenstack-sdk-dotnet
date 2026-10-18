@@ -1,0 +1,72 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/record-request.schema.json",
+  "additionalProperties": false,
+  "description": "``POST /api/v1/provenance/records/sign``: a placement to record and sign; the content's hash only.",
+  "properties": {
+    "agent": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agent"
+    },
+    "content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Content Sha256",
+      "type": "string"
+    },
+    "edit_kind": {
+      "enum": [
+        "generated",
+        "rewritten",
+        "summarised",
+        "translated",
+        "corrected",
+        "formatted",
+        "extracted"
+      ],
+      "title": "Edit Kind",
+      "type": "string"
+    },
+    "media_type": {
+      "title": "Media Type",
+      "type": "string"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "receipt_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receipt Id"
+    }
+  },
+  "required": [
+    "content_sha256",
+    "media_type",
+    "edit_kind"
+  ],
+  "title": "RecordRequest",
+  "type": "object"
+}

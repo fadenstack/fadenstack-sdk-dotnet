@@ -26,6 +26,7 @@ public sealed class FadenstackClient : IDisposable
         Memory = new MemoryResource(Transport);
         Attachments = new AttachmentsResource(Transport);
         Services = new ServicesResource(Transport);
+        Provenance = new ProvenanceResource(Transport);
     }
 
     public FadenstackClientOptions Options { get; }
@@ -51,6 +52,9 @@ public sealed class FadenstackClient : IDisposable
     public AttachmentsResource Attachments { get; }
 
     public ServicesResource Services { get; }
+
+    /// <summary>What anyone checking this installation's marks needs (the anchors); an agent's marking is <see cref="AgentResource.Provenance"/>.</summary>
+    public ProvenanceResource Provenance { get; }
 
     /// <summary>The server's edition and features (<c>GET /v1/features</c>).</summary>
     public Task<ServerFeatures> GetFeaturesAsync(CancellationToken cancellationToken = default) =>

@@ -1,0 +1,74 @@
+{
+  "$id": "https://fadenstack.com/schemas/provenance/v1/verify-finding.schema.json",
+  "additionalProperties": false,
+  "description": "What one detection mechanism found.",
+  "properties": {
+    "detail": {
+      "title": "Detail",
+      "type": "string"
+    },
+    "found": {
+      "title": "Found",
+      "type": "boolean"
+    },
+    "layer": {
+      "enum": [
+        "watermark",
+        "metadata",
+        "fingerprint",
+        "label"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "method": {
+      "title": "Method",
+      "type": "string"
+    },
+    "receipt_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receipt Id"
+    },
+    "record_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Record Id"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the mechanism's own measure, e.g. a p-value",
+      "title": "Score"
+    }
+  },
+  "required": [
+    "layer",
+    "method",
+    "found",
+    "detail"
+  ],
+  "title": "VerifyFinding",
+  "type": "object"
+}
