@@ -1,8 +1,13 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Markup;
+using System.Windows.Threading;
 using Fadenstack.UI.ViewModels;
+using Fadenstack.UI.Wpf.Behaviors;
 using Microsoft.Win32;
 
 namespace Fadenstack.UI.Wpf.Views;
@@ -21,7 +26,8 @@ public enum ChatTheme
 /// <summary>
 /// The chat panel for an <see cref="ViewModels.AgentChatViewModel"/> (set it as the DataContext). Everything it
 /// shows comes from the view model, its texts too (<see cref="AgentChatViewModel.Strings"/>); the code here only
-/// picks the colours and gives the panel the texts' language and direction.
+/// picks the colours, gives the panel the texts' language and direction, writes the line under the composer, moves
+/// the keyboard in and out of About, and opens the panel's links through <see cref="MarkdownText.OpenLink"/>.
 /// </summary>
 public partial class ChatView : UserControl
 {
@@ -41,12 +47,17 @@ public partial class ChatView : UserControl
     private ResourceDictionary? _colors;
     private readonly List<FrameworkElement> _sharedWith = new();
     private ResourceDictionary? _shared;
+    private bool _aboutHadKeyboard;
+    private bool _aboutClosedByPress;
 
     public ChatView()
     {
         InitializeComponent();
         ApplyTheme();
         DataContextChanged += (_, _) => ApplyStrings();
+        PreviewMouseDown += CloseAboutOnPressOutside;
+        AboutCard.IsKeyboardFocusWithinChanged += (_, e) => _aboutHadKeyboard |= (bool)e.NewValue;
+        UpdateFooter();
     }
 
     public ChatTheme Theme
@@ -75,16 +86,19 @@ public partial class ChatView : UserControl
             if (_chat is not null)
             {
                 _chat.PropertyChanged -= OnChatChanged;
+                _chat.LinkRequested -= OpenLink;
             }
             _chat = DataContext as AgentChatViewModel;
             if (_chat is not null)
             {
                 _chat.PropertyChanged += OnChatChanged;
+                _chat.LinkRequested += OpenLink;
             }
         }
-        UpdateSettingsButton();
+        UpdateSettingsMenu();
         var strings = _chat?.Strings;
         ChatText.SetStrings(this, strings);
+        UpdateFooter();
         if (strings is null)
         {
             ClearValue(LanguageProperty);
@@ -95,12 +109,23 @@ public partial class ChatView : UserControl
         FlowDirection = strings.IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
     }
 
-    /// <summary>The user picked another language: the panel's texts, language and direction follow.</summary>
+    /// <summary>
+    /// The user picked another language: the panel's texts, language and direction follow. The footer's link changed, or
+    /// About opened or closed.
+    /// </summary>
     private void OnChatChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(AgentChatViewModel.Strings) or null or "")
+        switch (e.PropertyName)
         {
-            ApplyStrings();
+            case nameof(AgentChatViewModel.Strings) or null or "":
+                ApplyStrings();
+                break;
+            case nameof(AgentChatViewModel.BrandingLink):
+                UpdateFooter();
+                break;
+            case nameof(AgentChatViewModel.IsAboutOpen):
+                MoveKeyboardForAbout(_chat?.IsAboutOpen == true);
+                break;
         }
     }
 
@@ -108,15 +133,99 @@ public partial class ChatView : UserControl
     {
         SettingsHost.Content = SettingsContent;
         ShareTheme();
-        UpdateSettingsButton();
+        UpdateSettingsMenu();
     }
 
-    /// <summary>The settings button shows when there is something to set: a language, or the host's items.</summary>
-    private void UpdateSettingsButton()
+    /// <summary>The settings always show (About is their last item); a line separates the language, the host's items and About.</summary>
+    private void UpdateSettingsMenu()
     {
         var languages = _chat?.HasLanguageSettings == true;
-        SettingsButton.Visibility = languages || SettingsContent is not null ? Visibility.Visible : Visibility.Collapsed;
-        SettingsSeparator.Visibility = languages && SettingsContent is not null ? Visibility.Visible : Visibility.Collapsed;
+        var own = SettingsContent is not null;
+        SettingsSeparator.Visibility = languages && own ? Visibility.Visible : Visibility.Collapsed;
+        AboutSeparator.Visibility = languages || own ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// The line under the composer: the AI notice (a host's empty text hides it), then, after a separator, the muted
+    /// "Fadenstack" link, unless the host turned <see cref="AgentChatOptions.Branding"/> off. Screen readers read the
+    /// notice as before, and the link as a link that opens in the browser.
+    /// </summary>
+    private void UpdateFooter()
+    {
+        var notice = (_chat?.Strings ?? ChatText.Fallback).AiNotice;
+        var link = _chat?.BrandingLink;
+        AiNotice.Inlines.Clear();
+        if (notice.Length > 0)
+        {
+            AiNotice.Inlines.Add(new Run(notice));
+            AutomationProperties.SetName(AiNotice, notice);
+        }
+        else
+        {
+            AiNotice.ClearValue(AutomationProperties.NameProperty);
+        }
+        if (link is not null && _chat is { } chat)
+        {
+            if (notice.Length > 0)
+            {
+                AiNotice.Inlines.Add(new Run(" · "));
+            }
+            var hyperlink = new Hyperlink(new Run(link.Label))
+            {
+                Command = chat.OpenLinkCommand,
+                CommandParameter = link,
+                ToolTip = link.Url.AbsoluteUri,
+            };
+            hyperlink.SetResourceReference(TextElement.ForegroundProperty, "Fadenstack.ForegroundMuted");
+            AutomationProperties.SetName(hyperlink, link.Name);
+            AiNotice.Inlines.Add(hyperlink);
+        }
+        AiNotice.Visibility = AiNotice.Inlines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>A link of the panel's (the footer's, About's) opens through the link hook a host can replace.</summary>
+    private static void OpenLink(object? sender, Uri url)
+    {
+        try
+        {
+            MarkdownText.OpenLink(url);
+        }
+        catch (Win32Exception)
+        {
+            // No app opens web links on this computer: nothing to do.
+        }
+    }
+
+    /// <summary>A press anywhere outside About closes it, and does what it does (a press on the composer types there).</summary>
+    private void CloseAboutOnPressOutside(object sender, MouseButtonEventArgs e)
+    {
+        if (_chat is { IsAboutOpen: true } chat && !AboutCard.IsMouseOver)
+        {
+            _aboutClosedByPress = true;
+            chat.IsAboutOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// About takes the keyboard when it opens (Escape closes it; Tab stays inside), and gives it back to the settings
+    /// button when it closes from the keyboard. Closed by a press elsewhere, the keyboard goes where the press went.
+    /// </summary>
+    private void MoveKeyboardForAbout(bool open)
+    {
+        if (open)
+        {
+            _aboutHadKeyboard = false;
+            _aboutClosedByPress = false;
+            Dispatcher.BeginInvoke(new Action(() => AboutClose.Focus()), DispatcherPriority.Input);
+            return;
+        }
+        var giveBack = _aboutHadKeyboard && !_aboutClosedByPress;
+        _aboutHadKeyboard = false;
+        _aboutClosedByPress = false;
+        if (giveBack)
+        {
+            Dispatcher.BeginInvoke(new Action(() => SettingsButton.Focus()), DispatcherPriority.Input);
+        }
     }
 
     private void ApplyTheme()

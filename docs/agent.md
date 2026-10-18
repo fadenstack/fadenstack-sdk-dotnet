@@ -146,6 +146,7 @@ The report never fails the start. `UseEventReporting(false)` turns it off, toget
 | `PermissionMode` | `Ask`, or `Bypass` when the app set it. |
 | `ResetApprovalsAsync(tool)` | Forgets what the user allowed always for this agent on this device: every tool, or one. |
 | `Slug`, `Client` | The agent's slug and its client. |
+| `App` | The app as you described it with `DescribeApp`, or `null`. The chat panel's About shows it. |
 
 `StartAsync` throws `FadenstackSignInRequiredException` when there is no sign-in, `FadenstackPermissionException` when the user may not use the agent, and `FadenstackException` when the agent requires a client module the builder does not have.
 

@@ -259,6 +259,21 @@ public class AgentLoopTests
     }
 
     [Fact]
+    public async Task The_agent_says_which_app_it_runs_in_only_when_the_host_described_it()
+    {
+        var gateway = new Gateway();
+        using var described = gateway.Builder().DescribeApp(new AppDescription { Name = "Viewer add-in", Version = "2.1.0" }).Build();
+        Assert.Equal(("Viewer add-in", "2.1.0"), (described.App!.Name, described.App.Version));
+
+        using var plain = gateway.Builder().Build();
+        Assert.Null(plain.App);
+        await plain.StartAsync();
+        var sent = await Until(() => gateway.Manifests.FirstOrDefault());
+        Assert.Equal("Fadenstack SDK app", sent.Json.GetProperty("app").GetProperty("name").GetString()); // the manifest still names one
+        Assert.Equal(SdkInfo.Version, sent.Json.GetProperty("sdk").GetProperty("version").GetString());
+    }
+
+    [Fact]
     public async Task No_manifest_when_event_reporting_is_off()
     {
         var gateway = new Gateway();

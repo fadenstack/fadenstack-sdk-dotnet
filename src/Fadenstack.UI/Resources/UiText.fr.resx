@@ -346,4 +346,40 @@
   <data name="PictureNotRead" xml:space="preserve">
     <value>{0} n'a pas pu être lu comme image.</value>
   </data>
+  <data name="About" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="AboutAgent" xml:space="preserve">
+    <value>Agent : {0}</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="AboutDraft" xml:space="preserve">
+    <value>Brouillon</value>
+  </data>
+  <data name="AboutModel" xml:space="preserve">
+    <value>Modèle : {0}</value>
+  </data>
+  <data name="AboutApp" xml:space="preserve">
+    <value>Fonctionne dans {0}</value>
+  </data>
+  <data name="AboutServer" xml:space="preserve">
+    <value>Serveur : {0}</value>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>Aide</value>
+  </data>
+  <data name="DeveloperDocs" xml:space="preserve">
+    <value>Documentation pour développeurs</value>
+  </data>
+  <data name="CopyDetails" xml:space="preserve">
+    <value>Copier les détails</value>
+  </data>
+  <data name="OpensInBrowser" xml:space="preserve">
+    <value>{0} (s'ouvre dans votre navigateur)</value>
+  </data>
 </root>

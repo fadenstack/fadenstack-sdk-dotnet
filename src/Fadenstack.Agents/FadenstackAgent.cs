@@ -32,6 +32,9 @@ public sealed class FadenstackAgent : IDisposable
 
     public FadenstackClient Client => _settings.Client;
 
+    /// <summary>The app the agent runs in, as the host described it (<see cref="AgentBuilder.DescribeApp"/>); null when it did not.</summary>
+    public AppDescription? App => _settings.AppDescribed ? _settings.App : null;
+
     /// <summary>The agent's profile, once <see cref="StartAsync"/> ran.</summary>
     public AgentProfile Profile => _profile ?? throw new InvalidOperationException("Call StartAsync first.");
 

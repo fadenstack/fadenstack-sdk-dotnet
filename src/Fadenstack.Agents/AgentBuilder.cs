@@ -30,7 +30,7 @@ public sealed class AgentBuilder
     private bool _report = true;
     private ReasoningEffort? _reasoning;
     private bool _pictures = true;
-    private AppDescription _app = new() { Name = "Fadenstack SDK app" };
+    private AppDescription? _app;
 
     internal AgentBuilder()
     {
@@ -268,7 +268,8 @@ public sealed class AgentBuilder
             Report = _report,
             Reasoning = _reasoning,
             Pictures = _pictures,
-            App = _app,
+            App = _app ?? new AppDescription { Name = "Fadenstack SDK app" },
+            AppDescribed = _app is not null,
         });
     }
 }
@@ -309,4 +310,7 @@ internal sealed class AgentSettings
     public ReasoningEffort? Reasoning { get; init; }
     public bool Pictures { get; init; } = true;
     public AppDescription App { get; init; } = new();
+
+    /// <summary>The host described <see cref="App"/> (<see cref="AgentBuilder.DescribeApp"/>); otherwise it is the SDK's default.</summary>
+    public bool AppDescribed { get; init; }
 }

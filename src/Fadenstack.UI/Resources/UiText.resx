@@ -458,4 +458,52 @@
     <value>{0} could not be read as a picture.</value>
     <comment>{0}: the file's name</comment>
   </data>
+  <data name="About" xml:space="preserve">
+    <value>About</value>
+    <comment>The settings menu's last item, and the heading of what it opens (the agent, the app, the SDK, the server, links)</comment>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+    <comment>Closes About</comment>
+  </data>
+  <data name="AboutAgent" xml:space="preserve">
+    <value>Agent: {0}</value>
+    <comment>{0}: the agent's name; a line of the details About copies</comment>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version {0}</value>
+    <comment>{0}: the agent's published version, a number</comment>
+  </data>
+  <data name="AboutDraft" xml:space="preserve">
+    <value>Draft</value>
+    <comment>The agent is a maintainer's draft, not a published version</comment>
+  </data>
+  <data name="AboutModel" xml:space="preserve">
+    <value>Model: {0}</value>
+    <comment>{0}: the model the agent uses</comment>
+  </data>
+  <data name="AboutApp" xml:space="preserve">
+    <value>Runs in {0}</value>
+    <comment>{0}: the app the agent runs in, with its version (Word add-in 1.2.0)</comment>
+  </data>
+  <data name="AboutServer" xml:space="preserve">
+    <value>Server: {0}</value>
+    <comment>{0}: the server's address</comment>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>Help</value>
+    <comment>A link in About to the organisation's own Help, on its server</comment>
+  </data>
+  <data name="DeveloperDocs" xml:space="preserve">
+    <value>Developer docs</value>
+    <comment>A link in About to the SDK documentation for developers</comment>
+  </data>
+  <data name="CopyDetails" xml:space="preserve">
+    <value>Copy details</value>
+    <comment>Copies what About shows, for a support request</comment>
+  </data>
+  <data name="OpensInBrowser" xml:space="preserve">
+    <value>{0} (opens in your browser)</value>
+    <comment>{0}: a link's text; the link's name for screen readers</comment>
+  </data>
 </root>

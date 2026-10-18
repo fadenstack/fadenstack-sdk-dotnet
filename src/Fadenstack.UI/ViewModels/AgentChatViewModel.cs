@@ -54,6 +54,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private string? _error;
     private ToolModeOption _selectedMode;
     private AgentProfile? _profile;
+    private AboutInfo _about;
+    private PanelLink? _brandingLink;
+    private bool _isAboutOpen;
 
     public AgentChatViewModel(FadenstackAgent agent, ApprovalBroker approvals, IUiDispatcher dispatcher, AgentChatOptions? options = null)
     {
@@ -70,6 +73,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         _strings = Resolve();
         _languageOptions = BuildLanguageOptions();
+        (_about, _brandingLink) = BuildAbout();
         _batcher = new RenderBatcher(dispatcher, _options.RenderInterval);
         _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new FallbackRenderer() }).ToList();
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
@@ -112,6 +116,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             IsModeMenuOpen = false;
         }, option => option is { IsAvailable: true });
         ResetApprovalsCommand = new AsyncRelayCommand(ResetApprovalsAsync, () => _isReady);
+        OpenAboutCommand = new RelayCommand(OpenAbout);
+        CloseAboutCommand = new RelayCommand(() => IsAboutOpen = false);
+        CopyDetailsCommand = new RelayCommand(() => Clipboard.SetText(About.Details));
+        OpenLinkCommand = new RelayCommand<PanelLink>(OpenLink, link => link is not null);
     }
 
     // -- state ---------------------------------------------------------------------------------------
@@ -156,6 +164,63 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>Picks a language (its id: <see cref="Automatic"/> or a tag).</summary>
     public IRelayCommand<string> SetLanguageCommand { get; }
 
+    // -- About and the links ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// What About shows (the settings' last item): the agent, the app, the SDK, the server, the links. It is there before
+    /// the agent starts, too, and follows the panel's language.
+    /// </summary>
+    public AboutInfo About
+    {
+        get => _about;
+        private set => SetProperty(ref _about, value);
+    }
+
+    /// <summary>About is open (presentation state, so the skin needs no code).</summary>
+    public bool IsAboutOpen
+    {
+        get => _isAboutOpen;
+        set => SetProperty(ref _isAboutOpen, value);
+    }
+
+    /// <summary>The footer's link shows (<see cref="AgentChatOptions.Branding"/>).</summary>
+    public bool Branding => _options.Branding;
+
+    /// <summary>
+    /// The footer's "Fadenstack" link, after the AI notice under the composer (<c>ref=&lt;app&gt;-panel</c>); null when the
+    /// host turned <see cref="AgentChatOptions.Branding"/> off.
+    /// </summary>
+    public PanelLink? BrandingLink
+    {
+        get => _brandingLink;
+        private set => SetProperty(ref _brandingLink, value);
+    }
+
+    /// <summary>Opens About, closing the menus.</summary>
+    public IRelayCommand OpenAboutCommand { get; }
+
+    public IRelayCommand CloseAboutCommand { get; }
+
+    /// <summary>Copies <see cref="AboutInfo.Details"/> (<see cref="AgentChatOptions.Clipboard"/>).</summary>
+    public IRelayCommand CopyDetailsCommand { get; }
+
+    /// <summary>Opens one of the panel's links (<see cref="PanelLink"/>) through <see cref="LinkRequested"/>.</summary>
+    public IRelayCommand<PanelLink> OpenLinkCommand { get; }
+
+    /// <summary>
+    /// A link of the panel's is to open: the skin opens it in the browser (the WPF skin through <c>MarkdownText.OpenLink</c>,
+    /// which a host can replace). The view model never opens anything itself.
+    /// </summary>
+    public event EventHandler<Uri>? LinkRequested;
+
+    /// <summary>Opens <paramref name="link"/> (<see cref="LinkRequested"/>).</summary>
+    public void OpenLink(PanelLink? link)
+    {
+        if (link is not null)
+        {
+            LinkRequested?.Invoke(this, link.Url);
+        }
+    }
 
     public string Title
     {
@@ -361,6 +426,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(CanAttachPictures));
             AdoptUserLanguage(profile.User?.Language);
             Title = profile.Name;
+            RefreshAbout();
             _profileUi = profile.Ui;
             OnPropertyChanged(nameof(Greeting));
             RefreshSuggestions();
@@ -675,6 +741,26 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private void Stop() => _stop?.Cancel();
 
+    private void OpenAbout()
+    {
+        IsSettingsOpen = false;
+        IsModeMenuOpen = false;
+        IsHistoryOpen = false;
+        IsAboutOpen = true;
+    }
+
+    /// <summary>About and the footer's link, in the panel's language, for the agent as far as it is known.</summary>
+    private (AboutInfo About, PanelLink? Branding) BuildAbout()
+    {
+        var about = AboutInfo.Create(_profile, _agent.App, SdkInfo.Version, _agent.Client.Options.ServerUrl, _options.RefSource, Strings);
+        var branding = _options.Branding
+            ? new PanelLink(AboutInfo.Product, AboutLinks.PanelWebsite(_options.RefSource, SdkInfo.Version), Strings)
+            : null;
+        return (about, branding);
+    }
+
+    private void RefreshAbout() => (About, BrandingLink) = BuildAbout();
+
     /// <summary>The texts for the language: the host's fixed ones, the organisation's, the user's pick, or the host's language.</summary>
     private UiStrings Resolve()
     {
@@ -810,6 +896,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             turn.Retext(strings);
         }
         SkillPicker.Retext();
+        RefreshAbout();
         _languageOptions = BuildLanguageOptions();
         OnPropertyChanged(nameof(Language));
         OnPropertyChanged(nameof(LanguageOptions));

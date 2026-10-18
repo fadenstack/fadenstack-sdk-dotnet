@@ -71,6 +71,19 @@ public sealed class AgentChatOptions
     /// <see cref="BeforeSend"/> threw.
     /// </summary>
     public Action<OutgoingMessage>? AfterSend { get; set; }
+
+    /// <summary>
+    /// Whether the line under the composer ends with a small "Fadenstack" link to fadenstack.com (default true). False
+    /// hides that link only: About, in the settings, stays.
+    /// </summary>
+    public bool Branding { get; set; } = true;
+
+    /// <summary>
+    /// Your app's short name in the <c>ref</c> of the links to fadenstack.com (<c>office</c> gives <c>office-panel</c> and
+    /// <c>office-about</c>): lower-case letters and digits, words joined by hyphens, at most 20 characters. Anything else,
+    /// and the default, is <c>sdk</c>. Never a user's, organisation's or server's name.
+    /// </summary>
+    public string RefSource { get; set; } = AboutLinks.DefaultSource;
 }
 
 /// <summary>A message on its way, for <see cref="AgentChatOptions.BeforeSend"/> and <see cref="AgentChatOptions.AfterSend"/>.</summary>

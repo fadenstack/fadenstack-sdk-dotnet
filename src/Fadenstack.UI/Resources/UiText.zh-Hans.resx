@@ -346,4 +346,40 @@
   <data name="PictureNotRead" xml:space="preserve">
     <value>无法将 {0} 读取为图片。</value>
   </data>
+  <data name="About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="AboutAgent" xml:space="preserve">
+    <value>智能体：{0}</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>版本 {0}</value>
+  </data>
+  <data name="AboutDraft" xml:space="preserve">
+    <value>草稿</value>
+  </data>
+  <data name="AboutModel" xml:space="preserve">
+    <value>模型：{0}</value>
+  </data>
+  <data name="AboutApp" xml:space="preserve">
+    <value>运行于 {0}</value>
+  </data>
+  <data name="AboutServer" xml:space="preserve">
+    <value>服务器：{0}</value>
+  </data>
+  <data name="Help" xml:space="preserve">
+    <value>帮助</value>
+  </data>
+  <data name="DeveloperDocs" xml:space="preserve">
+    <value>开发者文档</value>
+  </data>
+  <data name="CopyDetails" xml:space="preserve">
+    <value>复制详细信息</value>
+  </data>
+  <data name="OpensInBrowser" xml:space="preserve">
+    <value>{0}（在浏览器中打开）</value>
+  </data>
 </root>

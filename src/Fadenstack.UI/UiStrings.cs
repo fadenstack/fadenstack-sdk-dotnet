@@ -288,6 +288,44 @@ public sealed class UiStrings
 
     public string PictureNotRead(string name) => Fill(name);
 
+    // -- About (the settings' last item) --------------------------------------------------------------
+
+    /// <summary>The settings' last item, and the heading of what it opens.</summary>
+    public string About => Text();
+
+    /// <summary>Closes About.</summary>
+    public string Close => Text();
+
+    /// <summary>"Agent: Docs", a line of the details About copies.</summary>
+    public string AboutAgent(string name) => Fill(name);
+
+    /// <summary>"Version 3": the agent's published version.</summary>
+    public string AboutVersion(int version) => Fill(version);
+
+    /// <summary>The agent is a maintainer's draft, not a published version.</summary>
+    public string AboutDraft => Text();
+
+    /// <summary>"Model: qwen3-32b".</summary>
+    public string AboutModel(string model) => Fill(model);
+
+    /// <summary>"Runs in Word add-in 1.2.0": the app the host described.</summary>
+    public string AboutApp(string app) => Fill(app);
+
+    /// <summary>"Server: https://ai.example.internal".</summary>
+    public string AboutServer(string address) => Fill(address);
+
+    /// <summary>The organisation's own Help, on its server.</summary>
+    public string Help => Text();
+
+    /// <summary>The SDK documentation for developers.</summary>
+    public string DeveloperDocs => Text();
+
+    /// <summary>Copies what About shows, for a support request.</summary>
+    public string CopyDetails => Text();
+
+    /// <summary>"Help (opens in your browser)": a link's name for screen readers.</summary>
+    public string OpensInBrowser(string link) => Fill(link);
+
     // -- lookup --------------------------------------------------------------------------------------
 
     private string Text([CallerMemberName] string name = "") => this[name];
