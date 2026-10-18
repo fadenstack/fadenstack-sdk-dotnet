@@ -441,23 +441,25 @@
 
     <DataTemplate DataType="{x:Type parts:ToolCallPart}">
         <StackPanel Margin="0,1,0,3">
+            <!-- The line: the title wraps in a narrow pane, so the class, the duration and the chevron stay in view. -->
             <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding ToggleCommand}" HorizontalAlignment="Left"
                     ToolTip="{Binding SourceLabel}">
-                <StackPanel Orientation="Horizontal">
-                    <Grid Width="16" Height="16">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Left" Width="16" Height="16" VerticalAlignment="Center">
                         <Control x:Name="Busy" Style="{StaticResource Fadenstack.Spinner}" Visibility="Collapsed" />
                         <TextBlock x:Name="Mark" Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;"
                                    Foreground="{DynamicResource Fadenstack.Success}" />
                     </Grid>
-                    <TextBlock Text="{Binding Title}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                    <Border Style="{StaticResource Fadenstack.Badge}">
+                    <TextBlock x:Name="Chevron" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Icon}" FontSize="9" Margin="8,0,0,0"
+                               Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="&#xE76C;" VerticalAlignment="Center"
+                               Visibility="{Binding HasDetails, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Muted}" Margin="8,0,0,0" Text="{Binding DurationText}"
+                               VerticalAlignment="Center" />
+                    <Border DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Badge}">
                         <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding ClassLabel}" />
                     </Border>
-                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="8,0,0,0" Text="{Binding DurationText}" />
-                    <TextBlock x:Name="Chevron" Style="{StaticResource Fadenstack.Icon}" FontSize="9" Margin="8,0,0,0"
-                               Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="&#xE76C;"
-                               Visibility="{Binding HasDetails, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                </StackPanel>
+                    <TextBlock Text="{Binding Title}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
             </Button>
             <!-- What the tool showed the agent (a rendered slide): small, under its line. -->
             <Border Visibility="{Binding HasPicture, Converter={StaticResource Fadenstack.BoolToVisibility}}" Margin="30,4,0,6"
@@ -519,27 +521,29 @@
                     <Border DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Badge}">
                         <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding ClassLabel}" />
                     </Border>
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
                 </DockPanel>
                 <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
                            Visibility="{Binding Reason, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                 <!-- What the call acts on, as the tool says it: "button "Send" on mail.example.com" -->
                 <TextBlock Text="{Binding Target}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
                            Visibility="{Binding Target, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                <Border Background="{DynamicResource Fadenstack.CodeBackground}" CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="10,6" Margin="0,8,0,0"
+                <!-- The arguments on the panel's background: the code colour is the card's own in the light theme. -->
+                <Border Background="{DynamicResource Fadenstack.Background}" CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="10,6" Margin="0,8,0,0"
                         Visibility="{Binding ArgumentsText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
                         <TextBlock Style="{StaticResource Fadenstack.Mono}" Text="{Binding ArgumentsText}" />
                     </ScrollViewer>
                 </Border>
-                <WrapPanel Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" Margin="0,0,8,0"
+                <!-- One row when they fit; else two by two (or one under the other), never "Deny" alone on a row. -->
+                <v:ButtonRow Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}" />
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
                             Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" Margin="0,0,8,0"
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
                             Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                     <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
-                </WrapPanel>
+                </v:ButtonRow>
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"
                            Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
             </StackPanel>

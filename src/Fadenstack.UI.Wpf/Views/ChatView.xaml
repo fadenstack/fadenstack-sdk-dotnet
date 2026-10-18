@@ -462,7 +462,8 @@
                         <KeyBinding Key="Enter" Command="{Binding SendCommand}" />
                     </TextBox.InputBindings>
                 </TextBox>
-                <TextBlock Grid.Row="1" Text="{local:Text ComposerPlaceholder}" IsHitTestVisible="False"
+                <!-- The placeholder wraps (the composer grows with it), so no language's text is cut off in a narrow pane. -->
+                <TextBlock Grid.Row="1" Text="{local:Text ComposerPlaceholder}" IsHitTestVisible="False" TextWrapping="Wrap"
                            Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Padding="2,2" VerticalAlignment="Top">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">

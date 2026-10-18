@@ -287,10 +287,10 @@
     <value>Bearbeiten und erneut senden</value>
   </data>
   <data name="ComposerPlaceholder" xml:space="preserve">
-    <value>Stellen Sie eine Frage, oder sagen Sie dem Agenten, was er tun soll</value>
+    <value>Stellen Sie eine Frage, oder sagen Sie dem Agenten, was er tun&#160;soll</value>
   </data>
   <data name="AiNotice" xml:space="preserve">
-    <value>Antworten werden von einer KI erzeugt und können falsch sein. Prüfen Sie Wichtiges.</value>
+    <value>Antworten werden von einer KI erzeugt und können falsch sein. Prüfen Sie&#160;Wichtiges.</value>
   </data>
   <data name="Message" xml:space="preserve">
     <value>Nachricht</value>

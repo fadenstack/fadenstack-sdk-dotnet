@@ -287,10 +287,10 @@
     <value>Modifier et renvoyer</value>
   </data>
   <data name="ComposerPlaceholder" xml:space="preserve">
-    <value>Posez une question, ou dites à l'agent quoi faire</value>
+    <value>Posez une question, ou dites à l'agent quoi&#160;faire</value>
   </data>
   <data name="AiNotice" xml:space="preserve">
-    <value>Les réponses sont générées par une IA et peuvent être erronées. Vérifiez l'essentiel.</value>
+    <value>Les réponses sont générées par une IA et peuvent être erronées. Vérifiez&#160;l'essentiel.</value>
   </data>
   <data name="Message" xml:space="preserve">
     <value>Message</value>
