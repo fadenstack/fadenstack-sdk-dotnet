@@ -14,7 +14,8 @@ namespace Fadenstack.Provenance;
 /// into parts, <see cref="SplitAnchors"/>, read back with <see cref="RecordSpans"/>), the signed records in a custom XML
 /// part (<see cref="CustomXmlPart"/>, namespace <see cref="Namespace"/>), and the document property
 /// <see cref="DocumentProperty"/> as the flag (<see cref="DocumentPropertyValue"/>, at most 255 characters).</item>
-/// <item>PowerPoint: the shape or slide tag <see cref="ShapeTag"/> with the record's id, and the custom XML part.</item>
+/// <item>PowerPoint: the shape or slide tag <see cref="ShapeTag"/> with the newest record's id, <see cref="ShapeRecordsTag"/>
+/// with every record whose words are in it (<see cref="ShapeRecords"/>), and the custom XML part.</item>
 /// <item>Excel: a hidden name per written range (<see cref="AnchorName"/>), and the custom XML part.</item>
 /// <item>Outlook: the named property <see cref="MapiRecordProperty"/> with the signed record, and the internet header
 /// <see cref="MailHeader"/> with the record's id (<see cref="MapiHeaderProperty"/>).</item>
@@ -52,8 +53,14 @@ public static class OfficeMarks
     /// </summary>
     public const string AnchorValue = "office.anchor";
 
-    /// <summary>The PowerPoint shape and slide tag that holds the record's id.</summary>
+    /// <summary>The PowerPoint shape and slide tag that holds the id of the newest record that wrote into it.</summary>
     public const string ShapeTag = "FADEN_AI_RECORD";
+
+    /// <summary>
+    /// The PowerPoint shape and slide tag that lists every record whose words are in it, oldest first, space-separated
+    /// (<see cref="ShapeRecords"/>, <see cref="ShapeRecordsAfterWrite"/>).
+    /// </summary>
+    public const string ShapeRecordsTag = "FADEN_AI_RECORDS";
 
     /// <summary>
     /// The internet header an Outlook draft carries the record's id in, spelled as every marker writes it (and as
@@ -288,6 +295,51 @@ public static class OfficeMarks
             pieces.Add(new OfficeSpan(from, span.End));
         }
         return pieces;
+    }
+
+    /// <summary>
+    /// The records whose words a PowerPoint shape (or slide) holds, oldest first: the ids its <see cref="ShapeRecordsTag"/>
+    /// lists (<paramref name="records"/>), then the one its <see cref="ShapeTag"/> holds (<paramref name="record"/>) when
+    /// the list misses it -- a shape tagged before the list, or by an add-in without it. Only record ids count, each
+    /// once. A shape has no bookmarks, so a write into part of its text leaves it holding the words of more than one
+    /// record. The TypeScript SDK's <c>officeShapeRecords</c> is the same (<c>office-shape-vectors.json</c>).
+    /// </summary>
+    public static IReadOnlyList<string> ShapeRecords(string? records, string? record)
+    {
+        var ids = new List<string>();
+        void Add(string id)
+        {
+            if (ProvenanceJson.IsRecordId(id) && !ids.Contains(id, StringComparer.OrdinalIgnoreCase))
+            {
+                ids.Add(id);
+            }
+        }
+        foreach (var id in (records ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+        {
+            Add(id);
+        }
+        Add((record ?? "").Trim());
+        return ids;
+    }
+
+    /// <summary>
+    /// The <see cref="ShapeRecordsTag"/> of a shape (or slide) after record <paramref name="recordId"/> wrote into it,
+    /// whose <see cref="ShapeTag"/> becomes <paramref name="recordId"/> either way. A write into part of its text
+    /// (<paramref name="partial"/>: the rest of its words stay) puts the record after those already there
+    /// (<see cref="ShapeRecords"/>, so the list starts from <see cref="ShapeTag"/> when there is none); a write of its
+    /// whole text, or a new shape, leaves the record alone. The TypeScript SDK's <c>officeShapeRecordsAfterWrite</c> is
+    /// the same.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="recordId"/> is no record id.</exception>
+    public static string ShapeRecordsAfterWrite(string? records, string? record, string recordId, bool partial)
+    {
+        if (!ProvenanceJson.IsRecordId(recordId))
+        {
+            throw new ArgumentException("A record id (a UUID) is needed for a shape's tags.", nameof(recordId));
+        }
+        return partial
+            ? string.Join(" ", ShapeRecords(records, record).Where(id => !string.Equals(id, recordId, StringComparison.OrdinalIgnoreCase)).Append(recordId))
+            : recordId;
     }
 
     /// <summary>

@@ -107,7 +107,8 @@ name `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of t
 write inside it splits it into parts `<anchor>_<n>`: `OfficeMarks.SplitAnchors`, read back with `RecordSpans`), the
 signed records in a custom XML part (`OfficeMarks.CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`),
 the document property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters), the
-PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `FadenProvenanceRecord` and the header
+PowerPoint tags `FADEN_AI_RECORD` (the newest record) and `FADEN_AI_RECORDS` (every record whose words are in the
+shape: `OfficeMarks.ShapeRecords`), and for Outlook drafts the named property `FadenProvenanceRecord` and the header
 `X-AI-Generated`.
 
 ## Extending

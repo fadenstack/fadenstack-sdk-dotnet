@@ -1,0 +1,134 @@
+{
+  "read": [
+    {
+      "name": "a shape one record wrote, tagged before the list",
+      "records": null,
+      "record": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1"
+      ]
+    },
+    {
+      "name": "the list, oldest first",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+        "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
+      ]
+    },
+    {
+      "name": "the list misses the newest record (an add-in without the list wrote last): it comes last",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+        "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+        "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5"
+      ]
+    },
+    {
+      "name": "no tags",
+      "records": null,
+      "record": null,
+      "ids": []
+    },
+    {
+      "name": "an empty list: the single tag",
+      "records": "",
+      "record": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1"
+      ]
+    },
+    {
+      "name": "only record ids count, each once, whatever the white space",
+      "records": "  5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1  rec-1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\t5A0E2B5C-7F3E-4A51-9A40-6A1C55E1D3F1 ",
+      "record": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+        "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
+      ]
+    },
+    {
+      "name": "the single tag in upper case is the listed record",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record": "5A0E2B5C-7F3E-4A51-9A40-6A1C55E1D3F1",
+      "ids": [
+        "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1"
+      ]
+    },
+    {
+      "name": "a single tag that is no record id",
+      "records": null,
+      "record": "rec-1",
+      "ids": []
+    }
+  ],
+  "after_write": [
+    {
+      "name": "a new shape",
+      "records": null,
+      "record": null,
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "partial": false,
+      "value": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1"
+    },
+    {
+      "name": "a write into part of a shape R1 wrote: the list starts from its tag",
+      "records": null,
+      "record": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record_id": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "partial": true,
+      "value": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
+    },
+    {
+      "name": "a write into part of it again: the record comes last",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record_id": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "partial": true,
+      "value": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b 7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5"
+    },
+    {
+      "name": "a write of its whole text: only the new record",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record_id": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "partial": false,
+      "value": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5"
+    },
+    {
+      "name": "a write into part of a shape no record wrote: only the new record",
+      "records": null,
+      "record": null,
+      "record_id": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "partial": true,
+      "value": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b"
+    },
+    {
+      "name": "a write into part of a shape an add-in without the list wrote into last",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "record_id": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "partial": true,
+      "value": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b 7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5"
+    },
+    {
+      "name": "a record already listed goes last",
+      "records": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b 7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "record": "7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "partial": true,
+      "value": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b 7d1e8f20-3a4b-4c5d-9e6f-a0b1c2d3e4f5 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1"
+    },
+    {
+      "name": "ids that are no record ids are dropped",
+      "records": "rec-1 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record_id": "c3d4e5f6-0718-4293-a4b5-c6d7e8f90a1b",
+      "partial": true,
+      "value": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1 c3d4e5f6-0718-4293-a4b5-c6d7e8f90a1b"
+    }
+  ]
+}

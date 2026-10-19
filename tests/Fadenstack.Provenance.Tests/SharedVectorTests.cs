@@ -324,6 +324,50 @@ public class SharedVectorTests
         Assert.Null(OfficeMarks.RecordOfAnchor(records, "_Toc1"));
     }
 
+    // -- office-shape-vectors.json, which the TypeScript SDK's vectors.test.ts reads too -------------------------
+
+    private static JsonElement OfficeShapeFile() =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "vectors", "office-shape-vectors.json"))).RootElement;
+
+    public static IEnumerable<object[]> ShapeReadVectors() => OfficeShapeFile().GetProperty("read").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetRawText() });
+
+    public static IEnumerable<object[]> ShapeWriteVectors() => OfficeShapeFile().GetProperty("after_write").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetRawText() });
+
+    [Fact]
+    public void The_office_shape_vectors_are_there()
+    {
+        Assert.Equal("FADEN_AI_RECORDS", OfficeMarks.ShapeRecordsTag);
+        Assert.True(ShapeReadVectors().Count() >= 8);
+        Assert.True(ShapeWriteVectors().Count() >= 8);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShapeReadVectors))]
+    public void The_records_a_shape_holds_are_read_as_the_typescript_sdk_reads_them(string name, string json)
+    {
+        var v = JsonDocument.Parse(json).RootElement;
+        var ids = v.GetProperty("ids").EnumerateArray().Select(i => i.GetString()!).ToList();
+        Assert.True(ids.SequenceEqual(OfficeMarks.ShapeRecords(v.GetProperty("records").GetString(), v.GetProperty("record").GetString())), name);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShapeWriteVectors))]
+    public void A_shapes_list_after_a_write_is_the_typescript_sdks(string name, string json)
+    {
+        var v = JsonDocument.Parse(json).RootElement;
+        var recordId = v.GetProperty("record_id").GetString()!;
+        var value = OfficeMarks.ShapeRecordsAfterWrite(v.GetProperty("records").GetString(), v.GetProperty("record").GetString(), recordId,
+            v.GetProperty("partial").GetBoolean());
+        Assert.True(v.GetProperty("value").GetString() == value, $"{name}: {value}");
+        // Read back with FADEN_AI_RECORD set to the record: the list as written, the record last.
+        Assert.Equal(value.Split(' '), OfficeMarks.ShapeRecords(value, recordId));
+    }
+
+    [Fact]
+    public void A_shapes_list_needs_a_record_id() => Assert.Throws<ArgumentException>(() => OfficeMarks.ShapeRecordsAfterWrite(null, null, "rec-1", true));
+
     [Fact]
     public void What_needs_no_mark_and_how_tokens_are_counted()
     {
