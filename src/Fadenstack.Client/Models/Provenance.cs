@@ -133,6 +133,9 @@ public sealed record ProvenanceRecord
 
     public int HashKeyVersion { get; init; }
 
+    /// <summary>For HTML and Markdown: HMAC-SHA-256 of the plain text a reader sees, under the same key version; null otherwise.</summary>
+    public string? TextHash { get; init; }
+
     public ProvenanceModel? Model { get; init; }
 
     public string? ReceiptId { get; init; }
@@ -154,6 +157,12 @@ public sealed record RecordRequest
 {
     /// <summary>SHA-256, hex: of the normalised text (<see cref="Fadenstack.Models.ContentHash.TextSha256"/>) or of the bytes.</summary>
     public string ContentSha256 { get; init; } = "";
+
+    /// <summary>
+    /// For HTML and Markdown: SHA-256, hex, of the plain text a reader sees, normalised as <see cref="ContentSha256"/> is
+    /// (<c>Fadenstack.Provenance.ReaderText.Sha256</c>), so the words someone copies out of the host find the record; null otherwise.
+    /// </summary>
+    public string? TextSha256 { get; init; }
 
     public string MediaType { get; init; } = "";
 

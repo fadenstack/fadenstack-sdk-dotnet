@@ -60,6 +60,20 @@
       ],
       "default": null,
       "title": "Receipt Id"
+    },
+    "text_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "for HTML and Markdown: SHA-256 of the plain text a reader sees, normalised as content_sha256 is; what someone copies out of the host is found by it",
+      "title": "Text Sha256"
     }
   },
   "required": [

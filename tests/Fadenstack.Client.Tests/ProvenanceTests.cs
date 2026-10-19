@@ -217,6 +217,25 @@ public class ProvenanceTests
     }
 
     [Fact]
+    public async Task A_record_of_markup_sends_the_hash_of_the_text_a_reader_sees_and_its_record_keeps_it_keyed()
+    {
+        var (client, server) = Make();
+        server.On("POST", "/v1/agents/docs-assistant/provenance/records",
+            _ => FakeServer.Respond(HttpStatusCode.OK, SignedRecordJson.Replace("\"hash_key_version\":2", "\"hash_key_version\":2,\"text_hash\":\"7e47\"")));
+
+        var signed = await client.Agent!.Provenance.SignRecordAsync(new RecordRequest
+        {
+            ContentSha256 = ContentHash.TextSha256("<p>Dear <b>Ms</b> Huber,</p>"), TextSha256 = ContentHash.TextSha256("Dear Ms Huber,"),
+            MediaType = "text/html", EditKind = EditKind.Generated,
+        });
+
+        var sign = server.Requests.Single(r => r.Path.EndsWith("/records")).Json;
+        Assert.Equal(ContentHash.TextSha256("Dear Ms Huber,"), sign.GetProperty("text_sha256").GetString());
+        Assert.Equal("7e47", signed.Record.TextHash);
+        Assert.Null(JsonSerializer.Deserialize<ProvenanceRecord>("""{"id":"x"}""", FadenstackJson.Options)!.TextHash);
+    }
+
+    [Fact]
     public async Task Anyone_reads_the_anchors_and_a_server_without_the_module_says_so()
     {
         var (client, server) = Make();

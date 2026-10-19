@@ -127,6 +127,19 @@
     },
     "system": {
       "$ref": "#/$defs/SystemInfo"
+    },
+    "text_hash": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "HMAC-SHA-256 of the plain text a reader sees (HTML, Markdown), same key version",
+      "title": "Text Hash"
     }
   },
   "required": [

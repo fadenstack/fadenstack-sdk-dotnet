@@ -118,14 +118,17 @@ public sealed class Gateway
                 edit_kind = kind, system = new { name = "Fadenstack", version = "0.5.0" }, provider = "Example GmbH",
                 model = Str("model") is { } model ? new { id = model, version = (string?)null } : null,
                 created_at = "2026-10-18T09:30:00Z", receipt_id = Str("receipt_id"), media_type = Str("media_type"),
-                content_hash = "c0ffee", hash_key_version = 1,
+                content_hash = "c0ffee", hash_key_version = 1, text_hash = Str("text_sha256") is null ? null : "7e47",
             },
             signature = "eyJhbGciOiJFUzI1NiJ9.eyJ0ZXN0Ijp0cnVlfQ.c2ln",
             timestamp = (string?)null,
         };
     }
 
-    /// <summary>The detector as the fake runs it: the text's hash looked up among the records the agent had signed.</summary>
+    /// <summary>
+    /// The detector as the fake runs it: the text's hash looked up among the records the agent had signed, as the content's
+    /// or as the text a reader sees of HTML and Markdown.
+    /// </summary>
     private HttpResponseMessage Verify(Recorded request)
     {
         var body = request.Json;
@@ -139,7 +142,8 @@ public sealed class Gateway
             });
         }
         var sha = text is not null ? Models.ContentHash.TextSha256(text) : Models.ContentHash.BytesSha256(Convert.FromBase64String(file!));
-        var n = RecordRequests.FindIndex(r => r.Json.GetProperty("content_sha256").GetString() == sha);
+        var n = RecordRequests.FindIndex(r => r.Json.GetProperty("content_sha256").GetString() == sha
+            || (r.Json.TryGetProperty("text_sha256", out var plain) && plain.GetString() == sha));
         var id = n < 0 ? null : $"5a0e2b5c-7f3e-4a51-9a40-{n + 1:D12}";
         return FakeServer.Respond(HttpStatusCode.OK, new
         {
