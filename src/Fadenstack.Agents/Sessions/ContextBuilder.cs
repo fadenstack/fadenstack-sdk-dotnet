@@ -22,6 +22,14 @@ public sealed class ContextBuilder
     /// <summary>What a picture counts for in the history budget, in characters (about a thousand tokens).</summary>
     private const int PictureCharacters = 4_000;
 
+    /// <summary>
+    /// What the model gets for a tool that returned nothing (null, an empty or a blank string), also as the text beside
+    /// the pictures of a tool that returned only pictures: given an empty tool message, some models stop, guess or end
+    /// the turn without a word. For the model only, so in English; the transcript and the tool card keep what the tool
+    /// returned.
+    /// </summary>
+    public const string NoToolResult = "The tool returned no result.";
+
     /// <summary>About this many tokens of history (4 characters a token); the newest turns are kept.</summary>
     public int TokenBudget { get; set; } = 24_000;
 
@@ -198,10 +206,10 @@ public sealed class ContextBuilder
                 return contents.Count == 0 ? null : new ChatMessage(ChatRole.Assistant, contents);
             }
             case EntryTypes.ToolComplete:
-                return new ChatMessage(ChatRole.Tool, new List<AIContent>
-                {
-                    new FunctionResultContent(Str(data, "call_id") ?? "", Str(data, "result") ?? ""),
-                });
+            {
+                var result = Str(data, "result") is { } r && !string.IsNullOrWhiteSpace(r) ? r : NoToolResult;
+                return new ChatMessage(ChatRole.Tool, new List<AIContent> { new FunctionResultContent(Str(data, "call_id") ?? "", result) });
+            }
             default:
                 return null;
         }

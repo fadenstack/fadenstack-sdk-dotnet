@@ -75,6 +75,30 @@ public class PictureTests
         Assert.All(new[] { "call-1", "call-2" }, id => Assert.Equal(JsonValueKind.String, Tool(nextTurn, id).GetProperty("content").ValueKind));
     }
 
+    /// <summary>A render that returns the picture alone, no text.</summary>
+    public sealed class PictureOnlyTools
+    {
+        [AgentTool(ToolClass.Read), Description("Renders a slide as a picture.")]
+        public AIContent RenderSlide(int slide) => new DataContent(RenderTools.Png, "image/png");
+    }
+
+    [Theory]
+    [InlineData("true", "The tool returned no result.")]
+    [InlineData("false", "(The model cannot see pictures: the picture was not sent.)")]
+    public async Task A_picture_without_text_goes_with_the_sentence_for_nothing_only_where_its_text_would_be_empty(string vision, string text)
+    {
+        var gateway = new Gateway(vision: vision).Calls(("call-1", "render_slide", """{"slide":3}""")).Says("Slide 3 is clean.");
+        using var agent = gateway.Builder().AddTools(new PictureOnlyTools()).Build();
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("How does slide 3 look?");
+
+        var content = Tool(gateway.ChatRequests[1], "call-1").GetProperty("content");
+        var sent = content.ValueKind == JsonValueKind.Array ? content[0].GetProperty("text").GetString() : content.GetString();
+        Assert.Equal(text, sent);
+        Assert.Equal(vision == "true" ? JsonValueKind.Array : JsonValueKind.String, content.ValueKind);
+    }
+
     [Theory]
     [InlineData("null", true)]
     [InlineData("false", true)]

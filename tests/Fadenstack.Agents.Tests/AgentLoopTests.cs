@@ -506,6 +506,97 @@ public class AgentLoopTests
     }
 }
 
+/// <summary>A tool that returns nothing: the model gets a sentence for it, the transcript and the tool's card what it returned.</summary>
+public class NoToolResultTests
+{
+    /// <summary>Tools that return nothing in each way a host tool can, two that return something empty, one that fails.</summary>
+    public sealed class NothingTools
+    {
+        public const string Contract = """
+            [{"name":"returns_void","risk":"read"},{"name":"returns_null","risk":"read"},{"name":"returns_empty","risk":"read"},
+             {"name":"returns_blank","risk":"read"},{"name":"returns_list","risk":"read"},{"name":"returns_object","risk":"read"},
+             {"name":"fails","risk":"read"}]
+            """;
+
+        public static readonly string[] Names = { "returns_void", "returns_null", "returns_empty", "returns_blank", "returns_list", "returns_object", "fails" };
+
+        [AgentTool(ToolClass.Read)]
+        public void ReturnsVoid()
+        {
+        }
+
+        [AgentTool(ToolClass.Read)]
+        public string? ReturnsNull() => null;
+
+        [AgentTool(ToolClass.Read)]
+        public string ReturnsEmpty() => "";
+
+        [AgentTool(ToolClass.Read)]
+        public string ReturnsBlank() => " \n\t\u3000";
+
+        [AgentTool(ToolClass.Read)]
+        public string[] ReturnsList() => Array.Empty<string>();
+
+        [AgentTool(ToolClass.Read)]
+        public object ReturnsObject() => new { };
+
+        [AgentTool(ToolClass.Read)]
+        public void Fails() => throw new InvalidOperationException("");
+    }
+
+    private static (Gateway Gateway, FadenstackAgent Agent) Make(int turns = 1)
+    {
+        var gateway = new Gateway(contract: NothingTools.Contract);
+        for (var i = 0; i < turns; i++)
+        {
+            gateway.Calls(NothingTools.Names.Select(n => (n, n, "{}")).ToArray()).Says("Done.");
+        }
+        return (gateway, gateway.Builder().AddTools(new NothingTools()).Build());
+    }
+
+    private static List<string?> ToolMessages(Recorded request) => request.Json.GetProperty("messages").EnumerateArray()
+        .Where(m => m.GetProperty("role").GetString() == "tool").Select(m => m.GetProperty("content").GetString()).ToList();
+
+    [Fact]
+    public async Task The_model_gets_a_sentence_for_nothing_and_empty_lists_objects_and_errors_as_they_are()
+    {
+        var (gateway, agent) = Make(turns: 2);
+        using var _ = agent;
+        var session = await agent.StartSessionAsync();
+
+        await session.SendAsync("Run them all.");
+
+        Assert.Equal("The tool returned no result.", ContextBuilder.NoToolResult);
+        var none = ContextBuilder.NoToolResult;
+        Assert.Equal(new[] { none, none, none, none, "[]", "{}", "Error: " }, ToolMessages(gateway.ChatRequests[1]));
+        // The next turn's history is built from the transcript: the model reads the same there.
+        await session.SendAsync("Again.");
+        Assert.Equal(new[] { none, none, none, none, "[]", "{}", "Error: " }, ToolMessages(gateway.ChatRequests[2]));
+    }
+
+    [Fact]
+    public async Task The_transcript_and_the_tools_card_keep_what_the_tool_returned()
+    {
+        var (gateway, agent) = Make();
+        using var _ = agent;
+        var session = await agent.StartSessionAsync();
+        var shown = new List<string?>();
+
+        await foreach (var e in session.StreamAsync("Run them all."))
+        {
+            if (e is ToolCallCompleted completed)
+            {
+                shown.Add(completed.Result);
+            }
+        }
+
+        // A method's null comes back as JSON null and reads as nothing, as a void one does and as in the TypeScript SDK.
+        var returned = new[] { "", "", "", " \n\t\u3000", "[]", "{}", "Error: " };
+        Assert.Equal(returned, shown);
+        Assert.Equal(returned, session.Transcript.Where(e => e.Type == EntryTypes.ToolComplete).Select(e => e.Data.GetProperty("result").GetString()));
+    }
+}
+
 /// <summary>Context attached to a message goes with it, and stays with it in later turns.</summary>
 public class AttachmentTests
 {
