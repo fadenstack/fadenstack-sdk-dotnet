@@ -48,7 +48,8 @@ Tools are Microsoft.Extensions.AI functions, so the usual rules of `AIFunctionFa
 - The parameters become the JSON schema the model sees. `[Description]` on a parameter describes it, and a default value makes it optional.
 - A `CancellationToken` parameter is not shown to the model. It receives the turn's token, which is cancelled when the turn is stopped.
 - Asynchronous methods (`Task<T>`, `ValueTask<T>`) are awaited.
-- A returned string goes to the model as it is. Any other value goes as JSON.
+- A returned string goes to the model as it is. Any other value goes as JSON (an empty list or object too).
+- For nothing (a `void` method, `null`, an empty or a blank string) the model gets `ContextBuilder.NoToolResult`, "The tool returned no result.": an empty tool message makes some models stop or guess. A picture without text goes with it as its text. The transcript and the tool's card keep what the tool returned.
 
 ```csharp
 [AgentTool(ToolClass.Read), Description("Finds devices whose name contains the text.")]

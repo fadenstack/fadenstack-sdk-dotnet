@@ -62,13 +62,15 @@ A refusal of the prompt or the answer decides the outcome before a denied tool d
 
 Reaching the limit of model calls per turn (`UseMaxRounds`) is not an outcome of its own: the turn ends with a `round_limit` notice and the outcome it had.
 
+Neither is a model call that ends with no text and no tool call, and was not refused or stopped: the user would otherwise see nothing, so the turn gets an `empty_answer` notice. Its `Category` is `length` when the model used up its length first, often while thinking (finish reason `length`). The chat view model says so in the user's language and offers Try again, as for a failed turn.
+
 ## Governance notices
 
 A `GovernanceNotice` is what the user is told about a refusal or a limit, and what an auditor finds it by. The stream raises each one as a `NoticeRaised` event when it happens; the result lists them all.
 
 | Property | Meaning |
 |---|---|
-| `Outcome` | `prompt_blocked`, `response_blocked`, `tool_denied`, `rate_limited` or `round_limit`, or another value the server sends. |
+| `Outcome` | `prompt_blocked`, `response_blocked`, `tool_denied`, `rate_limited`, `round_limit` or `empty_answer`, or another value the server sends. |
 | `Message` | The text to show. For a policy, it is the administrator's message. |
 | `Stage` | Where it happened: `input`, `output` or `tool`. |
 | `Category` | The policy's category, when there is one. |
