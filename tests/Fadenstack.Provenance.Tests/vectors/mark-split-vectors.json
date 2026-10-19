@@ -1,0 +1,114 @@
+{
+  "split": [
+    {
+      "name": "inside a span: split in two, both halves carry the mark, the place between them",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.| We will replace the seal.</span></p>",
+      "split": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> We will replace the seal.</span></p>",
+      "record": "<p>Thank you for your report. We will replace the seal.</p>"
+    },
+    {
+      "name": "at the very start of a span: the place goes before it",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">|Thank you for your report.</span></p>",
+      "split": "<p>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span></p>",
+      "record": "<p>Thank you for your report.</p>"
+    },
+    {
+      "name": "at the very end of a span: the place goes after it",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.|</span></p>",
+      "split": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span>|</p>",
+      "record": "<p>Thank you for your report.</p>"
+    },
+    {
+      "name": "through inline formatting: the formatting is split along",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">We will replace the <strong>seal| MS-40</strong> on Thursday.</span></p>",
+      "split": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">We will replace the <strong>seal</strong></span>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><strong> MS-40</strong> on Thursday.</span></p>",
+      "record": "<p>We will replace the <strong>seal MS-40</strong> on Thursday.</p>"
+    },
+    {
+      "name": "the Chrome live run: a sentence after a sentence inside the reply",
+      "html": "<p>Dear Ms Weber,</p><p>&nbsp;<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.| We will replace the <strong>seal MS-40</strong> on Thursday.</span></p>",
+      "split": "<p>Dear Ms Weber,</p><p>&nbsp;<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> We will replace the <strong>seal MS-40</strong> on Thursday.</span></p>",
+      "record": "<p>Thank you for your report. We will replace the <strong>seal MS-40</strong> on Thursday.</p>"
+    },
+    {
+      "name": "into a div-wrapped block, inside a paragraph: a span around each line, the one at the place split",
+      "html": "<div data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><p>One sentence here.| Another one.</p><ul><li>First point</li><li>Second point</li></ul><p>Last.</p></div>",
+      "split": "<div><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One sentence here.</span>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> Another one.</span></p><ul><li><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">First point</span></li><li><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Second point</span></li></ul><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Last.</span></p></div>",
+      "record": "<p>One sentence here. Another one.</p><ul><li>First point</li><li>Second point</li></ul><p>Last.</p>"
+    },
+    {
+      "name": "into a div-wrapped block, between two paragraphs: a span around each line, the place between them",
+      "html": "<div data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><p>One.</p>|<p>Two.</p></div>",
+      "split": "<div><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One.</span></p>|<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Two.</span></p></div>",
+      "record": "<p>One.</p><p>Two.</p>"
+    },
+    {
+      "name": "into a div-wrapped block, at the end of a paragraph: the place stays on the line, after its span",
+      "html": "<div data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><p>One.|</p><p>Two.</p></div>",
+      "split": "<div><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One.</span>|</p><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Two.</span></p></div>",
+      "record": "<p>One.</p><p>Two.</p>"
+    },
+    {
+      "name": "a mark that kept only its title (Gmail): split the same",
+      "html": "<p><span title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you.| See you on Thursday.</span></p>",
+      "split": "<p><span title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you.</span>|<span title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> See you on Thursday.</span></p>",
+      "record": "<p>Thank you. See you on Thursday.</p>"
+    },
+    {
+      "name": "an element with an id: its copy has none",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One <em id=\"first\">two| three</em> four.</span></p>",
+      "split": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One <em id=\"first\">two</em></span>|<span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><em> three</em> four.</span></p>",
+      "record": "<p>One <em>two three</em> four.</p>"
+    },
+    {
+      "name": "a place in no mark: the HTML stays as it is",
+      "html": "<p>Dear Ms Weber,|</p><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span></p>",
+      "split": "<p>Dear Ms Weber,|</p><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span></p>",
+      "record": "<p>Thank you for your report.</p>"
+    }
+  ],
+  "record_text": [
+    {
+      "name": "the two halves of a split mark, another record between them, read as one",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span>&nbsp;<span data-ai-generated=\"0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\" title=\"AI-generated 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\">We are sorry for the trouble.</span><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> We will replace the seal.</span></p>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": "Thank you for your report. We will replace the seal."
+    },
+    {
+      "name": "the record between the halves reads as itself",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report.</span>&nbsp;<span data-ai-generated=\"0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\" title=\"AI-generated 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\">We are sorry for the trouble.</span><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"> We will replace the seal.</span></p>",
+      "record_id": "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b",
+      "text": "We are sorry for the trouble."
+    },
+    {
+      "name": "a mark nested in another (as written before marks were split): the inner record's text is not the outer's",
+      "html": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you for your report. <span data-ai-generated=\"0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\" title=\"AI-generated 0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b\">We are sorry.</span> We will replace the seal.</span></p>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": "Thank you for your report. We will replace the seal."
+    },
+    {
+      "name": "a block mark in spans, one per line, across paragraphs and a list",
+      "html": "<div><p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">One sentence here.</span></p><ul><li><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">First point</span></li><li><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Second point</span></li></ul></div>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": "One sentence here. First point Second point"
+    },
+    {
+      "name": "titles only, in two languages, with typed text between them",
+      "html": "<p><span title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Thank you. </span>Typed by hand. <span title=\"KI-generiert 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">See you on Thursday.</span></p>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": "Thank you. See you on Thursday."
+    },
+    {
+      "name": "a visible label holds no record's text",
+      "html": "<div data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\"><p data-ai-label=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">AI-generated</p><p>The seal is replaced on Thursday.</p></div>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": "The seal is replaced on Thursday."
+    },
+    {
+      "name": "a record the HTML does not hold",
+      "html": "<p>Thank you for your report.</p>",
+      "record_id": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "text": null
+    }
+  ]
+}

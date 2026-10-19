@@ -62,6 +62,20 @@ public sealed class HtmlAttributeMarker : ContentMarker
     /// <summary>The <c>title</c> a mark carries: the label in the user's language, a space, the record's id.</summary>
     public static string Title(UiStrings texts, string recordId) => texts.AiGeneratedTitle(recordId);
 
+    /// <summary>
+    /// For a later write into HTML the host holds as text (a note, a ticket's body): the HTML with the marks around
+    /// <paramref name="index"/> split, and the index to insert at, which is in no mark. Marks never nest: an element of
+    /// an earlier mark the place is in is split there into two siblings that both carry its <c>data-ai-generated</c>
+    /// and title, so the new write goes between them as its own marked element (a <c>div</c> around several blocks
+    /// first becomes a <c>span</c> around each line, so no line is broken); at the very start or end of a mark the
+    /// write goes beside it. Everything else stays as written. <see cref="ProvenanceReader.RecordText"/> reads a
+    /// record's text from all its elements again. The TypeScript SDK's <c>splitMarksInHtml</c> gives the same.
+    /// </summary>
+    /// <param name="html">The host's HTML.</param>
+    /// <param name="index">Where the write goes: an index into <paramref name="html"/>, in its text or between its tags.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The index is outside the HTML, or inside a tag, a comment or a character reference.</exception>
+    public static (string Html, int Index) SplitMarksAt(string html, int index) => HtmlMarks.SplitMarksAt(html, index);
+
     public override async Task<MarkOutcome> AttachAsync(PlacedContent placed, SignedRecord record, CancellationToken cancellationToken)
     {
         var html = await placed.ReadBackAsync(cancellationToken).ConfigureAwait(false);

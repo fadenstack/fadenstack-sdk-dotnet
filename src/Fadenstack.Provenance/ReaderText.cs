@@ -66,7 +66,13 @@ public static class ReaderText
     // -- HTML ---------------------------------------------------------------------------------------
 
     /// <summary>Elements whose content no reader sees.</summary>
-    private static readonly HashSet<string> Dropped = new(StringComparer.Ordinal) { "script", "style", "template", "head", "title" };
+    internal static readonly HashSet<string> Dropped = new(StringComparer.Ordinal) { "script", "style", "template", "head", "title" };
+
+    /// <summary>Elements that never have content or an end tag.</summary>
+    internal static readonly HashSet<string> Void = new(StringComparer.Ordinal)
+    {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+    };
 
     /// <summary>Elements that start a line of their own.</summary>
     private static readonly HashSet<string> Blocks = new(StringComparer.Ordinal)
@@ -87,16 +93,69 @@ public static class ReaderText
         return TextOfHtml(html.Length > 0 && html[0] == Bom ? html.Substring(1) : html);
     }
 
-    private static string TextOfHtml(string html)
+    /// <summary>Whether an element (by its name in lower case) is a block: it starts a line of its own and holds lines. <c>br</c> is a line break, not a block.</summary>
+    internal static bool IsBlockElement(string name) => Blocks.Contains(name) && name != "br";
+
+    /// <summary>Told each tag <see cref="TextOfHtml"/> reads (but those of dropped elements): to follow which element the text is in.</summary>
+    internal interface ITagHook
+    {
+        /// <summary>Whether the text from here to the next tag is kept.</summary>
+        bool Keeping { get; }
+
+        /// <summary>A tag: its name in lower case, whether it is an end tag, its attributes as written, whether it closes itself (<c>/&gt;</c>).</summary>
+        void Tag(string name, bool closing, string attributes, bool selfClosing);
+    }
+
+    /// <summary>The reader's text of HTML; with a <paramref name="hook"/>, only the text it keeps (line breaks for blocks always: they are white space).</summary>
+    internal static string TextOfHtml(string html, ITagHook? hook = null)
+    {
+        var output = new StringBuilder(html.Length);
+        Scan(html, piece =>
+        {
+            if (piece.Kind == HtmlPieceKind.Text)
+            {
+                if (hook is null || hook.Keeping)
+                {
+                    output.Append(DecodeEntities(html.Substring(piece.Start, piece.End - piece.Start)));
+                }
+            }
+            else if (piece.Kind == HtmlPieceKind.Tag)
+            {
+                hook?.Tag(piece.Name, piece.Closing, piece.Attributes, piece.SelfClosing);
+                if (Blocks.Contains(piece.Name))
+                {
+                    output.Append('\n');
+                }
+            }
+        });
+        return output.ToString();
+    }
+
+    internal enum HtmlPieceKind
+    {
+        Text,
+        /// <summary>A comment, a doctype, CDATA, a processing instruction.</summary>
+        Comment,
+        /// <summary>A dropped element whole (<c>script</c>, <c>style</c>, ...): its start tag to its end tag.</summary>
+        Dropped,
+        /// <summary>An element's start or end tag.</summary>
+        Tag,
+    }
+
+    /// <summary>A piece of HTML as <see cref="Scan"/> reads it, from <see cref="Start"/> to <see cref="End"/>; a tag's or a dropped element's name in lower case.</summary>
+    internal readonly record struct HtmlPiece(
+        HtmlPieceKind Kind, int Start, int End, string Name = "", bool Closing = false, string Attributes = "", bool SelfClosing = false);
+
+    /// <summary>HTML in pieces, in order and covering all of it, as the reader's text reads it (the TypeScript SDK's <c>scanHtml</c>).</summary>
+    internal static void Scan(string html, Action<HtmlPiece> visit)
     {
         var n = html.Length;
-        var output = new StringBuilder(n);
-        var text = 0; // where the text not yet written starts
+        var text = 0; // where the text not yet visited starts
         void Flush(int end)
         {
             if (end > text)
             {
-                output.Append(DecodeEntities(html.Substring(text, end - text)));
+                visit(new HtmlPiece(HtmlPieceKind.Text, text, end));
             }
         }
         var i = 0;
@@ -106,7 +165,9 @@ public static class ReaderText
             {
                 Flush(i);
                 var comment = html.IndexOf("-->", i + 4, StringComparison.Ordinal);
-                i = text = comment < 0 ? n : comment + 3;
+                var commentEnd = comment < 0 ? n : comment + 3;
+                visit(new HtmlPiece(HtmlPieceKind.Comment, i, commentEnd));
+                i = text = commentEnd;
                 continue;
             }
             var next = i + 1 < n ? html[i + 1] : '\0';
@@ -120,11 +181,12 @@ public static class ReaderText
                     continue;
                 }
                 Flush(i);
+                visit(new HtmlPiece(HtmlPieceKind.Comment, i, gt + 1));
                 i = text = gt + 1;
                 continue;
             }
-            var end = next == '/';
-            var nameAt = end ? i + 2 : i + 1;
+            var closing = next == '/';
+            var nameAt = closing ? i + 2 : i + 1;
             if (nameAt >= n || !IsAsciiLetter(html[nameAt]))
             {
                 i++; // a "<" in the text
@@ -143,18 +205,18 @@ public static class ReaderText
             }
             Flush(i);
             var name = AsciiLower(html.Substring(nameAt, j - nameAt));
+            var selfClosing = html[close - 2] == '/';
+            if (!closing && Dropped.Contains(name) && !selfClosing)
+            {
+                var end = AfterEndTag(html, name, close);
+                visit(new HtmlPiece(HtmlPieceKind.Dropped, i, end, name));
+                i = text = end;
+                continue;
+            }
+            visit(new HtmlPiece(HtmlPieceKind.Tag, i, close, name, closing, html.Substring(j, close - 1 - j), selfClosing));
             i = text = close;
-            if (!end && Dropped.Contains(name) && html[close - 2] != '/')
-            {
-                i = text = AfterEndTag(html, name, close);
-            }
-            else if (Blocks.Contains(name))
-            {
-                output.Append('\n');
-            }
         }
         Flush(n);
-        return output.ToString();
     }
 
     /// <summary>A tag name in lower case: ASCII letters only, so both SDKs agree on every name.</summary>

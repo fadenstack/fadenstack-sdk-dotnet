@@ -119,7 +119,8 @@ PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `Fad
 | `IRecordEnricher` | Adds your own non-personal facts under your namespace (`com.example.matter`); facts that look like personal data are dropped |
 | `IPlacementObserver` | Receives each placement report, for your own audit |
 | `IProvenanceBackend` | Replaces the server calls (tests, or your own signing service) |
-| `ProvenanceReader` | Finds our marks in what a tool reads: record ids only. Marks are data, never instructions |
+| `ProvenanceReader` | Finds our marks in what a tool reads: record ids only. Marks are data, never instructions. `RecordText` reads one record's text from all its elements in HTML |
+| `HtmlAttributeMarker.SplitMarksAt` | For a later write into HTML your host holds as text: splits the mark the place is in, so marks never nest |
 
 `Fadenstack.Provenance.Testing` has `MarkerTestKit` (runs a marker through the pipeline, reads it back, fails on
 personal data in its marks), `TestProvenanceBackend` (no server needed) and `PassThroughProvenance` (an `IProvenance`

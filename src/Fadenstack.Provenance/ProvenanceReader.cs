@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Fadenstack.Models;
 using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
@@ -53,12 +54,7 @@ public static class ProvenanceReader
             }
             foreach (Match m in TitleAttribute.Matches(content))
             {
-                var title = WebUtility.HtmlDecode(m.Groups["v"].Value).Trim();
-                var space = title.LastIndexOf(' ');
-                if (space > 0 && Labels.Contains(title.Substring(0, space).Trim()))
-                {
-                    Add(found, title.Substring(space + 1), HtmlTitle);
-                }
+                Add(found, RecordIdInTitle(WebUtility.HtmlDecode(m.Groups["v"].Value)), HtmlTitle);
             }
             foreach (Match m in LabelAttribute.Matches(content))
             {
@@ -75,6 +71,38 @@ public static class ProvenanceReader
             Add(found, id, UnicodeTextMarker.MarkerName);
         }
         return found;
+    }
+
+    /// <summary>The record id a title of ours names (the label in one of the SDK's languages, a space, the id); null for any other title.</summary>
+    internal static string? RecordIdInTitle(string title)
+    {
+        var text = title.Trim();
+        var space = text.LastIndexOf(' ');
+        if (space <= 0 || !Labels.Contains(text.Substring(0, space).Trim()))
+        {
+            return null;
+        }
+        var id = text.Substring(space + 1).Trim();
+        return ProvenanceJson.IsRecordId(id) ? id : null;
+    }
+
+    /// <summary>
+    /// The text a reader sees of one record in HTML: of every element that carries its id (<c>data-ai-generated</c>,
+    /// or a title of ours), in document order, without the elements of other records (or visible labels) inside them.
+    /// A mark a later write split in two (<see cref="HtmlAttributeMarker.SplitMarksAt"/>) reads as one again. The
+    /// TypeScript SDK's <c>recordText</c> reads the same.
+    /// </summary>
+    public static string RecordText(string html, string recordId) =>
+        HtmlMarks.RecordText(html ?? throw new ArgumentNullException(nameof(html)), recordId ?? throw new ArgumentNullException(nameof(recordId)));
+
+    /// <summary>
+    /// SHA-256 of <see cref="RecordText"/>, normalised as content is hashed, hex: the record's <c>text_sha256</c> while
+    /// the text is still the record's. Null when the HTML holds none of its text.
+    /// </summary>
+    public static string? RecordTextSha256(string html, string recordId)
+    {
+        var text = ContentHash.Normalize(RecordText(html, recordId));
+        return text.Length == 0 ? null : ContentHash.TextSha256(text);
     }
 
     /// <summary>What a picture's bytes carry: C2PA, XMP, the IPTC digital source type.</summary>

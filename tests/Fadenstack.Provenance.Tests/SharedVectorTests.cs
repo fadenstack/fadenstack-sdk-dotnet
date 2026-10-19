@@ -100,6 +100,80 @@ public class SharedVectorTests
         Assert.Equal(kind, SimilarityEditClassifier.Suggest(vector.Original, vector.Revised, vector.MediaType));
     }
 
+    /// <summary>
+    /// One later write into marked HTML of <c>mark-split-vectors.json</c>, which the TypeScript SDK's <c>vectors.test.ts</c>
+    /// reads too: <c>html</c> with <c>|</c> at the place, <c>split</c> with <c>|</c> where the write goes, <c>record</c> what
+    /// R1 was placed from.
+    /// </summary>
+    public sealed record MarkSplitVector(string Name, string Html, string Split, string Record);
+
+    /// <summary>One record's text in HTML of <c>mark-split-vectors.json</c>: normalised as it is hashed, null for none.</summary>
+    public sealed record RecordTextVector(string Name, string Html, string RecordId, string? Text);
+
+    private const string R2 = "0b6f9a3e-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+
+    private static JsonElement MarkSplitFile() =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "vectors", "mark-split-vectors.json"))).RootElement;
+
+    public static IEnumerable<object[]> MarkSplitVectors() =>
+        MarkSplitFile().GetProperty("split").EnumerateArray().Select(v => new object[]
+        {
+            v.GetProperty("name").GetString()!,
+            new MarkSplitVector(v.GetProperty("name").GetString()!, v.GetProperty("html").GetString()!, v.GetProperty("split").GetString()!,
+                v.GetProperty("record").GetString()!),
+        });
+
+    public static IEnumerable<object[]> RecordTextVectors() =>
+        MarkSplitFile().GetProperty("record_text").EnumerateArray().Select(v => new object[]
+        {
+            v.GetProperty("name").GetString()!,
+            new RecordTextVector(v.GetProperty("name").GetString()!, v.GetProperty("html").GetString()!, v.GetProperty("record_id").GetString()!,
+                v.GetProperty("text").GetString()),
+        });
+
+    [Fact]
+    public void The_mark_split_vectors_are_there()
+    {
+        Assert.True(MarkSplitVectors().Count() >= 11);
+        Assert.True(RecordTextVectors().Count() >= 7);
+    }
+
+    [Theory]
+    [MemberData(nameof(MarkSplitVectors))]
+    public void A_later_write_splits_the_mark_it_lands_in_as_the_typescript_sdk_does(string name, MarkSplitVector vector)
+    {
+        var html = vector.Html.Replace("|", "");
+        var (split, at) = HtmlAttributeMarker.SplitMarksAt(html, vector.Html.IndexOf('|'));
+        Assert.True(vector.Split == split.Insert(at, "|"), $"{name}: {split.Insert(at, "|")}");
+        // R1's text is still its record's -- before the later write, and after it, with R2's own beside it.
+        var recorded = ReaderText.Sha256(vector.Record, "text/html");
+        Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(html, Id));
+        Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(split, Id));
+        var later = HtmlAttributeMarker.Wrap("We are sorry for the trouble.", R2, HtmlAttributeMarker.Title(UiStrings.For(CultureInfo.GetCultureInfo("en")), R2));
+        var written = split.Insert(at, later);
+        Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(written, Id));
+        Assert.Equal(ContentHash.TextSha256("We are sorry for the trouble."), ProvenanceReader.RecordTextSha256(written, R2));
+    }
+
+    [Fact]
+    public void A_place_inside_a_tag_a_comment_or_a_character_reference_is_refused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlAttributeMarker.SplitMarksAt("<p>a</p>", 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlAttributeMarker.SplitMarksAt("a<!-- b -->c", 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlAttributeMarker.SplitMarksAt("a&amp;b", 3));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlAttributeMarker.SplitMarksAt("ab", 3));
+        Assert.Equal(("a&amp;b", 6), HtmlAttributeMarker.SplitMarksAt("a&amp;b", 6));
+    }
+
+    [Theory]
+    [MemberData(nameof(RecordTextVectors))]
+    public void A_records_text_is_read_from_all_its_elements_as_the_typescript_sdk_reads_it(string name, RecordTextVector vector)
+    {
+        var text = ContentHash.Normalize(ProvenanceReader.RecordText(vector.Html, vector.RecordId));
+        Assert.True(vector.Text == (text.Length == 0 ? null : text), $"{name}: '{text}'");
+        Assert.Equal(vector.Text is null ? null : ContentHash.TextSha256(vector.Text), ProvenanceReader.RecordTextSha256(vector.Html, vector.RecordId));
+    }
+
     [Fact]
     public void The_named_entities_are_html_4s_as_dotnet_decodes_them()
     {
