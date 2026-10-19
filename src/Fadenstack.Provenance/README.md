@@ -115,7 +115,7 @@ PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `Fad
 |---|---|
 | `IContentMarker` / `ContentMarker` | Marks content in your host |
 | `SinkInfo` | Describes once what a place content lands can carry (`Container`, `Carries`, `KeyValue`, `Headers`, `FilePath`, `ReadBack`) |
-| `IEditClassifier` | Decides `corrected` or `rewritten` for your domain; `SimilarityEditClassifier` compares before and after and says `corrected` only for small changes. Lowering to an exempt kind needs a reason, which is recorded |
+| `IEditClassifier` | Decides `corrected` or `rewritten` for your domain; `SimilarityEditClassifier` compares the sentences that changed and says `corrected` only for small changes. Lowering to an exempt kind needs a reason, which is recorded |
 | `IRecordEnricher` | Adds your own non-personal facts under your namespace (`com.example.matter`); facts that look like personal data are dropped |
 | `IPlacementObserver` | Receives each placement report, for your own audit |
 | `IProvenanceBackend` | Replaces the server calls (tests, or your own signing service) |

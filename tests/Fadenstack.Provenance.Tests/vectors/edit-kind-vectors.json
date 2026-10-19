@@ -1,0 +1,106 @@
+[
+  {
+    "name": "Nextcloud: a long note whose last paragraph is rewritten in tone is rewritten, though the whole keeps most words and its sentence count",
+    "media_type": "text/markdown",
+    "original": "# Pump P-200, line 3\n\nPump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.\n",
+    "revised": "# Pump P-200, line 3\n\nPump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nIf Thursday is not a good day for you, just tell us. We are glad to find another day this week. Many thanks for telling us about the leak so quickly.\n",
+    "kind": "rewritten",
+    "reason": "36 % of words kept in the changed sentences (26 of 182 words), 3 to 3 sentence(s)"
+  },
+  {
+    "name": "a typo fixed in a long document is corrected",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are coverd by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "corrected",
+    "reason": "small change: 99 % of words kept in the changed sentences (11 of 178 words), the same 1 sentence(s)"
+  },
+  {
+    "name": "a word swapped in one sentence is corrected",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and phone the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "corrected",
+    "reason": "small change: 97 % of words kept in the changed sentences (29 of 178 words), the same 1 sentence(s)"
+  },
+  {
+    "name": "a paragraph added is rewritten",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "rewritten",
+    "reason": "0 % of words kept in the changed sentences (0 of 149 words), 0 to 1 sentence(s)"
+  },
+  {
+    "name": "a sentence rewritten inside a long paragraph is rewritten",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. Expect line 3 to need the standby pump for roughly two hours while this happens. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "rewritten",
+    "reason": "19 % of words kept in the changed sentences (17 of 178 words), 1 to 1 sentence(s)"
+  },
+  {
+    "name": "edits at both ends that are typos are corrected, each judged on its own",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspectd on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quikly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "corrected",
+    "reason": "small change in 2 places: 99 % of words kept in the changed sentences (25 of 178 words), the same 2 sentence(s)"
+  },
+  {
+    "name": "edits at both ends, a rewrite at the start and a typo at the end, are rewritten: the unchanged middle does not dilute the rewrite",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quikly.",
+    "revised": "On Monday our team looked at pump P-200, because water had collected under it. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nThe worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear before it leads to a leak. Until Thursday, the operators check the drip tray at the start of every shift and note how much water it holds.\n\nIf the leak gets worse before the visit, switch the pump off, change over to the standby pump and call the service desk on the number in the contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "rewritten",
+    "reason": "16 % of words kept in the changed sentences (place 1 of 2: 17 of 178 words), 1 to 1 sentence(s)"
+  },
+  {
+    "name": "a word added to a sentence is judged with its sentence",
+    "media_type": "text/plain",
+    "original": "Thank you for your message. The delivery for order 4711 arrives on Friday, and the missing part comes with it.",
+    "revised": "Thank you for your message. The delivery for order 4711 arrives on Friday morning, and the missing part comes with it.",
+    "kind": "corrected",
+    "reason": "small change: 94 % of words kept in the changed sentences (15 of 20 words), the same 1 sentence(s)"
+  },
+  {
+    "name": "typos in every sentence of a short text: the whole is compared, as before",
+    "media_type": "text/plain",
+    "original": "Thank you for you message. The delivery arive on Friday.",
+    "revised": "Thank you for your message. The delivery arrives on Friday.",
+    "kind": "corrected",
+    "reason": "small change: 95 % of words kept, the same 2 sentence(s)"
+  },
+  {
+    "name": "an editor's markup is no change of words",
+    "media_type": "text/html",
+    "original": "<p>Teh report is due on friday.</p>",
+    "revised": "<p class=\"MsoNormal\" style=\"margin:0\"><span lang=\"de\">The report is due on Friday.</span></p>",
+    "kind": "corrected",
+    "reason": "small change: 89 % of words kept, the same 1 sentence(s)"
+  },
+  {
+    "name": "the same words with new formatting: the whole is compared, as before",
+    "media_type": "text/html",
+    "original": "<p>The technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.</p><p>Please let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.</p>",
+    "revised": "<p>The technician will replace the <b>seal MS-40</b> on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.</p>\n<p>Please let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.</p>",
+    "kind": "corrected",
+    "reason": "small change: 100 % of words kept, the same 6 sentence(s)"
+  },
+  {
+    "name": "a sentence split in two is rewritten: the sentence count changed",
+    "media_type": "text/plain",
+    "original": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours, and line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "revised": "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing. The shaft seal is worn and lets about twenty drops a minute through, which is well above what the manufacturer allows.\n\nThe technician will replace the seal MS-40 on Thursday morning. The work takes about two hours. Line 3 runs on the standby pump in that time. The visit and the seal are covered by the service contract.\n\nPlease let us know if Thursday does not suit you. We can arrange another visit within the week. Thank you for reporting the leak so quickly.",
+    "kind": "rewritten",
+    "reason": "94 % of words kept in the changed sentences (17 of 102 words), 1 to 2 sentence(s)"
+  },
+  {
+    "name": "each CJK character is a word: one added to a sentence is corrected",
+    "media_type": "text/plain",
+    "original": "泵下周需要检查密封。技术人员会提前打电话。",
+    "revised": "泵下周需要检查密封件。技术人员会提前打电话。",
+    "kind": "corrected",
+    "reason": "small change: 90 % of words kept in the changed sentences (9 of 19 words), the same 1 sentence(s)"
+  }
+]

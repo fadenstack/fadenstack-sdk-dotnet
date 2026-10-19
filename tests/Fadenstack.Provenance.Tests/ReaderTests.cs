@@ -125,6 +125,65 @@ public class ReaderTests
             classifier.Classify(new EditInput("**Teh** report is due on *friday*.", "The report is due on **Friday**.", EditKind.Rewritten, "text/markdown")));
     }
 
+    /// <summary>A note of four sentences that stay, and a last paragraph the cases below change (as the TypeScript SDK's helpers.test.ts).</summary>
+    private static readonly string[] Kept =
+    {
+        "Pump P-200 on line 3 was inspected on Monday after the operators reported water under the housing.",
+        "The technician will replace the seal MS-40 on Thursday morning, and line 3 runs on the standby pump in that time.",
+        "The worn seal goes to the manufacturer for analysis, so that the next inspection can look for the same wear.",
+        "If the leak gets worse before the visit, switch the pump off and call the service desk on the number in the contract.",
+    };
+
+    private const string Last = "Please let us know if Thursday does not suit you. We can arrange another visit within the week.";
+
+    private static string Note(params string[] paragraphs) => string.Join("\n\n", paragraphs);
+
+    private static EditDecision Classified(string original, string revised, string mediaType = "text/plain") =>
+        new SimilarityEditClassifier().Classify(new EditInput(original, revised, EditKind.Rewritten, mediaType));
+
+    [Fact]
+    public void A_paragraph_rewritten_in_an_unchanged_text_is_rewritten_though_the_whole_kept_most_of_its_words_and_sentences()
+    {
+        var original = Note(Kept.Append(Last).ToArray());
+        var revised = Note(Kept.Append("If Thursday does not suit you, just tell us. We are glad to arrange another visit this week.").ToArray());
+        Assert.True(SimilarityEditClassifier.WordSimilarity(original, revised) > 0.85); // as a whole, a small change
+        Assert.Equal(new EditDecision(EditKind.Rewritten, "38 % of words kept in the changed sentences (18 of 99 words), 2 to 2 sentence(s)"),
+            Classified(original, revised));
+    }
+
+    [Fact]
+    public void A_typo_fixed_or_a_word_swapped_is_corrected_and_a_paragraph_added_or_a_sentence_split_in_two_is_rewritten()
+    {
+        var original = Note(Kept.Append(Last).ToArray());
+        Assert.Equal(EditKind.Corrected, SimilarityEditClassifier.Suggest(original.Replace("inspected", "inspectd"), original));
+        Assert.Equal(EditKind.Corrected, SimilarityEditClassifier.Suggest(original, original.Replace("call the service desk", "phone the service desk")));
+        Assert.Equal(EditKind.Rewritten, SimilarityEditClassifier.Suggest(Note(Kept), original));
+        Assert.Equal(EditKind.Rewritten, SimilarityEditClassifier.Suggest(original, original.Replace("morning, and line 3", "morning. Line 3")));
+    }
+
+    [Fact]
+    public void Edits_in_several_places_are_each_judged_on_their_own_so_unchanged_sentences_between_them_do_not_hide_a_rewrite()
+    {
+        var original = Note(Kept.Append(Last.Replace("within", "whithin")).ToArray());
+        var typos = Note(Kept.Append(Last).ToArray());
+        Assert.Equal(new EditDecision(EditKind.Corrected,
+                "small change in 2 places: 99 % of words kept in the changed sentences (25 of 99 words), the same 2 sentence(s)"),
+            Classified(original.Replace("inspected", "inspectd"), typos));
+        var rewrite = typos.Replace(Kept[0], "On Monday our team looked at pump P-200, because water had collected under it.");
+        Assert.True(SimilarityEditClassifier.WordSimilarity(original, rewrite) > 0.85); // as a whole, a small change
+        Assert.Equal(new EditDecision(EditKind.Rewritten, "16 % of words kept in the changed sentences (place 1 of 2: 17 of 99 words), 1 to 1 sentence(s)"),
+            Classified(original, rewrite));
+    }
+
+    [Fact]
+    public void The_same_words_throughout_are_compared_as_a_whole_as_before()
+    {
+        var text = Note(Kept);
+        Assert.Equal(new EditDecision(EditKind.Corrected, "small change: 100 % of words kept, the same 4 sentence(s)"),
+            Classified(text, $"<p>{text.Replace("MS-40", "<b>MS-40</b>")}</p>", "text/html"));
+        Assert.Equal(EditKind.Rewritten, SimilarityEditClassifier.Suggest(text, text.Replace("Monday after", "Monday. After"))); // a sentence more
+    }
+
     [Fact]
     public void Personal_data_is_recognised_and_record_ids_are_not()
     {

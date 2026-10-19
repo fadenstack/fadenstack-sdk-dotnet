@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Fadenstack.Models;
+using Fadenstack.Tools;
 using Fadenstack.UI;
 using Xunit;
 
@@ -71,6 +72,32 @@ public class SharedVectorTests
         var text = ReaderText.AppliesTo(vector.MediaType) ? ContentHash.Normalize(ReaderText.Of(vector.Input, vector.MediaType)) : null;
         Assert.True(vector.Text == (text == "" ? null : text), $"{name}: '{text}'");
         Assert.Equal(vector.Sha256, ReaderText.Sha256(vector.Input, vector.MediaType));
+    }
+
+    /// <summary>One case of <c>edit-kind-vectors.json</c>, which the TypeScript SDK's <c>vectors.test.ts</c> reads too.</summary>
+    public sealed record EditKindVector(string Name, string MediaType, string Original, string Revised, string Kind, string Reason);
+
+    public static IEnumerable<object[]> EditKindVectors() =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "vectors", "edit-kind-vectors.json"))).RootElement
+            .EnumerateArray()
+            .Select(v => new object[]
+            {
+                v.GetProperty("name").GetString()!,
+                new EditKindVector(v.GetProperty("name").GetString()!, v.GetProperty("media_type").GetString()!, v.GetProperty("original").GetString()!,
+                    v.GetProperty("revised").GetString()!, v.GetProperty("kind").GetString()!, v.GetProperty("reason").GetString()!),
+            });
+
+    [Fact]
+    public void The_edit_kind_vectors_are_there() => Assert.True(EditKindVectors().Count() >= 13);
+
+    [Theory]
+    [MemberData(nameof(EditKindVectors))]
+    public void The_edit_kind_and_its_reason_are_the_typescript_sdks(string name, EditKindVector vector)
+    {
+        var kind = vector.Kind == "corrected" ? EditKind.Corrected : EditKind.Rewritten;
+        var decided = new SimilarityEditClassifier().Classify(new EditInput(vector.Original, vector.Revised, EditKind.Rewritten, vector.MediaType));
+        Assert.True(new EditDecision(kind, vector.Reason) == decided, $"{name}: {decided}");
+        Assert.Equal(kind, SimilarityEditClassifier.Suggest(vector.Original, vector.Revised, vector.MediaType));
     }
 
     [Fact]
