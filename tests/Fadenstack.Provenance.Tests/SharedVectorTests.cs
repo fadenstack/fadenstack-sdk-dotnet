@@ -202,6 +202,128 @@ public class SharedVectorTests
         Assert.Equal($"true {other} {Id}", OfficeMarks.DocumentPropertyValue(new[] { Id, other }));
     }
 
+    // -- office-anchor-vectors.json, which the TypeScript SDK's vectors.test.ts reads too ------------------------
+
+    private static JsonElement OfficeAnchorFile() =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "vectors", "office-anchor-vectors.json"))).RootElement;
+
+    private static List<OfficeAnchorSpan> Anchors(JsonElement spans) =>
+        spans.EnumerateArray().Select(a => new OfficeAnchorSpan(a.GetProperty("name").GetString()!, a.GetProperty("start").GetInt32(), a.GetProperty("end").GetInt32())).ToList();
+
+    private static string? TextOf(string text, IReadOnlyList<OfficeSpan> spans) =>
+        spans.Count == 0 ? null : string.Concat(spans.Select(s => text.Substring(s.Start, s.End - s.Start)));
+
+    public static IEnumerable<object[]> AnchorNameVectors() => OfficeAnchorFile().GetProperty("names").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetProperty("anchor").GetString()!, v.GetProperty("base").GetString()! });
+
+    public static IEnumerable<object[]> AnchorPartVectors() => OfficeAnchorFile().GetProperty("parts").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetProperty("anchor").GetString()!, v.GetProperty("part").GetInt32(), v.GetProperty("result").GetString()! });
+
+    public static IEnumerable<object[]> AnchorSplitVectors() => OfficeAnchorFile().GetProperty("split").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetRawText() });
+
+    public static IEnumerable<object[]> RecordSpanVectors() => OfficeAnchorFile().GetProperty("record_spans").EnumerateArray()
+        .Select(v => new object[] { v.GetProperty("name").GetString()!, v.GetRawText() });
+
+    [Fact]
+    public void The_office_anchor_vectors_are_there()
+    {
+        Assert.True(AnchorNameVectors().Count() >= 20);
+        Assert.True(AnchorPartVectors().Count() >= 6);
+        Assert.True(AnchorSplitVectors().Count() >= 14);
+        Assert.True(RecordSpanVectors().Count() >= 10);
+    }
+
+    [Theory]
+    [MemberData(nameof(AnchorNameVectors))]
+    public void An_anchor_and_its_parts_are_named_as_the_typescript_sdk_names_them(string name, string? anchor, string? anchorBase)
+    {
+        Assert.True(anchorBase == OfficeMarks.AnchorBase(anchor), $"{name}: {OfficeMarks.AnchorBase(anchor)}");
+        Assert.Equal(anchorBase is not null, OfficeMarks.IsAnchor(anchor));
+        Assert.True(anchorBase is null || anchor!.Length <= OfficeMarks.AnchorMaxLength);
+    }
+
+    [Theory]
+    [MemberData(nameof(AnchorPartVectors))]
+    public void A_parts_name_is_the_typescript_sdks(string name, string anchor, int part, string? result)
+    {
+        if (result is null)
+        {
+            Assert.ThrowsAny<ArgumentException>(() => OfficeMarks.AnchorPart(anchor, part));
+        }
+        else
+        {
+            Assert.True(result == OfficeMarks.AnchorPart(anchor, part), name);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(AnchorSplitVectors))]
+    public void A_later_write_splits_the_anchors_it_lands_in_as_the_typescript_sdk_does(string name, string json)
+    {
+        var v = JsonDocument.Parse(json).RootElement;
+        var text = v.GetProperty("text").GetString()!;
+        var anchors = Anchors(v.GetProperty("anchors"));
+        var written = v.GetProperty("written").EnumerateArray().Select(s => new OfficeSpan(s.GetProperty("start").GetInt32(), s.GetProperty("end").GetInt32())).ToList();
+        var own = v.GetProperty("own").GetString();
+        var taken = v.GetProperty("taken").EnumerateArray().Select(t => t.GetString()!).ToList();
+
+        var split = OfficeMarks.SplitAnchors(anchors, written, own, taken);
+        var now = anchors.ToDictionary(a => a.Name);
+        foreach (var removed in split.Removed)
+        {
+            now.Remove(removed);
+        }
+        foreach (var set in split.Set)
+        {
+            now[set.Name] = set;
+        }
+        var after = Anchors(v.GetProperty("after")).OrderBy(a => a.Name, StringComparer.Ordinal).ToList();
+        Assert.True(after.SequenceEqual(now.Values.OrderBy(a => a.Name, StringComparer.Ordinal)), $"{name}: {string.Join(", ", now.Values)}");
+        foreach (var record in v.GetProperty("records").EnumerateObject())
+        {
+            Assert.Equal(record.Value.GetString(), TextOf(text, OfficeMarks.RecordSpans(now.Values, record.Name)));
+        }
+        // Done again, nothing changes: what it left holds nothing written of another record's.
+        var again = OfficeMarks.SplitAnchors(now.Values, written, own, taken);
+        Assert.Equal((0, 0), (again.Set.Count, again.Removed.Count));
+    }
+
+    [Theory]
+    [MemberData(nameof(RecordSpanVectors))]
+    public void A_records_text_is_read_from_its_anchors_as_the_typescript_sdk_reads_it(string name, string json)
+    {
+        var v = JsonDocument.Parse(json).RootElement;
+        var text = TextOf(v.GetProperty("text").GetString()!, OfficeMarks.RecordSpans(Anchors(v.GetProperty("anchors")), v.GetProperty("record").GetString()!));
+        Assert.True(v.GetProperty("record_text").GetString() == text, $"{name}: '{text}'");
+    }
+
+    [Fact]
+    public void Every_part_number_taken_leaves_the_text_after_the_write_without_an_anchor()
+    {
+        var r1 = OfficeMarks.AnchorName(Id);
+        var r2 = OfficeMarks.AnchorName(R2);
+        var taken = Enumerable.Range(2, 98).Select(n => OfficeMarks.AnchorPart(r1, n)).ToList();
+        var split = OfficeMarks.SplitAnchors(new[] { new OfficeAnchorSpan(r1, 0, 20), new OfficeAnchorSpan(r2, 5, 10) }, new[] { new OfficeSpan(5, 10) }, r2, taken);
+        Assert.Equal(new[] { new OfficeAnchorSpan(r1, 0, 5) }, split.Set);
+        Assert.Empty(split.Removed);
+    }
+
+    [Fact]
+    public void A_part_maps_to_its_record_in_the_custom_xml_part()
+    {
+        var records = OfficeMarks.ReadCustomXmlPart(OfficeMarks.CustomXmlPart(new[]
+        {
+            new OfficeRecord(Id, OfficeMarks.AnchorName(Id), "eyJ.e30.a"),
+            new OfficeRecord(R2, "", "eyJ.e30.b"), // no anchor written: the id's
+        }));
+        Assert.Equal(Id, OfficeMarks.RecordOfAnchor(records, OfficeMarks.AnchorPart(OfficeMarks.AnchorName(Id), 7))?.RecordId);
+        Assert.Equal(Id, OfficeMarks.RecordOfAnchor(records, "_faden_ai_" + OfficeMarks.AnchorName(Id).Substring(10).ToUpperInvariant())?.RecordId);
+        Assert.Equal(R2, OfficeMarks.RecordOfAnchor(records, OfficeMarks.AnchorName(R2) + "_2")?.RecordId);
+        Assert.Null(OfficeMarks.RecordOfAnchor(records, "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1"));
+        Assert.Null(OfficeMarks.RecordOfAnchor(records, "_Toc1"));
+    }
+
     [Fact]
     public void What_needs_no_mark_and_how_tokens_are_counted()
     {

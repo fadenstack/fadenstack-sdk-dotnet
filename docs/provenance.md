@@ -139,12 +139,14 @@ Markers for Office hosts are level-3 markers written with the Office object mode
 
 | Host | Marks |
 |---|---|
-| Word | A hidden bookmark `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of the id, dashes removed) around the range; the signed records in a custom XML part (`CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`); the document property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters) |
+| Word | A hidden bookmark `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of the id, dashes removed) around the range, and where a later write split it, its later parts `<anchor>_2` to `<anchor>_99` (no leading zeros); the signed records in a custom XML part (`CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`); the document property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters) |
 | PowerPoint | The shape and slide tag `FADEN_AI_RECORD` with the record's id; the custom XML part |
 | Excel | A hidden name `AnchorName(id)` per written range; the custom XML part |
 | Outlook | The named property `FadenProvenanceRecord` (`MapiRecordProperty`) with the signed record; the internet header `X-AI-Generated` with the record's id (`MailHeader`, set through `MapiHeaderProperty`) |
 
 `ReadCustomXmlPart` reads the records back (ids, anchors, signatures), with DTDs refused. The server's detector reads the record ids from every `customXml/` part with the namespace and from `docProps/custom.xml`.
+
+**Writing into marked Word text.** Marks never nest, as in HTML. Word grows a bookmark around text written inside it or at its start (not at its end), so a write into an earlier record's text would leave that record's anchor around text it never recorded. After the write, inside its own undo entry, a host gives `OfficeMarks.SplitAnchors(anchors, written, own, taken)` the anchors of the story as they are now (`OfficeAnchorSpan`: name, `Start`, `End` in Word's positions), the spans the write wrote (its text, a paragraph mark it added, every replacement) and the write's own anchor; it returns the anchors to put (`Set`: an existing name moves, a new one is added) and the names to remove. The part of an earlier anchor before the write keeps its name, the part after becomes `<anchor>_<n>` (the lowest free n from 2 to 99, at most `AnchorMaxLength` 37 characters), and a part with nothing in it goes: an anchor that starts where the write starts moves to just after it. `OfficeMarks.RecordSpans(anchors, recordId)` is where a record's text is: its anchor's and its parts' spans in document order, without what other records' anchors inside them hold; the text of these joined with nothing between is the record's. `IsAnchor` accepts the parts, `AnchorBase` gives the record's anchor of a part, `RecordOfAnchor` finds its record in the custom XML part, which, like the document property, names only the record's anchor. The TypeScript SDK has the same (`splitOfficeAnchors`, `officeRecordSpans`).
 
 ## Hooks
 
@@ -167,7 +169,7 @@ Marks never nest. When an agent writes into HTML that already holds a mark -- a 
 
 ## The same in both SDKs
 
-The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there), and read the same files: `reader-text-vectors.json` for the text a reader sees, `edit-kind-vectors.json` for the edit kind and its reason, `mark-split-vectors.json` for marks split by a later write and a record's text read back.
+The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there), and read the same files: `reader-text-vectors.json` for the text a reader sees, `edit-kind-vectors.json` for the edit kind and its reason, `mark-split-vectors.json` for marks split by a later write and a record's text read back, `office-anchor-vectors.json` for Office anchors and their parts, split by a later write, and a record's text read back from them.
 
 | Step | What happens |
 |---|---|

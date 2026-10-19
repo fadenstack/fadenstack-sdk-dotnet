@@ -103,7 +103,8 @@ applied but unverified (`Written`).
 
 Host markers for Word, PowerPoint, Excel and Outlook are level-3 markers written with the Office object model.
 `OfficeMarks` holds their names and formats, so every marker and the server's detector agree: a hidden bookmark or
-name `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of the id) around what was inserted, the
+name `OfficeMarks.AnchorName(id)` (`_faden_ai_` and the first 24 hex digits of the id) around what was inserted (a later
+write inside it splits it into parts `<anchor>_<n>`: `OfficeMarks.SplitAnchors`, read back with `RecordSpans`), the
 signed records in a custom XML part (`OfficeMarks.CustomXmlPart`, namespace `https://fadenstack.com/ns/provenance/1.0`),
 the document property `AI-Generated-Content` as the flag (`DocumentPropertyValue`, at most 255 characters), the
 PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `FadenProvenanceRecord` and the header

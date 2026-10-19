@@ -1,0 +1,979 @@
+{
+  "names": [
+    {
+      "name": "a record's anchor",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "base": "_faden_ai_5a0e2b5c7f3e4a519a406a1c"
+    },
+    {
+      "name": "its second part",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+      "base": "_faden_ai_5a0e2b5c7f3e4a519a406a1c"
+    },
+    {
+      "name": "part 10",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_10",
+      "base": "_faden_ai_5a0e2b5c7f3e4a519a406a1c"
+    },
+    {
+      "name": "part 99, the last: 37 characters",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_99",
+      "base": "_faden_ai_5a0e2b5c7f3e4a519a406a1c"
+    },
+    {
+      "name": "part 100: too long",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_100",
+      "base": null
+    },
+    {
+      "name": "part 1: the anchor itself, never written so",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_1",
+      "base": null
+    },
+    {
+      "name": "part 0",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_0",
+      "base": null
+    },
+    {
+      "name": "a leading zero",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_02",
+      "base": null
+    },
+    {
+      "name": "an underscore and no number",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_",
+      "base": null
+    },
+    {
+      "name": "a number without its underscore: 25 hex digits",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c2",
+      "base": null
+    },
+    {
+      "name": "a letter as the part",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_a",
+      "base": null
+    },
+    {
+      "name": "upper-case hex digits",
+      "anchor": "_faden_ai_5A0E2B5C7F3E4A519A406A1C_3",
+      "base": "_faden_ai_5A0E2B5C7F3E4A519A406A1C"
+    },
+    {
+      "name": "23 hex digits",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1",
+      "base": null
+    },
+    {
+      "name": "dashes of the id",
+      "anchor": "_faden_ai_5a0e-2b5c",
+      "base": null
+    },
+    {
+      "name": "another prefix",
+      "anchor": "faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "base": null
+    },
+    {
+      "name": "an upper-case prefix",
+      "anchor": "_FADEN_AI_5a0e2b5c7f3e4a519a406a1c",
+      "base": null
+    },
+    {
+      "name": "a space after it",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c ",
+      "base": null
+    },
+    {
+      "name": "Word's own hidden bookmark",
+      "anchor": "_Toc123456789",
+      "base": null
+    },
+    {
+      "name": "empty",
+      "anchor": "",
+      "base": null
+    },
+    {
+      "name": "none",
+      "anchor": null,
+      "base": null
+    }
+  ],
+  "parts": [
+    {
+      "name": "the second part",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "part": 2,
+      "result": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2"
+    },
+    {
+      "name": "the last part",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "part": 99,
+      "result": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_99"
+    },
+    {
+      "name": "a part of a part is a part of the anchor",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+      "part": 3,
+      "result": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_3"
+    },
+    {
+      "name": "part 1 is the anchor: refused",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "part": 1,
+      "result": null
+    },
+    {
+      "name": "part 100: refused",
+      "anchor": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "part": 100,
+      "result": null
+    },
+    {
+      "name": "no anchor of ours: refused",
+      "anchor": "_Toc123456789",
+      "part": 2,
+      "result": null
+    }
+  ],
+  "split": [
+    {
+      "name": "inside one paragraph (where: selection, a cursor in R1): R1 in two parts, R2 between them",
+      "text": "Dear Ms Weber, Thank you for your report. We are sorry. We will replace the seal. Kind regards",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 81
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 41,
+          "end": 55
+        }
+      ],
+      "written": [
+        {
+          "start": 41,
+          "end": 55
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 41
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 41,
+          "end": 55
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 55,
+          "end": 81
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Thank you for your report. We will replace the seal.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": " We are sorry."
+      }
+    },
+    {
+      "name": "at R1's start: R1 moves to just after the write, keeping its name",
+      "text": "Dear Ms Weber, Hello. Thank you for your report. Kind regards",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 48
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "written": [
+        {
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 22
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 22,
+          "end": 48
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Thank you for your report.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "Hello. "
+      }
+    },
+    {
+      "name": "at R1's end: Word leaves R2 outside, nothing changes",
+      "text": "Dear Ms Weber, Thank you for your report. We are sorry. Kind regards",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 41
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 41,
+          "end": 55
+        }
+      ],
+      "written": [
+        {
+          "start": 41,
+          "end": 55
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 41
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 41,
+          "end": 55
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Thank you for your report.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": " We are sorry."
+      }
+    },
+    {
+      "name": "after: a paragraph that is not R1's last: the new paragraph mark is the write's too",
+      "text": "Dear Ms Weber,\rFirst paragraph of the reply.\rWe are sorry for the trouble.\rSecond paragraph of the reply.\rThird paragraph.\rKind regards\r",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 122
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 45,
+          "end": 74
+        }
+      ],
+      "written": [
+        {
+          "start": 45,
+          "end": 75
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 45
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 45,
+          "end": 74
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 75,
+          "end": 122
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "First paragraph of the reply.\rSecond paragraph of the reply.\rThird paragraph.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "We are sorry for the trouble."
+      }
+    },
+    {
+      "name": "before: R1's first paragraph: R1 moves after the write and its paragraph mark",
+      "text": "Dear Ms Weber,\rWe are sorry for the trouble.\rFirst paragraph of the reply.\rSecond paragraph.\rKind regards\r",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 92
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 44
+        }
+      ],
+      "written": [
+        {
+          "start": 15,
+          "end": 45
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 44
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 45,
+          "end": 92
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "First paragraph of the reply.\rSecond paragraph.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "We are sorry for the trouble."
+      }
+    },
+    {
+      "name": "replace_text in the middle of R1: the replaced words are gone from R1, the replacement is R2's",
+      "text": "Thank you for your report. Our technician fits a new seal on Tuesday.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 69
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 27,
+          "end": 57
+        }
+      ],
+      "written": [
+        {
+          "start": 27,
+          "end": 57
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 27
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 27,
+          "end": 57
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 57,
+          "end": 69
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Thank you for your report.  on Tuesday.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "Our technician fits a new seal"
+      }
+    },
+    {
+      "name": "replace_text with two matches in R1: both replacements leave R1, R2's anchor is around the first",
+      "text": "The P-200 pump leaks. The P-200 pump stops.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 43
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "written": [
+        {
+          "start": 4,
+          "end": 14
+        },
+        {
+          "start": 26,
+          "end": 36
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 4
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 4,
+          "end": 14
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 14,
+          "end": 26
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_3",
+          "start": 36,
+          "end": 43
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "The  leaks. The  stops.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "P-200 pump"
+      }
+    },
+    {
+      "name": "a write that covers all of R1's text: R1's anchor goes",
+      "text": "Dear Ms Weber, Our new reply. Kind regards",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 15,
+          "end": 29
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 29
+        }
+      ],
+      "written": [
+        {
+          "start": 15,
+          "end": 29
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 15,
+          "end": 29
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": null,
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "Our new reply."
+      }
+    },
+    {
+      "name": "a part split again: the part keeps its name, the rest gets the lowest free part number",
+      "text": "One. Two. Three. Four. Five.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 5
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 5,
+          "end": 10
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 10,
+          "end": 28
+        },
+        {
+          "name": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+          "start": 17,
+          "end": 23
+        }
+      ],
+      "written": [
+        {
+          "start": 17,
+          "end": 23
+        }
+      ],
+      "own": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 5
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 5,
+          "end": 10
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 10,
+          "end": 17
+        },
+        {
+          "name": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+          "start": 17,
+          "end": 23
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_3",
+          "start": 23,
+          "end": 28
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "One. Three. Five.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "Two. ",
+        "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1": "Four. "
+      }
+    },
+    {
+      "name": "a part name another bookmark of the document has is skipped",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 16
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "written": [
+        {
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2"
+      ],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_3",
+          "start": 11,
+          "end": 16
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Alpha gamma",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "beta "
+      }
+    },
+    {
+      "name": "a bookmark that is not ours stays as it is",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_Hlk1",
+          "start": 0,
+          "end": 16
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 16
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "written": [
+        {
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_Hlk1",
+          "start": 0,
+          "end": 16
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 11,
+          "end": 16
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Alpha gamma",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "beta "
+      }
+    },
+    {
+      "name": "an earlier record nested in R1 by an older add-in stays; only the anchors around the write are split",
+      "text": "Alpha beta gamma delta epsilon",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 30
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+          "start": 17,
+          "end": 23
+        }
+      ],
+      "written": [
+        {
+          "start": 17,
+          "end": 23
+        }
+      ],
+      "own": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 17
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1",
+          "start": 17,
+          "end": 23
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 23,
+          "end": 30
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Alpha gamma epsilon",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "beta ",
+        "_faden_ai_7d1e8f203a4b4c5d9e6fa0b1": "delta "
+      }
+    },
+    {
+      "name": "an empty anchor at the place (Word does not grow one) stays",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 6,
+          "end": 6
+        }
+      ],
+      "written": [
+        {
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 6,
+          "end": 6
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": null,
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "beta "
+      }
+    },
+    {
+      "name": "a write in no anchor changes nothing",
+      "text": "Alpha. Beta.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 7,
+          "end": 12
+        }
+      ],
+      "written": [
+        {
+          "start": 7,
+          "end": 12
+        }
+      ],
+      "own": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "taken": [],
+      "after": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 7,
+          "end": 12
+        }
+      ],
+      "records": {
+        "_faden_ai_5a0e2b5c7f3e4a519a406a1c": "Alpha.",
+        "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d": "Beta."
+      }
+    }
+  ],
+  "record_spans": [
+    {
+      "name": "a record's parts in document order, whatever their numbers",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 11,
+          "end": 16
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Alpha gamma"
+    },
+    {
+      "name": "a later record nested in R1 (an older add-in's document) is left out of R1",
+      "text": "Thank you for your report. We are sorry. We will replace the seal.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 66
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 26,
+          "end": 40
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Thank you for your report. We will replace the seal."
+    },
+    {
+      "name": "the nested record's own text",
+      "text": "Thank you for your report. We are sorry. We will replace the seal.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 66
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 26,
+          "end": 40
+        }
+      ],
+      "record": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "record_text": " We are sorry."
+    },
+    {
+      "name": "an anchor around the very same text is not inside it: both records read it",
+      "text": "Same words.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 0,
+          "end": 11
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Same words."
+    },
+    {
+      "name": "the other one reads it too",
+      "text": "Same words.",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 0,
+          "end": 11
+        }
+      ],
+      "record": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+      "record_text": "Same words."
+    },
+    {
+      "name": "an empty part reads nothing",
+      "text": "Alpha",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 5
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 5,
+          "end": 5
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Alpha"
+    },
+    {
+      "name": "a record without an anchor here",
+      "text": "Alpha",
+      "anchors": [
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 0,
+          "end": 5
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": null
+    },
+    {
+      "name": "by the record's id",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_0b6f9a3e1c2d4e5f8a9b0c1d",
+          "start": 6,
+          "end": 11
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 11,
+          "end": 16
+        }
+      ],
+      "record": "5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1",
+      "record_text": "Alpha gamma"
+    },
+    {
+      "name": "an anchor written with upper-case hex digits is the same anchor",
+      "text": "Alpha beta",
+      "anchors": [
+        {
+          "name": "_faden_ai_5A0E2B5C7F3E4A519A406A1C",
+          "start": 0,
+          "end": 6
+        },
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c_2",
+          "start": 6,
+          "end": 10
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Alpha beta"
+    },
+    {
+      "name": "a bookmark that is not ours is not left out",
+      "text": "Alpha beta gamma",
+      "anchors": [
+        {
+          "name": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+          "start": 0,
+          "end": 16
+        },
+        {
+          "name": "_Hlk1",
+          "start": 6,
+          "end": 11
+        }
+      ],
+      "record": "_faden_ai_5a0e2b5c7f3e4a519a406a1c",
+      "record_text": "Alpha beta gamma"
+    }
+  ]
+}
