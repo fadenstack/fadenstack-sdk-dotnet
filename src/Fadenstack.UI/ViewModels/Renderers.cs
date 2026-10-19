@@ -77,13 +77,16 @@ internal sealed class PiiRenderer : IAgentEventRenderer
     private static string Pretty(string type) => type.Replace('_', ' ').ToLowerInvariant();
 }
 
-/// <summary>Events the chat shows elsewhere or not at all, and a generic notice for anything else.</summary>
+/// <summary>
+/// Events the chat shows elsewhere or not at all, and a generic notice for anything else. An answer's receipt
+/// (<c>faden.provenance</c>) is kept with the turn by the session; it is no message for the user.
+/// </summary>
 internal sealed class FallbackRenderer : IAgentEventRenderer
 {
     private static readonly HashSet<string> Handled = new(StringComparer.Ordinal)
     {
         "TOOL_CALL_START", "TOOL_CALL_END", "faden.gateway_round", "faden.approval_required", "faden.tool_denied",
-        "faden.governance", "faden.tool_mode",
+        "faden.governance", "faden.tool_mode", "faden.provenance",
     };
 
     public bool TryRender(FadenstackEventContent e, TurnViewModel turn)

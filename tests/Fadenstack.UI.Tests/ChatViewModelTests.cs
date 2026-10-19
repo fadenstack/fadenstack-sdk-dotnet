@@ -292,6 +292,19 @@ public class ChatViewModelTests
     }
 
     [Fact]
+    public async Task An_answers_receipt_is_no_notice()
+    {
+        var gateway = new Gateway().Then(
+            Gateway.Text("The reply."), Gateway.Finish("stop"),
+            Gateway.Custom("faden.provenance", new { status = "signed", receipt = new { id = "r-1", kind = "text" } }),
+            FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        await chat.SendAsync("Write the reply.");
+        Assert.Equal(new[] { typeof(MarkdownPart) }, chat.Turns.Single().Parts.Select(p => p.GetType()));
+    }
+
+    [Fact]
     public async Task A_ceiling_greys_out_the_wider_modes_and_the_pick_goes_to_the_gateway()
     {
         var gateway = new Gateway(ceiling: "\"read_only\"").Says("Hi.");
