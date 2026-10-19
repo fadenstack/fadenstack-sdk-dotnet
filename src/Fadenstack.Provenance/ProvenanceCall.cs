@@ -27,7 +27,8 @@ namespace Fadenstack.Provenance;
 /// <item>the placement is reported (no content), the observers told, the transcript written.</item>
 /// </list>
 /// A refusal is recorded (<c>provenance.refused</c>) and told to the user as a notice; nothing is signed or reported. An
-/// insert that throws after the record was signed is reported with every layer not applied, so the server's placements
+/// insert that throws after the record was signed is reported as not written (<see cref="PlacementReport.Written"/> false,
+/// its exception's name as <see cref="PlacementReport.Failure"/>) with every layer not applied, so the server's placements
 /// match its records, and its exception goes on. A call whose declared output says it writes no content
 /// (<see cref="ToolOutput.EditKindOf"/> null, no <see cref="MarkableContent.EditKind"/>) is inserted as it is: not
 /// marked, not reported.
@@ -290,7 +291,7 @@ internal sealed class ProvenanceCall : IProvenance
             try
             {
                 // Reported even when the turn stops: the server's placements match its records.
-                await FinishAsync(placement, extra, CancellationToken.None).ConfigureAwait(false);
+                await FinishAsync(placement, extra, CancellationToken.None, PlacementReport.FailureCode(failedInsert.GetType().Name)).ConfigureAwait(false);
             }
             catch (Exception e)
             {
@@ -535,8 +536,11 @@ internal sealed class ProvenanceCall : IProvenance
         throw new ProvenanceRefusedException(message, missing, refused);
     }
 
-    /// <summary>Reports the placement, tells the observers, writes the transcript entry, and counts it for the call.</summary>
-    private async Task FinishAsync(Placement placement, Extra extra, CancellationToken cancellationToken)
+    /// <summary>
+    /// Reports the placement, tells the observers, writes the transcript entry, and counts it for the call. A
+    /// <paramref name="failure"/> (an insert that failed after the record was signed) reports it as not written.
+    /// </summary>
+    private async Task FinishAsync(Placement placement, Extra extra, CancellationToken cancellationToken, string? failure = null)
     {
         lock (_placements)
         {
@@ -551,6 +555,9 @@ internal sealed class ProvenanceCall : IProvenance
             EditKind = placement.EditKind,
             LengthClass = placement.LengthClass,
             Layers = placement.Layers.Take(32).Select(l => l.ToLayer()).ToList(),
+            // Only then: a server that does not know the fields yet takes every other report as before.
+            Written = failure is null ? null : false,
+            Failure = failure,
         };
         var reported = false;
         if (_call.Agent is { } agent)

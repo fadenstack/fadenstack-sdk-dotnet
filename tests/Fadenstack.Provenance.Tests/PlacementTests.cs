@@ -60,6 +60,7 @@ public class PlacementTests
         Assert.Contains(("watermark", "vllm-gumbel", true), layers);
         Assert.Equal((id, "insert_reply", "html.editor", "medium"), (report.Json.GetProperty("record_id").GetString(),
             report.Json.GetProperty("tool").GetString(), report.Json.GetProperty("sink_kind").GetString(), report.Json.GetProperty("length_class").GetString()));
+        Assert.False(report.Json.TryGetProperty("written", out _) || report.Json.TryGetProperty("failure", out _)); // written: the default
 
         var reported = report.Json.GetProperty("layers").EnumerateArray().ToList();
         Assert.True(reported.Single(l => l.GetProperty("method").GetString() == "html-attribute").GetProperty("verified").GetBoolean());
@@ -491,6 +492,9 @@ public class PlacementTests
         Assert.Contains("The field is gone.", completed.GetProperty("result").GetString());
         var report = Assert.Single(gateway.Placements).Json;
         Assert.Equal("5a0e2b5c-7f3e-4a51-9a40-000000000001", report.GetProperty("record_id").GetString());
+        // Not written: the engine marks the record so. The exception's name only, never its message.
+        Assert.Equal((false, "InvalidOperationException"), (report.GetProperty("written").GetBoolean(), report.GetProperty("failure").GetString()));
+        Assert.DoesNotContain("field is gone", report.GetRawText());
         var layers = report.GetProperty("layers").EnumerateArray()
             .Select(l => (l.GetProperty("layer").GetString()!, l.GetProperty("method").GetString()!, l.GetProperty("applied").GetBoolean(), l.TryGetProperty("reason", out _)))
             .ToList();

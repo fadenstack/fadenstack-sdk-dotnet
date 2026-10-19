@@ -85,6 +85,21 @@
       "title": "Edit Kind",
       "type": "string"
     },
+    "failure": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "only with written false: the error's name as a short code, never its message or any content",
+      "title": "Failure"
+    },
     "layers": {
       "items": {
         "$ref": "#/$defs/LayerOutcome"
@@ -126,6 +141,12 @@
     "tool": {
       "title": "Tool",
       "type": "string"
+    },
+    "written": {
+      "default": true,
+      "description": "false only for an insert that failed after the record was signed: the record is marked not written",
+      "title": "Written",
+      "type": "boolean"
     }
   },
   "required": [

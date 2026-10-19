@@ -103,6 +103,22 @@ public class ProvenanceTests
     }
 
     [Fact]
+    public void A_placement_report_leaves_written_and_failure_out_unless_its_insert_failed()
+    {
+        var plain = JsonSerializer.SerializeToElement(new PlacementReport { Tool = "t", SinkKind = "s", MediaType = "text/plain" }, FadenstackJson.Options);
+        Assert.False(plain.TryGetProperty("written", out _) || plain.TryGetProperty("failure", out _));
+        var failed = JsonSerializer.SerializeToElement(new PlacementReport
+        {
+            Tool = "t", SinkKind = "s", MediaType = "text/plain", Written = false, Failure = "InvalidOperationException",
+        }, FadenstackJson.Options);
+        Assert.Equal((false, "InvalidOperationException"), (failed.GetProperty("written").GetBoolean(), failed.GetProperty("failure").GetString()));
+        var properties = Schema("placement-report").GetProperty("properties");
+        Assert.True(properties.GetProperty("written").GetProperty("default").GetBoolean());
+        var failure = properties.GetProperty("failure").GetProperty("anyOf")[0];
+        Assert.Equal((PlacementReport.FailurePattern, 64), (failure.GetProperty("pattern").GetString(), failure.GetProperty("maxLength").GetInt32()));
+    }
+
+    [Fact]
     public void A_record_request_is_the_schemas_without_the_agent_which_the_route_sets() =>
         SameFields(typeof(RecordRequest), Schema("record-request"), "agent");
 

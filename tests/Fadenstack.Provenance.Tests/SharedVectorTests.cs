@@ -118,4 +118,26 @@ public class SharedVectorTests
         Assert.Equal(3, TokenEstimate.Of("abcdefghi"));
         Assert.Equal(5, TokenEstimate.Of("人工智能 abc")); // four CJK characters and four others
     }
+
+    public static TheoryData<string?, string> FailureNames => new()
+    {
+        { "RangeError", "RangeError" },
+        { "InvalidOperationException", "InvalidOperationException" },
+        { "InsertFailedException`1", "InsertFailedException_1" },
+        { "Host error: field gone!", "Host_error:_field_gone_" },
+        { "Fehler.beim-Einfügen", "Fehler.beim-Einf_gen" },
+        { "📎Error", "__Error" },
+        { new string('A', 70), new string('A', 64) },
+        { "", "Error" },
+        { null, "Error" },
+    };
+
+    [Theory]
+    [MemberData(nameof(FailureNames))]
+    public void A_failed_placements_code_is_the_errors_name_with_an_underscore_for_each_other_utf16_unit_64_at_most_Error_for_none(
+        string? name, string code)
+    {
+        Assert.Equal(code, PlacementReport.FailureCode(name));
+        Assert.Matches(PlacementReport.FailurePattern, code);
+    }
 }

@@ -37,7 +37,7 @@ public Task<string> InsertReplyAsync(string text, IProvenance provenance, Cancel
 
 It returns a `Placement`: the record, the layers, and the layers the content needed that did not hold (`Missing`). Its `Summary` is a line for the model.
 
-**When the insert fails.** If your insert throws after the server signed the record, the placement is still reported and recorded -- the record's id, every layer `Applied = false` (the transcript's `detail` says `insert failed: <exception>`) -- so the server's placements match its records; then `PlaceAsync` throws your exception on.
+**When the insert fails.** If your insert throws after the server signed the record, the placement is still reported and recorded -- the record's id, every layer `Applied = false` (the transcript's `detail` says `insert failed: <exception>`) -- so the server's placements match its records; then `PlaceAsync` throws your exception on. The report says it was not written (`Written = false`, `written: false` on the wire) and names the exception by a short code (`Failure`: its type's name, other characters as `_`, at most 64), never by its message; the server marks the record "not written".
 
 **Arguments that are not content.** A tool that writes text for people in one call and picks an option or ticks a check box in another says so per call: its `EditKindFrom` method returns `EditKind?`, null for a call whose argument is not content (see [Content for people](tools.md#content-for-people)). For such a call `PlaceAsync` inserts the value as it is -- no record, no mark, no report, no transcript entry -- and returns a placement with `Exempt` and `ExemptBecause` `not-content`; a call that does not use `PlaceAsync` at all is not recorded as unmarked. An `EditKind` on the content makes it content again.
 
@@ -170,7 +170,7 @@ The .NET and the TypeScript SDK follow one order, one rule for what content need
 | 3 | The markers that fit, by layer; the built-ins in this order: `server-record`, `image-guard`, `watermark-status`, `html-attribute`, `front-matter`, `key-value`, `sidecar`, `http-header`; then yours; the policy's label when none of them is a label |
 | 4 | The needed layers checked before signing; `refuse` refuses here |
 | 5 | The record signed; without one no marker runs, `{ metadata, signed-record, applied: false, reason: server-unavailable }`; `refuse` refuses here when the content needs metadata (or a label) |
-| 6 | Prepare, insert, attach; the pipeline adds `host`, `sink-cannot-carry` when no host marker fits, and the watermark from the receipt when no marker gave it; the layers sorted by layer. An insert that throws after signing: every layer `applied: false` (detail `insert failed: <error>`), reported, then thrown on |
+| 6 | Prepare, insert, attach; the pipeline adds `host`, `sink-cannot-carry` when no host marker fits, and the watermark from the receipt when no marker gave it; the layers sorted by layer. An insert that throws after signing: every layer `applied: false` (detail `insert failed: <error>`), reported with `written: false` and `failure`, then thrown on |
 | 7 | Report, observers, transcript |
 
 | Where | The mark |

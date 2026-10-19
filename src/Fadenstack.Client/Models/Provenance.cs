@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Fadenstack.Tools;
 
 namespace Fadenstack.Models;
@@ -216,6 +217,31 @@ public sealed record PlacementReport
     public LengthClass LengthClass { get; init; }
 
     public List<LayerOutcome> Layers { get; init; } = new();
+
+    /// <summary>
+    /// False only for an insert that failed after the record was signed: the server marks the record "not written". Null
+    /// otherwise, which the wire leaves out and the server reads as true (the default), so a server that does not know
+    /// the field yet still takes the report.
+    /// </summary>
+    public bool? Written { get; init; }
+
+    /// <summary>Only with <see cref="Written"/> false: the exception's name as a short code (<see cref="FailureCode"/>), never its message.</summary>
+    public string? Failure { get; init; }
+
+    /// <summary>What a <see cref="Failure"/> may be: a name of letters, digits and <c>_.:-</c>, at most 64 of them.</summary>
+    public const string FailurePattern = "^[A-Za-z0-9_.:-]{1,64}$";
+
+    private static readonly Regex NotInFailure = new("[^A-Za-z0-9_.:-]", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// A name as a <see cref="Failure"/>: every other character as <c>_</c> (each UTF-16 unit, as the TypeScript SDK counts
+    /// them), cut to 64, <c>Error</c> when nothing is left. A name says what failed without anything of what was written.
+    /// </summary>
+    public static string FailureCode(string? name)
+    {
+        var code = NotInFailure.Replace(name ?? "", "_");
+        return code.Length == 0 ? "Error" : code.Length > 64 ? code.Substring(0, 64) : code;
+    }
 }
 
 /// <summary>The marking policy of an agent (<c>GET /v1/agents/{agent}/provenance/policy</c>); local options may only tighten it.</summary>
