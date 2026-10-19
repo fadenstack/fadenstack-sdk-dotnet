@@ -181,6 +181,12 @@ public sealed class UiStrings
     /// <summary>"3 values kept from the model: 2 person, 1 email".</summary>
     public string PiiMessage(int total, string list) => Fill2(total, list, total == 1 ? "PiiMessage_One" : "PiiMessage_Other");
 
+    /// <summary>A model call ended with no text and no tool call (<c>empty_answer</c>): what the notice says, and that Try again may help.</summary>
+    public string EmptyAnswer => Text();
+
+    /// <summary>The same when the model ran out of tokens first (<c>empty_answer</c>, <c>length</c>), often while thinking.</summary>
+    public string EmptyAnswerLength => Text();
+
     // -- reasoning and references --------------------------------------------------------------------
 
     public string Thinking => Text();

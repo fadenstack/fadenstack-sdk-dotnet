@@ -1,10 +1,12 @@
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Client.Tests;
 using Fadenstack.Governance;
 using Fadenstack.Models;
 using Fadenstack.Tools;
+using Microsoft.Extensions.AI;
 using Xunit;
 
 namespace Fadenstack.Agents.Tests;
@@ -594,6 +596,115 @@ public class NoToolResultTests
         var returned = new[] { "", "", "", " \n\t\u3000", "[]", "{}", "Error: " };
         Assert.Equal(returned, shown);
         Assert.Equal(returned, session.Transcript.Where(e => e.Type == EntryTypes.ToolComplete).Select(e => e.Data.GetProperty("result").GetString()));
+    }
+}
+
+/// <summary>A model call that ends with no text and no tool call: the user is told, and why when the model ran out of length.</summary>
+public class EmptyAnswerTests
+{
+    private static readonly GovernanceNotice Empty = new() { Outcome = "empty_answer", Stage = "output", Message = "The model ended without an answer." };
+
+    private static string Reasoning(string text) =>
+        FakeServer.Data(new { id = "c1", choices = new[] { new { index = 0, delta = new { reasoning_content = text } } } });
+
+    [Fact]
+    public async Task The_user_is_told_that_no_answer_came_back_also_for_white_space_only()
+    {
+        var gateway = new Gateway()
+            .Then(Reasoning("Let me think about this for a long time."), Gateway.Finish("stop"), FakeServer.Done)
+            .Then(Gateway.Text(" \n\n"), Gateway.Finish("stop"), FakeServer.Done);
+        using var agent = gateway.Builder().Build();
+        var session = await agent.StartSessionAsync();
+        var raised = new List<GovernanceNotice>();
+
+        AgentResult? result = null;
+        await foreach (var e in session.StreamAsync("Summarise the report."))
+        {
+            if (e is NoticeRaised n)
+            {
+                raised.Add(n.Notice);
+            }
+            result = (e as TurnCompleted)?.Result ?? result;
+        }
+
+        Assert.Equal(new[] { Empty }, raised);
+        Assert.Equal((ChatOutcome.Completed, Empty), (result!.Outcome, Assert.Single(result.Notices)));
+        var kept = Assert.Single(session.Transcript, e => e.Type == EntryTypes.GovernanceNotice).Data;
+        Assert.Equal(new[] { "message", "outcome", "stage" }, kept.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+        Assert.Equal(Empty, Assert.Single((await session.SendAsync("Again.")).Notices));
+    }
+
+    [Fact]
+    public async Task It_says_when_the_model_used_up_its_length_first_also_after_a_tool_call()
+    {
+        var gateway = new Gateway()
+            .Calls(("call-1", "read_page", """{"page":7}"""))
+            .Then(Reasoning("Thinking it over."), Gateway.Finish("length"), FakeServer.Done);
+        using var agent = gateway.Builder().AddTools(new PageTools()).Build();
+
+        var result = await (await agent.StartSessionAsync()).SendAsync("What is on page 7?");
+
+        Assert.Equal(new GovernanceNotice
+        {
+            Outcome = "empty_answer", Stage = "output", Category = "length", Message = "The model used up its length before it wrote an answer.",
+        }, Assert.Single(result.Notices));
+    }
+
+    public static TheoryData<string> Answers => new() { "answer", "tool call", "cut off", "answer refused", "prompt refused" };
+
+    [Theory]
+    [MemberData(nameof(Answers))]
+    public async Task There_is_no_such_notice_for_an_answer_a_tool_call_a_cut_off_answer_or_a_refusal(string answer)
+    {
+        var gateway = new Gateway();
+        _ = answer switch
+        {
+            "answer" => gateway.Says("Here."),
+            "tool call" => gateway.Calls(("call-1", "read_page", """{"page":7}""")).Says("Page 7 has a table."),
+            "cut off" => gateway.Then(Gateway.Text("The first half"), Gateway.Finish("length"), FakeServer.Done),
+            "answer refused" => gateway.Then(Gateway.Custom("faden.governance", new { outcome = "response_blocked", stage = "output", message = "Stopped." }),
+                Gateway.Finish("content_filter"), FakeServer.Done),
+            _ => gateway.Then(_ => FakeServer.Respond((HttpStatusCode)422, new
+            {
+                error = new { type = "governance_error", code = "policy_blocked", message = "No secrets." },
+                faden = new { governance = new { outcome = "prompt_blocked", stage = "input", message = "No secrets." } },
+            })),
+        };
+        using var agent = gateway.Builder().AddTools(new PageTools()).Build();
+
+        var result = await (await agent.StartSessionAsync()).SendAsync("Go.");
+
+        Assert.DoesNotContain(result.Notices, n => n.Outcome == "empty_answer");
+    }
+
+    /// <summary>A model that thinks and does not end until the turn is stopped.</summary>
+    private sealed class ThinksForever(IChatClient inner) : DelegatingChatClient(inner)
+    {
+        public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            yield return new ChatResponseUpdate(ChatRole.Assistant, new List<AIContent> { new TextReasoningContent("Thinking it over.") });
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task There_is_none_for_a_turn_the_user_stopped()
+    {
+        var gateway = new Gateway();
+        using var agent = gateway.Builder().AddChatStage(0, c => new ThinksForever(c)).Build();
+        var session = await agent.StartSessionAsync();
+
+        await foreach (var e in session.StreamAsync("Go."))
+        {
+            if (e is ReasoningDelta)
+            {
+                break; // the user stops it
+            }
+        }
+
+        Assert.Equal(TurnStatus.Cancelled, session.Transcript.Last(e => e.Type == EntryTypes.TurnEnd).Status);
+        Assert.DoesNotContain(session.Transcript, e => e.Type == EntryTypes.GovernanceNotice);
     }
 }
 

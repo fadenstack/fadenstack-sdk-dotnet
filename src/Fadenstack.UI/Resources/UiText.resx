@@ -238,6 +238,10 @@
     <value>Stopped</value>
     <comment>A notice's title, by the server's outcome</comment>
   </data>
+  <data name="Notice_empty_answer" xml:space="preserve">
+    <value>No answer came back</value>
+    <comment>A notice's title: a model call ended with no text and no tool call</comment>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>Notice</value>
     <comment>A notice's title the chat does not know</comment>
@@ -261,6 +265,14 @@
   <data name="PiiMessage_Other" xml:space="preserve">
     <value>{0} values kept from the model: {1}</value>
     <comment>{0}: how many; {1}: the kinds, e.g. 2 person, 1 email</comment>
+  </data>
+  <data name="EmptyAnswer" xml:space="preserve">
+    <value>The model ended without writing an answer. You can try again.</value>
+    <comment>The notice of a model call that ended with no text and no tool call; Try again is offered beside it</comment>
+  </data>
+  <data name="EmptyAnswerLength" xml:space="preserve">
+    <value>The model reached its length limit before it wrote an answer, for example while thinking. You can try again.</value>
+    <comment>The same, when the model ran out of tokens first (finish reason length)</comment>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>Thinking...</value>

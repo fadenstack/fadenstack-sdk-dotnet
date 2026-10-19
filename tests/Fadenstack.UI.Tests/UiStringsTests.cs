@@ -68,7 +68,7 @@ public class UiStringsTests
                 Assert.False(text.Length == 0 || text.Contains('{') || Regex.IsMatch(text, @"^[A-Z][A-Za-z]+_[A-Za-z]+"), $"{language}: {method.Name}({string.Join(", ", args)}) = '{text}'");
             }
         }
-        foreach (var outcome in new[] { "prompt_blocked", "response_blocked", "tool_denied", "rate_limited", "round_limit" })
+        foreach (var outcome in new[] { "prompt_blocked", "response_blocked", "tool_denied", "rate_limited", "round_limit", "empty_answer" })
         {
             Assert.NotNull(strings.NoticeTitle(outcome));
         }

@@ -398,9 +398,11 @@ public sealed class AgentSession
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();
             var receipts = new List<ProvenanceReceiptContent>();
+            ChatFinishReason? finish = null;
             await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
                 .ConfigureAwait(false))
             {
+                finish = update.FinishReason ?? finish;
                 foreach (var content in update.Contents)
                 {
                     switch (content)
@@ -455,8 +457,24 @@ public sealed class AgentSession
             {
                 await NoticeAsync(_blocked).ConfigureAwait(false);
             }
+            else if (calls.Count == 0 && string.IsNullOrWhiteSpace(text.ToString()) && !cancellationToken.IsCancellationRequested)
+            {
+                // A model that thought and then wrote nothing would leave the user with nothing at all on screen.
+                await NoticeAsync(EmptyAnswer(finish)).ConfigureAwait(false);
+            }
             return calls;
         }
+
+        /// <summary>
+        /// The notice for a model call that ended with no text and no tool call (<c>empty_answer</c>); <c>length</c> when
+        /// the model ran out of tokens first, often while thinking. The UI says it in the user's language and offers to try again.
+        /// </summary>
+        private static GovernanceNotice EmptyAnswer(ChatFinishReason? finish) => finish == ChatFinishReason.Length
+            ? new GovernanceNotice
+            {
+                Outcome = "empty_answer", Stage = "output", Category = "length", Message = "The model used up its length before it wrote an answer.",
+            }
+            : new GovernanceNotice { Outcome = "empty_answer", Stage = "output", Message = "The model ended without an answer." };
 
         private async Task OnGatewayEventAsync(FadenstackEventContent e, CancellationToken cancellationToken)
         {

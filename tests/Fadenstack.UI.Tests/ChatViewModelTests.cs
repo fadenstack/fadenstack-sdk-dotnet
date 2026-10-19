@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Fadenstack.Agents;
 using Fadenstack.Agents.Sessions;
@@ -229,6 +230,50 @@ public class ChatViewModelTests
         Assert.Equal(ToolCallState.Cancelled, turn.Parts.OfType<ToolCallPart>().Single().State);
         Assert.True(turn.RetryCommand.CanExecute(null));
         Assert.False(chat.IsBusy);
+    }
+
+    private static string Reasoning(string text) =>
+        FakeServer.Data(new { id = "c1", choices = new[] { new { index = 0, delta = new { reasoning_content = text } } } });
+
+    [Fact]
+    public async Task It_says_when_no_answer_came_back_and_offers_to_try_again_as_for_a_failed_turn()
+    {
+        var gateway = new Gateway().Then(Reasoning("Thinking it over."), Gateway.Finish("stop"), FakeServer.Done).Says("Here it is.");
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+
+        await chat.SendAsync("Summarise");
+
+        var turn = Assert.Single(chat.Turns);
+        Assert.Equal(TurnState.Completed, turn.State);
+        var notice = Assert.Single(turn.Parts.OfType<NoticePart>());
+        Assert.Equal((NoticeSeverity.Warning, "No answer came back", "The model ended without writing an answer. You can try again."),
+            (notice.Severity, notice.Title, notice.Message));
+        Assert.True(turn.RetryCommand.CanExecute(null));
+        await turn.RetryCommand.ExecuteAsync(null);
+        Assert.Equal(new[] { "Summarise", "Summarise" }, chat.Turns.Select(t => t.UserText));
+        Assert.Equal("Here it is.", chat.Turns[1].AnswerText);
+        Assert.False(chat.Turns[1].RetryCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task It_says_when_the_model_used_up_its_length_in_the_panels_language_also_in_a_chat_opened_again()
+    {
+        var store = new MemorySessionStore();
+        var (chat, _, _) = Chat(new Gateway().Then(Reasoning("Thinking it over."), Gateway.Finish("length"), FakeServer.Done), store);
+        await chat.InitializeAsync();
+        await chat.SendAsync("Summarise");
+        Assert.Equal("The model reached its length limit before it wrote an answer, for example while thinking. You can try again.",
+            chat.Turns[0].Parts.OfType<NoticePart>().Single().Message);
+
+        var german = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+        var (again, _, _) = Chat(new Gateway(), store, o => o.Strings = german);
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(chat.CurrentSessionId!);
+        var turn = Assert.Single(again.Turns);
+        var notice = turn.Parts.OfType<NoticePart>().Single();
+        Assert.Equal(("Keine Antwort erhalten", german.EmptyAnswerLength), (notice.Title, notice.Message));
+        Assert.True(turn.RetryCommand.CanExecute(null));
     }
 
     [Fact]

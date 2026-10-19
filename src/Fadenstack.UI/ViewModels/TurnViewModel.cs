@@ -39,6 +39,9 @@ public sealed class TurnViewModel : ObservableObject
     private long? _tokens;
     private TimeSpan? _elapsed;
 
+    /// <summary>A model call of the turn ended with nothing (<c>empty_answer</c>): Try again is offered, as for a failed turn.</summary>
+    private bool _unanswered;
+
     internal TurnViewModel(AgentChatViewModel? chat, string userText, DateTimeOffset timestamp, int previewLength, TurnState state = TurnState.Running)
     {
         _chat = chat;
@@ -50,7 +53,7 @@ public sealed class TurnViewModel : ObservableObject
         CopyCommand = new RelayCommand(Copy, () => AnswerText.Length > 0);
         EditCommand = new RelayCommand(() => _chat?.Edit(UserText), () => _chat is not null && !IsRunning);
         RetryCommand = new AsyncRelayCommand(() => _chat?.SendAsync(UserText) ?? Task.CompletedTask,
-            () => _chat is not null && !IsRunning && _state is TurnState.Failed or TurnState.Stopped);
+            () => _chat is not null && !IsRunning && (_state is TurnState.Failed or TurnState.Stopped || (_state == TurnState.Completed && _unanswered)));
     }
 
     public string? Id { get; internal set; }
@@ -231,7 +234,14 @@ public sealed class TurnViewModel : ObservableObject
         {
             State = TurnState.Blocked;
         }
+        _unanswered |= notice.Outcome == "empty_answer";
         AddPart(NoticePart.From(notice, _strings));
+    }
+
+    internal void AddRestoredNotice(GovernanceNotice notice)
+    {
+        _unanswered |= notice.Outcome == "empty_answer";
+        Parts.Add(NoticePart.From(notice, _strings));
     }
 
     internal void Complete(AgentResult result, DateTimeOffset now)

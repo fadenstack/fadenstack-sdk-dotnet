@@ -94,14 +94,14 @@ internal static class TranscriptTurns
                     turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength, chat.Strings));
                     break;
                 case EntryTypes.GovernanceNotice:
-                    turn.Parts.Add(NoticePart.From(new GovernanceNotice
+                    turn.AddRestoredNotice(new GovernanceNotice
                     {
                         Outcome = Json.Str(d, "outcome") ?? "",
                         Stage = Json.Str(d, "stage"),
                         Category = Json.Str(d, "category"),
                         Message = Json.Str(d, "message") ?? "",
                         DecisionId = Json.Str(d, "decision_id"),
-                    }, chat.Strings));
+                    });
                     break;
                 case EntryTypes.TurnEnd:
                     state = entry.Status switch

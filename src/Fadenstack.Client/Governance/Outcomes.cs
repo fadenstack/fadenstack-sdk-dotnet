@@ -27,7 +27,7 @@ public enum ChatOutcome
 /// <summary>What the user is told about a refusal, and what an auditor finds it by.</summary>
 public sealed record GovernanceNotice
 {
-    /// <summary><c>prompt_blocked</c>, <c>response_blocked</c>, <c>tool_denied</c>, <c>rate_limited</c>, ...</summary>
+    /// <summary><c>prompt_blocked</c>, <c>response_blocked</c>, <c>tool_denied</c>, <c>rate_limited</c>, <c>round_limit</c>, <c>empty_answer</c>, ...</summary>
     public string Outcome { get; init; } = "";
 
     /// <summary><c>input</c>, <c>output</c>, <c>tool</c>.</summary>

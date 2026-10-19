@@ -181,6 +181,9 @@
   <data name="Notice_round_limit" xml:space="preserve">
     <value>已停止</value>
   </data>
+  <data name="Notice_empty_answer" xml:space="preserve">
+    <value>未收到回答</value>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>提示</value>
   </data>
@@ -198,6 +201,12 @@
   </data>
   <data name="PiiMessage_Other" xml:space="preserve">
     <value>已对模型隐藏 {0} 个值：{1}</value>
+  </data>
+  <data name="EmptyAnswer" xml:space="preserve">
+    <value>模型结束时没有写出回答。您可以重试。</value>
+  </data>
+  <data name="EmptyAnswerLength" xml:space="preserve">
+    <value>模型在写出回答之前已达到长度上限，例如在思考时。您可以重试。</value>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>思考中…</value>

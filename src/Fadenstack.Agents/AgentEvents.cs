@@ -37,7 +37,7 @@ public sealed record ApprovalRequested(ApprovalRequest Request) : AgentEvent;
 
 public sealed record ApprovalDecided(ApprovalRequest Request, ApprovalDecision Decision) : AgentEvent;
 
-/// <summary>A refusal or a limit, to show on the turn.</summary>
+/// <summary>A refusal, a limit, or a model call that ended with nothing (<c>empty_answer</c>), to show on the turn.</summary>
 public sealed record NoticeRaised(GovernanceNotice Notice) : AgentEvent;
 
 /// <summary>Every gateway event as it came, also the ones turned into tool or notice events (citations, PII notice,

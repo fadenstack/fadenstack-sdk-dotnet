@@ -181,6 +181,9 @@
   <data name="Notice_round_limit" xml:space="preserve">
     <value>Arrêtée</value>
   </data>
+  <data name="Notice_empty_answer" xml:space="preserve">
+    <value>Aucune réponse reçue</value>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>Remarque</value>
   </data>
@@ -198,6 +201,12 @@
   </data>
   <data name="PiiMessage_Other" xml:space="preserve">
     <value>{0} valeurs tenues à l'écart du modèle : {1}</value>
+  </data>
+  <data name="EmptyAnswer" xml:space="preserve">
+    <value>Le modèle s'est arrêté sans écrire de réponse. Vous pouvez réessayer.</value>
+  </data>
+  <data name="EmptyAnswerLength" xml:space="preserve">
+    <value>Le modèle a atteint sa limite de longueur avant d'écrire une réponse, par exemple pendant sa réflexion. Vous pouvez réessayer.</value>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>Réflexion…</value>
