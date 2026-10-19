@@ -204,7 +204,7 @@ internal sealed class ReceiptStage : DelegatingChatClient
 /// through <see cref="IProvenance.PlaceAsync"/>. One that did not is recorded as <c>provenance.unmarked</c> and reported
 /// without a record (<c>sink_kind</c> <c>unmarked</c>, no layers); in development mode the call fails, so an integrator
 /// cannot miss it. Content exempt from marking (the policy's internal switch, an exempt edit kind, code, a label) is
-/// left alone.
+/// left alone, and so is a call whose declaration says it writes no content (<see cref="ToolOutput.EditKindOf"/> null).
 /// </summary>
 internal sealed class OutputCheckStage : IToolStage
 {
@@ -236,7 +236,7 @@ internal sealed class OutputCheckStage : IToolStage
         foreach (var output in unmarked)
         {
             var text = TextOf(invocation.Arguments.TryGetValue(output.Argument, out var value) ? value : null);
-            var kind = output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments));
+            var kind = output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments)) ?? EditKind.Generated;
             var tokens = _state.Options.CountTokens(text);
             var length = tokens < policy.ShortTextTokens ? LengthClass.Short : tokens < policy.ShortTextTokens * 5 ? LengthClass.Medium : LengthClass.Long;
             var reported = await ReportAsync(invocation, new PlacementReport
@@ -264,7 +264,7 @@ internal sealed class OutputCheckStage : IToolStage
     private static bool IsExempt(ToolOutput output, ToolInvocation invocation, ProvenancePolicy policy)
     {
         if (policy.InternalTechnical || MediaTypes.IsCode(output.MediaType)
-            || policy.ExemptEditKinds.Contains(output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments))))
+            || (output.EditKindFor(new Dictionary<string, object?>(invocation.Arguments)) is { } kind && policy.ExemptEditKinds.Contains(kind)))
         {
             return true;
         }
@@ -303,15 +303,20 @@ internal sealed class OutputCheckStage : IToolStage
         }
     }
 
-    /// <summary>The declared outputs that carried content and were not placed: by argument name first, then in order.</summary>
+    /// <summary>
+    /// The declared outputs that carried content and were not placed: by argument name first, then in order. An output
+    /// whose <see cref="ToolOutput.EditKindOf"/> says this call writes no content is none.
+    /// </summary>
     internal static List<ToolOutput> Unplaced(ToolInvocation invocation, IReadOnlyList<Placement> placements)
     {
         var named = new HashSet<string>(placements.Where(p => p.Argument is not null).Select(p => p.Argument!), StringComparer.Ordinal);
         var unnamed = placements.Count(p => p.Argument is null);
         var unplaced = new List<ToolOutput>();
+        var arguments = new Dictionary<string, object?>(invocation.Arguments);
         foreach (var output in invocation.Tool.Outputs)
         {
-            if (!invocation.Arguments.TryGetValue(output.Argument, out var value) || IsEmpty(value) || named.Contains(output.Argument))
+            if (!invocation.Arguments.TryGetValue(output.Argument, out var value) || IsEmpty(value) || named.Contains(output.Argument)
+                || !output.IsContentFor(arguments))
             {
                 continue;
             }

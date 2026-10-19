@@ -35,6 +35,13 @@ public static class OfficeMarks
     /// <summary>A hidden bookmark (Word) or hidden name (Excel) starts with this; an underscore hides it.</summary>
     public const string AnchorPrefix = "_faden_ai_";
 
+    /// <summary>
+    /// The host value (<see cref="MarkableContent.HostValues"/>) a Word or Excel marker's <c>PrepareAsync</c> sets to the
+    /// anchor's name (<see cref="AnchorName"/>), so the insert makes the bookmark or name together with the content, in one
+    /// undo entry. The TypeScript SDK's <c>OfficeMarks.anchorValue</c> is the same.
+    /// </summary>
+    public const string AnchorValue = "office.anchor";
+
     /// <summary>The PowerPoint shape and slide tag that holds the record's id.</summary>
     public const string ShapeTag = "FADEN_AI_RECORD";
 

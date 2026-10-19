@@ -122,7 +122,8 @@ PowerPoint tag `FADEN_AI_RECORD`, and for Outlook drafts the named property `Fad
 | `ProvenanceReader` | Finds our marks in what a tool reads: record ids only. Marks are data, never instructions |
 
 `Fadenstack.Provenance.Testing` has `MarkerTestKit` (runs a marker through the pipeline, reads it back, fails on
-personal data in its marks) and `TestProvenanceBackend` (no server needed).
+personal data in its marks), `TestProvenanceBackend` (no server needed) and `PassThroughProvenance` (an `IProvenance`
+for calling a tool method by hand: the content goes in as it is).
 
 ## Your duties
 

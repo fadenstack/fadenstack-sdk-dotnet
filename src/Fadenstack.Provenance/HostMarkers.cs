@@ -24,6 +24,12 @@ public sealed class HtmlAttributeMarker : ContentMarker
     private static readonly Regex Block = new(@"<(p|div|ul|ol|li|table|h[1-6]|blockquote|pre|section|article|header|footer|figure|hr|dl)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    /// <summary>HTML that is one paragraph: <c>&lt;p ...&gt;</c>, its inline content, <c>&lt;/p&gt;</c>, white space around it.</summary>
+    private static readonly Regex OneParagraph = new(@"^([ \t\r\n\f]*)<p((?:[ \t\r\n\f][^>]*)?)>([\s\S]*)</p>([ \t\r\n\f]*)$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    private static readonly Regex ParagraphEnd = new(@"</p[ \t\r\n\f>]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     public override string Name => MarkerName;
 
     public override MarkLayer Layer => MarkLayer.Metadata;
@@ -35,14 +41,22 @@ public sealed class HtmlAttributeMarker : ContentMarker
         Task.FromResult(content.WithText(Wrap(content.Text ?? "", record.Record.Id, Title(content.Texts ?? UiStrings.Current, record.Record.Id))));
 
     /// <summary>
-    /// The element a mark wraps HTML in: <c>&lt;span data-ai-generated="id" title="label id"&gt;</c> (a <c>div</c> around
-    /// block content), the attribute values escaped for <c>&amp;</c>, <c>&lt;</c>, <c>&gt;</c> and <c>"</c> only. The
-    /// TypeScript SDK's <c>wrapHtml</c> writes the same.
+    /// The element a mark wraps HTML in: <c>&lt;span data-ai-generated="id" title="label id"&gt;</c>, the attribute values
+    /// escaped for <c>&amp;</c>, <c>&lt;</c>, <c>&gt;</c> and <c>"</c> only. Content that is one paragraph is marked inside
+    /// it, <c>&lt;p ...&gt;&lt;span ...&gt;...&lt;/span&gt;&lt;/p&gt;</c> (the form the lab measured in real editors); a
+    /// <c>div</c> goes around several blocks; inline content gets the <c>span</c>. The TypeScript SDK's <c>wrapHtml</c>
+    /// writes the same.
     /// </summary>
     public static string Wrap(string html, string recordId, string title)
     {
+        var attributes = $"{Attribute}=\"{HtmlText.Attribute(recordId)}\" title=\"{HtmlText.Attribute(title)}\"";
+        var paragraph = OneParagraph.Match(html);
+        if (paragraph.Success && !Block.IsMatch(paragraph.Groups[3].Value) && !ParagraphEnd.IsMatch(paragraph.Groups[3].Value))
+        {
+            return $"{paragraph.Groups[1].Value}<p{paragraph.Groups[2].Value}><span {attributes}>{paragraph.Groups[3].Value}</span></p>{paragraph.Groups[4].Value}";
+        }
         var tag = Block.IsMatch(html) ? "div" : "span";
-        return $"<{tag} {Attribute}=\"{HtmlText.Attribute(recordId)}\" title=\"{HtmlText.Attribute(title)}\">{html}</{tag}>";
+        return $"<{tag} {attributes}>{html}</{tag}>";
     }
 
     /// <summary>The <c>title</c> a mark carries: the label in the user's language, a space, the record's id.</summary>

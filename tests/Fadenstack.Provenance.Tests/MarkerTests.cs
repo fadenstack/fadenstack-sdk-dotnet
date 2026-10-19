@@ -327,4 +327,73 @@ public class MarkerTests
         Assert.Equal(ProvenanceReasons.ServerUnavailable, Watermark(new Chat.ProvenanceReceiptContent(null, reason: ProvenanceReasons.ServerUnavailable)).Reason);
         Assert.Equal((false, (string?)null, "no receipt"), (Watermark(null).Applied, Watermark(null).Reason, Watermark(null).Detail));
     }
+
+    /// <summary>Word, in miniature: the insert makes the bookmark with the text, in one undo entry, by the name the marker prepared.</summary>
+    private sealed class WordBookmarkMarker : ContentMarker
+    {
+        public List<(string Text, string? Bookmark)> Undo { get; } = new();
+
+        /// <summary>The record the marker prepared for.</summary>
+        public string? Prepared { get; private set; }
+
+        public override string Name => "word-bookmark";
+
+        public override MarkLayer Layer => MarkLayer.Metadata;
+
+        public override bool Supports(SinkInfo sink, string mediaType) => sink.CanCarry("word-bookmark");
+
+        public override Task<MarkableContent> PrepareAsync(MarkableContent content, SignedRecord record, CancellationToken cancellationToken)
+        {
+            Prepared = record.Record.Id;
+            return Task.FromResult(content.WithHostValue(OfficeMarks.AnchorValue, OfficeMarks.AnchorName(record.Record.Id)));
+        }
+
+        public override Task<MarkOutcome> AttachAsync(PlacedContent placed, SignedRecord record, CancellationToken cancellationToken)
+        {
+            var name = placed.Content.HostValues.TryGetValue(OfficeMarks.AnchorValue, out var n) ? n : null;
+            var held = name == OfficeMarks.AnchorName(record.Record.Id) && Undo.Any(u => u.Bookmark == name);
+            return Task.FromResult(held ? MarkOutcome.Held(MarkLayer.Metadata, Name) : MarkOutcome.Missing(MarkLayer.Metadata, Name, ProvenanceReasons.StrippedByHost));
+        }
+    }
+
+    [Fact]
+    public async Task A_marker_hands_the_hosts_insert_what_it_prepared_for_one_placement()
+    {
+        var marker = new WordBookmarkMarker();
+        var content = Content("text/plain", new SinkInfo("word.range", "word-bookmark"));
+
+        var result = await MarkerTestKit.RunAsync(marker, content, (marked, _) =>
+        {
+            marker.Undo.Add((marked.Text!, marked.HostValues.TryGetValue(OfficeMarks.AnchorValue, out var b) ? b : null));
+            return Task.FromResult<PlacedContent?>(new PlacedContent(marked));
+        }, (_, _) => Task.FromResult<string?>(marker.Prepared is { } id && marker.Undo.Any(u => u.Bookmark == OfficeMarks.AnchorName(id)) ? id : null));
+
+        Assert.True(result.Passed, string.Join("; ", result.Problems));
+        Assert.Equal((MarkerTestKit.SampleText, OfficeMarks.AnchorName(result.Record.Record.Id)), Assert.Single(marker.Undo));
+        Assert.True(result.Outcome.Verified);
+        // Other markers keep them, and a key is needed.
+        var kept = await new HtmlAttributeMarker().PrepareAsync(content.WithHostValue("a", "1"), result.Record, default);
+        Assert.Equal(new Dictionary<string, string> { ["a"] = "1" }, kept.HostValues);
+        Assert.Equal(new[] { "a", "b" }, content.WithHostValue("a", "1").WithHostValue("b", "2").HostValues.Keys.OrderBy(k => k));
+        Assert.Throws<ArgumentException>(() => content.WithHostValue(" ", "x"));
+    }
+
+    [Fact]
+    public void Test_records_have_random_ids_so_each_gets_its_own_office_anchor()
+    {
+        var backend = new TestProvenanceBackend();
+        var request = new RecordRequest { ContentSha256 = new string('a', 64), MediaType = "text/plain", TextSha256 = new string('b', 64) };
+        var ids = Enumerable.Range(0, 20).Select(_ => backend.Sign(request).Record.Id).ToList();
+        Assert.All(ids, id => Assert.Matches("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", id));
+        Assert.Equal(20, ids.Select(OfficeMarks.AnchorName).Distinct().Count());
+        Assert.Equal(new string('b', 64), backend.Sign(request).Record.TextHash);
+    }
+
+    [Fact]
+    public void The_label_rule_is_public_for_hosts_that_write_part_by_part()
+    {
+        Assert.True(Labels.IsLabel("Q3 revenue"));
+        Assert.True(Labels.IsLabel("<b>Approved</b>", "text/html"));
+        Assert.False(Labels.IsLabel("The pump is due for a seal check."));
+    }
 }

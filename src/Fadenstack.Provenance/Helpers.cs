@@ -79,8 +79,11 @@ internal static class TokenEstimate
             or >= '가' and <= '힯' or >= '豈' and <= '﫿';
 }
 
-/// <summary>Short labels (GL 68: single words, captions, UI and data labels) need no mark.</summary>
-internal static class Labels
+/// <summary>
+/// Short labels (GL 68: single words, captions, UI and data labels) need no mark: the rule the pipeline applies to a
+/// placement, public so a host can apply it to the parts it writes on its own -- Excel, per cell.
+/// </summary>
+public static class Labels
 {
     private static readonly char[] SentenceMarks = { '.', '!', '?', ';', '。', '！', '？' };
 
@@ -94,7 +97,11 @@ internal static class Labels
     /// </summary>
     public static bool IsLabel(string text, string mediaType = "text/plain")
     {
-        var normalized = ContentHash.Normalize(MediaTypes.IsHtml(mediaType) ? Tag.Replace(text, " ") : text);
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+        var normalized = ContentHash.Normalize(MediaTypes.IsHtml(mediaType ?? "text/plain") ? Tag.Replace(text, " ") : text);
         if (normalized.Length == 0)
         {
             return true;

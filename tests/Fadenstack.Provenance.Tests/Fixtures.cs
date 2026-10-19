@@ -37,7 +37,8 @@ public sealed class WritingTools
     public const string Contract = """
         [{"name":"insert_reply","risk":"write"},{"name":"translate_field","risk":"write"},{"name":"forget_to_mark","risk":"write"},
          {"name":"add_crm_note","risk":"write"},{"name":"chat_message","risk":"write"},{"name":"insert_picture","risk":"write"},
-         {"name":"write_config","risk":"write"},{"name":"improve_text","risk":"write"}]
+         {"name":"write_config","risk":"write"},{"name":"improve_text","risk":"write"},{"name":"fill_form","risk":"write"},
+         {"name":"tick","risk":"write"},{"name":"insert_into_gone_field","risk":"write"}]
         """;
 
     public Editor Editor { get; } = new();
@@ -122,6 +123,26 @@ public sealed class WritingTools
             marked => { Crm.Notes.Add(marked.Text!); return Task.CompletedTask; }, cancellationToken));
         return "Improved.";
     }
+
+    /// <summary>A form tool: a text field's value is content, a drop-down option or a check box is not.</summary>
+    [AgentTool(ToolClass.Write), Emits("value", "text/html", EditKindFrom = nameof(FieldKind)), Description("Fills a form field.")]
+    public async Task<string> FillFormAsync(string value, string kind, IProvenance provenance, CancellationToken cancellationToken)
+    {
+        Placed.Add(await provenance.PlaceAsync(new MarkableContent(value, "text/html", Editor.Sink),
+            marked => { Editor.Html += marked.Text; return Task.CompletedTask; }, cancellationToken));
+        return "Set.";
+    }
+
+    [AgentTool(ToolClass.Write), Emits("value", "text/plain", EditKindFrom = nameof(FieldKind)), Description("Ticks a check box, without placing it.")]
+    public string Tick(string value, string kind) => "Ticked.";
+
+    private static EditKind? FieldKind(IReadOnlyDictionary<string, object?> arguments) =>
+        arguments.TryGetValue("kind", out var kind) && kind?.ToString() == "text" ? EditKind.Generated : null;
+
+    [AgentTool(ToolClass.Write), Emits("text", "text/html"), Description("Inserts into a field the page took away.")]
+    public Task<string> InsertIntoGoneFieldAsync(string text, IProvenance provenance, CancellationToken cancellationToken) =>
+        provenance.PlaceAsync<string>(new MarkableContent(text, "text/html", Editor.Sink),
+            _ => throw new InvalidOperationException("The field is gone."), cancellationToken);
 }
 
 /// <summary>Agents for the tests: the scripted gateway, the writing tools, the module.</summary>

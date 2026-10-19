@@ -1,0 +1,128 @@
+[
+  {
+    "name": "paragraphs with inline formatting",
+    "media_type": "text/html",
+    "input": "<p>Dear Ms <b>Huber</b>,</p><p>thank you for your <em>message</em>. The pump is due for a seal check.</p>",
+    "text": "Dear Ms Huber, thank you for your message. The pump is due for a seal check.",
+    "sha256": "b6d4311b910fa8a8d65533509d4cf55cc706dfc85a0a35b05f230dbca8dd7ce2"
+  },
+  {
+    "name": "scripts, styles, templates and comments are not read",
+    "media_type": "text/html; charset=utf-8",
+    "input": "<style>p { color: red }</style><p>Visible<!-- hidden <p>note</p> --> text</p><script>var a = \"<p>no</p>\";</script><template><p>later</p></template><SCRIPT type=\"module\">x()</SCRIPT>",
+    "text": "Visible text",
+    "sha256": "1557dfa8f543784bdf02b26f6a656e8271dfa20cf5b86f561ba3ece3fe55bea6"
+  },
+  {
+    "name": "entities: named, numeric, unknown, and a bare ampersand",
+    "media_type": "text/html",
+    "input": "<p>Caf&eacute; &amp; Bar &ndash; 5&nbsp;&euro; &lt;b&gt; &#8211; &#x41;&#65; &Auml;rger &unknown; AT&T &#0; &#xD800;</p>",
+    "text": "Café & Bar – 5 € <b> – AA Ärger &unknown; AT&T &#0; &#xD800;",
+    "sha256": "e53608e82c35c61e954e84f554f8d3a898fcad748d195473c02285911a814268"
+  },
+  {
+    "name": "block elements are line breaks, inline tags leave no trace",
+    "media_type": "text/html",
+    "input": "<div>one</div><div>two</div>three<br>four<span>five</span>six<h2>Seven</h2>eight<hr>nine",
+    "text": "one two three fourfivesix Seven eight nine",
+    "sha256": "ca3144126fb47d04106dac2579f6e9a73562fb7f7bc3ae3c8c6e97850f8283f9"
+  },
+  {
+    "name": "lists and tables",
+    "media_type": "text/html",
+    "input": "<ul><li>Apples</li><li>Pears</li></ul><table><tr><th>Name</th><th>Qty</th></tr><tr><td>Tea</td><td>2</td></tr></table>",
+    "text": "Apples Pears Name Qty Tea 2",
+    "sha256": "f85ae5ad20955303b6bd3645efa94f4f87c5e34da9e388c866963e5ad9d3f70b"
+  },
+  {
+    "name": "a whole document: the head is not read, a > in a quoted value does not end the tag",
+    "media_type": "text/html",
+    "input": "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Subject</title></head><body><p title=\"a > b\" data-x='1>2'>Hello <a href=\"https://x.test/?a=1&amp;b=2\">world</a></p></body></html>",
+    "text": "Hello world",
+    "sha256": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c"
+  },
+  {
+    "name": "a mark adds no text",
+    "media_type": "text/html",
+    "input": "<p><span data-ai-generated=\"5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\" title=\"AI-generated 5a0e2b5c-7f3e-4a51-9a40-6a1c55e1d3f1\">Hallo Welt</span></p>",
+    "text": "Hallo Welt",
+    "sha256": "2d2da19605a34e037dbe82173f98a992a530a5fdd53dad882f570d4ba204ef30"
+  },
+  {
+    "name": "a < that starts no tag is text",
+    "media_type": "application/xhtml+xml",
+    "input": "<p>3 < 5 and 7 > 2, 1<2 and a <= b<br/>c</p>",
+    "text": "3 < 5 and 7 > 2, 1<2 and a <= b c",
+    "sha256": "fd1fcbe700bf4404219a372d2e0c40d134de83e39ba1efc77656e1d7fd774777"
+  },
+  {
+    "name": "Markdown: headings and emphasis",
+    "media_type": "text/markdown",
+    "input": "# Quarterly *report*\n\nRevenue grew **12 %** and costs fell __slightly__.\n\n## Next steps ##\n",
+    "text": "Quarterly report Revenue grew 12 % and costs fell slightly. Next steps",
+    "sha256": "b5b93d50329b82187dbba73f817bca31c8c3b5d7e5696acd0322d754d0031300"
+  },
+  {
+    "name": "Markdown: lists, tasks and quotes",
+    "media_type": "text/markdown; charset=utf-8",
+    "input": "- First\n* Second\n+ Third\n\n1. One\n2) Two\n   still two\n3. Three\n\n- [ ] open\n- [x] done\n\n> Quoted *text*\n> > nested",
+    "text": "First Second Third One Two still two Three open done Quoted text nested",
+    "sha256": "49ac1702652395a821715ea933b4e7e8499b1c1ce5f21cd2d5c528748797923e"
+  },
+  {
+    "name": "Markdown: inline code and fenced code keep their text",
+    "media_type": "text/markdown",
+    "input": "Run `npm install` first.\n\n```bash\nnpm run build -- --watch *.ts <b>\n```\n\nThen `` a ` b `` and ~~~ not a fence ~~~.\n\n~~~\n# not a heading\n~~~",
+    "text": "Run npm install first. npm run build -- --watch *.ts <b> Then a ` b and ~~~ not a fence ~~~. # not a heading",
+    "sha256": "300af741b86455e2d54c77870392b17f4bc8b04a03b50ab93e1ac64dce944aab"
+  },
+  {
+    "name": "Markdown: links keep their text, images their alt text, definitions go",
+    "media_type": "text/markdown",
+    "input": "See [the **docs**](https://x.test/docs \"Docs\") and ![a chart](chart.png) or [ref link][r], [R][] and [r]; [not a link] and [^1].\n\n[r]: https://x.test/r \"R\"",
+    "text": "See the docs and a chart or ref link, R and r; [not a link] and [^1].",
+    "sha256": "8d6e47a685dc87d43ac01f4d2fa2aabffc80c681089fbdb05b0822776fb993a1"
+  },
+  {
+    "name": "Markdown: front matter, HTML, entities, escapes and autolinks",
+    "media_type": "text/markdown",
+    "input": "---\ntitle: Reply\nai-generated: true\n---\n\nDear <b>Ms</b> Huber,<br>thanks &amp; regards \\*not emphasis\\* \\<b> and <https://x.test/a?b=1> or <info@x.test>.<!-- draft -->",
+    "text": "Dear Ms Huber, thanks & regards *not emphasis* <b> and https://x.test/a?b=1 or info@x.test.",
+    "sha256": "081d0b46bdf364987a26fae856448fe77b6d0664e89c9c1f34f4d4d353f40433"
+  },
+  {
+    "name": "Markdown: tables and thematic breaks",
+    "media_type": "text/markdown",
+    "input": "| Name | Qty |\n|:-----|----:|\n| Tea  | 2   |\n| a \\| b | `x|y` |\n\n---\n\n***\n\nTotal: 5 | done",
+    "text": "Name Qty Tea 2 a | b `x y` Total: 5 | done",
+    "sha256": "c21386085d5f56d9ef1abf10fb82024886ea838ff75b4ac4da2ba3ff5e1b4f3b"
+  },
+  {
+    "name": "Markdown: underscores in words and lone stars stay",
+    "media_type": "text/x-markdown",
+    "input": "snake_case_name stays, 2 * 3 * 4 stays, a*b*c loses its stars, ~~struck~~ and ~5 min, **unclosed",
+    "text": "snake_case_name stays, 2 * 3 * 4 stays, abc loses its stars, struck and ~5 min, **unclosed",
+    "sha256": "79e9ae04b1e873a657958b1fa3015b9e17f97013ae76a47ecc3bbe9d7ffa7124"
+  },
+  {
+    "name": "Markdown: setext headings; a number after a paragraph line is text",
+    "media_type": "text/markdown",
+    "input": "Title\n=====\n\nSub\n---\nIn\n2024. we grew\n\n2024. was a list",
+    "text": "Title Sub In 2024. we grew was a list",
+    "sha256": "c5c041d767d684bc235bf8d14cae03e0a311270fa3352de10b6a098a5fea48a1"
+  },
+  {
+    "name": "plain text has no reader text of its own",
+    "media_type": "text/plain",
+    "input": "<p>Not *HTML* here</p>",
+    "text": null,
+    "sha256": null
+  },
+  {
+    "name": "markup with nothing to read",
+    "media_type": "text/html",
+    "input": "<p><img src=\"chart.png\" alt=\"A chart\"></p><!-- -->",
+    "text": null,
+    "sha256": null
+  }
+]

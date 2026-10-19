@@ -11,8 +11,6 @@ namespace Fadenstack.Provenance.Testing;
 /// </summary>
 public sealed class TestProvenanceBackend : IProvenanceBackend
 {
-    private int _next;
-
     public ProvenancePolicy Policy { get; set; } = new();
 
     /// <summary>When set, signing fails as if the server did not answer.</summary>
@@ -42,13 +40,16 @@ public sealed class TestProvenanceBackend : IProvenanceBackend
         return Task.CompletedTask;
     }
 
-    /// <summary>A record for <paramref name="request"/> as the server would make it, with a test signature.</summary>
+    /// <summary>
+    /// A record for <paramref name="request"/> as the server would make it, with a test signature. Its id is a random
+    /// UUID (version 4), as the server's are, so ids differ early on and every record has its own Office anchor
+    /// (<see cref="OfficeMarks.AnchorName"/>, the first 24 hex digits).
+    /// </summary>
     public SignedRecord Sign(RecordRequest request)
     {
-        var n = Interlocked.Increment(ref _next);
         var record = new ProvenanceRecord
         {
-            Id = $"00000000-0000-4000-8000-{n:D12}",
+            Id = Guid.NewGuid().ToString("D"),
             DigitalSourceType = "http://cv.iptc.org/newscodes/digitalsourcetype/" +
                 (request.EditKind == EditKind.Generated ? "trainedAlgorithmicMedia" : "compositeWithTrainedAlgorithmicMedia"),
             EditKind = request.EditKind,
@@ -58,6 +59,7 @@ public sealed class TestProvenanceBackend : IProvenanceBackend
             MediaType = request.MediaType,
             ContentHash = request.ContentSha256,
             HashKeyVersion = 1,
+            TextHash = request.TextSha256,
             Model = request.Model is null ? null : new ProvenanceModel { Id = request.Model },
             ReceiptId = request.ReceiptId,
         };
@@ -154,6 +156,7 @@ public static class MarkerTestKit
         var record = new TestProvenanceBackend().Sign(new RecordRequest
         {
             ContentSha256 = given.Text is { } t ? ContentHash.TextSha256(t) : ContentHash.BytesSha256(given.Bytes ?? Array.Empty<byte>()),
+            TextSha256 = given.Text is { } plain ? ReaderText.Sha256(plain, given.MediaType) : null,
             MediaType = given.MediaType, EditKind = given.EditKind ?? EditKind.Generated, ReceiptId = given.ReceiptId,
         });
         var id = record.Record.Id;

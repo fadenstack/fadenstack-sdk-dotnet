@@ -111,6 +111,21 @@ public class ReaderTests
     }
 
     [Fact]
+    public void Html_and_markdown_are_compared_by_the_text_a_reader_sees_so_an_editors_markup_is_no_rewrite()
+    {
+        const string before = "<p>Teh report is due on friday.</p>";
+        const string after = "<p class=\"MsoNormal\" style=\"margin:0\"><span lang=\"de\">The report is due on Friday.</span></p>";
+        Assert.Equal(EditKind.Corrected, SimilarityEditClassifier.Suggest(before, after, "text/html"));
+        Assert.Equal(EditKind.Rewritten, SimilarityEditClassifier.Suggest(before, after)); // as plain text, the tags are words
+        var classifier = new SimilarityEditClassifier();
+        // The reasons the TypeScript SDK gives too.
+        Assert.Equal(new EditDecision(EditKind.Corrected, "small change: 89 % of words kept, the same 1 sentence(s)"),
+            classifier.Classify(new EditInput(before, after, EditKind.Rewritten, "text/html; charset=utf-8")));
+        Assert.Equal(new EditDecision(EditKind.Corrected, "small change: 89 % of words kept, the same 1 sentence(s)"),
+            classifier.Classify(new EditInput("**Teh** report is due on *friday*.", "The report is due on **Friday**.", EditKind.Rewritten, "text/markdown")));
+    }
+
+    [Fact]
     public void Personal_data_is_recognised_and_record_ids_are_not()
     {
         Assert.Equal("e-mail address", PersonalData.Find("write to erika.mustermann@example.com"));

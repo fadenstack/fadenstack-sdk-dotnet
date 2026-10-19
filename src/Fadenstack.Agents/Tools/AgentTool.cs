@@ -59,7 +59,10 @@ public sealed class EmitsAttribute : Attribute
 
     /// <summary>
     /// A method of the same class that decides the edit kind from a call's arguments:
-    /// <c>EditKind Name(IReadOnlyDictionary&lt;string, object?&gt; arguments)</c>, static or not.
+    /// <c>EditKind Name(IReadOnlyDictionary&lt;string, object?&gt; arguments)</c>, static or not. Declared
+    /// <c>EditKind?</c>, it returns null for a call whose argument is not content for people to read (an option picked in
+    /// a drop-down, a check box ticked): that call's placement is not marked and not reported, and a call that does not
+    /// place it is not recorded as unmarked.
     /// </summary>
     public string? EditKindFrom { get; set; }
 }
@@ -91,11 +94,17 @@ public sealed record ToolOutput
     /// <summary>The kind of edit, unless <see cref="EditKindOf"/> decides per call.</summary>
     public EditKind EditKind { get; }
 
-    /// <summary>Decides the edit kind from a call's arguments (an "improve" tool that only corrects for light changes).</summary>
-    public Func<IReadOnlyDictionary<string, object?>, EditKind>? EditKindOf { get; init; }
+    /// <summary>
+    /// Decides the edit kind from a call's arguments (an "improve" tool that only corrects for light changes); null for a
+    /// call whose argument is not content for people to read (a drop-down option, a check box).
+    /// </summary>
+    public Func<IReadOnlyDictionary<string, object?>, EditKind?>? EditKindOf { get; init; }
 
-    /// <summary>The edit kind of one call.</summary>
-    public EditKind EditKindFor(IReadOnlyDictionary<string, object?> arguments) => EditKindOf?.Invoke(arguments) ?? EditKind;
+    /// <summary>The edit kind of one call; null when <see cref="EditKindOf"/> says the call writes no content.</summary>
+    public EditKind? EditKindFor(IReadOnlyDictionary<string, object?> arguments) => EditKindOf is { } of ? of(arguments) : EditKind;
+
+    /// <summary>Whether one call writes content for people to read: false when <see cref="EditKindOf"/> says null.</summary>
+    public bool IsContentFor(IReadOnlyDictionary<string, object?> arguments) => EditKindFor(arguments) is not null;
 }
 
 /// <summary>A tool the agent can run: the function, what it does, and where it runs.</summary>
@@ -149,27 +158,51 @@ public sealed class AgentTool
         var tools = new List<AgentTool>();
         foreach (var method in type.GetMethods(flags))
         {
-            var marker = method.GetCustomAttribute<AgentToolAttribute>();
-            if (marker is null)
+            if (method.IsDefined(typeof(AgentToolAttribute), false))
             {
-                continue;
+                tools.Add(FromMethod(method, instance));
             }
-            var function = AIFunctionFactory.Create(method, method.IsStatic ? null : instance, new AIFunctionFactoryOptions
-            {
-                Name = marker.Name ?? SnakeCase(method.Name),
-                Description = method.GetCustomAttribute<DescriptionAttribute>()?.Description,
-                ConfigureParameterBinding = ToolServiceBinding,
-            });
-            tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null)
-            {
-                Outputs = OutputsOf(method, instance),
-            });
         }
         if (tools.Count == 0)
         {
             throw new ArgumentException($"{type.Name} has no public methods marked [AgentTool].", nameof(target));
         }
         return tools;
+    }
+
+    /// <summary>
+    /// A host tool from one method, under the name, class and description the host gives -- for a host that names its
+    /// tools itself -- else those of its <see cref="AgentToolAttribute"/> (the name in snake_case, the class
+    /// <see cref="ToolClass.Unknown"/> without one) and its <see cref="DescriptionAttribute"/>. Its parameters are bound as
+    /// <see cref="From"/> binds them (tool services from the call), and its <see cref="EmitsAttribute"/>s are its
+    /// <see cref="Outputs"/>, with <see cref="EmitsAttribute.EditKindFrom"/>.
+    /// </summary>
+    /// <param name="method">The tool's method; it need not be marked <see cref="AgentToolAttribute"/>.</param>
+    /// <param name="target">The instance an instance method runs on (and its <c>EditKindFrom</c> method); null for a static one.</param>
+    /// <param name="name">The name the model calls it by; letters, digits, <c>_</c> and <c>-</c>.</param>
+    /// <param name="toolClass">What it does.</param>
+    /// <param name="description">What the model is told it does.</param>
+    public static AgentTool FromMethod(MethodInfo method, object? target, string? name = null, ToolClass? toolClass = null, string? description = null)
+    {
+        if (method is null)
+        {
+            throw new ArgumentNullException(nameof(method));
+        }
+        if (!method.IsStatic && target is null)
+        {
+            throw new ArgumentException($"{method.Name} is an instance method: give the instance it runs on.", nameof(target));
+        }
+        var marker = method.GetCustomAttribute<AgentToolAttribute>();
+        var function = AIFunctionFactory.Create(method, method.IsStatic ? null : target, new AIFunctionFactoryOptions
+        {
+            Name = name ?? marker?.Name ?? SnakeCase(method.Name),
+            Description = description ?? method.GetCustomAttribute<DescriptionAttribute>()?.Description,
+            ConfigureParameterBinding = ToolServiceBinding,
+        });
+        return new AgentTool(function, toolClass ?? marker?.Class ?? ToolClass.Unknown, openWorld: marker?.OpenWorld == true ? true : null)
+        {
+            Outputs = OutputsOf(method, target),
+        };
     }
 
     /// <summary>
@@ -199,9 +232,17 @@ public sealed class AgentTool
             $"'{parameter.Name}' needs {parameter.ParameterType.Name}: add the module that provides it to the agent's builder.");
     }
 
-    /// <summary>The method's <see cref="EmitsAttribute"/>s as outputs; each must name one of its parameters.</summary>
-    internal static IReadOnlyList<ToolOutput> OutputsOf(MethodInfo method, object? instance)
+    /// <summary>
+    /// The content a method declares it writes: its <see cref="EmitsAttribute"/>s as <see cref="ToolOutput"/>s, with the
+    /// <see cref="EmitsAttribute.EditKindFrom"/> method bound to <paramref name="instance"/> (null for a static one). Each
+    /// must name one of the method's parameters, once. For a host that builds its <see cref="AgentTool"/>s itself.
+    /// </summary>
+    public static IReadOnlyList<ToolOutput> OutputsOf(MethodInfo method, object? instance)
     {
+        if (method is null)
+        {
+            throw new ArgumentNullException(nameof(method));
+        }
         var emits = method.GetCustomAttributes<EmitsAttribute>().ToList();
         if (emits.Count == 0)
         {
@@ -224,22 +265,23 @@ public sealed class AgentTool
         return outputs;
     }
 
-    private static Func<IReadOnlyDictionary<string, object?>, EditKind>? Decider(MethodInfo tool, object? instance, string? name)
+    private static Func<IReadOnlyDictionary<string, object?>, EditKind?>? Decider(MethodInfo tool, object? instance, string? name)
     {
         if (string.IsNullOrEmpty(name))
         {
             return null;
         }
         var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        var method = tool.DeclaringType!.GetMethods(flags).FirstOrDefault(m => m.Name == name && m.ReturnType == typeof(EditKind)
+        var method = tool.DeclaringType!.GetMethods(flags).FirstOrDefault(m => m.Name == name
+            && (m.ReturnType == typeof(EditKind) || m.ReturnType == typeof(EditKind?))
             && m.GetParameters() is { Length: 1 } p && p[0].ParameterType == typeof(IReadOnlyDictionary<string, object?>));
         if (method is null || (!method.IsStatic && instance is null))
         {
             throw new ArgumentException(
-                $"{tool.Name}: EditKindFrom names '{name}', which is not an 'EditKind {name}(IReadOnlyDictionary<string, object?>)' it can call.");
+                $"{tool.Name}: EditKindFrom names '{name}', which is not an 'EditKind {name}(IReadOnlyDictionary<string, object?>)' (or 'EditKind?') it can call.");
         }
         var target = method.IsStatic ? null : instance;
-        return arguments => (EditKind)method.Invoke(target, new object[] { arguments })!;
+        return arguments => (EditKind?)method.Invoke(target, new object[] { arguments });
     }
 
     internal static string SnakeCase(string name)

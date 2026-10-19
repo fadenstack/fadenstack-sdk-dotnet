@@ -41,11 +41,13 @@ public class PlacementTests
         var (session, result) = await RunAsync(agent);
 
         var request = Assert.Single(gateway.RecordRequests).Json;
-        Assert.Equal((ContentHash.TextSha256(text), "text/html", "generated", "rc-1", "qwen3.8-27b"),
-            (request.GetProperty("content_sha256").GetString(), request.GetProperty("media_type").GetString(), request.GetProperty("edit_kind").GetString(),
-             request.GetProperty("receipt_id").GetString(), request.GetProperty("model").GetString()));
+        Assert.Equal((ContentHash.TextSha256(text), ContentHash.TextSha256(TestAgents.LongText), "text/html", "generated", "rc-1", "qwen3.8-27b"),
+            (request.GetProperty("content_sha256").GetString(), request.GetProperty("text_sha256").GetString(), request.GetProperty("media_type").GetString(),
+             request.GetProperty("edit_kind").GetString(), request.GetProperty("receipt_id").GetString(), request.GetProperty("model").GetString()));
         const string id = "5a0e2b5c-7f3e-4a51-9a40-000000000001";
-        Assert.StartsWith($"<div data-ai-generated=\"{id}\" title=\"AI-generated {id}\"><p>The pump", tools.Editor.Html);
+        // One paragraph is marked inside it.
+        Assert.StartsWith($"<p><span data-ai-generated=\"{id}\" title=\"AI-generated {id}\">The pump", tools.Editor.Html);
+        Assert.EndsWith("</span></p>", tools.Editor.Html);
         Assert.Equal(new[] { new FoundMark(id, "html-attribute"), new FoundMark(id, ProvenanceReader.HtmlTitle) },
             ProvenanceReader.Read(tools.Editor.Html, "text/html"));
 
@@ -450,7 +452,108 @@ public class PlacementTests
         await RunAsync(agent);
 
         const string id = "5a0e2b5c-7f3e-4a51-9a40-000000000001";
-        Assert.StartsWith($"<p data-ai-label=\"{id}\">KI-generiert</p><div data-ai-generated=\"{id}\" title=\"KI-generiert {id}\">", tools.Editor.Html);
+        Assert.StartsWith($"<p data-ai-label=\"{id}\">KI-generiert</p><p><span data-ai-generated=\"{id}\" title=\"KI-generiert {id}\">", tools.Editor.Html);
+    }
+
+    [Fact]
+    public async Task A_record_of_html_is_found_by_the_words_a_reader_copies_and_plain_text_sends_no_text_hash()
+    {
+        var html = $"<p>Dear Ms <b>Huber</b>,</p><p>{TestAgents.LongText}</p>";
+        var copied = "Dear Ms Huber, " + TestAgents.LongText;
+        var gateway = NewGateway()
+            .SaysAndCalls("Reply:", Gateway.Receipt("rc-1"), ("call-1", "insert_reply", Args(new { text = html })), ("call-2", "chat_message", Args(new { text = copied })))
+            .Says("Done.");
+        var tools = new WritingTools();
+        using var agent = TestAgents.Build(gateway, tools);
+
+        await RunAsync(agent);
+
+        var requests = gateway.RecordRequests.Select(r => r.Json).ToList();
+        Assert.Equal(ContentHash.TextSha256(copied), requests[0].GetProperty("text_sha256").GetString());
+        Assert.False(requests[1].TryGetProperty("text_sha256", out _)); // plain text is what a reader sees
+        var found = await agent.Client.Agent!.Provenance.VerifyAsync(new VerifyRequest { Text = copied });
+        Assert.Equal("5a0e2b5c-7f3e-4a51-9a40-000000000001", Assert.Single(found.Findings).RecordId);
+    }
+
+    [Fact]
+    public async Task An_insert_that_fails_after_the_record_was_signed_is_reported_with_no_layer_applied_and_fails_the_call()
+    {
+        var gateway = NewGateway()
+            .SaysAndCalls("Inserting.", Gateway.Receipt("rc-1"), ("call-1", "insert_into_gone_field", Args(new { text = "<p>" + TestAgents.LongText + "</p>" })))
+            .Says("The field is gone.");
+        var tools = new WritingTools();
+        using var agent = TestAgents.Build(gateway, tools);
+
+        var (session, _) = await RunAsync(agent);
+
+        var completed = session.Transcript.Single(e => e.Type == EntryTypes.ToolComplete).Data;
+        Assert.Equal("error", completed.GetProperty("outcome").GetString());
+        Assert.Contains("The field is gone.", completed.GetProperty("result").GetString());
+        var report = Assert.Single(gateway.Placements).Json;
+        Assert.Equal("5a0e2b5c-7f3e-4a51-9a40-000000000001", report.GetProperty("record_id").GetString());
+        var layers = report.GetProperty("layers").EnumerateArray()
+            .Select(l => (l.GetProperty("layer").GetString()!, l.GetProperty("method").GetString()!, l.GetProperty("applied").GetBoolean(), l.TryGetProperty("reason", out _)))
+            .ToList();
+        Assert.Equal(new[] { ("metadata", "signed-record", false, false), ("metadata", "html-attribute", false, false), ("watermark", "vllm-gumbel", false, false) },
+            layers);
+        var placed = Assert.Single(Entries(session, ProvenanceEntries.Placed));
+        Assert.All(placed.GetProperty("layers").EnumerateArray(), l => Assert.Equal("insert failed: InvalidOperationException", l.GetProperty("detail").GetString()));
+        Assert.Empty(Entries(session, ProvenanceEntries.Unmarked));
+    }
+
+    [Fact]
+    public async Task A_value_the_declaration_says_is_no_content_goes_in_as_it_is_unmarked_and_unreported()
+    {
+        var gateway = NewGateway()
+            .SaysAndCalls("Filling.", Gateway.Receipt("rc-1"),
+                ("call-1", "fill_form", Args(new { value = TestAgents.LongText, kind = "select" })),
+                ("call-2", "tick", Args(new { value = TestAgents.LongText, kind = "checkbox" })))
+            .Says("Done.");
+        var tools = new WritingTools();
+        using var agent = TestAgents.Build(gateway, tools, p => p.UseDevelopmentMode());
+
+        var (session, result) = await RunAsync(agent);
+
+        Assert.Equal(TestAgents.LongText, tools.Editor.Html);
+        var placement = Assert.Single(tools.Placed);
+        Assert.Equal((true, ExemptReasons.NotContent, (string?)null, "value"), (placement.Exempt, placement.ExemptBecause, placement.RecordId, placement.Argument));
+        Assert.Empty(placement.Layers);
+        Assert.Equal("Placed; not content for people to read.", placement.Summary);
+        Assert.Empty(gateway.RecordRequests);
+        Assert.Empty(gateway.Placements);
+        Assert.Empty(Entries(session, ProvenanceEntries.Placed));
+        Assert.Empty(Entries(session, ProvenanceEntries.Unmarked)); // the check box was not placed, and is not content
+        Assert.Equal(ChatOutcome.Completed, result.Outcome);
+    }
+
+    [Fact]
+    public async Task A_tool_method_called_by_hand_places_through_a_pass_through_provenance()
+    {
+        var tools = new WritingTools();
+        var provenance = new Testing.PassThroughProvenance(new ProvenancePolicy { ShortTextTokens = 50 });
+
+        var said = await tools.InsertReplyAsync("<p>Hello</p>", provenance, default);
+
+        Assert.Equal(("Inserted.", "<p>Hello</p>"), (said, tools.Editor.Html)); // as it is: no mark
+        Assert.Equal("<p>Hello</p>", Assert.Single(provenance.Requests).Text);
+        var placement = Assert.Single(provenance.Placements);
+        Assert.Equal(((string?)null, false, "html.editor"), (placement.RecordId, placement.Exempt, placement.SinkKind));
+        Assert.Equal(50, (await provenance.GetPolicyAsync()).ShortTextTokens);
+    }
+
+    [Fact]
+    public async Task The_same_tools_text_is_content_and_marked()
+    {
+        var gateway = NewGateway()
+            .SaysAndCalls("Filling.", Gateway.Receipt("rc-1"), ("call-1", "fill_form", Args(new { value = TestAgents.LongText, kind = "text" })))
+            .Says("Done.");
+        var tools = new WritingTools();
+        using var agent = TestAgents.Build(gateway, tools);
+
+        await RunAsync(agent);
+
+        Assert.Contains("data-ai-generated", tools.Editor.Html);
+        Assert.Single(gateway.RecordRequests);
     }
 
     [Fact]

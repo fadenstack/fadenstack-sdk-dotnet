@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using Fadenstack.Agents;
 using Fadenstack.Chat;
@@ -25,7 +26,11 @@ namespace Fadenstack.Provenance;
 /// <item>the markers prepare, the host inserts, the markers attach and say whether their marks held;</item>
 /// <item>the placement is reported (no content), the observers told, the transcript written.</item>
 /// </list>
-/// A refusal is recorded (<c>provenance.refused</c>) and told to the user as a notice; nothing is signed or reported.
+/// A refusal is recorded (<c>provenance.refused</c>) and told to the user as a notice; nothing is signed or reported. An
+/// insert that throws after the record was signed is reported with every layer not applied, so the server's placements
+/// match its records, and its exception goes on. A call whose declared output says it writes no content
+/// (<see cref="ToolOutput.EditKindOf"/> null, no <see cref="MarkableContent.EditKind"/>) is inserted as it is: not
+/// marked, not reported.
 /// </summary>
 internal sealed class ProvenanceCall : IProvenance
 {
@@ -85,9 +90,14 @@ internal sealed class ProvenanceCall : IProvenance
         {
             throw new ArgumentException("Content is text or bytes, not both and not neither.", nameof(content));
         }
-        var policy = await GetPolicyAsync(cancellationToken).ConfigureAwait(false);
         var output = Declared(content);
-        var declared = content.EditKind ?? output?.EditKindFor(new Dictionary<string, object?>(_call.Arguments)) ?? EditKind.Generated;
+        var outputKind = output?.EditKindFor(new Dictionary<string, object?>(_call.Arguments));
+        if (content.EditKind is null && output is not null && outputKind is null)
+        {
+            return await NotContentAsync(content, output, insert, cancellationToken).ConfigureAwait(false);
+        }
+        var policy = await GetPolicyAsync(cancellationToken).ConfigureAwait(false);
+        var declared = content.EditKind ?? outputKind ?? EditKind.Generated;
         var (kind, classified) = Classify(declared, content, policy);
         var tokens = content.Text is { } text ? Options.CountTokens(text) : 0;
         var isShort = content.IsText && tokens < policy.ShortTextTokens;
@@ -188,8 +198,29 @@ internal sealed class ProvenanceCall : IProvenance
                 }
             }
         }
-        var placed = await insert(marked, cancellationToken).ConfigureAwait(false) ?? new PlacedContent(marked);
-        if (signed is not null)
+        PlacedContent placed;
+        Exception? failedInsert = null;
+        try
+        {
+            placed = await insert(marked, cancellationToken).ConfigureAwait(false) ?? new PlacedContent(marked);
+        }
+        catch (Exception e) when (signed is not null)
+        {
+            // A signed record with no placement: reported as nothing applied, then the host's error goes on.
+            failedInsert = e;
+            placed = new PlacedContent(marked);
+        }
+        var failedDetail = failedInsert is null ? null : "insert failed: " + failedInsert.GetType().Name;
+        if (signed is not null && failedInsert is not null)
+        {
+            // Every marker's layer, not applied, by the method it reports; the watermark by its own method, below.
+            foreach (var marker in markers.Where(m => m.Layer != MarkLayer.Watermark))
+            {
+                var method = marker is ServerSignedMarker ? ServerSignedMarker.Method : marker.Name;
+                outcomes.Add((MarkOutcome.Missing(marker.Layer, method, null, failedDetail), marker is not ServerSignedMarker));
+            }
+        }
+        else if (signed is not null)
         {
             foreach (var marker in markers)
             {
@@ -222,7 +253,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
         if ((content.IsText || isImage) && !outcomes.Any(o => o.Outcome.Layer == MarkLayer.Watermark))
         {
-            outcomes.Add((watermark, true));
+            outcomes.Add((failedDetail is null ? watermark : MarkOutcome.Missing(MarkLayer.Watermark, watermark.Method, null, failedDetail), true));
         }
         foreach (var layer in new[] { MarkLayer.Metadata, MarkLayer.Watermark, MarkLayer.Label })
         {
@@ -254,7 +285,40 @@ internal sealed class ProvenanceCall : IProvenance
                 ?? before.FirstOrDefault(m => m.Layer == layer) ?? MarkOutcome.Missing(layer, "none", null));
         }
         placement = placement with { Record = signed, Layers = layers.Select(o => o.Outcome).ToList(), Missing = missing, Placed = placed };
+        if (failedInsert is not null)
+        {
+            try
+            {
+                // Reported even when the turn stops: the server's placements match its records.
+                await FinishAsync(placement, extra, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                Trace.TraceWarning($"Provenance: the failed placement by '{placement.Tool}' was not recorded ({e.GetType().Name}).");
+            }
+            ExceptionDispatchInfo.Capture(failedInsert).Throw();
+        }
         await FinishAsync(placement, extra, cancellationToken).ConfigureAwait(false);
+        return placement;
+    }
+
+    /// <summary>
+    /// A call whose declared output says it writes no content (<see cref="ToolOutput.EditKindOf"/> null) and whose content
+    /// names no edit kind of its own: inserted as it is -- no record, no mark, no report, no transcript entry.
+    /// </summary>
+    private async Task<Placement> NotContentAsync(MarkableContent content, ToolOutput output,
+        Func<MarkableContent, CancellationToken, Task<PlacedContent?>> insert, CancellationToken cancellationToken)
+    {
+        var landed = await insert(content, cancellationToken).ConfigureAwait(false) ?? new PlacedContent(content);
+        var placement = new Placement
+        {
+            Tool = _call.Tool.Name, SinkKind = content.Sink.Kind, MediaType = content.MediaType, Argument = content.Argument ?? output.Argument,
+            Exempt = true, ExemptBecause = ExemptReasons.NotContent, Placed = landed,
+        };
+        lock (_placements)
+        {
+            _placements.Add(placement);
+        }
         return placement;
     }
 
@@ -336,7 +400,11 @@ internal sealed class ProvenanceCall : IProvenance
         }
     }
 
-    /// <summary>The server's signed record of the placement, with the content's hash only; null when it did not sign one.</summary>
+    /// <summary>
+    /// The server's signed record of the placement, with the content's hash only -- and for HTML and Markdown the hash of
+    /// the text a reader sees (<see cref="ReaderText.Sha256"/>), so the words copied out of the host find it; null when
+    /// it did not sign one.
+    /// </summary>
     private async Task<SignedRecord?> SignAsync(MarkableContent content, EditKind kind, ProvenanceReceiptContent? receipt,
         CancellationToken cancellationToken)
     {
@@ -347,6 +415,7 @@ internal sealed class ProvenanceCall : IProvenance
         var request = new RecordRequest
         {
             ContentSha256 = content.Text is { } text ? ContentHash.TextSha256(text) : ContentHash.BytesSha256(content.Bytes!),
+            TextSha256 = content.Text is { } plain ? ReaderText.Sha256(plain, content.MediaType) : null,
             MediaType = content.MediaType,
             EditKind = kind,
             ReceiptId = receipt?.ReceiptId,

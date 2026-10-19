@@ -58,6 +58,43 @@ public class ToolSeamTests
         public string Send(string text) => "sent";
     }
 
+    /// <summary>A form tool: a text field's value is content, a drop-down option is not.</summary>
+    public sealed class FormTools
+    {
+        [AgentTool(ToolClass.Write), Emits("value", "text/plain", EditKindFrom = nameof(KindOf))]
+        public string Fill(string value, string kind) => "set";
+
+        private static EditKind? KindOf(IReadOnlyDictionary<string, object?> arguments) =>
+            arguments.TryGetValue("kind", out var kind) && kind?.ToString() == "text" ? EditKind.Generated : null;
+    }
+
+    [Fact]
+    public void A_call_whose_argument_is_not_content_has_no_edit_kind()
+    {
+        var output = Assert.Single(Assert.Single(AgentTool.From(new FormTools())).Outputs);
+        Assert.Null(output.EditKindFor(new Dictionary<string, object?> { ["kind"] = "select" }));
+        Assert.False(output.IsContentFor(new Dictionary<string, object?> { ["kind"] = "select" }));
+        Assert.Equal(EditKind.Generated, output.EditKindFor(new Dictionary<string, object?> { ["kind"] = "text" }));
+        Assert.True(new ToolOutput("text", "text/plain").IsContentFor(new Dictionary<string, object?>()));
+    }
+
+    [Fact]
+    public void A_host_that_names_its_tools_builds_one_from_a_method_with_its_declared_outputs()
+    {
+        var target = new WritingTools();
+        var method = typeof(WritingTools).GetMethod(nameof(WritingTools.Improve))!;
+
+        var tool = AgentTool.FromMethod(method, target, "word_improve", ToolClass.Destructive, "Improves the selection.");
+
+        Assert.Equal(("word_improve", ToolClass.Destructive, "Improves the selection."), (tool.Name, tool.Class, tool.Function.Description));
+        Assert.Equal(EditKind.Corrected, Assert.Single(tool.Outputs).EditKindFor(new Dictionary<string, object?> { ["light"] = true }));
+        Assert.DoesNotContain("stamp", tool.Function.JsonSchema.GetRawText()); // a tool service: bound, not shown to the model
+        var plain = AgentTool.FromMethod(method, target);
+        Assert.Equal(("improve", ToolClass.Write), (plain.Name, plain.Class)); // else the method's own [AgentTool]
+        Assert.Equal(Assert.Single(AgentTool.OutputsOf(method, target)).MediaType, Assert.Single(plain.Outputs).MediaType);
+        Assert.Throws<ArgumentException>(() => AgentTool.FromMethod(method, null)); // an instance method needs its instance
+    }
+
     private const string Contract = """[{"name":"insert_reply","risk":"write"},{"name":"improve","risk":"write"},{"name":"read_page","risk":"read"}]""";
 
     [Fact]

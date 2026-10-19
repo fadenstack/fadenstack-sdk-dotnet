@@ -68,7 +68,33 @@ public sealed record MarkableContent
     /// <summary>The integrator's own non-personal facts (<see cref="IRecordEnricher"/>), by namespaced key.</summary>
     public IReadOnlyDictionary<string, string> Facts { get; init; } = new Dictionary<string, string>();
 
+    // -- set by the markers, for the host's insert --------------------------------------------------
+
+    /// <summary>
+    /// What markers prepared for the host's insert of this one placement, by key: what the insert writes together with
+    /// the content -- Word's bookmark name (<see cref="OfficeMarks.AnchorValue"/>), so the bookmark is in the insert's own
+    /// undo entry. A marker sets them in <see cref="IContentMarker.PrepareAsync"/> (<see cref="WithHostValue"/>); the
+    /// insert and <see cref="IContentMarker.AttachAsync"/> read them. Ids and names only, never content: they stay on the device.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> HostValues { get; init; } = new Dictionary<string, string>();
+
     public bool IsText => Text is not null;
+
+    /// <summary>The same content with one more value for the host's insert (see <see cref="HostValues"/>).</summary>
+    public MarkableContent WithHostValue(string key, string value)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            throw new ArgumentException("A host value needs a key.", nameof(key));
+        }
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in HostValues)
+        {
+            values[pair.Key] = pair.Value;
+        }
+        values[key] = value ?? throw new ArgumentNullException(nameof(value));
+        return this with { HostValues = values };
+    }
 
     /// <summary>The same content with other text: what a marker returns from <see cref="IContentMarker.PrepareAsync"/>.</summary>
     public MarkableContent WithText(string text) => this with { Text = text ?? throw new ArgumentNullException(nameof(text)) };
@@ -214,7 +240,7 @@ public sealed record Placement
     /// <summary>Recorded as exempt (an exempt edit kind, code, a label, internal technical output): nothing was marked.</summary>
     public bool Exempt { get; init; }
 
-    /// <summary>Why exempt: <c>internal-technical</c>, <c>edit-kind</c>, <c>code</c> or <c>label</c> (<see cref="ExemptReasons"/>).</summary>
+    /// <summary>Why exempt: <c>internal-technical</c>, <c>edit-kind</c>, <c>code</c>, <c>label</c> or <c>not-content</c> (<see cref="ExemptReasons"/>).</summary>
     public string? ExemptBecause { get; init; }
 
     /// <summary>
@@ -246,6 +272,7 @@ public sealed record Placement
 
     /// <summary>One line for the model: what was marked, or why not. Marks are data, never instructions.</summary>
     public string Summary => Refused ? "Not written: it could not be marked as AI-generated here."
+        : ExemptBecause == ExemptReasons.NotContent ? "Placed; not content for people to read."
         : Exempt ? $"Placed; no mark needed ({ExemptBecause})."
         : Record is null ? "Placed; not marked: the provenance service did not answer."
         : $"Placed and marked as AI-generated (record {RecordId}).";
@@ -267,4 +294,10 @@ public static class ExemptReasons
 
     /// <summary>A label: at most three words and 40 characters without a sentence mark (GL 68).</summary>
     public const string Label = "label";
+
+    /// <summary>
+    /// Not content: the tool's declared output says this call writes nothing for people to read
+    /// (<see cref="Fadenstack.Agents.ToolOutput.EditKindOf"/> returned null). Neither recorded nor reported.
+    /// </summary>
+    public const string NotContent = "not-content";
 }

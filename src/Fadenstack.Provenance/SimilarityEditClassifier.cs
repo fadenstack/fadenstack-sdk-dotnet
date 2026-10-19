@@ -8,10 +8,11 @@ namespace Fadenstack.Provenance;
 /// <summary>
 /// Tells a light correction from a rewrite by comparing the text before and after: <c>corrected</c> (exempt) only when
 /// most words stay, the sentences stay the same in number and the word count barely changes; <c>rewritten</c> (marked)
-/// otherwise, and whenever in doubt. A tool calls <see cref="Suggest"/> ("improve the writing" returns
+/// otherwise, and whenever in doubt. A tool calls <see cref="Suggest(string, string, string)"/> ("improve the writing" returns
 /// <c>corrected</c> for a light polish), or the module uses it as its classifier for placements whose kind is
 /// <c>rewritten</c> or <c>corrected</c> and that say what they started from (<see cref="MarkableContent.Original"/>).
-/// The TypeScript SDK's <c>similarityClassifier</c> judges the same and gives the same reasons.
+/// HTML and Markdown are compared by the text a reader sees (<see cref="ReaderText"/>), so markup an editor adds or
+/// drops is no change of words. The TypeScript SDK's <c>similarityClassifier</c> judges the same and gives the same reasons.
 /// </summary>
 public sealed class SimilarityEditClassifier : IEditClassifier
 {
@@ -29,12 +30,20 @@ public sealed class SimilarityEditClassifier : IEditClassifier
         {
             return new EditDecision(input.Declared);
         }
-        var (kind, reason) = Judge(input.Original, input.Output, MinWordSimilarity);
+        var type = input.MediaType ?? "text/plain";
+        var (kind, reason) = Judge(ReaderText.Of(input.Original, type), ReaderText.Of(input.Output, type), MinWordSimilarity);
         return new EditDecision(kind, reason);
     }
 
     /// <summary><c>corrected</c> for a small change of <paramref name="before"/>, else <c>rewritten</c>.</summary>
     public static EditKind Suggest(string before, string after) => Judge(before, after, DefaultMinWordSimilarity).Kind;
+
+    /// <summary>
+    /// <c>corrected</c> for a small change of <paramref name="before"/>, else <c>rewritten</c>; HTML and Markdown
+    /// (<paramref name="mediaType"/>) compared by the text a reader sees.
+    /// </summary>
+    public static EditKind Suggest(string before, string after, string mediaType) =>
+        Judge(ReaderText.Of(before, mediaType), ReaderText.Of(after, mediaType), DefaultMinWordSimilarity).Kind;
 
     /// <summary>
     /// How alike two texts are, from 0 to 1: one less the word-level edit distance over the longer text's word count. A

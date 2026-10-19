@@ -16,4 +16,8 @@
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The vectors both SDKs test against: the TypeScript SDK has the same file. -->
+    <None Include="vectors\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

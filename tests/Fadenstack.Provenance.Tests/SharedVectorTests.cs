@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Net;
+using System.Text.Json;
+using Fadenstack.Models;
 using Fadenstack.UI;
 using Xunit;
 
@@ -28,14 +31,54 @@ public class SharedVectorTests
     private static int CodePoints(string text) => text.Count(c => !char.IsLowSurrogate(c));
 
     [Fact]
-    public void Html_is_one_element_with_data_ai_generated_and_the_title_the_label_and_the_id()
+    public void Html_is_one_element_with_data_ai_generated_and_the_title_the_label_and_the_id_and_one_paragraph_is_marked_inside_it()
     {
         var english = UiStrings.For(CultureInfo.GetCultureInfo("en"));
         var german = UiStrings.For(CultureInfo.GetCultureInfo("de"));
-        Assert.Equal($"<span data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\">Hello</span>",
-            HtmlAttributeMarker.Wrap("Hello", Id, HtmlAttributeMarker.Title(english, Id)));
-        Assert.Equal($"<div data-ai-generated=\"{Id}\" title=\"KI-generiert {Id}\"><p>Hallo</p></div>",
+        var en = HtmlAttributeMarker.Title(english, Id);
+        Assert.Equal($"<span data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\">Hello</span>", HtmlAttributeMarker.Wrap("Hello", Id, en));
+        Assert.Equal($"<p><span data-ai-generated=\"{Id}\" title=\"KI-generiert {Id}\">Hallo</span></p>",
             HtmlAttributeMarker.Wrap("<p>Hallo</p>", Id, HtmlAttributeMarker.Title(german, Id)));
+        Assert.Equal($"\n<p class=\"lead\"><span data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\">Hi <b>there</b></span></p>\n",
+            HtmlAttributeMarker.Wrap("\n<P class=\"lead\">Hi <b>there</b></P>\n", Id, en));
+        Assert.Equal($"<div data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\"><p>One.</p><p>Two.</p></div>",
+            HtmlAttributeMarker.Wrap("<p>One.</p><p>Two.</p>", Id, en));
+        Assert.Equal($"<div data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\"><p>One.</p><ul><li>Two</li></ul></div>",
+            HtmlAttributeMarker.Wrap("<p>One.</p><ul><li>Two</li></ul>", Id, en));
+        Assert.Equal($"<div data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\"><pre>x</pre></div>", HtmlAttributeMarker.Wrap("<pre>x</pre>", Id, en));
+    }
+
+    /// <summary>One case of <c>reader-text-vectors.json</c>, which the TypeScript SDK's <c>vectors.test.ts</c> reads too.</summary>
+    public sealed record ReaderTextVector(string Name, string MediaType, string Input, string? Text, string? Sha256);
+
+    public static IEnumerable<object[]> ReaderTextVectors() =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "vectors", "reader-text-vectors.json"))).RootElement
+            .EnumerateArray()
+            .Select(v => new object[]
+            {
+                v.GetProperty("name").GetString()!,
+                new ReaderTextVector(v.GetProperty("name").GetString()!, v.GetProperty("media_type").GetString()!, v.GetProperty("input").GetString()!,
+                    v.GetProperty("text").GetString(), v.GetProperty("sha256").GetString()),
+            });
+
+    [Fact]
+    public void The_reader_text_vectors_are_there() => Assert.True(ReaderTextVectors().Count() >= 15);
+
+    [Theory]
+    [MemberData(nameof(ReaderTextVectors))]
+    public void The_text_a_reader_sees_is_the_typescript_sdks(string name, ReaderTextVector vector)
+    {
+        var text = ReaderText.AppliesTo(vector.MediaType) ? ContentHash.Normalize(ReaderText.Of(vector.Input, vector.MediaType)) : null;
+        Assert.True(vector.Text == (text == "" ? null : text), $"{name}: '{text}'");
+        Assert.Equal(vector.Sha256, ReaderText.Sha256(vector.Input, vector.MediaType));
+    }
+
+    [Fact]
+    public void The_named_entities_are_html_4s_as_dotnet_decodes_them()
+    {
+        var names = ReaderText.EntityTable.Split(' ').Where((_, i) => i % 2 == 0).ToList();
+        Assert.Equal(253, names.Count);
+        Assert.All(names, name => Assert.Equal(WebUtility.HtmlDecode($"&{name};"), ReaderText.DecodeEntities($"&{name};")));
     }
 
     [Fact]

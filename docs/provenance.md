@@ -31,13 +31,21 @@ public Task<string> InsertReplyAsync(string text, IProvenance provenance, Cancel
 1. decides the edit kind: the content's own (`MarkableContent.EditKind`), else the declaration's, else `Generated`; a classifier (`UseClassifier`) may change it;
 2. records exempt content without a record or a mark (`ExemptReasons`): the policy's internal switch, an exempt edit kind (translated, corrected, formatted, extracted by default), code and data (`application/json`, `text/x-*`, ...), and labels -- at most three words and 40 characters without a sentence mark, or 8 characters of CJK text. **Short text is not exempt**: it is recorded and marked like any other; only the model's watermark is not expected under the policy's threshold (200 tokens), and the watermark layer says `short-text`;
 3. checks the layers the content needs (below) as far as it can before anything is signed; with the policy `refuse`, a missing one refuses here;
-4. has the server sign a record of the placement: the content's SHA-256 (text normalised first), its media type, its edit kind and the receipt, never the content. Without a signed record no marker runs -- no mark carries an id the server does not know -- the content is inserted as it is, and the metadata layer is reported `signed-record`, `server-unavailable`;
+4. has the server sign a record of the placement: the content's SHA-256 (text normalised first), for HTML and Markdown also the SHA-256 of the text a reader sees (`text_sha256`, below), its media type, its edit kind and the receipt, never the content. Without a signed record no marker runs -- no mark carries an id the server does not know -- the content is inserted as it is, and the metadata layer is reported `signed-record`, `server-unavailable`;
 5. lets the markers that fit the sink prepare the content, calls your insert with it, and lets the markers mark what landed and read it back;
 6. reports the placement to the server (layers applied, reason codes for the others) and writes a `provenance.placed` entry into the session's transcript.
 
 It returns a `Placement`: the record, the layers, and the layers the content needed that did not hold (`Missing`). Its `Summary` is a line for the model.
 
-A tool that declares content and returns without placing it is recorded as `provenance.unmarked` and reported without a record (sink kind `unmarked`, no layers), unless the content is exempt. In development mode -- `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` set to `Development`, or `UseDevelopmentMode()` -- the call fails instead. A marker that throws is recorded (`failed: <error>`) and the placement goes on, in development mode too.
+**When the insert fails.** If your insert throws after the server signed the record, the placement is still reported and recorded -- the record's id, every layer `Applied = false` (the transcript's `detail` says `insert failed: <exception>`) -- so the server's placements match its records; then `PlaceAsync` throws your exception on.
+
+**Arguments that are not content.** A tool that writes text for people in one call and picks an option or ticks a check box in another says so per call: its `EditKindFrom` method returns `EditKind?`, null for a call whose argument is not content (see [Content for people](tools.md#content-for-people)). For such a call `PlaceAsync` inserts the value as it is -- no record, no mark, no report, no transcript entry -- and returns a placement with `Exempt` and `ExemptBecause` `not-content`; a call that does not use `PlaceAsync` at all is not recorded as unmarked. An `EditKind` on the content makes it content again.
+
+**Host values.** A marker that needs your insert to write something with the content -- Word's bookmark, inside the insert's own undo entry -- prepares it for this one placement: `content.WithHostValue(key, value)` in `PrepareAsync`. Your insert reads `marked.HostValues[key]`, and `AttachAsync` reads `placed.Content.HostValues[key]`. `OfficeMarks.AnchorValue` (`office.anchor`) is the key for the anchor's name (`OfficeMarks.AnchorName`). Ids and names only: host values stay on the device.
+
+A tool that declares content and returns without placing it is recorded as `provenance.unmarked` and reported without a record (sink kind `unmarked`, no layers), unless the content is exempt or the call's `EditKindFrom` said null. In development mode -- `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` set to `Development`, or `UseDevelopmentMode()` -- the call fails instead. A marker that throws is recorded (`failed: <error>`) and the placement goes on, in development mode too.
+
+`Labels.IsLabel(text, mediaType)` is the rule for labels, public so a host can apply it to the parts it writes on its own (Excel, per cell).
 
 ## Sinks
 
@@ -60,7 +68,7 @@ A `SinkInfo` describes once what a place content lands can carry:
 | `ServerSignedMarker` (`server-record`) | metadata | The server's signed record of every placement, with the content's hash (`signed-record`); no mark in the content, so it never makes the metadata layer hold |
 | `ImageProvenanceGuard` (`image-guard`) | metadata | Checks a picture still has its C2PA manifest and XMP, before and (where the host gives the bytes back) after; `stripped-by-host` otherwise. Method `c2pa` |
 | `WatermarkStatus` (`watermark-status`) | watermark | Records from the receipt whether the content carries a watermark (`vllm-<algorithm>`, `upstream-<vendor>`, `trustmark`), and if not, why (method `model`) |
-| `HtmlAttributeMarker` (`html-attribute`) | metadata | Wraps HTML in one element with `data-ai-generated` and a `title` ("AI-generated" in the user's language, a space, the record's id); reads back which held: `html-attribute`, or `html-title` when only the title did. For sinks that carry `HtmlAttribute` or `HtmlTitle`; HTML only |
+| `HtmlAttributeMarker` (`html-attribute`) | metadata | Wraps HTML in one element with `data-ai-generated` and a `title` ("AI-generated" in the user's language, a space, the record's id); one paragraph is marked inside it (`<p><span ...>...</span></p>`), several blocks get a `div`; reads back which held: `html-attribute`, or `html-title` when only the title did. For sinks that carry `HtmlAttribute` or `HtmlTitle`; HTML only |
 | `MarkdownFrontMatterMarker` (`front-matter`) | metadata | `ai-generated: true` and `ai-record-id: "<id>"` in the YAML front matter, merged into front matter the file has |
 | `KeyValueMarker` (`key-value`) | metadata | The same two keys in the host's fields: `ai-generated` = `true`, then `ai-record-id` = the record's id, read back |
 | `SidecarMarker` (`sidecar`) | metadata | The signed record in `<file>.provenance.json` beside the file |
@@ -102,6 +110,8 @@ Every answer ends with the server's receipt. The session keeps them: `AgentResul
 
 `client.Provenance.VerifyAsync(VerifyRequest.ForText(text))` or `VerifyRequest.ForFile(bytes, mediaType)` asks the server's detector whether content carries this installation's marks and returns a `VerifyResult` (`Verdict`, `Findings`). An agent's client checks on its agent's route (`/v1/agents/{agent}/provenance/verify`, its agent token), as its other routes go; a client without an agent checks as the signed-in user (`/v1/provenance/verify`, which refuses an agent token with 403 `agent_token_not_allowed`). `client.Agent.Provenance.VerifyAsync` always takes the agent's route. A request is a text or a file, never both; nothing submitted is kept.
 
+A record of HTML or Markdown is found by its markup and by the words a reader copies: `PlaceAsync` sends, beside the content's hash, `RecordRequest.TextSha256` -- the SHA-256 of the text a reader sees, normalised as content is hashed (`ReaderText.Sha256(text, mediaType)`). Plain text and markup with nothing to read send none. `ReaderText.Of` gives that text: of HTML without comments and the contents of `script`, `style`, `template`, `head` and `title`, block elements (`p`, `div`, `br`, `li`, headings, table rows and cells, ...) as line breaks, every other tag gone, entities decoded; of Markdown as a renderer shows it -- without front matter, heading, emphasis, list, task and quote markers, with inline code's text, a link's text and an image's alt text, fenced code's lines, table cells apart, HTML read as HTML. A visible label is not part of the hashed text: a copy that takes the label line with it does not match by hash.
+
 ## Levels of integration
 
 | Level | What you do | What you get |
@@ -140,10 +150,10 @@ Markers for Office hosts are level-3 markers written with the Office object mode
 
 | Hook | Use |
 |---|---|
-| `IEditClassifier` | Decides the edit kind for your domain; `SimilarityEditClassifier` says `corrected` only for small changes (word similarity of 0.85 or more, a typo fix costing less than a changed word, the same number of sentences, a word count within 0.8 to 1.25 times). Lowering a kind to an exempt one needs a reason, which is recorded |
+| `IEditClassifier` | Decides the edit kind for your domain; `SimilarityEditClassifier` says `corrected` only for small changes (word similarity of 0.85 or more, a typo fix costing less than a changed word, the same number of sentences, a word count within 0.8 to 1.25 times), and compares HTML and Markdown by the text a reader sees, so markup an editor adds is no change of words (`Suggest(before, after, "text/html")`). Lowering a kind to an exempt one needs a reason, which is recorded |
 | `IRecordEnricher` | Your own facts under your namespace (`com.example.matter`): in the transcript, to the markers and observers, never to the server. Facts that look like personal data are dropped, and so is a namespace of the record's own (`c2pa`, `stds`, `iptc`, `org.iptc`, `com.fadenstack`, `fadenstack`, `provenance`) |
 | `IPlacementObserver` | Each placement report, for your own audit |
-| `IProvenanceBackend` | Replaces the server calls; `TestProvenanceBackend` needs no server |
+| `IProvenanceBackend` | Replaces the server calls; `TestProvenanceBackend` needs no server (its record ids are random UUIDs, as the server's) |
 
 ## Reading marks
 
@@ -151,7 +161,7 @@ Markers for Office hosts are level-3 markers written with the Office object mode
 
 ## The same in both SDKs
 
-The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there).
+The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there), and read the same `reader-text-vectors.json` for the text a reader sees.
 
 | Step | What happens |
 |---|---|
@@ -160,7 +170,7 @@ The .NET and the TypeScript SDK follow one order, one rule for what content need
 | 3 | The markers that fit, by layer; the built-ins in this order: `server-record`, `image-guard`, `watermark-status`, `html-attribute`, `front-matter`, `key-value`, `sidecar`, `http-header`; then yours; the policy's label when none of them is a label |
 | 4 | The needed layers checked before signing; `refuse` refuses here |
 | 5 | The record signed; without one no marker runs, `{ metadata, signed-record, applied: false, reason: server-unavailable }`; `refuse` refuses here when the content needs metadata (or a label) |
-| 6 | Prepare, insert, attach; the pipeline adds `host`, `sink-cannot-carry` when no host marker fits, and the watermark from the receipt when no marker gave it; the layers sorted by layer |
+| 6 | Prepare, insert, attach; the pipeline adds `host`, `sink-cannot-carry` when no host marker fits, and the watermark from the receipt when no marker gave it; the layers sorted by layer. An insert that throws after signing: every layer `applied: false` (detail `insert failed: <error>`), reported, then thrown on |
 | 7 | Report, observers, transcript |
 
 | Where | The mark |
@@ -168,7 +178,7 @@ The .NET and the TypeScript SDK follow one order, one rule for what content need
 | YAML front matter | `ai-generated: true` and `ai-record-id: "<id>"` after the fields of front matter the file has (an earlier mark replaced, the rest byte for byte), or new front matter followed by a blank line; the text's own line breaks (CRLF when it has any) |
 | Key-value | `ai-generated` = `true`, then `ai-record-id` = the id |
 | HTTP or mail header | `X-AI-Generated: <id>` (`X-Faden-Provenance` is the gateway's header with an answer's receipt ids, not a mark) |
-| HTML | `<span data-ai-generated="<id>" title="<label> <id>">...</span>`, a `div` around block content (`p`, `div`, `ul`, `ol`, `li`, `table`, `h1`-`h6`, `blockquote`, `pre`, `section`, `article`, `header`, `footer`, `figure`, `hr`, `dl`); the label is `AI-generated`, `KI-generiert`, `Généré par IA`, `Generado por IA` or `人工智能生成`; attribute values escape `&`, `<`, `>` and `"` only |
+| HTML | `<span data-ai-generated="<id>" title="<label> <id>">...</span>`; content that is one `<p ...>` with inline content gets it inside: `<p ...><span ...>...</span></p>` (white space around kept); a `div` around other block content (`p`, `div`, `ul`, `ol`, `li`, `table`, `h1`-`h6`, `blockquote`, `pre`, `section`, `article`, `header`, `footer`, `figure`, `hr`, `dl`); the label is `AI-generated`, `KI-generiert`, `Généré par IA`, `Generado por IA` or `人工智能生成`; attribute values escape `&`, `<`, `>` and `"` only |
 | Visible label | Before HTML `<p data-ai-label="<id>">[icon]<label></p>`; before Markdown `*<label>*` and a blank line, after its front matter; before plain text `<label>` and a blank line |
 | Sidecar | `<file>.provenance.json`, compact JSON: `{"contract":"provenance/v1","record":{...},"signature":"...","timestamp":"...","facts":{...}}`; `timestamp` and `facts` only where there are some |
 | Office | As above: the anchor, the custom XML part `<provenance xmlns="https://fadenstack.com/ns/provenance/1.0"><record id="<id>" anchor="<anchor>" timestamp="<token>">JWS</record>...</provenance>` (no declaration, no white space between elements, `timestamp` only where there is one), the document property `true <id> ...` newest first, the PowerPoint tag, the mail header |
@@ -182,3 +192,5 @@ var result = await MarkerTestKit.AssertAsync(new CrmNoteMarker(),
 ```
 
 The kit runs the marker with a signed test record, your insert as the host, reads back what landed, and fails when a mark it says held is not there, when a mark names another record, or when anything the marker writes holds personal data (the sample text carries a name, an e-mail address, a phone number and a request).
+
+To call a tool method by hand in a unit test, pass a `PassThroughProvenance` (`Fadenstack.Provenance.Testing`) as its `IProvenance`: `PlaceAsync` keeps the content (`Requests`), calls your insert with it unchanged and returns an unmarked placement -- no record, no layers, no server.

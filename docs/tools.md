@@ -85,7 +85,19 @@ public Task<string> InsertReplyAsync(string text, IProvenance provenance, Cancel
 | `Formatted` | Layout, styles, format conversion | No |
 | `Extracted` | Existing content selected or structured, not summarised | No |
 
-`EditKindFrom` names a method of the same class, `EditKind Name(IReadOnlyDictionary<string, object?> arguments)`, that decides the kind per call. An `[Emits]` that names no parameter of the method throws `ArgumentException` when the tools are added. The declarations are in `AgentTool.Outputs` (also for tools you build yourself) and in the app's manifest. They are metadata only: [Content provenance](provenance.md) marks what the tool places.
+`EditKindFrom` names a method of the same class, `EditKind Name(IReadOnlyDictionary<string, object?> arguments)`, that decides the kind per call. Declared `EditKind?`, it returns null for a call whose argument is not content for people to read -- a form tool that picks an option in a drop-down or ticks a check box; such a call is not marked and not reported:
+
+```csharp
+[AgentTool(ToolClass.Write), Emits("value", "text/plain", EditKindFrom = nameof(KindOf)), Description("Fills a form field.")]
+public Task<string> FillFieldAsync(string value, string kind, IProvenance provenance, CancellationToken ct) => ...;
+
+private static EditKind? KindOf(IReadOnlyDictionary<string, object?> arguments) =>
+    arguments.TryGetValue("kind", out var kind) && kind?.ToString() == "text" ? EditKind.Generated : null;
+```
+
+An `[Emits]` that names no parameter of the method throws `ArgumentException` when the tools are added. The declarations are in `AgentTool.Outputs` and in the app's manifest; `ToolOutput.EditKindFor(arguments)` gives one call's kind (null: not content). They are metadata only: [Content provenance](provenance.md) marks what the tool places.
+
+A host that names its tools itself builds each from its method: `AgentTool.FromMethod(method, target, name, toolClass, description)` binds the parameters as `AgentTool.From` does (tool services from the call) and reads the method's `[Emits]` and `EditKindFrom` into `Outputs`; `AgentTool.OutputsOf(method, target)` reads only the declarations, for an `AgentTool` you build from your own `AIFunction`.
 
 ## Tool classes
 
