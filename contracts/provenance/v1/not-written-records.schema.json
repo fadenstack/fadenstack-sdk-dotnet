@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "NotWrittenRecord": {
+      "additionalProperties": false,
+      "description": "A signed record whose placement the agent reported as not written: ids, kinds and times, never a hash.",
+      "properties": {
+        "agent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Agent"
+        },
+        "created_at": {
+          "description": "when the record was signed",
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "edit_kind": {
+          "enum": [
+            "generated",
+            "rewritten",
+            "summarised",
+            "translated",
+            "corrected",
+            "formatted",
+            "extracted"
+          ],
+          "title": "Edit Kind",
+          "type": "string"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the host error's name, as the report gave it",
+          "title": "Failure"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "record_id": {
+          "title": "Record Id",
+          "type": "string"
+        },
+        "sink_kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "from the record's latest placement report",
+          "title": "Sink Kind"
+        },
+        "state_changed_at": {
+          "description": "when the record became not-written: the failed write's report",
+          "format": "date-time",
+          "title": "State Changed At",
+          "type": "string"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "from the record's latest placement report",
+          "title": "Tool"
+        }
+      },
+      "required": [
+        "record_id",
+        "created_at",
+        "state_changed_at",
+        "media_type",
+        "edit_kind"
+      ],
+      "title": "NotWrittenRecord",
+      "type": "object"
+    }
+  },
+  "$id": "https://fadenstack.com/schemas/provenance/v1/not-written-records.schema.json",
+  "additionalProperties": false,
+  "description": "``GET /api/v1/provenance/records/not-written``: for debugging, the newest first.",
+  "properties": {
+    "records": {
+      "items": {
+        "$ref": "#/$defs/NotWrittenRecord"
+      },
+      "title": "Records",
+      "type": "array"
+    }
+  },
+  "required": [
+    "records"
+  ],
+  "title": "NotWrittenRecords",
+  "type": "object"
+}

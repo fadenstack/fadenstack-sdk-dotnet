@@ -71,6 +71,13 @@
   "$id": "https://fadenstack.com/schemas/provenance/v1/placement-report.schema.json",
   "additionalProperties": false,
   "description": "What the SDK reports after placing content: where, how much, which layers held. Never the content.",
+  "if": {
+    "properties": {
+      "written": {
+        "const": true
+      }
+    }
+  },
   "properties": {
     "edit_kind": {
       "enum": [
@@ -88,7 +95,6 @@
     "failure": {
       "anyOf": [
         {
-          "maxLength": 64,
           "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
           "type": "string"
         },
@@ -97,7 +103,7 @@
         }
       ],
       "default": null,
-      "description": "only with written false: the error's name as a short code, never its message or any content",
+      "description": "for a write that failed: the host error's name as a short code (e.g. TimeoutError); only with written false",
       "title": "Failure"
     },
     "layers": {
@@ -144,7 +150,7 @@
     },
     "written": {
       "default": true,
-      "description": "false only for an insert that failed after the record was signed: the record is marked not written",
+      "description": "false when the host's write failed after the record was signed; the write may still have partly happened",
       "title": "Written",
       "type": "boolean"
     }
@@ -157,6 +163,13 @@
     "length_class",
     "layers"
   ],
+  "then": {
+    "properties": {
+      "failure": {
+        "type": "null"
+      }
+    }
+  },
   "title": "PlacementReport",
   "type": "object"
 }

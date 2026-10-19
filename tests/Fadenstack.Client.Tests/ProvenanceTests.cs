@@ -115,7 +115,7 @@ public class ProvenanceTests
         var properties = Schema("placement-report").GetProperty("properties");
         Assert.True(properties.GetProperty("written").GetProperty("default").GetBoolean());
         var failure = properties.GetProperty("failure").GetProperty("anyOf")[0];
-        Assert.Equal((PlacementReport.FailurePattern, 64), (failure.GetProperty("pattern").GetString(), failure.GetProperty("maxLength").GetInt32()));
+        Assert.Equal(PlacementReport.FailurePattern, failure.GetProperty("pattern").GetString());
     }
 
     [Fact]

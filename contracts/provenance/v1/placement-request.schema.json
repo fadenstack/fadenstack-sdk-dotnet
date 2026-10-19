@@ -71,6 +71,13 @@
   "$id": "https://fadenstack.com/schemas/provenance/v1/placement-request.schema.json",
   "additionalProperties": false,
   "description": "``POST /api/v1/provenance/placements``: a placement report and the agent that placed the content.",
+  "if": {
+    "properties": {
+      "written": {
+        "const": true
+      }
+    }
+  },
   "properties": {
     "agent": {
       "anyOf": [
@@ -96,6 +103,20 @@
       ],
       "title": "Edit Kind",
       "type": "string"
+    },
+    "failure": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_.:-]{1,64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "for a write that failed: the host error's name as a short code (e.g. TimeoutError); only with written false",
+      "title": "Failure"
     },
     "layers": {
       "items": {
@@ -138,6 +159,12 @@
     "tool": {
       "title": "Tool",
       "type": "string"
+    },
+    "written": {
+      "default": true,
+      "description": "false when the host's write failed after the record was signed; the write may still have partly happened",
+      "title": "Written",
+      "type": "boolean"
     }
   },
   "required": [
@@ -148,6 +175,13 @@
     "length_class",
     "layers"
   ],
+  "then": {
+    "properties": {
+      "failure": {
+        "type": "null"
+      }
+    }
+  },
   "title": "PlacementRequest",
   "type": "object"
 }
