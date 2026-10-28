@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Auth;
 
@@ -56,19 +57,8 @@ public static class SecretProtection
         return new OwnerOnlyFileProtector();
     }
 
-    /// <summary>The SDK's data folder: <c>%LOCALAPPDATA%\Fadenstack</c>, or the user data folder elsewhere.</summary>
-    public static string DataDirectory(params string[] parts)
-    {
-        var root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrEmpty(root))
-        {
-            root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
-        }
-        var path = Path.Combine(new[] { root, "Fadenstack" }.Concat(parts).ToArray());
-        Directory.CreateDirectory(path);
-        OwnerOnly(path, directory: true);
-        return path;
-    }
+    /// <summary>A folder in the SDK's data root; see <see cref="FadenstackPaths.Data"/> for where that is.</summary>
+    public static string DataDirectory(params string[] parts) => FadenstackPaths.Data(parts);
 
     /// <summary>Writes a file only the current user may read, atomically.</summary>
     public static void WriteOwnerOnly(string path, byte[] data)

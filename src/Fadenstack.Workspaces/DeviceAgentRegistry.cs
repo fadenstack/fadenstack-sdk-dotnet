@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Workspaces;
 
@@ -18,12 +19,15 @@ public sealed class DeviceAgentRegistry
     private readonly IProcessSource _processes;
     private readonly TimeSpan _staleAfter;
 
-    /// <param name="directory">Default: <c>%LOCALAPPDATA%\Fadenstack\agents</c> (the user data folder elsewhere).</param>
+    /// <param name="directory">
+    /// Default: <c>agents</c> in <see cref="FadenstackPaths.DataRoot"/>, not per Fadenstack user: every agent process of
+    /// the OS user coordinates through it.
+    /// </param>
     /// <param name="processes">Default: the real processes.</param>
     /// <param name="staleAfter">How long an entry lives without a heartbeat (default 2 minutes).</param>
     public DeviceAgentRegistry(string? directory = null, IProcessSource? processes = null, TimeSpan? staleAfter = null)
     {
-        _directory = directory ?? SecretProtection.DataDirectory("agents");
+        _directory = directory ?? FadenstackPaths.Data("agents");
         Directory.CreateDirectory(_directory);
         _processes = processes ?? SystemProcessSource.Instance;
         _staleAfter = staleAfter ?? TimeSpan.FromMinutes(2);

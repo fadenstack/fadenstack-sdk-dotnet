@@ -3,6 +3,7 @@ using System.Text.Json;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Http;
+using Fadenstack.Storage;
 using Fadenstack.Tools;
 
 namespace Fadenstack.Agents;
@@ -72,8 +73,9 @@ public sealed class MemoryApprovalStore : IApprovalStore
 }
 
 /// <summary>
-/// One file per agent under the user's data folder (<c>%LOCALAPPDATA%\Fadenstack\approvals\</c>), encrypted for the
-/// current user like the sessions (DPAPI on Windows); elsewhere the files are readable by their owner only.
+/// One file per agent in the signed-in user's own folder (<c>%LOCALAPPDATA%\Fadenstack\users\&lt;user&gt;\approvals\</c>;
+/// <c>...\Fadenstack\approvals\</c> when the server names no user), encrypted for the current user like the sessions
+/// (DPAPI on Windows); elsewhere the files are readable by their owner only.
 /// </summary>
 public sealed class FileApprovalStore : IApprovalStore
 {
@@ -83,7 +85,7 @@ public sealed class FileApprovalStore : IApprovalStore
 
     public FileApprovalStore(string? directory = null, ISecretProtector? protector = null)
     {
-        _root = directory ?? SecretProtection.DataDirectory("approvals");
+        _root = directory ?? FadenstackPaths.Data("approvals");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
     }
@@ -161,5 +163,5 @@ public sealed class FileApprovalStore : IApprovalStore
         SecretProtection.WriteOwnerOnly(path, _protector.Protect(JsonSerializer.SerializeToUtf8Bytes(approvals, FadenstackJson.Options)));
     }
 
-    private string PathOf(string agent) => Path.Combine(_root, FileSessionStore.Safe(agent) + ".json");
+    private string PathOf(string agent) => Path.Combine(_root, FadenstackPaths.SafeName(agent) + ".json");
 }

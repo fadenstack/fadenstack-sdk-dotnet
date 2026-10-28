@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
 using Fadenstack.Http;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Agents.Sessions;
 
@@ -86,8 +87,9 @@ public sealed class MemorySessionStore : ISessionStore
 }
 
 /// <summary>
-/// One append-only JSONL file per session, per agent, under the user's data folder
-/// (<c>%LOCALAPPDATA%\Fadenstack\sessions\&lt;agent&gt;\</c>). Each line is encrypted for the current user
+/// One append-only JSONL file per session, per agent, in the signed-in user's own folder
+/// (<c>%LOCALAPPDATA%\Fadenstack\users\&lt;user&gt;\sessions\&lt;agent&gt;\</c>; <c>...\Fadenstack\sessions\</c> when the
+/// server names no user). Each line is encrypted for the current user
 /// (DPAPI on Windows); elsewhere the files are readable by their owner only.
 /// </summary>
 public sealed class FileSessionStore : ISessionStore
@@ -99,7 +101,7 @@ public sealed class FileSessionStore : ISessionStore
 
     public FileSessionStore(string? directory = null, ISecretProtector? protector = null, SessionRetention? retention = null)
     {
-        _root = directory ?? SecretProtection.DataDirectory("sessions");
+        _root = directory ?? FadenstackPaths.Data("sessions");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
         _retention = retention ?? SessionRetention.Default;
@@ -177,7 +179,7 @@ public sealed class FileSessionStore : ISessionStore
         var cutoff = DateTime.UtcNow.AddDays(-_retention.MaxAgeDays);
         var others = Directory.GetFiles(AgentDirectory(agent), "*.jsonl")
             .Select(f => new FileInfo(f))
-            .Where(f => Path.GetFileNameWithoutExtension(f.Name) != Safe(keep))
+            .Where(f => Path.GetFileNameWithoutExtension(f.Name) != FadenstackPaths.SafeName(keep))
             .OrderByDescending(f => f.LastWriteTimeUtc).ToList();
         for (var i = 0; i < others.Count; i++)
         {
@@ -190,7 +192,7 @@ public sealed class FileSessionStore : ISessionStore
 
     private string AgentDirectory(string agent)
     {
-        var path = Path.Combine(_root, Safe(agent));
+        var path = Path.Combine(_root, FadenstackPaths.SafeName(agent));
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
@@ -199,12 +201,5 @@ public sealed class FileSessionStore : ISessionStore
         return path;
     }
 
-    private string PathOf(string agent, string sessionId) => Path.Combine(AgentDirectory(agent), Safe(sessionId) + ".jsonl");
-
-    internal static string Safe(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var safe = new string(name.Select(c => invalid.Contains(c) || c == '.' ? '_' : c).ToArray());
-        return safe.Length == 0 ? "_" : safe;
-    }
+    private string PathOf(string agent, string sessionId) => Path.Combine(AgentDirectory(agent), FadenstackPaths.SafeName(sessionId) + ".jsonl");
 }

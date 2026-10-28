@@ -88,6 +88,9 @@ public sealed class Gateway
     /// <summary>The agent's marking policy as JSON; null: no provenance module (503).</summary>
     public string? ProvenancePolicy { get; set; }
 
+    /// <summary>The profile's <c>principal</c> as JSON; null: an older gateway that names no user.</summary>
+    public string? Principal { get; set; }
+
     /// <summary>The provenance engine is down: records are not signed (503).</summary>
     public bool ProvenanceDown { get; set; }
 
@@ -196,7 +199,7 @@ public sealed class Gateway
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"],
-                 "user":{"language":{{language}} } }
+                 "user":{"language":{{language}} },"principal":{{Principal ?? "null"}} }
                 """;
     }
 
