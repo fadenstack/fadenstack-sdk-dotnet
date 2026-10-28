@@ -139,4 +139,23 @@ public class StorageTests : IDisposable
     [InlineData("""{"principal":{"tenant_id":"t-1","user_id":"","agent_id":"a-1"}}""")]
     [InlineData("""{"principal":{"tenant_id":"t-1","user_id":7,"agent_id":"a-1"}}""")]
     public void Without_a_complete_principal_there_is_none(string json) => Assert.Null(Profile(json).Principal);
+
+    [Theory]
+    [InlineData("""{"local_retention":{"max_age_days":30,"max_sessions":10}}""", 30, 10)]
+    [InlineData("""{"local_retention":{"max_age_days":30}}""", 30, null)]
+    [InlineData("""{"local_retention":{"max_age_days":0,"max_sessions":7}}""", null, 7)]
+    [InlineData("""{"local_retention":{"max_age_days":"30","max_sessions":-1}}""", null, null)]
+    [InlineData("""{"local_retention":{"max_sessions":2.5}}""", null, null)]
+    public void The_local_retention_keeps_only_positive_whole_numbers(string json, int? days, int? sessions)
+    {
+        var retention = Profile(json).LocalRetention;
+        Assert.Equal((days, sessions), (retention?.MaxAgeDays, retention?.MaxSessions));
+    }
+
+    [Theory]
+    [InlineData("""{}""")]
+    [InlineData("""{"local_retention":null}""")]
+    [InlineData("""{"local_retention":"30"}""")]
+    [InlineData("""{"local_retention":{}}""")]
+    public void Without_a_usable_local_retention_there_is_none(string json) => Assert.Null(Profile(json).LocalRetention);
 }

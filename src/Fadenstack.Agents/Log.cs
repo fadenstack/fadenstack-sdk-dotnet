@@ -41,6 +41,18 @@ internal static partial class Log
         Message = "The earlier sessions and approvals could not move into the user's own folder ({ErrorType}); they stay where they are")]
     internal static partial void DataAdoptionFailed(ILogger logger, string errorType);
 
+    [LoggerMessage(EventId = 2006, Level = LogLevel.Information,
+        Message = "The user's data on this device was exported: {Agents} agents, {Sessions} sessions, {Approvals} approvals, {Unreadable} unreadable")]
+    internal static partial void DataExported(ILogger logger, int agents, int sessions, int approvals, int unreadable);
+
+    [LoggerMessage(EventId = 2007, Level = LogLevel.Information,
+        Message = "The user's data on this device was deleted: {Folders} folders removed")]
+    internal static partial void DataDeleted(ILogger logger, int folders);
+
+    [LoggerMessage(EventId = 2008, Level = LogLevel.Warning,
+        Message = "The user's data on this device could not be deleted ({ErrorType})")]
+    internal static partial void DataDeletionFailed(ILogger logger, string errorType);
+
     [LoggerMessage(EventId = 2010, Level = LogLevel.Information,
         Message = "Turn {TurnId} of conversation {ConversationId} started in tool mode {ToolMode} with {Attachments} attachments")]
     internal static partial void TurnStarted(ILogger logger, string conversationId, string turnId, string toolMode, int attachments);

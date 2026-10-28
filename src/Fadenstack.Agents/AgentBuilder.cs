@@ -26,6 +26,7 @@ public sealed class AgentBuilder
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
+    private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
     private ToolMode _defaultMode = ToolMode.Ask;
     private int _maxRounds = 16;
@@ -106,6 +107,24 @@ public sealed class AgentBuilder
     public AgentBuilder UseSessionStore(ISessionStore store)
     {
         _sessions = store ?? throw new ArgumentNullException(nameof(store));
+        return this;
+    }
+
+    /// <summary>
+    /// How many sessions, and how old, the default session store keeps (default <see cref="SessionRetention.Default"/>). If the
+    /// server sets limits too (<see cref="AgentProfile.LocalRetention"/>), the stricter of each applies.
+    /// </summary>
+    public AgentBuilder UseSessionRetention(SessionRetention retention)
+    {
+        if (retention is null)
+        {
+            throw new ArgumentNullException(nameof(retention));
+        }
+        if (retention.MaxSessions < 1 || retention.MaxAgeDays < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(retention), "Both limits must be positive.");
+        }
+        _retention = retention;
         return this;
     }
 
@@ -298,6 +317,7 @@ public sealed class AgentBuilder
             Approvals = _approvals,
             Sessions = _sessions,
             ApprovalStore = _approvalStore,
+            Retention = _retention,
             PermissionMode = _permissionMode,
             DefaultMode = _defaultMode,
             MaxRounds = _maxRounds,
@@ -343,6 +363,7 @@ internal sealed class AgentSettings
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
+    public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
     public ToolMode DefaultMode { get; init; } = ToolMode.Ask;
     public int MaxRounds { get; init; }
