@@ -41,8 +41,13 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>The tools the agent runs, with their effective classes, once started.</summary>
     public IReadOnlyList<AgentTool> Tools => _tools;
 
-    /// <summary>The most any session may use: the profile's ceiling, if the server sets one, or Auto.</summary>
-    public ToolMode Ceiling => ToolModes.ParseMode(_profile?.ToolModes.Ceiling) ?? ToolMode.Auto;
+    /// <summary>
+    /// The most any session may use: the profile's ceiling, if the server sets one, or Auto. A ceiling this SDK does
+    /// not know narrows to read-only: it cannot be taken for none.
+    /// </summary>
+    public ToolMode Ceiling => _profile?.ToolModes.Ceiling is { } ceiling && !string.IsNullOrWhiteSpace(ceiling)
+        ? ToolModes.ParseMode(ceiling) ?? ToolMode.ReadOnly
+        : ToolMode.Auto;
 
     /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
     public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;

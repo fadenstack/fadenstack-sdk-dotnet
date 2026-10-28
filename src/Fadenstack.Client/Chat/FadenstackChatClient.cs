@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -152,7 +153,10 @@ public sealed class FadenstackChatClient : IChatClient
         return request;
     }
 
-    /// <summary>A prompt the gateway refused (422 policy_blocked) is an answer, not an error.</summary>
+    /// <summary>
+    /// A prompt the gateway refused (422 policy_blocked) is an answer, not an error. The status and code say it is a
+    /// prompt refusal, whatever outcome the notice names.
+    /// </summary>
     private static ChatResponse? Refused(HttpResponseMessage response, string body)
     {
         if (response.StatusCode != (HttpStatusCode)422)
@@ -166,7 +170,8 @@ public sealed class FadenstackChatClient : IChatClient
         }
         var notice = parsed.Fadenstack is { } faden && faden.TryGetProperty("governance", out var g)
             ? ChatWire.Notice(g)
-            : new GovernanceNotice { Outcome = "prompt_blocked", Stage = "input", Message = parsed.Message };
+            : new GovernanceNotice { Stage = "input", Message = parsed.Message };
+        notice = notice with { Outcome = "prompt_blocked" };
         if (string.IsNullOrEmpty(notice.Message))
         {
             notice = notice with { Message = parsed.Message };
@@ -189,14 +194,20 @@ public sealed class FadenstackChatClient : IChatClient
         {
             if (sse.Name == "faden")
             {
-                using var doc = JsonDocument.Parse(sse.Data);
+                using var doc = ParseEvent(sse.Data);
+                if (doc is null)
+                {
+                    yield break;
+                }
                 var content = new FadenstackEventContent(doc.RootElement);
                 var update = Update(content);
                 if (content.Name == ChatWire.ProvenanceEvent)
                 {
                     update.Contents.Add(ProvenanceReceiptContent.FromEvent(content.Value));
                 }
-                if (content.Name == "faden.governance" && content.Value.ValueKind == JsonValueKind.Object)
+                // Only a refusal refuses; a later outcome (observe, restrict, ...) stays an event for the session to report.
+                if (content.Name == "faden.governance" && content.Value.ValueKind == JsonValueKind.Object
+                    && ChatWire.IsRefusal(ChatWire.Str(content.Value, "outcome")))
                 {
                     var notice = ChatWire.Notice(content.Value);
                     update.Contents.Add(new GovernanceNoticeContent(notice));
@@ -273,6 +284,27 @@ public sealed class FadenstackChatClient : IChatClient
             }
         }
 
+        /// <summary>A <c>faden</c> event's JSON, or null (and a trace warning) when it is not an object: the stream goes on without it.</summary>
+        private static JsonDocument? ParseEvent(string data)
+        {
+            try
+            {
+                var doc = JsonDocument.Parse(data);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    return doc;
+                }
+                doc.Dispose();
+            }
+            catch (JsonException e)
+            {
+                Trace.TraceWarning($"Fadenstack: a faden event was skipped, it is not valid JSON ({e.Message}).");
+                return null;
+            }
+            Trace.TraceWarning("Fadenstack: a faden event was skipped, it is not a JSON object.");
+            return null;
+        }
+
         private void Collect(JsonElement call)
         {
             var index = call.TryGetProperty("index", out var i) && i.ValueKind == JsonValueKind.Number ? i.GetInt32() : 0;
@@ -291,7 +323,7 @@ public sealed class FadenstackChatClient : IChatClient
 
         private IList<AIContent> Calls()
         {
-            var calls = _calls.Values.Select(c => (AIContent)ChatWire.Call(c.Id, c.Name, c.Arguments.ToString())).ToList();
+            var calls = _calls.Select(c => (AIContent)ChatWire.Call(c.Value.Id, c.Value.Name, c.Value.Arguments.ToString(), c.Key)).ToList();
             _calls.Clear();
             return calls;
         }

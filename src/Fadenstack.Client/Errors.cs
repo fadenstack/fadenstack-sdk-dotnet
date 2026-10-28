@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 
 namespace Fadenstack;
 
@@ -30,6 +31,12 @@ public class FadenstackApiException : FadenstackException
     public string? Type { get; }
 
     public string? Param { get; }
+
+    /// <summary>
+    /// The error's <c>faden</c> block, as the server sent it (decision id, governance, ...), or null: kept for every error,
+    /// whatever its status, so a refusal's details are not lost.
+    /// </summary>
+    public JsonElement? Faden { get; internal set; }
 }
 
 /// <summary>401: no or a bad token. For an agent: sign in again.</summary>

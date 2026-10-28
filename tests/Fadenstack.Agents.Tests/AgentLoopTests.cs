@@ -724,7 +724,7 @@ public class AttachmentTests
         await session.SendAsync("Sure?");
 
         var first = gateway.ChatRequests[0].Json.GetProperty("messages")[0].GetProperty("content").GetString()!;
-        Assert.StartsWith("<attachment title=\"Sheet1!A1:A3\" kind=\"range\" source=\"excel\" reference=\"excel:range:Sheet1!A1:A3\">\n| A |", first);
+        Assert.StartsWith("<attachment id=\"a1\" title=\"Sheet1!A1:A3\" kind=\"range\" source=\"excel\" reference=\"excel:range:Sheet1!A1:A3\">\n| A |", first);
         Assert.EndsWith("</attachment>\n\nWhat does this sum to?", first);
         var again = gateway.ChatRequests[1].Json.GetProperty("messages")[0].GetProperty("content").GetString()!;
         Assert.Equal(first, again);
