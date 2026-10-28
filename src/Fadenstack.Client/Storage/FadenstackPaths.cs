@@ -36,7 +36,7 @@ public static class FadenstackPaths
     /// <summary>Preferences, which hold no personal content. <c>%APPDATA%\Fadenstack</c> on Windows.</summary>
     public static string SettingsRoot => Current.Settings;
 
-    /// <summary>Logs, for a later writer; <c>DataRoot\logs</c> on Windows.</summary>
+    /// <summary>Logs (<see cref="Logging.FadenstackFileLoggerProvider"/>); <c>DataRoot\logs</c> on Windows.</summary>
     public static string LogRoot => Current.Logs;
 
     /// <summary>A folder under <see cref="DataRoot"/>, created, readable by its owner only (Unix).</summary>
@@ -49,6 +49,25 @@ public static class FadenstackPaths
     /// <summary>The log folder, or one user's below it; created, owner only.</summary>
     public static string Logs(string? userId) =>
         Ensure(LogRoot, userId is null ? Array.Empty<string>() : new[] { SafeName(userId) });
+
+    /// <summary>
+    /// A log folder a host chose: <see cref="LogRoot"/> itself or a folder below it, created, owner only. Anywhere else is
+    /// refused -- logs stay in the OS user's own folder, never in a machine-wide one.
+    /// </summary>
+    public static string LogFolder(string folder)
+    {
+        var full = Path.GetFullPath(folder);
+        var root = Path.GetFullPath(LogRoot);
+        var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var separator = Path.DirectorySeparatorChar.ToString();
+        if (!(full.TrimEnd(Path.DirectorySeparatorChar) + separator).StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + separator, comparison))
+        {
+            throw new ArgumentException($"A log folder must lie under the user's log root ({root}).", nameof(folder));
+        }
+        Own(root);
+        Own(full);
+        return full;
+    }
 
     /// <summary>A name that is safe as one file or folder name: invalid characters and dots become underscores.</summary>
     public static string SafeName(string name)

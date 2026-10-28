@@ -49,12 +49,14 @@ public sealed class LocalMcpModule : IFadenstackModule, IToolSource, IDisposable
     public async Task<IReadOnlyList<AgentTool>> GetToolsAsync(AgentContext context, CancellationToken cancellationToken)
     {
         var tools = new List<AgentTool>();
+        var log = context.LoggerFactory.CreateLogger(Log.Category);
         foreach (var server in _servers)
         {
             var decision = Policy.Decide(server, context.Profile);
             if (!decision.Allowed)
             {
                 _skipped.Add(new SkippedMcpServer(server.Label, decision.Reason)); // never started
+                Log.Refused(log, server.Label, server.Transport);
                 continue;
             }
             McpClient? client = null;
@@ -82,6 +84,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IToolSource, IDisposable
                 }
                 _clients.Add(client);
                 _attached.Add(new AttachedMcpServer(server.Label, names));
+                Log.Attached(log, server.Label, server.Transport, names.Count);
                 await context.ReportAsync(new LocalMcpAttachedEvent
                 {
                     Label = server.Label, Command = server.Command, Url = server.Url?.ToString(), Tools = names,
@@ -94,6 +97,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IToolSource, IDisposable
                     await client.DisposeAsync().ConfigureAwait(false);
                 }
                 _skipped.Add(new SkippedMcpServer(server.Label, $"Could not attach: {e.Message}", e)); // the agent runs without it
+                Log.AttachFailed(log, server.Label, server.Transport, e.GetType().Name);
             }
         }
         return tools;

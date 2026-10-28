@@ -3,6 +3,7 @@ using Fadenstack.Auth;
 using Fadenstack.Client.Tests;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Fadenstack.Agents.Tests;
@@ -100,7 +101,7 @@ public class UserStorageTests : IDisposable
     {
         FadenstackPaths.User("someone-else");
         File.WriteAllText(Path.Combine(FadenstackPaths.Data("sessions"), "s1.jsonl"), "x");
-        UserDataMigration.Adopt("u-1");
+        UserDataMigration.Adopt("u-1", NullLogger.Instance);
         Assert.True(File.Exists(Data("sessions", "s1.jsonl")));
         Assert.False(Directory.Exists(Data("users", "u-1")));
     }
@@ -108,7 +109,7 @@ public class UserStorageTests : IDisposable
     [Fact]
     public void Nothing_happens_without_older_data()
     {
-        UserDataMigration.Adopt("u-1");
+        UserDataMigration.Adopt("u-1", NullLogger.Instance);
         Assert.False(Directory.Exists(Data("users")));
     }
 }

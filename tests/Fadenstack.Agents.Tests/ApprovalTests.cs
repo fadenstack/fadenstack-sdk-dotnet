@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Client.Tests;
 using Fadenstack.Governance;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Fadenstack.Agents.Tests;
@@ -411,32 +411,6 @@ public class ApprovalTests
 /// <summary>Bypass mode: what it lets through, what it still asks, and its warning. One class: the warning is global.</summary>
 public class PermissionModeTests
 {
-    private sealed class Captured : TraceListener
-    {
-        private readonly System.Text.StringBuilder _text = new();
-
-        public string Text
-        {
-            get
-            {
-                lock (_text)
-                {
-                    return _text.ToString();
-                }
-            }
-        }
-
-        public override void Write(string? message)
-        {
-            lock (_text)
-            {
-                _text.Append(message);
-            }
-        }
-
-        public override void WriteLine(string? message) => Write(message + "\n");
-    }
-
     [Fact]
     public async Task Bypass_approves_a_destructive_call_without_asking_and_records_it()
     {
@@ -490,27 +464,19 @@ public class PermissionModeTests
     [Fact]
     public async Task An_agent_in_bypass_warns_once_and_one_that_asks_does_not()
     {
-        var captured = new Captured();
-        Trace.Listeners.Add(captured);
-        try
-        {
-            using var asks = new Gateway().Builder().Build();
-            await asks.StartAsync();
-            Assert.DoesNotContain("bypass mode", captured.Text);
+        var logs = new CapturingLoggerFactory();
+        using var asks = new Gateway().Builder().UseLogging(logs).Build();
+        await asks.StartAsync();
+        Assert.DoesNotContain(logs.Entries, e => e.Message.Contains("bypass mode"));
 
-            using var bypass = new Gateway().Builder().UsePermissionMode(PermissionMode.Bypass).Build();
-            await bypass.StartAsync();
-            await bypass.StartAsync();
-            await bypass.StartSessionAsync();
-            var text = captured.Text;
-            Assert.Equal(1, text.Split(new[] { "runs in bypass mode" }, StringSplitOptions.None).Length - 1);
-            Assert.Contains("The agent 'docs-assistant' runs in bypass mode: tool calls that would ask are approved without asking, destructive ones too; " +
-                "an admin's \"Ask first\" rule still asks. Use it only for development and trusted automation.", text);
-        }
-        finally
-        {
-            Trace.Listeners.Remove(captured);
-        }
+        using var bypass = new Gateway().Builder().UseLogging(logs).UsePermissionMode(PermissionMode.Bypass).Build();
+        await bypass.StartAsync();
+        await bypass.StartAsync();
+        await bypass.StartSessionAsync();
+        var warning = Assert.Single(logs.Entries, e => e.Message.Contains("runs in bypass mode"));
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Equal("Agent docs-assistant runs in bypass mode: tool calls that would ask are approved without asking, destructive ones too; " +
+            "an admin's \"Ask first\" rule still asks", warning.Message);
     }
 }
 

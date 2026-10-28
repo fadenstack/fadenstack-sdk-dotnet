@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -9,6 +8,7 @@ using Fadenstack.Governance;
 using Fadenstack.Http;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Chat;
 
@@ -24,11 +24,13 @@ public sealed class FadenstackChatClient : IChatClient
     private readonly FadenstackClientOptions _options;
     private readonly Uri _endpoint;
     private readonly ChatClientMetadata _metadata;
+    private readonly ILogger _log;
 
     internal FadenstackChatClient(FadenstackTransport transport, FadenstackClientOptions options)
     {
         _transport = transport;
         _options = options;
+        _log = options.LoggerFactory.CreateLogger(Log.Category);
         _endpoint = options.Agent is { } agent
             ? transport.Gateway($"v1/agents/{Uri.EscapeDataString(agent)}/chat/completions")
             : transport.Gateway("v1/chat/completions");
@@ -91,7 +93,7 @@ public sealed class FadenstackChatClient : IChatClient
         }
         using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
         using var closeOnCancel = cancellationToken.Register(() => stream.Dispose());
-        var assembler = new StreamAssembler();
+        var assembler = new StreamAssembler(_log);
         await foreach (var sse in SseReader.ReadAsync(stream, cancellationToken).ConfigureAwait(false))
         {
             foreach (var update in assembler.Read(sse))
@@ -185,8 +187,11 @@ public sealed class FadenstackChatClient : IChatClient
     private sealed class StreamAssembler
     {
         private readonly SortedDictionary<int, (string Id, string Name, StringBuilder Arguments)> _calls = new();
+        private readonly ILogger _log;
         private string? _responseId;
         private string? _model;
+
+        public StreamAssembler(ILogger log) => _log = log;
 
         public bool Done { get; private set; }
 
@@ -284,8 +289,11 @@ public sealed class FadenstackChatClient : IChatClient
             }
         }
 
-        /// <summary>A <c>faden</c> event's JSON, or null (and a trace warning) when it is not an object: the stream goes on without it.</summary>
-        private static JsonDocument? ParseEvent(string data)
+        /// <summary>
+        /// A <c>faden</c> event's JSON, or null (and a logged warning) when it is not an object: the stream goes on without
+        /// it. The log says why, never what the event held: a parser's message can quote it.
+        /// </summary>
+        private JsonDocument? ParseEvent(string data)
         {
             try
             {
@@ -296,12 +304,12 @@ public sealed class FadenstackChatClient : IChatClient
                 }
                 doc.Dispose();
             }
-            catch (JsonException e)
+            catch (JsonException)
             {
-                Trace.TraceWarning($"Fadenstack: a faden event was skipped, it is not valid JSON ({e.Message}).");
+                Log.EventSkipped(_log, "not valid JSON");
                 return null;
             }
-            Trace.TraceWarning("Fadenstack: a faden event was skipped, it is not a JSON object.");
+            Log.EventSkipped(_log, "not a JSON object");
             return null;
         }
 

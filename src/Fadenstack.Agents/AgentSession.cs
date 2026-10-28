@@ -277,7 +277,7 @@ public sealed class AgentSession
     private sealed record PlannedCall(FunctionCallContent Call, bool Denied, bool Hidden, GatewayMark? Mark);
 
     /// <summary>How a call that needed approval was settled; the user's reason when they declined.</summary>
-    private sealed record Settled(bool Approved, bool TimedOut, string? Reason);
+    private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Kind);
 
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
@@ -298,6 +298,14 @@ public sealed class AgentSession
         private ToolMode _mode;
         private IReadOnlyList<string> _skills = Array.Empty<string>();
 
+        // The turn's span and clock, and the model requests it made: what its end reports.
+        private readonly Stopwatch _watch = Stopwatch.StartNew();
+        private Activity? _activity;
+        private int _rounds;
+
+        /// <summary>What let a call that needed approval through, when an admin's rule made it ask (the scope says the rest).</summary>
+        private const string RuleKind = "rule";
+
         // Pictures the turn's tools returned, by call; only the newest goes back to the model.
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
         private string? _newestPicture;
@@ -315,6 +323,15 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
+            using var scope = Log.TurnScope(Agent.Logger, _session.Id, _id);
+            using var activity = AgentTelemetry.Source.StartActivity("invoke_agent " + Agent.Slug);
+            _activity = activity;
+            activity?.SetTag("gen_ai.operation.name", "invoke_agent");
+            activity?.SetTag("gen_ai.agent.name", Agent.Slug);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
+            activity?.SetTag("fadenstack.turn.id", _id);
+            activity?.SetTag("fadenstack.tool_mode", _mode.ToWire());
+            Log.TurnStarted(Agent.Logger, _session.Id, _id, _mode.ToWire(), attachments.Count);
             var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
             _skills = picked.Select(s => s.Slug).ToList();
             var user = new Dictionary<string, object?> { ["text"] = message };
@@ -401,6 +418,13 @@ public sealed class AgentSession
         {
             _denials.Clear();
             _marks.Clear();
+            _rounds++;
+            using var activity = AgentTelemetry.Source.StartActivity("chat" + (Agent.Profile.Model is { } model ? " " + model : ""));
+            activity?.SetTag("gen_ai.operation.name", "chat");
+            activity?.SetTag("gen_ai.request.model", Agent.Profile.Model);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
+            activity?.SetTag("fadenstack.round", round);
+            var requested = Stopwatch.StartNew();
             var options = new ChatOptions { Tools = Agent.Offer(_mode) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
@@ -484,6 +508,8 @@ public sealed class AgentSession
                 // A model that thought and then wrote nothing would leave the user with nothing at all on screen.
                 await NoticeAsync(EmptyAnswer(finish)).ConfigureAwait(false);
             }
+            activity?.SetTag("fadenstack.tool_calls", planned.Count);
+            Log.ModelRequest(Agent.Logger, _id, round, planned.Count, requested.ElapsedMilliseconds);
             return planned;
         }
 
@@ -725,6 +751,13 @@ public sealed class AgentSession
             var arguments = call.Arguments is null
                 ? new Dictionary<string, object?>()
                 : new Dictionary<string, object?>(call.Arguments);
+            // A name the model made up is its words, not ours: only the agent's own tools are named in logs and traces.
+            var loggedName = tool?.Name ?? "(unknown)";
+            using var activity = AgentTelemetry.Source.StartActivity("execute_tool " + loggedName);
+            activity?.SetTag("gen_ai.operation.name", "execute_tool");
+            activity?.SetTag("gen_ai.tool.name", loggedName);
+            activity?.SetTag("gen_ai.tool.call.id", call.CallId);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
             await _session.AppendAsync(EntryTypes.ToolStart, _id, new
             {
                 call_id = call.CallId, name = call.Name, source, tool_class = toolClass.ToWire(),
@@ -733,6 +766,7 @@ public sealed class AgentSession
             var watch = Stopwatch.StartNew();
             string result;
             string outcome;
+            string? approval = null;
             var waited = TimeSpan.Zero;
             IReadOnlyList<DataContent> pictures = Array.Empty<DataContent>();
             if (tool is null)
@@ -757,7 +791,7 @@ public sealed class AgentSession
             }
             else
             {
-                (result, outcome, waited, pictures) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
+                (result, outcome, waited, pictures, approval) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
                     .ConfigureAwait(false);
             }
             if (pictures.Count > 0)
@@ -781,6 +815,7 @@ public sealed class AgentSession
                 duration_ms = (long)ran.TotalMilliseconds, origin = "client", pictures = pictures.Count,
             }).ConfigureAwait(false);
             Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
+            RecordToolCall(activity, loggedName, toolClass.ToWire(), source, outcome, approval ?? "none", ran, waited);
             if (tool is not null)
             {
                 Agent.Reporter.Add(new ToolExecutedEvent
@@ -791,12 +826,33 @@ public sealed class AgentSession
             }
         }
 
+        /// <summary>What a finished tool call leaves: its span's tags, the metrics, and a log line (names, class, outcome, times).</summary>
+        private void RecordToolCall(Activity? activity, string tool, string toolClass, string source, string outcome, string approval,
+            TimeSpan ran, TimeSpan waited)
+        {
+            activity?.SetTag("fadenstack.tool.class", toolClass);
+            activity?.SetTag("fadenstack.tool.source", source);
+            activity?.SetTag("fadenstack.tool.outcome", outcome);
+            activity?.SetTag("fadenstack.approval", approval);
+            activity?.SetTag("fadenstack.approval.wait_ms", (long)waited.TotalMilliseconds);
+            if (outcome == "error")
+            {
+                activity?.SetStatus(ActivityStatusCode.Error);
+            }
+            var (classTag, outcomeTag) = (new KeyValuePair<string, object?>("class", toolClass), new KeyValuePair<string, object?>("outcome", outcome));
+            AgentTelemetry.ToolCalls.Add(1, classTag, outcomeTag);
+            AgentTelemetry.ToolDuration.Record(ran.TotalMilliseconds, classTag, outcomeTag);
+            Log.ToolCall(Agent.Logger, tool, toolClass, source, outcome, approval, (long)ran.TotalMilliseconds);
+        }
+
         /// <summary>
-        /// Asks if the mode or an admin's rule says so, then runs the tool; also returns how long the asking took.
-        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's.
+        /// Asks if the mode or an admin's rule says so, then runs the tool; also returns how long the asking took and what let
+        /// the call through (null: nothing needed approval, or it was declined). <paramref name="toolClass"/> is the stricter of
+        /// the tool's own and the gateway's.
         /// </summary>
-        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool,
-            ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
+        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures, string? Approval)> DecideAndRunAsync(
+            AgentTool tool, ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments,
+            CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
             var decided = ToolModes.Decide(_mode, toolClass);
@@ -805,9 +861,10 @@ public sealed class AgentSession
                 _toolDenied = true;
                 var why = $"the tool mode is {_mode.ToWire()}";
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
-                return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
+                return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
             }
             var rule = mark is { Rule: true };
+            string? approval = null;
             if (rule || decided == ToolModeDecision.Ask)
             {
                 var settled = await ApproveAsync(new ApprovalRequest
@@ -827,8 +884,9 @@ public sealed class AgentSession
                 {
                     _toolDenied = true;
                     var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
+                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>(), null);
                 }
+                approval = settled.Kind;
             }
             var askedFor = asking.Elapsed;
             using var services = new ToolServices(Agent.Settings.ToolServices);
@@ -839,7 +897,7 @@ public sealed class AgentSession
                 services.Bind(invocation);
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
-                return (text, "ok", askedFor, pictures);
+                return (text, "ok", askedFor, pictures, approval);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -847,7 +905,7 @@ public sealed class AgentSession
             }
             catch (Exception e)
             {
-                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>());
+                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>(), approval);
             }
         }
 
@@ -955,7 +1013,7 @@ public sealed class AgentSession
             if (standing is not null)
             {
                 await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
-                return new Settled(true, false, null);
+                return new Settled(true, false, null, standing);
             }
             var described = target is null ? null : await target().ConfigureAwait(false);
             request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule, Target = described };
@@ -995,8 +1053,11 @@ public sealed class AgentSession
                 : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
                 : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
                 : decision));
-            return new Settled(scope is not null, decision is null, decision?.Reason);
+            return new Settled(scope is not null, decision is null, decision?.Reason, KindOf(scope, rule));
         }
+
+        /// <summary>What let a call through: an admin's rule, else the scope the user gave (once, chat, always) or bypass; null if declined.</summary>
+        private static string? KindOf(string? scope, bool rule) => scope is null ? null : rule ? RuleKind : scope;
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
         private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs)
@@ -1019,6 +1080,12 @@ public sealed class AgentSession
                 ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope,
                 Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
             });
+            var toolClass = request.ToolClass.ToWire();
+            Log.Approval(Agent.Logger, request.ToolName, toolClass, KindOf(scope, rule) ?? (timedOut ? "timeout" : "declined"), asked, waitedMs ?? 0);
+            if (waitedMs is { } waited)
+            {
+                AgentTelemetry.ApprovalWait.Record(waited, new KeyValuePair<string, object?>("class", toolClass));
+            }
         }
 
         private async Task<bool> ApprovedAlwaysAsync(string tool, ToolClass toolClass)
@@ -1050,12 +1117,25 @@ public sealed class AgentSession
         private async Task NoticeAsync(GovernanceNotice notice)
         {
             _notices.Add(notice);
+            // The message is the admin's text for the user and may quote what was checked: the log keeps the codes.
+            Log.Notice(Agent.Logger, notice.Outcome, notice.Stage, notice.Category, notice.Code, notice.DecisionId);
             await _session.AppendAsync(EntryTypes.GovernanceNotice, _id, notice).ConfigureAwait(false);
             Emit(new NoticeRaised(notice));
         }
 
         private async Task EndAsync(string status, ChatOutcome? outcome)
         {
+            _activity?.SetTag("fadenstack.turn.status", status);
+            _activity?.SetTag("fadenstack.turn.outcome", outcome?.ToString());
+            _activity?.SetTag("fadenstack.turn.rounds", _rounds);
+            _activity?.SetTag("gen_ai.usage.input_tokens", _usage?.InputTokenCount);
+            _activity?.SetTag("gen_ai.usage.output_tokens", _usage?.OutputTokenCount);
+            if (status == TurnStatus.Error)
+            {
+                _activity?.SetStatus(ActivityStatusCode.Error);
+            }
+            AgentTelemetry.Turns.Add(1, new KeyValuePair<string, object?>("outcome", status));
+            Log.TurnEnded(Agent.Logger, _session.Id, _id, _mode.ToWire(), _rounds, status, outcome?.ToString(), _watch.ElapsedMilliseconds);
             await _session.AppendAsync(EntryTypes.TurnEnd, _id, new
             {
                 status,

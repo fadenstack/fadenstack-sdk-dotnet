@@ -26,6 +26,9 @@ public sealed class LocalMcpServer
 
     internal Func<CancellationToken, Task<IClientTransport>> Connect { get; }
 
+    /// <summary>How it connects, for logs: <c>stdio</c>, <c>http</c> or <c>custom</c>. Never the program, its arguments or the URL.</summary>
+    internal string Transport => Command is not null ? "stdio" : Url is not null ? "http" : "custom";
+
     public static LocalMcpServer Stdio(string label, string command, IEnumerable<string>? arguments = null,
         IDictionary<string, string?>? environment = null, string? workingDirectory = null)
     {

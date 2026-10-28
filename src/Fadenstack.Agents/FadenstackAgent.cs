@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Agents;
 
@@ -20,6 +20,7 @@ public sealed class FadenstackAgent : IDisposable
     private AgentProfile? _profile;
     private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
     private bool _warned;
+    private ILogger? _logger;
 
     internal FadenstackAgent(AgentSettings settings)
     {
@@ -62,6 +63,9 @@ public sealed class FadenstackAgent : IDisposable
 
     internal EventReporter Reporter { get; }
 
+    /// <summary>Where the agent and its sessions log (<see cref="AgentBuilder.UseLogging"/>); nowhere by default.</summary>
+    internal ILogger Logger => _logger ??= _settings.LoggerFactory.CreateLogger(Log.Category);
+
     /// <summary>The host's store, or the default one once <see cref="StartAsync"/> knows whose it is.</summary>
     internal ISessionStore SessionStore => _settings.Sessions ?? _sessions ?? throw new InvalidOperationException("Call StartAsync first.");
 
@@ -91,18 +95,22 @@ public sealed class FadenstackAgent : IDisposable
             }
             var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
             var tools = new List<AgentTool>();
+            var dropped = 0;
             foreach (var tool in _settings.Tools)
             {
                 ToolContractEntry? entry = null;
                 if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
                 {
+                    dropped++;
+                    Log.ToolDropped(Logger, tool.Name);
                     continue; // the gateway refuses it anyway; not offering it keeps the model from trying
                 }
                 var risk = ToolModes.ParseClass(entry?.Risk);
                 tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
                     tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs });
             }
-            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
+            var hostTools = tools.Count;
+            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
             foreach (var source in _settings.Sources)
             {
                 foreach (var tool in await source.GetToolsAsync(context, cancellationToken).ConfigureAwait(false))
@@ -117,11 +125,12 @@ public sealed class FadenstackAgent : IDisposable
             UseDefaultStores(profile.Principal);
             _tools = tools;
             _profile = profile;
+            Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
+            Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
             {
                 _warned = true;
-                Trace.TraceWarning($"The agent '{Slug}' runs in bypass mode: tool calls that would ask are approved without asking, " +
-                    "destructive ones too; an admin's \"Ask first\" rule still asks. Use it only for development and trusted automation.");
+                Log.BypassMode(Logger, Slug);
             }
             if (_settings.Report)
             {
@@ -142,7 +151,7 @@ public sealed class FadenstackAgent : IDisposable
     {
         if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
-            UserDataMigration.Adopt(principal.UserId);
+            UserDataMigration.Adopt(principal.UserId, Logger);
         }
         string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
         _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions")) : null;

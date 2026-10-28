@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -5,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Http;
 
@@ -17,9 +19,11 @@ public sealed class FadenstackTransport : IDisposable
     private readonly HttpClient _http;
     private readonly bool _ownsHttp;
     private readonly ITokenProvider? _tokens;
+    private readonly ILogger _log;
 
     public FadenstackTransport(FadenstackClientOptions options)
     {
+        _log = options.LoggerFactory.CreateLogger(Log.Category);
         ServerUrl = WithSlash(options.RequireServerUrl());
         ApiUrl = WithSlash(options.ApiUrl ?? ServerUrl);
         if (ApiUrl.Scheme == Uri.UriSchemeHttp && !options.AllowInsecureHttp)
@@ -67,6 +71,12 @@ public sealed class FadenstackTransport : IDisposable
             {
                 timeout.CancelAfter(Timeout);
             }
+            var (method, route) = (request.Method.Method, RouteTemplate.Of(request.RequestUri!));
+            using var activity = FadenstackTelemetry.Client.StartActivity("HTTP " + method, ActivityKind.Client);
+            activity?.SetTag("http.request.method", method);
+            activity?.SetTag("http.route", route);
+            activity?.SetTag("fadenstack.http.attempt", attempt);
+            var watch = Stopwatch.StartNew();
             HttpResponseMessage response;
             try
             {
@@ -74,12 +84,16 @@ public sealed class FadenstackTransport : IDisposable
             }
             catch (TaskCanceledException e) when (!cancellationToken.IsCancellationRequested)
             {
+                Failed(activity, method, route, e, attempt, watch);
                 throw new FadenstackException($"Fadenstack did not answer within {Timeout.TotalSeconds:0} s.", e);
             }
             catch (HttpRequestException e)
             {
+                Failed(activity, method, route, e, attempt, watch);
                 throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
             }
+            activity?.SetTag("http.response.status_code", (int)response.StatusCode);
+            Log.Request(_log, method, route, (int)response.StatusCode, watch.ElapsedMilliseconds, attempt);
             if (response.StatusCode == HttpStatusCode.Unauthorized && token is not null && attempt == 0)
             {
                 response.Dispose();
@@ -88,6 +102,15 @@ public sealed class FadenstackTransport : IDisposable
             }
             return response;
         }
+    }
+
+    /// <summary>A request that got no answer: the span and the log say what kind of failure, never its message.</summary>
+    private void Failed(Activity? activity, string method, string route, Exception error, int attempt, Stopwatch watch)
+    {
+        var type = error.GetType().Name;
+        activity?.SetStatus(ActivityStatusCode.Error);
+        activity?.SetTag("error.type", type);
+        Log.RequestFailed(_log, method, route, type, watch.ElapsedMilliseconds, attempt);
     }
 
     /// <summary>JSON in, JSON out; errors as typed exceptions.</summary>

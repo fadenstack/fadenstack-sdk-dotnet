@@ -3,6 +3,8 @@ using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Agents;
 
@@ -32,6 +34,7 @@ public sealed class AgentBuilder
     private ReasoningEffort? _reasoning;
     private bool _pictures = true;
     private AppDescription? _app;
+    private ILoggerFactory? _loggerFactory;
 
     internal AgentBuilder()
     {
@@ -194,6 +197,17 @@ public sealed class AgentBuilder
         return this;
     }
 
+    /// <summary>
+    /// Where the agent logs, and its client and local MCP servers with it: names, ids, counts, durations and outcomes, never
+    /// content (no prompts, answers, reasoning, attachments, tool arguments or results, tokens, secrets or user ids). Spans
+    /// and metrics need no factory: subscribe to <see cref="FadenstackTelemetry"/>'s sources. Default: no logging.
+    /// </summary>
+    public AgentBuilder UseLogging(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        return this;
+    }
+
     /// <summary>A delegating chat client at <paramref name="order"/> (<see cref="StageOrder"/>).</summary>
     public AgentBuilder AddChatStage(int order, Func<IChatClient, IChatClient> wrap)
     {
@@ -247,6 +261,10 @@ public sealed class AgentBuilder
         {
             var options = _options ?? throw new InvalidOperationException("Call UseServer(...) or UseClient(...).");
             options.Agent = agent;
+            if (_loggerFactory is not null)
+            {
+                options.LoggerFactory = _loggerFactory;
+            }
             client = new FadenstackClient(options);
             ownsClient = true;
         }
@@ -271,6 +289,7 @@ public sealed class AgentBuilder
             OwnsClient = ownsClient,
             Agent = agent,
             Chat = chat,
+            LoggerFactory = _loggerFactory ?? client.Options.LoggerFactory,
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
@@ -313,6 +332,9 @@ internal sealed class AgentSettings
     public bool OwnsClient { get; init; }
     public string Agent { get; init; } = "";
     public IChatClient Chat { get; init; } = null!;
+
+    /// <summary>The builder's, else the client's (a client made elsewhere logs to its own).</summary>
+    public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
     public List<AgentTool> Tools { get; init; } = new();
     public List<IToolSource> Sources { get; init; } = new();
     public List<IToolStage> ToolStages { get; init; } = new();

@@ -1,6 +1,8 @@
 using System.Net.Http;
 using Fadenstack.Auth;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack;
 
@@ -53,6 +55,18 @@ public sealed class FadenstackClientOptions
 
     /// <summary>How long one request may take; streams are not cut by it once they started.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
+
+    private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
+
+    /// <summary>
+    /// Where the client's logs go: requests (method, route template, status, duration), sign-in renewals, skipped events.
+    /// Never content. Default: nowhere. <c>AgentBuilder.UseLogging</c> sets it for the agent and its client.
+    /// </summary>
+    public ILoggerFactory LoggerFactory
+    {
+        get => _loggerFactory;
+        set => _loggerFactory = value ?? NullLoggerFactory.Instance;
+    }
 
     internal Uri RequireServerUrl()
     {

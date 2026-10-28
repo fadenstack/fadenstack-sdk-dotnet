@@ -2,6 +2,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Fadenstack.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Auth;
 
@@ -19,6 +21,7 @@ public sealed class AgentTokenProvider : ITokenProvider
     private readonly string _key;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly Func<DateTimeOffset> _now;
+    private readonly ILogger _log;
     private TokenSet? _tokens;
 
     /// <param name="apiUrl">The backend (usually the server URL).</param>
@@ -30,9 +33,11 @@ public sealed class AgentTokenProvider : ITokenProvider
     /// Allow <c>http://</c> to another machine, for a development server. Off: sign-ins go over https, or plain http
     /// only to this machine (localhost).
     /// </param>
+    /// <param name="logger">Where renewals and their failures are logged (no token, ever); nowhere if not given.</param>
     public AgentTokenProvider(Uri apiUrl, string agent, ITokenStore? store = null, HttpClient? httpClient = null,
-        Func<DateTimeOffset>? clock = null, bool allowInsecureHttp = false)
+        Func<DateTimeOffset>? clock = null, bool allowInsecureHttp = false, ILogger? logger = null)
     {
+        _log = logger ?? NullLogger.Instance;
         if (apiUrl.Scheme != Uri.UriSchemeHttps && !(apiUrl.Scheme == Uri.UriSchemeHttp && (allowInsecureHttp || apiUrl.IsLoopback)))
         {
             throw new ArgumentException(
@@ -127,10 +132,17 @@ public sealed class AgentTokenProvider : ITokenProvider
         catch (FadenstackApiException e) when ((int)e.Status is 401 or 403)
         {
             // Revoked, reused elsewhere (the family is signed out), or the user lost access.
+            Log.TokenRefreshFailed(_log, _agent, $"status {(int)e.Status}");
             await SignOutAsync(cancellationToken).ConfigureAwait(false);
             throw new FadenstackSignInRequiredException($"The sign-in to '{_agent}' ended: {e.Message}", e);
         }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Log.TokenRefreshFailed(_log, _agent, e.GetType().Name);
+            throw;
+        }
         await RememberAsync(renewed, cancellationToken).ConfigureAwait(false);
+        Log.TokenRefreshed(_log, _agent);
         return renewed;
     }
 

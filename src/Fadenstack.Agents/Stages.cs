@@ -1,5 +1,6 @@
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Agents;
 
@@ -96,11 +97,13 @@ public interface IToolSource
 /// <summary>What a tool source or module can see of the running agent.</summary>
 public sealed class AgentContext
 {
-    internal AgentContext(FadenstackClient client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report)
+    internal AgentContext(FadenstackClient client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report,
+        ILoggerFactory loggerFactory)
     {
         Client = client;
         Profile = profile;
         _report = report;
+        LoggerFactory = loggerFactory;
     }
 
     private readonly Func<IReadOnlyList<Models.AgentClientEvent>, Task> _report;
@@ -108,6 +111,9 @@ public sealed class AgentContext
     public FadenstackClient Client { get; }
 
     public Models.AgentProfile Profile { get; }
+
+    /// <summary>The agent's logger factory (<see cref="AgentBuilder.UseLogging"/>); a tool source logs through it, content-free.</summary>
+    public ILoggerFactory LoggerFactory { get; }
 
     /// <summary>Reports an event to the server (names and counts, never content).</summary>
     public Task ReportAsync(Models.AgentClientEvent clientEvent) => _report(new[] { clientEvent });
