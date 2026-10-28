@@ -58,9 +58,7 @@ public static class FadenstackPaths
     {
         var full = Path.GetFullPath(folder);
         var root = Path.GetFullPath(LogRoot);
-        var comparison = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        var separator = Path.DirectorySeparatorChar.ToString();
-        if (!(full.TrimEnd(Path.DirectorySeparatorChar) + separator).StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + separator, comparison))
+        if (!IsWithin(root, full))
         {
             throw new ArgumentException($"A log folder must lie under the user's log root ({root}).", nameof(folder));
         }
@@ -68,6 +66,39 @@ public static class FadenstackPaths
         Own(full);
         return full;
     }
+
+    /// <summary>One user's folder (<c>DataRoot/users/&lt;user&gt;</c>), not created.</summary>
+    internal static string UserFolder(string userId) => Path.Combine(DataRoot, "users", SafeName(userId));
+
+    /// <summary>
+    /// Deletes a folder with all it holds, if it exists; true when it did. Only a folder strictly below <see cref="DataRoot"/>
+    /// is deleted -- anything else, the root itself included, is refused.
+    /// </summary>
+    internal static bool DeleteUnderData(string folder)
+    {
+        var full = Path.GetFullPath(folder);
+        var root = Path.GetFullPath(DataRoot);
+        if (!IsWithin(root, full) || string.Equals(root.TrimEnd(Path.DirectorySeparatorChar), full.TrimEnd(Path.DirectorySeparatorChar), Comparison))
+        {
+            throw new ArgumentException($"Only a folder below the data root ({root}) can be deleted.", nameof(folder));
+        }
+        if (!Directory.Exists(full))
+        {
+            return false;
+        }
+        Directory.Delete(full, recursive: true);
+        return true;
+    }
+
+    /// <summary>Whether <paramref name="full"/> is <paramref name="root"/> or lies below it (both full paths).</summary>
+    private static bool IsWithin(string root, string full)
+    {
+        var separator = Path.DirectorySeparatorChar.ToString();
+        return (full.TrimEnd(Path.DirectorySeparatorChar) + separator).StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + separator, Comparison);
+    }
+
+    private static StringComparison Comparison =>
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     /// <summary>A name that is safe as one file or folder name: invalid characters and dots become underscores.</summary>
     public static string SafeName(string name)

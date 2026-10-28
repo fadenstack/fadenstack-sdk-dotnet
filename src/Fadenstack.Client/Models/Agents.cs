@@ -54,6 +54,55 @@ public sealed record AgentProfile
     /// </summary>
     [JsonConverter(typeof(AgentPrincipalConverter))]
     public AgentPrincipal? Principal { get; init; }
+
+    /// <summary>How long and how many sessions the server lets a device keep (<c>local_retention</c>); null when it sets none.</summary>
+    [JsonConverter(typeof(LocalRetentionConverter))]
+    public LocalRetention? LocalRetention { get; init; }
+}
+
+/// <summary>The limits on local sessions a server sets; a limit it leaves out, or states invalidly, is null (none).</summary>
+public sealed record LocalRetention
+{
+    public int? MaxAgeDays { get; init; }
+    public int? MaxSessions { get; init; }
+}
+
+/// <summary>Reads <c>local_retention</c>: only positive whole numbers count; null when no limit is left.</summary>
+internal sealed class LocalRetentionConverter : JsonConverter<LocalRetention?>
+{
+    public override LocalRetention? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        int? Limit(string name) =>
+            root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) && number > 0
+                ? number : null;
+        var (days, sessions) = (Limit("max_age_days"), Limit("max_sessions"));
+        return days is null && sessions is null ? null : new LocalRetention { MaxAgeDays = days, MaxSessions = sessions };
+    }
+
+    public override void Write(Utf8JsonWriter writer, LocalRetention? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+        writer.WriteStartObject();
+        if (value.MaxAgeDays is { } days)
+        {
+            writer.WriteNumber("max_age_days", days);
+        }
+        if (value.MaxSessions is { } sessions)
+        {
+            writer.WriteNumber("max_sessions", sessions);
+        }
+        writer.WriteEndObject();
+    }
 }
 
 /// <summary>The tenant, user and agent a token stands for (<c>principal</c> in the profile), and the device it was issued to.</summary>

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
 using Fadenstack.Http;
+using Fadenstack.Models;
 using Fadenstack.Storage;
 
 namespace Fadenstack.Agents.Sessions;
@@ -22,6 +23,11 @@ public interface ISessionStore
 public sealed record SessionRetention(int MaxSessions = 50, int MaxAgeDays = 90)
 {
     public static SessionRetention Default { get; } = new();
+
+    /// <summary>The stricter of these limits and the server's (<c>local_retention</c>); a limit the server leaves out stays.</summary>
+    internal SessionRetention Within(LocalRetention? server) => server is null
+        ? this
+        : new SessionRetention(Math.Min(MaxSessions, server.MaxSessions ?? MaxSessions), Math.Min(MaxAgeDays, server.MaxAgeDays ?? MaxAgeDays));
 }
 
 /// <summary>Sessions in memory only: gone with the process.</summary>
@@ -92,7 +98,7 @@ public sealed class MemorySessionStore : ISessionStore
 /// server names no user). Each line is encrypted for the current user
 /// (DPAPI on Windows); elsewhere the files are readable by their owner only.
 /// </summary>
-public sealed class FileSessionStore : ISessionStore
+public sealed class FileSessionStore : ISessionStore, IListsAgents
 {
     private readonly string _root;
     private readonly ISecretProtector _protector;
@@ -172,6 +178,10 @@ public sealed class FileSessionStore : ISessionStore
         }
         return Task.CompletedTask;
     }
+
+    IReadOnlyList<string> IListsAgents.Agents() => Directory.Exists(_root)
+        ? Directory.GetDirectories(_root).Select(d => Path.GetFileName(d)).ToList()
+        : new List<string>();
 
     /// <summary>Keeps the newest <see cref="SessionRetention.MaxSessions"/> not older than the age limit.</summary>
     private void Prune(string agent, string keep)

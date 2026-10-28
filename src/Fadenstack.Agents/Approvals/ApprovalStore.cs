@@ -77,7 +77,7 @@ public sealed class MemoryApprovalStore : IApprovalStore
 /// <c>...\Fadenstack\approvals\</c> when the server names no user), encrypted for the current user like the sessions
 /// (DPAPI on Windows); elsewhere the files are readable by their owner only.
 /// </summary>
-public sealed class FileApprovalStore : IApprovalStore
+public sealed class FileApprovalStore : IApprovalStore, IListsAgents
 {
     private readonly string _root;
     private readonly ISecretProtector _protector;
@@ -131,6 +131,10 @@ public sealed class FileApprovalStore : IApprovalStore
         }
     }
 
+    IReadOnlyList<string> IListsAgents.Agents() => Directory.Exists(_root)
+        ? Directory.GetFiles(_root, "*.json").Select(f => Path.GetFileNameWithoutExtension(f)).ToList()
+        : new List<string>();
+
     private List<StoredApproval> Read(string agent)
     {
         var path = PathOf(agent);
@@ -160,6 +164,7 @@ public sealed class FileApprovalStore : IApprovalStore
             }
             return;
         }
+        Directory.CreateDirectory(_root); // the user's data may have been deleted (FadenstackAgent.DeleteMyDataAsync)
         SecretProtection.WriteOwnerOnly(path, _protector.Protect(JsonSerializer.SerializeToUtf8Bytes(approvals, FadenstackJson.Options)));
     }
 

@@ -125,7 +125,7 @@ public sealed class FadenstackAgent : IDisposable
                     tools.Add(tool);
                 }
             }
-            UseDefaultStores(profile.Principal);
+            UseDefaultStores(profile.Principal, _settings.Retention.Within(profile.LocalRetention));
             _tools = tools;
             _profile = profile;
             Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
@@ -150,14 +150,14 @@ public sealed class FadenstackAgent : IDisposable
     /// The stores the host did not pass: in the signed-in user's own folder, or -- from a gateway that names no user -- in
     /// the shared one an older SDK used.
     /// </summary>
-    private void UseDefaultStores(AgentPrincipal? principal)
+    private void UseDefaultStores(AgentPrincipal? principal, SessionRetention retention)
     {
         if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
             UserDataMigration.Adopt(principal.UserId, Logger);
         }
         string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
-        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions")) : null;
+        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions"), retention: retention) : null;
         _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
     }
 
@@ -269,6 +269,45 @@ public sealed class FadenstackAgent : IDisposable
     {
         await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
         await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes a ZIP of the signed-in user's data on this device to <paramref name="destination"/> (left open): every session
+    /// of every agent, one JSON file each, the "Allow always" approvals, and a README (an access request, GDPR Art. 15 and 20).
+    /// Without a user from the gateway these are the shared folders of an older SDK. Sign-in tokens are never included, nor
+    /// is what the server keeps. A store the host passed is read for this agent only.
+    /// </summary>
+    public async Task ExportMyDataAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken).ConfigureAwait(false);
+        Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
+    }
+
+    /// <summary>
+    /// Deletes the signed-in user's data on this device (an erasure request, GDPR Art. 17): the whole folder of the user --
+    /// the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no user, the
+    /// shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
+    /// sign out (the sign-in tokens stay; that is the host's call: <see cref="Auth.AgentTokenProvider.SignOutAsync"/>), and it
+    /// leaves stores the host passed to their owner. What the server keeps is for its operator to erase.
+    /// </summary>
+    public async Task DeleteMyDataAsync(CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        var principal = Profile.Principal;
+        var folders = principal is null
+            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals") }
+            : new[] { FadenstackPaths.UserFolder(principal.UserId) };
+        try
+        {
+            var removed = folders.Count(FadenstackPaths.DeleteUnderData);
+            Log.DataDeleted(Logger, removed);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.DataDeletionFailed(Logger, e.GetType().Name);
+            throw;
+        }
     }
 
     /// <summary>The default stores need the profile (whose folder); a store the host passed does not.</summary>
