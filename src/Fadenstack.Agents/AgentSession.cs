@@ -259,6 +259,23 @@ public sealed class AgentSession
     /// </summary>
     private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
 
+    /// <summary>
+    /// Which call of a round a word of the gateway (<c>faden.tool_denied</c>, <c>faden.approval_required</c>) is about: the
+    /// call's index in the stream when the gateway gives one, else its id, else (no id) the tool's name.
+    /// </summary>
+    private sealed record Aim(string CallId, string ToolName, int? Index)
+    {
+        public static Aim From(JsonElement value) => new(ChatWire.Str(value, "toolCallId") ?? "", ChatWire.Str(value, "toolCallName") ?? "",
+            value.ValueKind == JsonValueKind.Object && value.TryGetProperty("toolCallIndex", out var i)
+                && i.ValueKind == JsonValueKind.Number && i.TryGetInt32(out var n) ? n : null);
+    }
+
+    /// <summary>A call as the model made it, with its place in the stream: the gateway may name either.</summary>
+    private sealed record RoundCall(FunctionCallContent Call, string ModelId, int Index);
+
+    /// <summary>A call of a round ready to run: under an id of its own, with what the gateway said of it.</summary>
+    private sealed record PlannedCall(FunctionCallContent Call, bool Denied, bool Hidden, GatewayMark? Mark);
+
     /// <summary>How a call that needed approval was settled; the user's reason when they declined.</summary>
     private sealed record Settled(bool Approved, bool TimedOut, string? Reason);
 
@@ -269,8 +286,10 @@ public sealed class AgentSession
         private readonly string _id;
         private readonly ChannelWriter<AgentEvent> _writer;
         private readonly List<GovernanceNotice> _notices = new();
-        private readonly HashSet<string> _deniedByGateway = new();
-        private readonly Dictionary<string, GatewayMark> _marks = new();
+        // What the gateway said of this round's calls (cleared as a round starts), and the tools it hides for the turn.
+        private readonly List<Aim> _denials = new();
+        private readonly List<(Aim Aim, GatewayMark Mark)> _marks = new();
+        private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
         private readonly StringBuilder _text = new();
         private readonly List<ProvenanceReceiptContent> _receipts = new();
         private UsageDetails? _usage;
@@ -331,7 +350,7 @@ public sealed class AgentSession
                         }).ConfigureAwait(false);
                         break;
                     }
-                    var calls = await RequestAsync(cancellationToken).ConfigureAwait(false);
+                    var calls = await RequestAsync(round, cancellationToken).ConfigureAwait(false);
                     if (_blocked is not null || calls.Count == 0)
                     {
                         break;
@@ -351,7 +370,7 @@ public sealed class AgentSession
             {
                 var notice = new GovernanceNotice
                 {
-                    Outcome = "rate_limited", Message = e.Message, RetryAfter = e.RetryAfter,
+                    Outcome = "rate_limited", Message = e.Message, RetryAfter = e.RetryAfter, Code = e.Code,
                 };
                 await NoticeAsync(notice).ConfigureAwait(false);
                 await EndAsync(TurnStatus.Error, ChatOutcome.RateLimited).ConfigureAwait(false);
@@ -378,8 +397,10 @@ public sealed class AgentSession
         }
 
         /// <summary>One model call; returns the calls of the agent's own tools to run.</summary>
-        private async Task<List<FunctionCallContent>> RequestAsync(CancellationToken cancellationToken)
+        private async Task<List<PlannedCall>> RequestAsync(int round, CancellationToken cancellationToken)
         {
+            _denials.Clear();
+            _marks.Clear();
             var options = new ChatOptions { Tools = Agent.Offer(_mode) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
@@ -440,6 +461,7 @@ public sealed class AgentSession
             {
                 calls.Clear(); // a refused answer's tool calls never run
             }
+            var planned = Plan(calls, round);
             _text.Append(text);
             _receipts.AddRange(receipts);
             if (text.Length > 0 || calls.Count > 0)
@@ -447,7 +469,7 @@ public sealed class AgentSession
                 await _session.AppendAsync(EntryTypes.AssistantMessage, _id, new
                 {
                     text = text.ToString(),
-                    tool_calls = calls.Select(c => new { id = c.CallId, name = c.Name, arguments = Json(c.Arguments) }).ToList(),
+                    tool_calls = planned.Select(p => new { id = p.Call.CallId, name = p.Call.Name, arguments = Json(p.Call.Arguments) }).ToList(),
                     origin = "model",
                     // What made the answer, by the receipts' ids: never more of them than that.
                     receipts = receipts.Count == 0 ? null : receipts.Select(ReceiptData).ToList(),
@@ -462,8 +484,72 @@ public sealed class AgentSession
                 // A model that thought and then wrote nothing would leave the user with nothing at all on screen.
                 await NoticeAsync(EmptyAnswer(finish)).ConfigureAwait(false);
             }
-            return calls;
+            return planned;
         }
+
+        /// <summary>
+        /// The round's calls, each under an id of its own and with the gateway's word on it. A call with no id, or an id
+        /// another call of the round has, gets <c>fs-{turn}-{round}-{index}</c>. A word that cannot tell calls apart (no id,
+        /// or one id on several calls) covers every call of its tool: a refusal is never lost, and a mark asks.
+        /// </summary>
+        private List<PlannedCall> Plan(List<FunctionCallContent> calls, int round)
+        {
+            var model = calls.Select((c, i) => new RoundCall(c, c.CallId,
+                c.AdditionalProperties?.TryGetValue(FadenstackChatOptions.CallIndex, out var index) == true && index is int n ? n : i)).ToList();
+            var denied = new bool[model.Count];
+            var marks = new GatewayMark?[model.Count];
+            foreach (var aim in _denials)
+            {
+                foreach (var i in Aimed(aim, model, out _))
+                {
+                    denied[i] = true;
+                }
+            }
+            foreach (var (aim, mark) in _marks)
+            {
+                foreach (var i in Aimed(aim, model, out var byName))
+                {
+                    var word = byName ? mark with { Rule = true } : mark;
+                    marks[i] = marks[i] is { } earlier ? Merge(earlier, word) : word;
+                }
+            }
+            return model.Select((c, i) =>
+            {
+                var shared = c.ModelId.Length == 0 || model.Count(o => o.ModelId == c.ModelId) > 1;
+                var call = shared
+                    ? new FunctionCallContent($"fs-{_id}-{round}-{c.Index}", c.Call.Name, c.Call.Arguments) { Exception = c.Call.Exception }
+                    : c.Call;
+                var hidden = _hidden.Contains(c.Call.Name);
+                return new PlannedCall(call, denied[i] || hidden, hidden, marks[i]);
+            }).ToList();
+        }
+
+        /// <summary>The places in the round a word of the gateway covers; <paramref name="byName"/> when it could only go by the tool's name.</summary>
+        private static List<int> Aimed(Aim aim, IReadOnlyList<RoundCall> round, out bool byName)
+        {
+            byName = false;
+            if (aim.Index is { } index)
+            {
+                return Where(round, c => c.Index == index);
+            }
+            if (aim.CallId.Length > 0)
+            {
+                var same = Where(round, c => c.ModelId == aim.CallId);
+                if (same.Count <= 1)
+                {
+                    return same;
+                }
+            }
+            byName = true;
+            return Where(round, c => aim.ToolName.Length == 0 || c.Call.Name == aim.ToolName);
+        }
+
+        private static List<int> Where(IReadOnlyList<RoundCall> round, Func<RoundCall, bool> match) =>
+            Enumerable.Range(0, round.Count).Where(i => match(round[i])).ToList();
+
+        /// <summary>Two marks on one call: a rule wins, the stricter class wins.</summary>
+        private static GatewayMark Merge(GatewayMark a, GatewayMark b) => new(a.Rule || b.Rule,
+            a.ToolClass is { } own ? Stricter(own, b.ToolClass) : b.ToolClass, b.Rule && !a.Rule ? b.Message : a.Message);
 
         /// <summary>
         /// The notice for a model call that ended with no text and no tool call (<c>empty_answer</c>); <c>length</c> when
@@ -498,10 +584,7 @@ public sealed class AgentSession
                     break;
                 case "faden.tool_denied":
                     _toolDenied = true;
-                    if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } callId)
-                    {
-                        _deniedByGateway.Add(callId);
-                    }
+                    _denials.Add(Aim.From(value));
                     await NoticeAsync(new GovernanceNotice
                     {
                         Outcome = "tool_denied", Stage = "tool",
@@ -510,7 +593,15 @@ public sealed class AgentSession
                     }).ConfigureAwait(false);
                     break;
                 case "faden.governance":
-                    break; // arrives as GovernanceNoticeContent in the same update
+                    // A refusal arrives as GovernanceNoticeContent in the same update; any other outcome only informs.
+                    if (value.ValueKind == JsonValueKind.Object && !ChatWire.IsRefusal(ChatWire.Str(value, "outcome")))
+                    {
+                        await NoticeAsync(ChatWire.Notice(value)).ConfigureAwait(false);
+                    }
+                    break;
+                case "faden.tool_mode":
+                    FollowToolMode(value);
+                    break;
                 case "TOOL_CALL_START":
                     Emit(new ToolCallStarted(ChatWire.Str(e.Event, "toolCallId") ?? "", ChatWire.Str(e.Event, "toolCallName") ?? "",
                         ToolClass.Read, "gateway", new Dictionary<string, object?>()));
@@ -598,23 +689,38 @@ public sealed class AgentSession
             }
         }
 
-        /// <summary>The gateway's word on a call of the agent's own tool, kept until the call runs.</summary>
+        /// <summary>The gateway's word on a call of the agent's own tool, kept until the round's calls are planned.</summary>
         private void Mark(JsonElement value)
         {
-            if (ChatWire.Str(value, "toolCallId") is not { Length: > 0 } callId)
-            {
-                return;
-            }
             var toolClass = ChatWire.Str(value, "toolClass");
-            _marks[callId] = new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
-                ChatWire.Str(value, "message") ?? "");
+            _marks.Add((Aim.From(value), new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
+                ChatWire.Str(value, "message") ?? "")));
         }
 
-        private async Task RunToolAsync(FunctionCallContent call, CancellationToken cancellationToken)
+        /// <summary>
+        /// The gateway's tool mode for this turn: the turn's mode is never widened by it, an unknown mode is ignored, and the
+        /// tools it hides are refused here too.
+        /// </summary>
+        private void FollowToolMode(JsonElement value)
         {
+            if (ToolModes.ParseMode(ChatWire.Str(value, "effective_tool_mode")) is { } effective)
+            {
+                _mode = ToolModes.Narrowest(_mode, effective);
+            }
+            if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("hidden", out var hidden) && hidden.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var name in hidden.EnumerateArray().Where(h => h.ValueKind == JsonValueKind.String))
+                {
+                    _hidden.Add(name.GetString()!);
+                }
+            }
+        }
+
+        private async Task RunToolAsync(PlannedCall planned, CancellationToken cancellationToken)
+        {
+            var (call, mark) = (planned.Call, planned.Mark);
             var tool = Agent.Find(call.Name);
             var source = tool?.Source ?? "host";
-            _marks.TryGetValue(call.CallId, out var mark);
             var toolClass = tool is null ? ToolClass.Unknown : Stricter(tool.Class, mark?.ToolClass);
             var arguments = call.Arguments is null
                 ? new Dictionary<string, object?>()
@@ -633,8 +739,16 @@ public sealed class AgentSession
             {
                 (result, outcome) = ($"Tool '{call.Name}' does not exist here.", "error");
             }
-            else if (_deniedByGateway.Contains(call.CallId))
+            else if (planned.Denied)
             {
+                if (planned.Hidden)
+                {
+                    _toolDenied = true;
+                    await NoticeAsync(new GovernanceNotice
+                    {
+                        Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{call.Name}' is not allowed: the gateway hides it in this tool mode.",
+                    }).ConfigureAwait(false);
+                }
                 (result, outcome) = ($"Tool '{call.Name}' is not allowed here.", "denied");
             }
             else if (call.Exception is not null)
