@@ -442,6 +442,18 @@ public class PlacementTests
     }
 
     [Fact]
+    public void An_option_that_would_loosen_the_policy_is_logged_under_the_modules_category()
+    {
+        var logs = new Fadenstack.Client.Tests.CapturingLoggerFactory();
+
+        new ProvenanceOptions().UseShortTextTokens(500).Tighten(new ProvenancePolicy { ShortTextTokens = 200 }, logs.CreateLogger(Log.Category));
+
+        var entry = Assert.Single(logs.Entries);
+        Assert.Equal(("Fadenstack.Provenance", 4001, Microsoft.Extensions.Logging.LogLevel.Warning), (entry.Category, entry.EventId, entry.Level));
+        Assert.Contains("500", entry.Message);
+    }
+
+    [Fact]
     public async Task With_the_visible_label_on_a_label_goes_above_the_content_in_the_users_language()
     {
         var gateway = new Gateway(contract: WritingTools.Contract, userLanguage: "de", provenancePolicy: """{"visible_label":true}""")

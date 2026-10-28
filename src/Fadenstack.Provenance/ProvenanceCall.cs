@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Text.RegularExpressions;
 using Fadenstack.Agents;
@@ -6,6 +5,7 @@ using Fadenstack.Chat;
 using Fadenstack.Governance;
 using Fadenstack.Models;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Provenance;
 
@@ -59,6 +59,8 @@ internal sealed class ProvenanceCall : IProvenance
     }
 
     private ProvenanceOptions Options => _state.Options;
+
+    private ILogger Logger => Log.For(_call.Agent);
 
     public ProvenanceReceiptContent? Receipt => _state.Receipts.Latest(_call.TurnId);
 
@@ -295,7 +297,7 @@ internal sealed class ProvenanceCall : IProvenance
             }
             catch (Exception e)
             {
-                Trace.TraceWarning($"Provenance: the failed placement by '{placement.Tool}' was not recorded ({e.GetType().Name}).");
+                Log.FailureNotRecorded(Logger, placement.Tool, e.GetType().Name);
             }
             ExceptionDispatchInfo.Capture(failedInsert).Throw();
         }
@@ -364,7 +366,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
         catch (Exception e)
         {
-            Trace.TraceWarning($"Provenance: the edit classifier failed ({e.GetType().Name}); the declared kind stays.");
+            Log.ClassifierFailed(Logger, e.GetType().Name);
             return (declared, new { from = declared.ToWire(), to = declared.ToWire(), reason = "the classifier failed" });
         }
         if (decision is null || decision.Kind == declared)
@@ -388,7 +390,7 @@ internal sealed class ProvenanceCall : IProvenance
         : content.Text is { } text && Labels.IsLabel(text, content.MediaType) ? ExemptReasons.Label
         : null;
 
-    private static bool Supports(IContentMarker marker, MarkableContent content)
+    private bool Supports(IContentMarker marker, MarkableContent content)
     {
         try
         {
@@ -396,7 +398,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
         catch (Exception e)
         {
-            Trace.TraceWarning($"Provenance: the marker '{marker.Name}' failed to say what it supports ({e.GetType().Name}).");
+            Log.MarkerFailed(Logger, marker.Name, e.GetType().Name);
             return false;
         }
     }
@@ -431,7 +433,7 @@ internal sealed class ProvenanceCall : IProvenance
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            Trace.TraceWarning($"Provenance: the record of a placement by '{_call.Tool.Name}' was not signed ({e.GetType().Name}).");
+            Log.RecordNotSigned(Logger, _call.Tool.Name, e.GetType().Name);
             return null;
         }
     }
@@ -571,7 +573,7 @@ internal sealed class ProvenanceCall : IProvenance
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceWarning($"Provenance: the placement by '{placement.Tool}' was not reported ({e.GetType().Name}).");
+                Log.PlacementNotReported(Logger, placement.Tool, e.GetType().Name);
             }
         }
         foreach (var observer in Options.Observers)
@@ -582,7 +584,7 @@ internal sealed class ProvenanceCall : IProvenance
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceWarning($"Provenance: a placement observer failed ({e.GetType().Name}).");
+                Log.ObserverFailed(Logger, e.GetType().Name);
             }
         }
         await _call.RecordAsync(ProvenanceEntries.Placed, new

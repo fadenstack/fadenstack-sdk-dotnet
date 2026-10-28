@@ -66,6 +66,9 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>Where the agent and its sessions log (<see cref="AgentBuilder.UseLogging"/>); nowhere by default.</summary>
     internal ILogger Logger => _logger ??= _settings.LoggerFactory.CreateLogger(Log.Category);
 
+    /// <summary>A first-party module's logger (provenance), under the module's own category, through the agent's factory.</summary>
+    internal ILogger CreateLogger(string category) => _settings.LoggerFactory.CreateLogger(category);
+
     /// <summary>The host's store, or the default one once <see cref="StartAsync"/> knows whose it is.</summary>
     internal ISessionStore SessionStore => _settings.Sessions ?? _sessions ?? throw new InvalidOperationException("Call StartAsync first.");
 
