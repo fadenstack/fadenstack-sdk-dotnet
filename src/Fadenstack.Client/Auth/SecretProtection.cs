@@ -31,8 +31,8 @@ public sealed class DpapiSecretProtector : ISecretProtector
 }
 
 /// <summary>
-/// No encryption: the data goes to a file only its owner may read (mode 0600). For systems without DPAPI
-/// until an OS keyring module exists.
+/// No encryption: the data goes to a file only its owner may read (mode 0600). The default on macOS and Linux
+/// until the host turns on the OS key store (Fadenstack.Secrets, <c>FadenstackSecrets.UseOsKeyStore</c>).
 /// </summary>
 public sealed class OwnerOnlyFileProtector : ISecretProtector
 {
@@ -46,7 +46,58 @@ public sealed class OwnerOnlyFileProtector : ISecretProtector
 /// <summary>The protector for this machine, and the file helpers that go with it.</summary>
 public static class SecretProtection
 {
-    public static ISecretProtector Default { get; } = Create();
+    private static readonly object Gate = new();
+    private static ISecretProtector? s_default;
+    private static bool s_chosen;
+
+    /// <summary>
+    /// The protector the stores use unless given one: DPAPI on Windows, else what the host chose with <see cref="Use"/>,
+    /// else owner-only files. Reading it fixes the choice: a store created now keeps this protector.
+    /// </summary>
+    public static ISecretProtector Default
+    {
+        get
+        {
+            lock (Gate)
+            {
+                s_chosen = true;
+                return s_default ??= Create();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Makes <paramref name="protector"/> the default, once. Call it at start-up, before the first store or agent is
+    /// created: they keep the protector they were created with, and data one protector wrote another may not read.
+    /// Throws if the default was already chosen or read.
+    /// </summary>
+    public static void Use(ISecretProtector protector)
+    {
+        if (protector is null)
+        {
+            throw new ArgumentNullException(nameof(protector));
+        }
+        lock (Gate)
+        {
+            if (s_chosen)
+            {
+                throw new InvalidOperationException(
+                    "The secret protector was already chosen or used; call SecretProtection.Use before the first store is created.");
+            }
+            s_default = protector;
+            s_chosen = true;
+        }
+    }
+
+    /// <summary>Forgets the choice, so a test can make it again.</summary>
+    internal static void ResetForTests()
+    {
+        lock (Gate)
+        {
+            s_default = null;
+            s_chosen = false;
+        }
+    }
 
     private static ISecretProtector Create()
     {
