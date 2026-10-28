@@ -25,10 +25,16 @@ public class UserStorageTests : IDisposable
     private const string Principal = """{"tenant_id":"t-1","user_id":"u-1","agent_id":"a-1","device_id":null}""";
     private readonly string _temporary = Path.Combine(Path.GetTempPath(), "faden-user-" + Guid.NewGuid());
 
-    public UserStorageTests() => FadenstackPaths.RootForTests = _temporary;
+    public UserStorageTests()
+    {
+        FadenstackPaths.RootForTests = _temporary;
+        SecretProtection.ResetForTests(); // sessions go to files only when the protector encrypts, on every OS
+        SecretProtection.Use(new FakeEncryptingProtector());
+    }
 
     public void Dispose()
     {
+        SecretProtection.ResetForTests();
         FadenstackPaths.RootForTests = null;
         if (Directory.Exists(_temporary))
         {

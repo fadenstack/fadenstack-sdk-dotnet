@@ -74,7 +74,11 @@ internal static partial class Log
         Message = "Approval for {Tool} ({ToolClass}): {Approval}, asked {Asked}, waited {WaitMs} ms")]
     internal static partial void Approval(ILogger logger, string tool, string toolClass, string approval, bool asked, long waitMs);
 
-    [LoggerMessage(EventId = 2030, Level = LogLevel.Information,
+    [LoggerMessage(EventId = 2040, Level = LogLevel.Warning,
+        Message = "Agent {Agent} keeps session transcripts in memory only: no OS key store is available to encrypt them on disk")]
+    internal static partial void TranscriptsNotKept(ILogger logger, string agent);
+
+    [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);
 }

@@ -18,10 +18,16 @@ public class DataRightsTests : IDisposable
     private const string TokenSecret = "token-secret-value";
     private readonly string _temporary = Path.Combine(Path.GetTempPath(), "faden-rights-" + Guid.NewGuid());
 
-    public DataRightsTests() => FadenstackPaths.RootForTests = _temporary;
+    public DataRightsTests()
+    {
+        FadenstackPaths.RootForTests = _temporary;
+        SecretProtection.ResetForTests(); // sessions go to files only when the protector encrypts, on every OS
+        SecretProtection.Use(new FakeEncryptingProtector());
+    }
 
     public void Dispose()
     {
+        SecretProtection.ResetForTests();
         FadenstackPaths.RootForTests = null;
         if (Directory.Exists(_temporary))
         {

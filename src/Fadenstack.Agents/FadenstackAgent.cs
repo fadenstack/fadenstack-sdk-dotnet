@@ -1,4 +1,5 @@
 using Fadenstack.Agents.Sessions;
+using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
@@ -157,7 +158,19 @@ public sealed class FadenstackAgent : IDisposable
             UserDataMigration.Adopt(principal.UserId, Logger);
         }
         string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
-        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions"), retention: retention) : null;
+        if (_sessions is null && _settings.Sessions is null)
+        {
+            // A transcript is personal data: it goes to disk only encrypted.
+            if (SecretProtection.Default.Encrypts)
+            {
+                _sessions = new FileSessionStore(Folder("sessions"), retention: retention);
+            }
+            else
+            {
+                _sessions = new MemorySessionStore();
+                Log.TranscriptsNotKept(Logger, Slug);
+            }
+        }
         _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
     }
 

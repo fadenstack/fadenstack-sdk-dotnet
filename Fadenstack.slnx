@@ -9,6 +9,7 @@
     <Project Path="src/Fadenstack.Client/Fadenstack.Client.csproj" />
     <Project Path="src/Fadenstack.Mcp/Fadenstack.Mcp.csproj" />
     <Project Path="src/Fadenstack.Provenance/Fadenstack.Provenance.csproj" />
+    <Project Path="src/Fadenstack.Secrets/Fadenstack.Secrets.csproj" />
     <Project Path="src/Fadenstack.UI.Wpf/Fadenstack.UI.Wpf.csproj" />
     <Project Path="src/Fadenstack.UI/Fadenstack.UI.csproj" />
     <Project Path="src/Fadenstack.Workspaces/Fadenstack.Workspaces.csproj" />
@@ -17,6 +18,7 @@
     <Project Path="tests/Fadenstack.Agents.Tests/Fadenstack.Agents.Tests.csproj" />
     <Project Path="tests/Fadenstack.Client.Tests/Fadenstack.Client.Tests.csproj" />
     <Project Path="tests/Fadenstack.Provenance.Tests/Fadenstack.Provenance.Tests.csproj" />
+    <Project Path="tests/Fadenstack.Secrets.Tests/Fadenstack.Secrets.Tests.csproj" />
     <Project Path="tests/Fadenstack.UI.Tests/Fadenstack.UI.Tests.csproj" />
     <Project Path="tests/Fadenstack.Workspaces.Tests/Fadenstack.Workspaces.Tests.csproj" />
   </Folder>
