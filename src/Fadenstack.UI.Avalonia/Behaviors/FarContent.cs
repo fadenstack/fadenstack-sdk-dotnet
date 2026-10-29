@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Avalonia.Threading;
+using Fadenstack.UI.Avalonia.Views;
 using Fadenstack.UI.ViewModels;
 
 namespace Fadenstack.UI.Avalonia.Behaviors;
@@ -67,7 +68,7 @@ public static class FarContent
         public void Sweep()
         {
             _sweepScheduled = false;
-            if (_items is not { ItemsPanelRoot: VirtualizingStackPanel { FirstRealizedIndex: var first and >= 0, LastRealizedIndex: var last } } items)
+            if (_items is not { ItemsPanelRoot: TurnStackPanel { FirstRealizedIndex: var first and >= 0, LastRealizedIndex: var last } } items)
             {
                 return;
             }

@@ -74,6 +74,52 @@ public class ChatViewTests
     }
 
     [AvaloniaFact]
+    public async Task A_streaming_answer_taller_than_the_window_realizes_no_other_turn_again()
+    {
+        using var host = await ChatHost.OpenAsync(300);
+        host.Harness.Gateway.WordDelay = TimeSpan.FromMilliseconds(1);
+        var prepared = 0;
+        host.TurnList.ContainerPrepared += (_, _) => prepared++;
+
+        var sending = host.Chat.SendAsync(HarnessGateway.StreamLong + " answer");
+        while (!sending.IsCompleted)
+        {
+            await host.PumpAsync(1);
+        }
+        await sending;
+        await host.PumpAsync();
+
+        // The new turn, and at most a neighbour or two the end brings into the cache; not one container per streamed word.
+        Assert.InRange(prepared, 1, 6);
+        Assert.True(host.AtEnd);
+    }
+
+    [AvaloniaFact]
+    public async Task Heights_measured_while_scrolling_do_not_move_what_the_reader_sees()
+    {
+        using var host = await ChatHost.OpenAsync(300);
+        var viewer = host.Scroller;
+        StickToBottom.Release(viewer);
+        viewer.Offset = new Vector(0, viewer.Offset.Y - 2 * viewer.Viewport.Height);
+        await host.PumpAsync();
+        var seen = host.TurnList.ItemsPanelRoot!.Children
+            .Select(c => (Turn: (TurnViewModel)host.TurnList.ItemFromContainer(c)!, Top: c.TranslatePoint(default, viewer)!.Value.Y))
+            .First(t => t.Top + 1 > 0);
+
+        // Scroll further up: the turns that come into the cache are measured (their real height differs from the
+        // estimate), and the turn the reader is looking at stays where it is.
+        for (var i = 0; i < 6; i++)
+        {
+            viewer.Offset = new Vector(0, viewer.Offset.Y - 40);
+            await host.PumpAsync(2);
+            var now = host.TopOf(seen.Turn);
+            Assert.NotNull(now);
+            Assert.Equal(seen.Top + 40 * (i + 1), now!.Value, 2);
+        }
+        Assert.InRange(host.Realized, 1, 30);
+    }
+
+    [AvaloniaFact]
     public async Task Older_turns_load_before_the_top_is_reached_and_the_visible_turn_stays_put()
     {
         using var host = await ChatHost.OpenAsync(300);

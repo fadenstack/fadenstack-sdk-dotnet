@@ -40,6 +40,10 @@ internal sealed class Benchmark
         var chat = _harness.Chat;
 
         Log("open");
+        var openPrepared = 0;
+        var openList = _view.GetVisualDescendants().OfType<ItemsControl>().First(i => i.Name == "Turns");
+        void CountOpen(object? sender, ContainerPreparedEventArgs e) => openPrepared++;
+        openList.ContainerPrepared += CountOpen;
         var opened = Stopwatch.StartNew();
         await chat.OpenSessionAsync(HarnessChat.SessionId);
         var read = opened.Elapsed.TotalMilliseconds;
@@ -47,8 +51,10 @@ internal sealed class Benchmark
         var first = opened.Elapsed.TotalMilliseconds;
         await Frame();
         opened.Stop();
+        openList.ContainerPrepared -= CountOpen;
         Log($"open: view model {read:F0} ms, first frame {first:F0} ms, second frame {opened.Elapsed.TotalMilliseconds:F0} ms");
-        results.Add(new Result(turns, "open", opened.Elapsed.TotalMilliseconds, Stats.Empty, $"{chat.Turns.Count} turns shown", HeapMb()));
+        results.Add(new Result(turns, "open", opened.Elapsed.TotalMilliseconds, Stats.Empty,
+            $"{chat.Turns.Count} turns shown, {openPrepared} containers prepared", HeapMb()));
 
         await Settle();
         var viewer = Scroller;
@@ -138,6 +144,17 @@ internal sealed class Benchmark
         await Settle();
         var stream = Record();
         var streaming = Stopwatch.StartNew();
+        var collections = new[] { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) };
+        var paused = GC.GetTotalPauseDuration();
+        using var allocations = AllocationProfile.StartIfRequested();
+        var prepared = 0;
+        var turnsControl = _view.GetVisualDescendants().OfType<ItemsControl>().First(i => i.Name == "Turns");
+        // A stream grows only the last turn: any other container prepared meanwhile is the panel re-realizing turns for nothing.
+        void CountPrepared(object? sender, ContainerPreparedEventArgs e) => prepared++;
+        turnsControl.ContainerPrepared += CountPrepared;
+        var scrollChanges = 0;
+        void CountScrolls(object? sender, ScrollChangedEventArgs e) => scrollChanges++;
+        viewer.ScrollChanged += CountScrolls;
         var sending = chat.SendAsync(HarnessGateway.StreamLong + " answer");
         while (!sending.IsCompleted)
         {
@@ -148,8 +165,16 @@ internal sealed class Benchmark
         await Frame();
         var streamStats = stream.Stop();
         var atEnd = viewer.Offset.Y + viewer.Viewport.Height >= viewer.Extent.Height - 2;
+        turnsControl.ContainerPrepared -= CountPrepared;
+        viewer.ScrollChanged -= CountScrolls;
+        var gc = $"{prepared} containers prepared, {scrollChanges} scroll changes, GC{GC.CollectionCount(0) - collections[0]}/{GC.CollectionCount(1) - collections[1]}/{GC.CollectionCount(2) - collections[2]} " +
+            $"({(GC.GetTotalPauseDuration() - paused).TotalMilliseconds:F0} ms paused)";
+        if (allocations is not null)
+        {
+            Console.Error.WriteLine("allocations while streaming:\n" + allocations.Top(25));
+        }
         results.Add(new Result(turns, "stream a long answer", streaming.Elapsed.TotalMilliseconds, streamStats,
-            atEnd ? "stayed at the end" : "LOST the end", HeapMb()));
+            $"{(atEnd ? "stayed at the end" : "LOST the end")}, {gc}", HeapMb()));
     }
 
     public static string Table(IReadOnlyList<Result> results)
