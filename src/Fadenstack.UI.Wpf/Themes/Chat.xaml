@@ -370,11 +370,23 @@
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="12,5,5,0">
                     <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{v:Text CopyCode}"
-                            Command="{Binding DataContext.CopyCodeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            Command="{Binding Path=(b:MarkdownContext.CopyCommand), RelativeSource={RelativeSource Self}}"
                             CommandParameter="{Binding}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE8C8;" />
                     </Button>
-                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Language}" />
+                    <!-- The language, or "Diagram · Mermaid" for a diagram (both from the style, so the trigger wins) -->
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
+                                <Setter Property="Text" Value="{Binding Language}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDiagram}" Value="True">
+                                        <Setter Property="Text" Value="{v:Text DiagramMermaid}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </DockPanel>
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="12,4,12,10">
                     <TextBlock Style="{StaticResource Fadenstack.Mono}" TextWrapping="NoWrap" Text="{Binding Code}" />
@@ -386,8 +398,41 @@
     <DataTemplate DataType="{x:Type md:ListItem}">
         <DockPanel Margin="{Binding Level, Converter={StaticResource Fadenstack.LevelToIndent}}">
             <TextBlock DockPanel.Dock="Left" Text="{Binding Marker}" MinWidth="18" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
-            <TextBlock b:MarkdownText.Inlines="{Binding Inlines}" TextWrapping="Wrap" LineHeight="20" />
+            <ItemsControl ItemsSource="{Binding Blocks}" Focusable="False">
+                <ItemsControl.Resources>
+                    <!-- An item's text sits tight under its marker; the list has the space below. -->
+                    <DataTemplate DataType="{x:Type md:ParagraphBlock}">
+                        <TextBlock b:MarkdownText.Inlines="{Binding Inlines}" TextWrapping="Wrap" LineHeight="20" />
+                    </DataTemplate>
+                </ItemsControl.Resources>
+            </ItemsControl>
         </DockPanel>
+    </DataTemplate>
+
+    <!-- A markdown fence: its content rendered, its source (a code block) one switch away. -->
+    <DataTemplate DataType="{x:Type md:PreviewBlock}">
+        <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1" ClipToBounds="True"
+                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Margin="0,2,0,12">
+            <DockPanel>
+                <ToggleButton x:Name="ShowSource" DockPanel.Dock="Top" Style="{StaticResource Fadenstack.GhostButton}"
+                              HorizontalAlignment="Left" Margin="5,5,5,0">
+                    <Grid>
+                        <TextBlock x:Name="ToSource" Text="{v:Text MarkdownSource}" />
+                        <TextBlock x:Name="ToPreview" Text="{v:Text MarkdownPreview}" Visibility="Collapsed" />
+                    </Grid>
+                </ToggleButton>
+                <ItemsControl x:Name="Rendered" ItemsSource="{Binding Blocks}" Focusable="False" Margin="12,4,12,2" />
+                <ContentControl x:Name="Source" Content="{Binding Source}" Focusable="False" Visibility="Collapsed" />
+            </DockPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsChecked, ElementName=ShowSource}" Value="True">
+                <Setter TargetName="Rendered" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Source" Property="Visibility" Value="Visible" />
+                <Setter TargetName="ToSource" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="ToPreview" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type md:ListBlock}">
@@ -396,7 +441,13 @@
 
     <DataTemplate DataType="{x:Type md:QuoteBlock}">
         <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="3,0,0,0" Padding="12,2" Margin="0,0,0,10">
-            <TextBlock b:MarkdownText.Inlines="{Binding Inlines}" TextWrapping="Wrap" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <ItemsControl ItemsSource="{Binding Blocks}" Focusable="False" TextElement.Foreground="{DynamicResource Fadenstack.ForegroundMuted}">
+                <ItemsControl.Resources>
+                    <DataTemplate DataType="{x:Type md:ParagraphBlock}">
+                        <TextBlock b:MarkdownText.Inlines="{Binding Inlines}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    </DataTemplate>
+                </ItemsControl.Resources>
+            </ItemsControl>
         </Border>
     </DataTemplate>
 
@@ -414,7 +465,7 @@
     <!-- ===== Answer parts ============================================================================== -->
 
     <DataTemplate DataType="{x:Type parts:MarkdownPart}">
-        <ItemsControl ItemsSource="{Binding Blocks}" Focusable="False" />
+        <ItemsControl ItemsSource="{Binding Blocks}" Focusable="False" b:MarkdownContext.CopyCommand="{Binding CopyCodeCommand}" />
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type parts:ReasoningPart}">

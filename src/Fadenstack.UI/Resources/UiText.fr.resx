@@ -403,4 +403,13 @@
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Non écrit : le contenu n'a pas pu être marqué comme généré par IA</value>
   </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Aperçu</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagramme · Mermaid</value>
+  </data>
 </root>

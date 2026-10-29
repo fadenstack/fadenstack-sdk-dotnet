@@ -83,6 +83,22 @@ public static class MarkdownText
     }
 }
 
+/// <summary>
+/// The command that copies a code block, set once on the answer's block list and inherited by every block inside it, so a
+/// code block in a quote or a list item finds it too: <c>w:MarkdownContext.CopyCommand="{Binding CopyCodeCommand}"</c>.
+/// </summary>
+public static class MarkdownContext
+{
+    public static readonly DependencyProperty CopyCommandProperty = DependencyProperty.RegisterAttached(
+        "CopyCommand", typeof(System.Windows.Input.ICommand), typeof(MarkdownContext),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.Inherits));
+
+    public static System.Windows.Input.ICommand? GetCopyCommand(DependencyObject element) =>
+        (System.Windows.Input.ICommand?)element.GetValue(CopyCommandProperty);
+
+    public static void SetCopyCommand(DependencyObject element, System.Windows.Input.ICommand? value) => element.SetValue(CopyCommandProperty, value);
+}
+
 /// <summary>Lays out a <see cref="TableBlock"/> as a grid: <c>w:MarkdownTable.Table="{Binding}"</c> on a ContentControl.</summary>
 public static class MarkdownTable
 {

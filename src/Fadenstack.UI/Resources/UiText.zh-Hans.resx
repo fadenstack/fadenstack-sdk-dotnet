@@ -403,4 +403,13 @@
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>未写入：无法将其标记为人工智能生成的内容</value>
   </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>源码</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>图表 · Mermaid</value>
+  </data>
 </root>

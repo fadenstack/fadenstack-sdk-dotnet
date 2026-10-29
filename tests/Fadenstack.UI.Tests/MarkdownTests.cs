@@ -59,7 +59,7 @@ public class MarkdownTests
                 Assert.True(list.Ordered);
                 Assert.Equal(new[] { (0, "1."), (0, "2."), (1, "•"), (1, "•"), (0, "3.") }, list.Items.Select(i => (i.Level, i.Marker)));
             },
-            b => Assert.Equal("Keep the cabinet closed\nwhile testing.", Assert.IsType<QuoteBlock>(b).Inlines.Single().Text),
+            b => Assert.Equal("Keep the cabinet closed\nwhile testing.", Assert.IsType<ParagraphBlock>(Assert.IsType<QuoteBlock>(b).Blocks.Single()).Inlines.Single().Text),
             b =>
             {
                 var table = Assert.IsType<TableBlock>(b);
@@ -132,13 +132,147 @@ public class MarkdownTests
         Assert.True(watch.ElapsedMilliseconds < 2000, $"{watch.ElapsedMilliseconds} ms for {text.Length / 40} updates");
     }
 
+    private const string Table = "| A | B |\n|---|---|\n| 1 | 2 |";
+
+    private static T Only<T>(IEnumerable<MarkdownBlock> blocks) where T : MarkdownBlock => Assert.IsType<T>(Assert.Single(blocks));
+
+    private static string PlainText(MarkdownBlock block) => Assert.Single(Assert.IsType<ParagraphBlock>(block).Inlines).Text;
+
+    [Fact]
+    public void A_quote_holds_a_table()
+    {
+        var quote = Only<QuoteBlock>(MarkdownParser.Parse("> Note:\n>\n> " + Table.Replace("\n", "\n> ")));
+        Assert.Collection(quote.Blocks, b => Assert.Equal("Note:", PlainText(b)), b =>
+        {
+            var table = Assert.IsType<TableBlock>(b);
+            Assert.Equal((2, 1), (table.ColumnCount, table.Rows.Count));
+        });
+    }
+
+    [Fact]
+    public void A_quote_holds_a_list_with_a_nested_list()
+    {
+        var quote = Only<QuoteBlock>(MarkdownParser.Parse("> - one\n>   - inner\n> - two"));
+        var list = Only<ListBlock>(quote.Blocks);
+        Assert.Equal(new[] { (0, "one"), (1, "inner"), (0, "two") }, list.Items.Select(i => (i.Level, PlainText(Assert.Single(i.Blocks)))));
+    }
+
+    [Fact]
+    public void A_list_item_holds_a_table_and_a_code_block()
+    {
+        var text = "1. Check the values\n\n   " + Table.Replace("\n", "\n   ") + "\n\n   ```csharp\n   var x = 1;\n\n   var y = 2;\n   ```\n2. Done";
+        var list = Only<ListBlock>(MarkdownParser.Parse(text));
+        Assert.Equal(2, list.Items.Count);
+        Assert.Collection(list.Items[0].Blocks,
+            b => Assert.Equal("Check the values", PlainText(b)),
+            b => Assert.Equal(2, Assert.IsType<TableBlock>(b).ColumnCount),
+            b => Assert.Equal(("csharp", "var x = 1;\n\nvar y = 2;"), (Assert.IsType<CodeBlock>(b).Language, ((CodeBlock)b).Code)));
+        Assert.Equal("Done", PlainText(Assert.Single(list.Items[1].Blocks)));
+    }
+
+    [Fact]
+    public void Nesting_parses_down_to_the_cap_and_deeper_is_plain_text()
+    {
+        Assert.Equal(3, MarkdownParser.MaxNestingDepth);
+        // quote > list > quote: three containers, still parsed.
+        var outer = Only<QuoteBlock>(MarkdownParser.Parse("> - item\n>   > inner"));
+        var item = Assert.Single(Only<ListBlock>(outer.Blocks).Items);
+        Assert.Equal("item", PlainText(item.Blocks[0]));
+        var inner = Assert.IsType<QuoteBlock>(item.Blocks[1]);
+        Assert.Equal("inner", PlainText(Assert.Single(inner.Blocks)));
+
+        // A fourth level is the raw text of the third container's content: no list, no emphasis.
+        var deep = Assert.IsType<QuoteBlock>(Only<ListBlock>(Only<QuoteBlock>(MarkdownParser.Parse("> - item\n>   > inner\n>   > - **four**")).Blocks).Items.Single().Blocks[1]);
+        Assert.Equal("inner\n- **four**", PlainText(Assert.Single(deep.Blocks)));
+    }
+
+    [Fact]
+    public void A_runaway_nesting_stays_cheap_and_bounded()
+    {
+        var blocks = MarkdownParser.Parse(string.Concat(Enumerable.Repeat("> ", 500)) + "text");
+        MarkdownBlock block = Assert.Single(blocks);
+        var levels = 0;
+        while (block is QuoteBlock q)
+        {
+            levels++;
+            block = Assert.Single(q.Blocks);
+        }
+        Assert.Equal(3, levels);
+        Assert.IsType<ParagraphBlock>(block);
+    }
+
+    [Fact]
+    public void A_markdown_fence_is_a_preview_of_its_content()
+    {
+        var preview = Only<PreviewBlock>(MarkdownParser.Parse("```markdown\n# Title\n\n- a\n- b\n\n" + Table + "\n```"));
+        Assert.Equal(("markdown", true), (preview.Source.Language, preview.Source.IsComplete));
+        Assert.Equal(new[] { "HeadingBlock", "ListBlock", "TableBlock" }, preview.Blocks.Select(b => b.GetType().Name));
+        Assert.IsType<PreviewBlock>(Assert.Single(MarkdownParser.Parse("```md\ntext\n```")));
+        Assert.IsType<CodeBlock>(Assert.Single(MarkdownParser.Parse("```csharp\ntext\n```")));
+    }
+
+    [Fact]
+    public void A_preview_counts_as_a_level_of_nesting()
+    {
+        // quote > preview > quote: the third container's content is plain.
+        var quote = Only<QuoteBlock>(MarkdownParser.Parse("> ```md\n> > - x\n> ```"));
+        var preview = Only<PreviewBlock>(quote.Blocks);
+        var inner = Only<QuoteBlock>(preview.Blocks);
+        Assert.Equal("- x", PlainText(Assert.Single(inner.Blocks)));
+    }
+
+    [Fact]
+    public void A_mermaid_fence_is_a_code_block_marked_as_a_diagram()
+    {
+        var code = Only<CodeBlock>(MarkdownParser.Parse("```mermaid\ngraph TD; A-->B;\n```"));
+        Assert.True(code.IsDiagram);
+        Assert.Equal("graph TD; A-->B;", code.Code);
+        Assert.False(Only<CodeBlock>(MarkdownParser.Parse("```csharp\nx\n```")).IsDiagram);
+    }
+
+    [Fact]
+    public void The_texts_of_the_preview_switch_and_the_diagram_header_are_in_every_language()
+    {
+        foreach (var language in UiStrings.BuiltInLanguages)
+        {
+            var strings = UiStrings.For(System.Globalization.CultureInfo.GetCultureInfo(language));
+            Assert.All(new[] { strings.MarkdownPreview, strings.MarkdownSource, strings.DiagramMermaid }, t => Assert.False(string.IsNullOrWhiteSpace(t)));
+            Assert.Contains("Mermaid", strings.DiagramMermaid);
+        }
+        Assert.NotEqual(UiStrings.For(System.Globalization.CultureInfo.GetCultureInfo("en")).MarkdownPreview,
+            UiStrings.For(System.Globalization.CultureInfo.GetCultureInfo("de")).MarkdownPreview);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(5)]
+    public void A_nested_answer_streams_by_replacing_only_its_last_block(int chunk)
+    {
+        var text = "Intro.\n\n> - one\n>   " + "| A | B |\n>   |---|---|\n>   | 1 | 2 |\n\nMiddle.\n\n1. Step\n\n   ```md\n   # Title\n   ```\n\nEnd.";
+        var document = new MarkdownDocument();
+        var changes = new List<NotifyCollectionChangedEventArgs>();
+        document.Blocks.CollectionChanged += (_, e) => changes.Add(e);
+        for (var i = 0; i < text.Length; i += chunk)
+        {
+            var count = document.Blocks.Count;
+            document.Append(text.Substring(i, Math.Min(chunk, text.Length - i)));
+            Assert.All(changes, c => Assert.True(
+                c.Action == NotifyCollectionChangedAction.Add && c.NewStartingIndex >= count - 1
+                || c.Action == NotifyCollectionChangedAction.Replace && c.NewStartingIndex == count - 1,
+                $"{c.Action} at {c.NewStartingIndex} of {count}"));
+            changes.Clear();
+        }
+        Assert.Equal(Describe(MarkdownParser.Parse(text)), Describe(document.Blocks));
+    }
+
     private static string Describe(IEnumerable<MarkdownBlock> blocks) => string.Join("\n", blocks.Select(b => b switch
     {
         ParagraphBlock p => "P " + string.Concat(p.Inlines.Select(r => $"[{r.Style}:{r.Text}]")),
         HeadingBlock h => $"H{h.Level} " + string.Concat(h.Inlines.Select(r => r.Text)),
         CodeBlock c => $"C {c.Language} {c.IsComplete} {c.Code}",
-        ListBlock l => "L " + string.Join("|", l.Items.Select(i => $"{i.Level}{i.Marker}{string.Concat(i.Inlines.Select(r => r.Text))}")),
-        QuoteBlock q => "Q " + string.Concat(q.Inlines.Select(r => r.Text)),
+        ListBlock l => "L " + string.Join("|", l.Items.Select(i => $"{i.Level}{i.Marker}({Describe(i.Blocks)})")),
+        QuoteBlock q => "Q (" + Describe(q.Blocks) + ")",
+        PreviewBlock v => "V (" + Describe(v.Blocks) + ")",
         TableBlock t => $"T {t.ColumnCount}x{t.Rows.Count}",
         _ => b.GetType().Name,
     }));

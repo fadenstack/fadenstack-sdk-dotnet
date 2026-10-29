@@ -534,4 +534,16 @@
     <value>Not written: it could not be marked as AI-generated</value>
     <comment>A notice's title: the agent's policy refuses to place content where it cannot be marked as AI-generated</comment>
   </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Switch of a Markdown block in an answer: shows it rendered</comment>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Source</value>
+    <comment>Switch of a Markdown block in an answer: shows its Markdown text</comment>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagram · Mermaid</value>
+    <comment>Header of a Mermaid diagram given as code</comment>
+  </data>
 </root>

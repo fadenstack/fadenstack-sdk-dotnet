@@ -403,4 +403,13 @@
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Nicht geschrieben: Es konnte nicht als KI-generiert gekennzeichnet werden</value>
   </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Quelltext</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagramm · Mermaid</value>
+  </data>
 </root>

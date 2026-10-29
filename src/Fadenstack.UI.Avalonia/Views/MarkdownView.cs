@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Fadenstack.UI.Avalonia.Behaviors;
 using Fadenstack.UI.Markdown;
 using IconPath = Avalonia.Controls.Shapes.Path;
@@ -62,7 +63,7 @@ public class MarkdownView : StackPanel
         }
         else if (change.Property == CopyCommandProperty)
         {
-            foreach (var code in Children.OfType<CodeBlockView>())
+            foreach (var code in this.GetVisualDescendants().OfType<CodeBlockView>())
             {
                 code.Copy.Command = CopyCommand;
             }
@@ -105,13 +106,14 @@ public class MarkdownView : StackPanel
         }
     }
 
-    private Control Create(MarkdownBlock block)
+    private Control Create(MarkdownBlock block, string paragraphClass = "md-paragraph")
     {
         Control control = block switch
         {
-            ParagraphBlock p => Text(p.Inlines, "md-paragraph", selectable: true),
+            ParagraphBlock p => Text(p.Inlines, paragraphClass, selectable: true),
             HeadingBlock h => Heading(h),
             CodeBlock c => CreateCode(c),
+            PreviewBlock v => CreatePreview(v),
             ListBlock l => CreateList(l),
             QuoteBlock q => CreateQuote(q),
             TableBlock t => CreateTable(t),
@@ -135,14 +137,47 @@ public class MarkdownView : StackPanel
             case CodeBlock c when control is CodeBlockView code:
                 code.Show(c);
                 break;
+            case PreviewBlock v when control is PreviewView preview && control.Tag is PreviewBlock:
+                preview.Source.Show(v.Source);
+                Sync(preview.Rendered, v.Blocks, "md-paragraph");
+                break;
             case ListBlock l when control is StackPanel rows && control.Tag is ListBlock:
                 UpdateList(rows, l);
+                break;
+            case QuoteBlock q when control is Border { Child: StackPanel content } && control.Tag is QuoteBlock:
+                Sync(content, q.Blocks, "md-quote");
                 break;
             default:
                 return false;
         }
         control.Tag = block;
         return true;
+    }
+
+    /// <summary>
+    /// Brings a container's children (a quote's, a list item's) to <paramref name="blocks"/>, updating each in place when it
+    /// can: while an answer streams only the last child differs, so the cost stays the size of the last block.
+    /// </summary>
+    private void Sync(Panel panel, IReadOnlyList<MarkdownBlock> blocks, string paragraphClass)
+    {
+        for (var i = 0; i < blocks.Count; i++)
+        {
+            if (i < panel.Children.Count)
+            {
+                if (!Update(panel.Children[i], blocks[i]))
+                {
+                    panel.Children[i] = Create(blocks[i], paragraphClass);
+                }
+            }
+            else
+            {
+                panel.Children.Add(Create(blocks[i], paragraphClass));
+            }
+        }
+        while (panel.Children.Count > blocks.Count)
+        {
+            panel.Children.RemoveAt(panel.Children.Count - 1);
+        }
     }
 
     private static TextBlock Text(IReadOnlyList<InlineRun> inlines, string @class, bool selectable)
@@ -174,6 +209,7 @@ public class MarkdownView : StackPanel
     {
         private readonly StackPanel _chunks = new();
         private readonly TextBlock _language = new() { Classes = { "muted" } };
+        private CodeBlock? _block;
 
         public CodeBlockView(ICommand? copy)
         {
@@ -198,7 +234,8 @@ public class MarkdownView : StackPanel
         public void Show(CodeBlock block)
         {
             Copy.CommandParameter = block;
-            _language.Text = block.Language ?? "";
+            _block = block;
+            ShowLanguage();
             var lines = block.Code.Split('\n');
             var chunks = (lines.Length + LinesPerChunk - 1) / LinesPerChunk;
             for (var i = 0; i < chunks; i++)
@@ -222,17 +259,91 @@ public class MarkdownView : StackPanel
                 _chunks.Children.RemoveAt(_chunks.Children.Count - 1);
             }
         }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == ChatText.StringsProperty)
+            {
+                ShowLanguage();
+            }
+        }
+
+        /// <summary>The header: the fence's language, or the diagram mark for a diagram in text form.</summary>
+        private void ShowLanguage() =>
+            _language.Text = _block is { IsDiagram: true } ? (ChatText.GetStrings(this) ?? ChatText.Fallback).DiagramMermaid : _block?.Language ?? "";
     }
+
+    // -- markdown preview ------------------------------------------------------------------------------
+
+    private PreviewView CreatePreview(PreviewBlock block)
+    {
+        var view = new PreviewView(CopyCommand);
+        view.Source.Show(block.Source);
+        Sync(view.Rendered, block.Blocks, "md-paragraph");
+        return view;
+    }
+
+    /// <summary>A <c>markdown</c> fence: its content rendered, or its source (a code block) by the switch in the header.</summary>
+    private sealed class PreviewView : Border
+    {
+        private readonly Button _preview = new() { Classes = { "ghost" } };
+        private readonly Button _source = new() { Classes = { "ghost" } };
+
+        public PreviewView(ICommand? copy)
+        {
+            Rendered = new StackPanel { Margin = new Thickness(12, 4, 12, 2) };
+            // The preview has the frame, so the source inside it needs none of its own.
+            Source = new CodeBlockView(copy) { Margin = new Thickness(0), BorderThickness = new Thickness(0), IsVisible = false };
+            _preview.Click += (_, _) => Select(preview: true);
+            _source.Click += (_, _) => Select(preview: false);
+            var switcher = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5, 5, 5, 0), Children = { _preview, _source } };
+            DockPanel.SetDock(switcher, Dock.Top);
+            Classes.Add("preview");
+            Child = new DockPanel { Children = { switcher, Rendered, Source } };
+            Relabel();
+            Select(preview: true);
+        }
+
+        public StackPanel Rendered { get; }
+
+        public CodeBlockView Source { get; }
+
+        private void Select(bool preview)
+        {
+            Rendered.IsVisible = preview;
+            Source.IsVisible = !preview;
+            _preview.Opacity = preview ? 1 : 0.55;
+            _source.Opacity = preview ? 0.55 : 1;
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == ChatText.StringsProperty)
+            {
+                Relabel();
+            }
+        }
+
+        private void Relabel()
+        {
+            var strings = ChatText.GetStrings(this) ?? ChatText.Fallback;
+            _preview.Content = strings.MarkdownPreview;
+            _source.Content = strings.MarkdownSource;
+        }
+    }
+
     // -- lists, quotes, tables -------------------------------------------------------------------------
 
-    private static StackPanel CreateList(ListBlock list)
+    private StackPanel CreateList(ListBlock list)
     {
         var rows = new StackPanel { Margin = new Thickness(4, 0, 0, 10) };
         UpdateList(rows, list);
         return rows;
     }
 
-    private static void UpdateList(StackPanel rows, ListBlock list)
+    private void UpdateList(StackPanel rows, ListBlock list)
     {
         for (var i = 0; i < list.Items.Count; i++)
         {
@@ -242,13 +353,15 @@ public class MarkdownView : StackPanel
                 var row = (DockPanel)rows.Children[i];
                 row.Margin = new Thickness(18 * item.Level, 0, 0, 0);
                 ((TextBlock)row.Children[0]).Text = item.Marker;
-                MarkdownText.SetInlines((TextBlock)row.Children[1], item.Inlines);
+                Sync((StackPanel)row.Children[1], item.Blocks, "md-item");
             }
             else
             {
                 var marker = new TextBlock { Classes = { "muted" }, Text = item.Marker, MinWidth = 18, VerticalAlignment = VerticalAlignment.Top };
                 DockPanel.SetDock(marker, Dock.Left);
-                rows.Children.Add(new DockPanel { Margin = new Thickness(18 * item.Level, 0, 0, 0), Children = { marker, Text(item.Inlines, "md-item", selectable: true) } });
+                var content = new StackPanel { Spacing = 2 };
+                Sync(content, item.Blocks, "md-item");
+                rows.Children.Add(new DockPanel { Margin = new Thickness(18 * item.Level, 0, 0, 0), Children = { marker, content } });
             }
         }
         while (rows.Children.Count > list.Items.Count)
@@ -257,8 +370,12 @@ public class MarkdownView : StackPanel
         }
     }
 
-    private static Border CreateQuote(QuoteBlock quote) =>
-        new() { Classes = { "quote" }, Child = Text(quote.Inlines, "md-quote", selectable: true) };
+    private Border CreateQuote(QuoteBlock quote)
+    {
+        var content = new StackPanel { Spacing = 6 };
+        Sync(content, quote.Blocks, "md-quote");
+        return new Border { Classes = { "quote" }, Child = content };
+    }
 
     private static Border CreateTable(TableBlock table)
     {

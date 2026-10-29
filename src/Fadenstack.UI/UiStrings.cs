@@ -236,6 +236,12 @@ public sealed class UiStrings
 
     public string CopyCode => Text();
 
+    public string MarkdownPreview => Text();
+
+    public string MarkdownSource => Text();
+
+    public string DiagramMermaid => Text();
+
     public string NotSent => Text();
 
     public string EditAndResend => Text();

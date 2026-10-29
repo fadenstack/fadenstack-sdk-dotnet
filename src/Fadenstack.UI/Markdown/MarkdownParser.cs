@@ -17,13 +17,28 @@ public static class MarkdownParser
     private static readonly Regex Quote = new(@"^ {0,3}>[ ]?(.*)$");
     private static readonly Regex TableSeparator = new(@"^[ \t]*\|?[ \t]*:?-+:?[ \t]*(\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$");
 
+    /// <summary>
+    /// How many containers (a quote, a list item, a Markdown preview) may sit inside each other: quote > list > quote is
+    /// the deepest that still parses. The content of a container at this depth is one plain-text block, the raw lines,
+    /// not parsed again. Model output nests a level or two; a deeper tree is rare, costs a control per level to show,
+    /// and a hostile or runaway answer (a thousand ">") must not make the parser or the skin pay for it, so the cap
+    /// keeps both bounded and the text stays readable.
+    /// </summary>
+    public const int MaxNestingDepth = 3;
+
     /// <summary>The blocks of <paramref name="text"/>.</summary>
     public static IReadOnlyList<MarkdownBlock> Parse(string text) => ParseWithOffsets(text).Select(b => b.Block).ToList();
 
     /// <summary>The blocks and where each starts in <paramref name="text"/>.</summary>
-    public static List<(MarkdownBlock Block, int Offset)> ParseWithOffsets(string text)
+    public static List<(MarkdownBlock Block, int Offset)> ParseWithOffsets(string text) => ParseLines(Lines(text), 0);
+
+    /// <summary>The blocks of some lines; <paramref name="depth"/> is how many containers they are inside.</summary>
+    private static List<(MarkdownBlock Block, int Offset)> ParseLines(List<(string Line, int Offset)> lines, int depth)
     {
-        var lines = Lines(text);
+        if (depth >= MaxNestingDepth)
+        {
+            return PlainText(lines);
+        }
         var blocks = new List<(MarkdownBlock, int)>();
         var i = 0;
         while (i < lines.Count)
@@ -37,7 +52,10 @@ public static class MarkdownParser
             MarkdownBlock block;
             if (Fence.Match(line) is { Success: true } fence)
             {
-                block = ReadFence(lines, ref i, fence);
+                var code = ReadFence(lines, ref i, fence);
+                block = IsMarkdown(code.Language)
+                    ? new PreviewBlock(code, Children(code.Code.Split('\n'), depth + 1))
+                    : code;
             }
             else if (Heading.Match(line) is { Success: true } heading)
             {
@@ -51,17 +69,17 @@ public static class MarkdownParser
             }
             else if (Quote.IsMatch(line))
             {
-                var text2 = new StringBuilder();
+                var inner = new List<string>();
                 while (i < lines.Count && Quote.Match(lines[i].Line) is { Success: true } q)
                 {
-                    AppendLine(text2, q.Groups[1].Value);
+                    inner.Add(q.Groups[1].Value);
                     i++;
                 }
-                block = new QuoteBlock(Inlines(text2.ToString()));
+                block = new QuoteBlock(Children(inner, depth + 1));
             }
             else if (Item.IsMatch(line))
             {
-                block = ReadList(lines, ref i);
+                block = ReadList(lines, ref i, depth);
             }
             else if (i + 1 < lines.Count && line.IndexOf('|') >= 0 && TableSeparator.IsMatch(lines[i + 1].Line)
                 && lines[i + 1].Line.IndexOf('-') >= 0)
@@ -82,6 +100,45 @@ public static class MarkdownParser
         }
         return blocks;
     }
+
+    /// <summary>The content of a container, parsed one level deeper.</summary>
+    private static IReadOnlyList<MarkdownBlock> Children(IEnumerable<string> content, int depth)
+    {
+        var lines = new List<(string, int)>();
+        foreach (var line in content)
+        {
+            lines.Add((line, 0));
+        }
+        return ParseLines(lines, depth).Select(b => b.Block).ToList();
+    }
+
+    /// <summary>The lines as one block of text, unparsed (the content of a container at <see cref="MaxNestingDepth"/>).</summary>
+    private static List<(MarkdownBlock Block, int Offset)> PlainText(List<(string Line, int Offset)> lines)
+    {
+        var first = 0;
+        var last = lines.Count - 1;
+        while (first <= last && IsBlank(lines[first].Line))
+        {
+            first++;
+        }
+        while (last >= first && IsBlank(lines[last].Line))
+        {
+            last--;
+        }
+        if (first > last)
+        {
+            return new List<(MarkdownBlock, int)>();
+        }
+        var text = new StringBuilder();
+        for (var k = first; k <= last; k++)
+        {
+            AppendLine(text, lines[k].Line.TrimEnd());
+        }
+        return new List<(MarkdownBlock, int)> { (new ParagraphBlock(new[] { new InlineRun(text.ToString()) }), lines[first].Offset) };
+    }
+
+    private static bool IsMarkdown(string? language) =>
+        string.Equals(language, "markdown", StringComparison.OrdinalIgnoreCase) || string.Equals(language, "md", StringComparison.OrdinalIgnoreCase);
 
     private static CodeBlock ReadFence(List<(string Line, int Offset)> lines, ref int i, Match open)
     {
@@ -111,13 +168,61 @@ public static class MarkdownParser
         return new CodeBlock(language.Length == 0 ? null : language, code.ToString(), false);
     }
 
-    private static ListBlock ReadList(List<(string Line, int Offset)> lines, ref int i)
+    /// <summary>One list item while reading: its marker and the lines of its content, indent removed.</summary>
+    private sealed class ItemLines
     {
-        var items = new List<(int Indent, string Marker, StringBuilder Text)>();
+        public ItemLines(int indent, string marker, string first)
+        {
+            Indent = indent;
+            Marker = marker;
+            Lines.Add(first);
+            Track(first);
+        }
+
+        public int Indent { get; }
+
+        public string Marker { get; }
+
+        public List<string> Lines { get; } = new();
+
+        /// <summary>Inside an open fenced block of the item: its blank lines and indentation belong to the code.</summary>
+        public bool InFence { get; private set; }
+
+        private string _fence = "";
+
+        public void Add(string line)
+        {
+            Lines.Add(line);
+            Track(line);
+        }
+
+        private void Track(string line)
+        {
+            if (Fence.Match(line) is not { Success: true } f)
+            {
+                return;
+            }
+            var marker = f.Groups[1].Value;
+            if (!InFence)
+            {
+                InFence = true;
+                _fence = marker;
+            }
+            else if (marker[0] == _fence[0] && marker.Length >= _fence.Length && line.Trim().Trim(marker[0]).Length == 0)
+            {
+                InFence = false;
+            }
+        }
+    }
+
+    private static ListBlock ReadList(List<(string Line, int Offset)> lines, ref int i, int depth)
+    {
+        var items = new List<ItemLines>();
         var ordered = Item.Match(lines[i].Line).Groups[2].Value is var first && char.IsDigit(first[0]);
         while (i < lines.Count)
         {
             var line = lines[i].Line;
+            var current = items.Count > 0 ? items[items.Count - 1] : null;
             if (IsBlank(line))
             {
                 var next = i + 1;
@@ -125,27 +230,58 @@ public static class MarkdownParser
                 {
                     next++;
                 }
-                if (next < lines.Count && Item.IsMatch(lines[next].Line))
+                if (next < lines.Count && current is not null)
                 {
-                    i = next; // a loose list goes on
-                    continue;
+                    var after = lines[next].Line;
+                    if (current.InFence ? Indent(Leading(after)) > current.Indent : !Item.IsMatch(after) && Indent(Leading(after)) > current.Indent)
+                    {
+                        // Blank lines inside an item (between its paragraphs, in its code) belong to it.
+                        for (var k = i; k < next; k++)
+                        {
+                            current.Add("");
+                        }
+                        i = next;
+                        continue;
+                    }
+                    if (Item.IsMatch(after))
+                    {
+                        i = next; // a loose list goes on
+                        continue;
+                    }
                 }
                 break;
+            }
+            var indent = Indent(Leading(line));
+            if (current is not null && current.InFence)
+            {
+                if (indent <= current.Indent)
+                {
+                    break;
+                }
+                current.Add(Strip(line, current.Indent + current.Marker.Length + 1));
+                i++;
+                continue;
             }
             if (Item.Match(line) is { Success: true } item)
             {
                 var marker = item.Groups[2].Value;
-                if (items.Count > 0 && Indent(item.Groups[1].Value) == 0 && char.IsDigit(marker[0]) != ordered)
+                if (current is not null && Indent(item.Groups[1].Value) == 0 && char.IsDigit(marker[0]) != ordered)
                 {
                     break; // a different kind of list starts
                 }
-                items.Add((Indent(item.Groups[1].Value), marker, new StringBuilder(item.Groups[3].Value.Trim())));
+                items.Add(new ItemLines(Indent(item.Groups[1].Value), marker, item.Groups[3].Value.TrimEnd()));
                 i++;
                 continue;
             }
-            if (items.Count > 0 && !StartsBlock(lines, i))
+            if (current is not null && indent > current.Indent)
             {
-                AppendLine(items[items.Count - 1].Text, line.Trim()); // continuation
+                current.Add(Strip(line, current.Indent + current.Marker.Length + 1)); // indented past the marker: the item's content
+                i++;
+                continue;
+            }
+            if (current is not null && !StartsBlock(lines, i))
+            {
+                current.Add(line.Trim()); // a lazy continuation of the item's text
                 i++;
                 continue;
             }
@@ -154,20 +290,43 @@ public static class MarkdownParser
         // Nesting follows indentation, relative to the items seen before.
         var levels = new List<int>();
         var result = new List<ListItem>();
-        foreach (var (indent, marker, text) in items)
+        foreach (var item in items)
         {
-            while (levels.Count > 0 && levels[levels.Count - 1] > indent)
+            while (levels.Count > 0 && levels[levels.Count - 1] > item.Indent)
             {
                 levels.RemoveAt(levels.Count - 1);
             }
-            if (levels.Count == 0 || levels[levels.Count - 1] < indent)
+            if (levels.Count == 0 || levels[levels.Count - 1] < item.Indent)
             {
-                levels.Add(indent);
+                levels.Add(item.Indent);
             }
-            var shown = char.IsDigit(marker[0]) ? marker.TrimEnd(')', '.') + "." : "•";
-            result.Add(new ListItem(levels.Count - 1, shown, Inlines(text.ToString())));
+            var shown = char.IsDigit(item.Marker[0]) ? item.Marker.TrimEnd(')', '.') + "." : "•";
+            result.Add(new ListItem(levels.Count - 1, shown, Children(item.Lines, depth + 1)));
         }
         return new ListBlock(ordered, result);
+    }
+
+    private static string Leading(string line)
+    {
+        var k = 0;
+        while (k < line.Length && (line[k] == ' ' || line[k] == '\t'))
+        {
+            k++;
+        }
+        return line.Substring(0, k);
+    }
+
+    /// <summary>The line without up to <paramref name="columns"/> columns of leading whitespace.</summary>
+    private static string Strip(string line, int columns)
+    {
+        var width = 0;
+        var k = 0;
+        while (k < line.Length && width < columns && (line[k] == ' ' || line[k] == '\t'))
+        {
+            width += line[k] == '\t' ? 4 : 1;
+            k++;
+        }
+        return line.Substring(k);
     }
 
     private static TableBlock ReadTable(List<(string Line, int Offset)> lines, ref int i)
