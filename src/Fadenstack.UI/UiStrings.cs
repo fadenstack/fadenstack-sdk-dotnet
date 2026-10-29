@@ -228,6 +228,8 @@ public sealed class UiStrings
 
     public string ShowEarlier => Text();
 
+    public string JumpToNewest => Text();
+
     public string Retry => Text();
 
     public string Copy => Text();

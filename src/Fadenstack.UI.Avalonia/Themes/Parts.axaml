@@ -1,0 +1,217 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        The look of a turn's parts, by class (ChatView.axaml puts the classes on plain elements). No shadows, no
+        effects: a long chat draws hundreds of these. A state is a class (failed, destructive, ...) the view model's
+        property switches on, never a template of its own.
+    -->
+
+    <!-- Panel -->
+    <Style Selector="Border.header">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Border.composer">
+        <Setter Property="Margin" Value="12,4,12,12" />
+        <Setter Property="Padding" Value="12,8,6,6" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+    </Style>
+    <Style Selector="Border.separator">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Margin" Value="0,4,0,2" />
+    </Style>
+    <Style Selector="Button.floating">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Padding" Value="12,4" />
+    </Style>
+    <Style Selector="Button.floating:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Button.suggestion">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Button.suggestion:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Button.current /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="Button.link.muted">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Button.link.muted:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="TextBlock.agent">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,12,0,6" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- The user's message -->
+    <Style Selector="Border.bubble">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="MaxWidth" Value="560" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.UserBubble}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.bubble.blocked">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+    <Style Selector="Border.thumb">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.chip.excluded">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- Markdown blocks -->
+    <Style Selector="Border.code">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.CodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+    </Style>
+    <Style Selector="Border.quote">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Padding" Value="12,2" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector="Border.table">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Control}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,2,0,12" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.rule">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Margin" Value="0,6,0,14" />
+    </Style>
+
+    <!-- Reasoning, tool lines -->
+    <Style Selector="Border.reasoning">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="Padding" Value="12,2" />
+        <Setter Property="Margin" Value="8,4,0,0" />
+    </Style>
+    <Style Selector="Path.chevron">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.ChevronRight}" />
+    </Style>
+    <Style Selector="Path.chevron.open">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.ChevronDown}" />
+    </Style>
+    <Style Selector="Path.mark">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Check}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.Success}" />
+    </Style>
+    <Style Selector="Path.mark.failed">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Close}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+    <Style Selector="Path.mark.denied">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Denied}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Path.mark.cancelled">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Stop}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="Border.picture">
+        <Setter Property="Margin" Value="30,4,0,6" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Width" Value="240" />
+        <Setter Property="Height" Value="135" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+
+    <!-- Cards: approvals, details, primitives -->
+    <Style Selector="Border.card">
+        <Setter Property="Margin" Value="0,4,0,8" />
+        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Border.card.details">
+        <Setter Property="Margin" Value="30,2,0,8" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.CodeBackground}" />
+    </Style>
+    <Style Selector="Border.card.approval">
+        <Setter Property="Margin" Value="0,6,0,8" />
+        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="MaxWidth" Value="640" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentIcon}" />
+    </Style>
+    <Style Selector="Border.card.approval.destructive">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <!-- Answered: the grey border and the state line say so. Not faded: muted text would fall under 4.5:1. -->
+    <Style Selector="Border.card.approval.answered">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Border.approval Path.glyph">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Shield}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.AccentIcon}" />
+    </Style>
+    <Style Selector="Border.approval.destructive Path.glyph">
+        <Setter Property="Data" Value="{StaticResource Fadenstack.Icon.Warning}" />
+        <Setter Property="Stroke" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Border.arguments">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Control}" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!-- Notices -->
+    <Style Selector="Border.notice">
+        <Setter Property="Margin" Value="0,4,0,8" />
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Control}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentIcon}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+    </Style>
+    <Style Selector="Border.notice.warning">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+    </Style>
+    <Style Selector="Border.notice.blocked, Border.notice.error">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+    </Style>
+
+    <!-- Diffs -->
+    <Style Selector="Border.diff.added">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
+    </Style>
+    <Style Selector="Border.diff.removed">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.RemovedBackground}" />
+    </Style>
+</Styles>

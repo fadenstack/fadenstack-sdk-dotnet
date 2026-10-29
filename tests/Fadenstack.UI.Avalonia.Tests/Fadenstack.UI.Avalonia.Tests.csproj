@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- Avalonia.Headless.XUnit is built on xunit v3 (a test project there is an executable). -->
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Skia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Fadenstack.UI.Avalonia\Fadenstack.UI.Avalonia.csproj" />
+    <!-- The harness' session and gateway: the tests drive the same real view models the sample app does. -->
+    <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\SyntheticSession.cs" Link="Harness\SyntheticSession.cs" />
+    <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\HarnessGateway.cs" Link="Harness\HarnessGateway.cs" />
+    <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\HarnessChat.cs" Link="Harness\HarnessChat.cs" />
+    <Compile Include="..\..\samples\Fadenstack.Samples.Wpf\DemoGateway.cs" Link="Harness\DemoGateway.cs" />
+    <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="Harness\DemoTools.cs" />
+  </ItemGroup>
+</Project>

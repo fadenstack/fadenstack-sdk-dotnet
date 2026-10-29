@@ -280,6 +280,9 @@
   <data name="ShowEarlier" xml:space="preserve">
     <value>Mostrar mensajes anteriores</value>
   </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>Ir al mensaje más reciente</value>
+  </data>
   <data name="Retry" xml:space="preserve">
     <value>Reintentar</value>
   </data>

@@ -2,6 +2,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/Fadenstack.Samples.Console/Fadenstack.Samples.Console.csproj" />
     <Project Path="samples/Fadenstack.Samples.LiveCheck/Fadenstack.Samples.LiveCheck.csproj" />
+    <Project Path="samples/Fadenstack.UI.Avalonia.Sample/Fadenstack.UI.Avalonia.Sample.csproj" />
     <Project Path="samples/Fadenstack.Samples.Wpf/Fadenstack.Samples.Wpf.csproj" />
   </Folder>
   <Folder Name="/src/">
@@ -10,6 +11,7 @@
     <Project Path="src/Fadenstack.Mcp/Fadenstack.Mcp.csproj" />
     <Project Path="src/Fadenstack.Provenance/Fadenstack.Provenance.csproj" />
     <Project Path="src/Fadenstack.Secrets/Fadenstack.Secrets.csproj" />
+    <Project Path="src/Fadenstack.UI.Avalonia/Fadenstack.UI.Avalonia.csproj" />
     <Project Path="src/Fadenstack.UI.Wpf/Fadenstack.UI.Wpf.csproj" />
     <Project Path="src/Fadenstack.UI/Fadenstack.UI.csproj" />
     <Project Path="src/Fadenstack.Workspaces/Fadenstack.Workspaces.csproj" />
@@ -19,6 +21,7 @@
     <Project Path="tests/Fadenstack.Client.Tests/Fadenstack.Client.Tests.csproj" />
     <Project Path="tests/Fadenstack.Provenance.Tests/Fadenstack.Provenance.Tests.csproj" />
     <Project Path="tests/Fadenstack.Secrets.Tests/Fadenstack.Secrets.Tests.csproj" />
+    <Project Path="tests/Fadenstack.UI.Avalonia.Tests/Fadenstack.UI.Avalonia.Tests.csproj" />
     <Project Path="tests/Fadenstack.UI.Tests/Fadenstack.UI.Tests.csproj" />
     <Project Path="tests/Fadenstack.Workspaces.Tests/Fadenstack.Workspaces.Tests.csproj" />
   </Folder>

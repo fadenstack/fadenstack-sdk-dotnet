@@ -29,12 +29,42 @@ public sealed class MarkdownDocument
 
     public int Length => _text.Length;
 
+    /// <summary>False while <see cref="Unload"/> holds the blocks back: the source stays, the parsed blocks do not.</summary>
+    public bool IsLoaded { get; private set; } = true;
+
+    /// <summary>Lets go of the parsed blocks (a skin does this for an answer far from the viewport); <see cref="Text"/> stays.</summary>
+    public void Unload()
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+        IsLoaded = false;
+        Blocks.Clear();
+        _liveStart = 0;
+        _hasLive = false;
+    }
+
+    /// <summary>Parses the source again after <see cref="Unload"/>.</summary>
+    public void Load()
+    {
+        if (IsLoaded)
+        {
+            return;
+        }
+        IsLoaded = true;
+        var text = _text.ToString();
+        _text.Clear();
+        Append(text);
+    }
+
     public void Append(string text)
     {
         if (string.IsNullOrEmpty(text))
         {
             return;
         }
+        Load();
         _text.Append(text);
         var tail = _text.ToString(_liveStart, _text.Length - _liveStart);
         var parsed = MarkdownParser.ParseWithOffsets(tail);

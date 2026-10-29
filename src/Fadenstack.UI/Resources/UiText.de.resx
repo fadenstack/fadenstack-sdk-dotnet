@@ -280,6 +280,9 @@
   <data name="ShowEarlier" xml:space="preserve">
     <value>Frühere Nachrichten anzeigen</value>
   </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>Zur neuesten Nachricht</value>
+  </data>
   <data name="Retry" xml:space="preserve">
     <value>Erneut versuchen</value>
   </data>

@@ -1,0 +1,70 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        The chat's colours, by the same names as the WPF skin's: neutral greys as Office's and Windows' themes use,
+        blue only for what acts. Light and dark are theme variants, so the panel follows the system (or the host's
+        RequestedThemeVariant). Every template reads them through DynamicResource.
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="Fadenstack.Background" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.Surface" Color="#F7F7F7" />
+            <SolidColorBrush x:Key="Fadenstack.SurfaceAlt" Color="#EFEFEF" />
+            <SolidColorBrush x:Key="Fadenstack.Border" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#1F1F1F" />
+            <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#5E5E5E" />
+            <SolidColorBrush x:Key="Fadenstack.Accent" Color="#0F6CBD" />
+            <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#115EA3" />
+            <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#0F6CBD" />
+            <SolidColorBrush x:Key="Fadenstack.Hover" Color="#F0F0F0" />
+            <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#E3E3E3" />
+            <SolidColorBrush x:Key="Fadenstack.Link" Color="#0F6CBD" />
+            <SolidColorBrush x:Key="Fadenstack.Danger" Color="#C42B1C" />
+            <SolidColorBrush x:Key="Fadenstack.Warning" Color="#9D5D00" />
+            <SolidColorBrush x:Key="Fadenstack.Success" Color="#0F7B0F" />
+            <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#F7F7F7" />
+            <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#EEEEEE" />
+            <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#EBF3FC" />
+            <SolidColorBrush x:Key="Fadenstack.InfoBackground" Color="#EBF3FC" />
+            <SolidColorBrush x:Key="Fadenstack.WarningBackground" Color="#FFF4CE" />
+            <SolidColorBrush x:Key="Fadenstack.BlockedBackground" Color="#FDE7E9" />
+            <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#DFF6DD" />
+            <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#FDE7E9" />
+            <SolidColorBrush x:Key="Fadenstack.Focus" Color="#0F6CBD" />
+            <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#33000000" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#8C8C8C" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#7A7A7A" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Fadenstack.Background" Color="#1F1F1F" />
+            <SolidColorBrush x:Key="Fadenstack.Surface" Color="#292929" />
+            <SolidColorBrush x:Key="Fadenstack.SurfaceAlt" Color="#333333" />
+            <SolidColorBrush x:Key="Fadenstack.Border" Color="#454545" />
+            <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#F2F2F2" />
+            <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#ABABAB" />
+            <SolidColorBrush x:Key="Fadenstack.Accent" Color="#2976C9" />
+            <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#256CB8" />
+            <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#498FDA" />
+            <SolidColorBrush x:Key="Fadenstack.Hover" Color="#333333" />
+            <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#3D3D3D" />
+            <SolidColorBrush x:Key="Fadenstack.Link" Color="#6AA8F0" />
+            <SolidColorBrush x:Key="Fadenstack.Danger" Color="#F1707B" />
+            <SolidColorBrush x:Key="Fadenstack.Warning" Color="#E8B341" />
+            <SolidColorBrush x:Key="Fadenstack.Success" Color="#6CCB5F" />
+            <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#262626" />
+            <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#383838" />
+            <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#2D3B4E" />
+            <SolidColorBrush x:Key="Fadenstack.InfoBackground" Color="#22324A" />
+            <SolidColorBrush x:Key="Fadenstack.WarningBackground" Color="#3B3220" />
+            <SolidColorBrush x:Key="Fadenstack.BlockedBackground" Color="#3E2427" />
+            <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#213A26" />
+            <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#3E2427" />
+            <SolidColorBrush x:Key="Fadenstack.Focus" Color="#6AA8F0" />
+            <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#66000000" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#747474" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#909090" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

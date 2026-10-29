@@ -280,6 +280,9 @@
   <data name="ShowEarlier" xml:space="preserve">
     <value>显示更早的消息</value>
   </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>跳到最新消息</value>
+  </data>
   <data name="Retry" xml:space="preserve">
     <value>重试</value>
   </data>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Avalonia 12 runs on .NET 8+; the skin has no netstandard build. -->
+    <TargetFrameworks>net8.0</TargetFrameworks>
+    <RootNamespace>Fadenstack.UI.Avalonia</RootNamespace>
+    <PackageId>Fadenstack.UI.Avalonia</PackageId>
+    <Description>The Avalonia skin for Fadenstack.UI: a chat panel for Fadenstack agents in cross-platform desktop apps, built for sessions of thousands of turns.</Description>
+    <PackageTags>$(PackageTags);avalonia;chat</PackageTags>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.UI.Avalonia.Tests" />
+  </ItemGroup>
+</Project>

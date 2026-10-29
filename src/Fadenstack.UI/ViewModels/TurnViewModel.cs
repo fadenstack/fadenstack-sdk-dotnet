@@ -132,6 +132,30 @@ public sealed class TurnViewModel : ObservableObject
 
     public IAsyncRelayCommand RetryCommand { get; }
 
+    /// <summary>
+    /// A skin calls this for a turn far from the viewport: the answer's parsed blocks go, its text stays. A running turn
+    /// keeps them. <see cref="Load"/> brings them back, before the turn is drawn again.
+    /// </summary>
+    public void Unload()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+        foreach (var part in Parts.OfType<MarkdownPart>())
+        {
+            part.Unload();
+        }
+    }
+
+    public void Load()
+    {
+        foreach (var part in Parts.OfType<MarkdownPart>())
+        {
+            part.Load();
+        }
+    }
+
     /// <summary>Adds a part (renderers and modules use this for their primitives).</summary>
     public void AddPart(ResponsePart part)
     {

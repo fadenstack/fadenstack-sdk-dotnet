@@ -57,6 +57,19 @@ public sealed class MarkdownPart : ResponsePart
 
     public string Text => Document.Text;
 
+    public bool IsLoaded => Document.IsLoaded;
+
+    /// <summary>Lets go of the parsed blocks (never of a streaming answer); <see cref="Load"/> brings them back.</summary>
+    public void Unload()
+    {
+        if (!_isStreaming)
+        {
+            Document.Unload();
+        }
+    }
+
+    public void Load() => Document.Load();
+
     internal void Append(string text) => Document.Append(text);
 }
 
