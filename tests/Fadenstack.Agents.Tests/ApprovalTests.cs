@@ -406,6 +406,50 @@ public class ApprovalTests
         Assert.Equal((ToolClass.Unknown, true, false, false), (asked!.ToolClass, asked.RequiredByRule, asked.CanAllowForSession, asked.CanAllowAlways));
         Assert.Equal("once", Str(Assert.Single(Decided(gateway)), "scope"));
     }
+
+    [Fact]
+    public async Task A_request_carries_its_session_and_turn_for_a_tool_the_mode_asks_about()
+    {
+        var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":1,"text":"ok"}""")).Says("Done.");
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder().AddTools(new PageTools())
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var announced = new List<ApprovalRequest>();
+        await foreach (var e in session.StreamAsync("Go."))
+        {
+            if (e is ApprovalRequested a)
+            {
+                announced.Add(a.Request);
+            }
+        }
+        var asked = Assert.Single(requests);
+        Assert.Equal(session.Id, asked.SessionId);
+        Assert.NotEmpty(asked.TurnId);
+        Assert.Equal((asked.SessionId, asked.TurnId), (Assert.Single(announced).SessionId, announced[0].TurnId));
+    }
+
+    [Fact]
+    public async Task A_request_for_a_gateway_tool_carries_its_session_and_turn()
+    {
+        var gateway = new Gateway()
+            .Then(Gateway.Custom("faden.approval_required", new { approvalId = "ap-1", toolCallId = "gw-1", toolCallName = "mcp.github.merge", message = "Merging needs your OK.", timeoutS = 300 }),
+                Gateway.Text("Merged."), Gateway.Finish("stop"), FakeServer.Done);
+        ApprovalRequest? asked = null;
+        using var agent = gateway.Builder()
+            .UseApprovals((r, _) => { asked = r; return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("Merge it.");
+        Assert.Equal(session.Id, asked!.SessionId);
+        Assert.NotEmpty(asked.TurnId);
+    }
+
+    [Fact]
+    public void A_request_built_by_a_caller_has_no_session_or_turn()
+    {
+        var request = new ApprovalRequest();
+        Assert.Equal(("", ""), (request.SessionId, request.TurnId));
+    }
 }
 
 /// <summary>Bypass mode: what it lets through, what it still asks, and its warning. One class: the warning is global.</summary>

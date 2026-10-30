@@ -5,6 +5,15 @@ namespace Fadenstack.Agents;
 /// <summary>A tool call that waits for the user.</summary>
 public sealed record ApprovalRequest
 {
+    /// <summary>
+    /// The session (<see cref="AgentSession.Id"/>) the call belongs to. Empty when a caller does not say: a screen that
+    /// shows several chats at once uses it to hand the request to the chat that owns it.
+    /// </summary>
+    public string SessionId { get; init; } = "";
+
+    /// <summary>The turn within that session the call belongs to. Empty when a caller does not say.</summary>
+    public string TurnId { get; init; } = "";
+
     public string CallId { get; init; } = "";
 
     public string ToolName { get; init; } = "";

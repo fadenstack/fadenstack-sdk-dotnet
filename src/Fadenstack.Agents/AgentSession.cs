@@ -695,6 +695,8 @@ public sealed class AgentSession
             var approvalId = ChatWire.Str(value, "approvalId")!;
             var request = new ApprovalRequest
             {
+                SessionId = _session.Id,
+                TurnId = _id,
                 CallId = ChatWire.Str(value, "toolCallId") ?? "",
                 ToolName = ChatWire.Str(value, "toolCallName") ?? "",
                 ToolClass = ToolModes.ParseClass(ChatWire.Str(value, "toolClass")),
@@ -869,6 +871,8 @@ public sealed class AgentSession
             {
                 var settled = await ApproveAsync(new ApprovalRequest
                 {
+                    SessionId = _session.Id,
+                    TurnId = _id,
                     CallId = call.CallId,
                     ToolName = tool.Name,
                     ToolClass = toolClass,

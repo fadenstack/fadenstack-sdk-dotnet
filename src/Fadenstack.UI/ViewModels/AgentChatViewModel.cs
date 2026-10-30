@@ -1139,6 +1139,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private void OnApprovalRequested(PendingApproval pending)
     {
+        // Another chat's request (several chats share one broker): not ours to show, keep, or answer.
+        if (pending.Request.SessionId.Length > 0 && pending.Request.SessionId != _session?.Id)
+        {
+            return;
+        }
         var turn = _current;
         lock (_approvalGate)
         {

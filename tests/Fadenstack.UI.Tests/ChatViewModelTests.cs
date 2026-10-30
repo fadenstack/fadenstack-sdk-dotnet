@@ -121,6 +121,55 @@ public class ChatViewModelTests
     }
 
     [Fact]
+    public async Task Two_chats_on_one_broker_each_get_only_their_own_approvals()
+    {
+        var broker = new ApprovalBroker();
+        AgentChatViewModel Make(Gateway gateway)
+        {
+            var agent = gateway.Builder().AddTools(new PageTools()).UseApprovals(broker).Build();
+            return new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
+        }
+        // Both call the same tool with the same call id: only the session tells the requests apart.
+        var chatA = Make(new Gateway().Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("A done."));
+        var chatB = Make(new Gateway().Calls(("call-1", "add_comment", """{"page":2,"text":"b"}""")).Says("B done."));
+        await chatA.InitializeAsync();
+        await chatB.InitializeAsync();
+
+        var sendingA = chatA.SendAsync("Comment page 1.");
+        var turnA = await TurnOf(chatA);
+        var cardA = await WaitFor<ApprovalPart>(turnA);
+        Assert.Empty(chatB.Turns); // B shows nothing and keeps nothing for A's request
+
+        // B now asks for the same call id and tool: it must get its own request, not A's stored one.
+        var sendingB = chatB.SendAsync("Comment page 2.");
+        var turnB = await TurnOf(chatB);
+        var cardB = await WaitFor<ApprovalPart>(turnB);
+        Assert.Contains("page: 2", cardB.ArgumentsText);
+        Assert.Contains("page: 1", cardA.ArgumentsText);
+        Assert.Single(turnA.Parts.OfType<ApprovalPart>());
+        Assert.Single(turnB.Parts.OfType<ApprovalPart>());
+
+        cardB.AllowCommand.Execute(null);
+        await sendingB;
+        Assert.Equal(ApprovalState.Approved, cardB.State);
+        Assert.Equal(ApprovalState.Pending, cardA.State); // A is still waiting for its own click
+        cardA.AllowCommand.Execute(null);
+        await sendingA;
+        Assert.Equal((TurnState.Completed, TurnState.Completed), (turnA.State, turnB.State));
+    }
+
+    [Fact]
+    public async Task A_request_of_another_session_is_left_alone_and_not_answered()
+    {
+        var (chat, broker, _) = Chat(new Gateway().Says("Hi."));
+        await chat.InitializeAsync();
+        var foreign = broker.RequestAsync(new ApprovalRequest { SessionId = "someone-else", CallId = "call-9", ToolName = "add_comment" }, CancellationToken.None);
+        await Task.Delay(50);
+        Assert.False(foreign.IsCompleted); // not denied by this chat
+        Assert.Empty(chat.Turns);
+    }
+
+    [Fact]
     public async Task Denied_the_tool_does_not_run_and_the_turn_says_so()
     {
         var gateway = new Gateway().Calls(("call-1", "delete_page", """{"page":2}""")).Says("I did not delete it.");
