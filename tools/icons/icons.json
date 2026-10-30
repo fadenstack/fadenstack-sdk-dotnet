@@ -9,5 +9,12 @@
     "Palette", "ViewQuilt", "Face", "SmartToy", "Translate", "PrivacyTip", "Keyboard", "Info", "Download", "DeleteOutline", "Visibility", "VisibilityOff", "VerifiedUser", "Code", "Key",
     "Folder", "FolderOpen", "InsertDriveFile", "Description", "TableChart", "Slideshow", "PictureAsPdf", "Image", "CreateNewFolder",
     "Login", "Logout", "QrCode2", "Link", "Computer"
+  ],
+  "own": [
+    {
+      "name": "Agent",
+      "source": "Fadenstack's own (Apache-2.0, as the SDK): the stack avatar's silhouette, the three plates seen from the front with the eyes cut out of the middle one and its tail. Written by tools/icons/agent-icon.py.",
+      "data": "F0 M3.75 5.25 10.25 2 16.75 5.25 16.75 7 10.25 10.25 3.75 7zM3.75 13.01L8.09 10.85L10.25 11.93L12.41 10.85L16.75 13.01C19.21 13.01 20.56 14.99 20.22 18.01A.88 .88 0 0 1 18.48 17.82C18.74 15.44 18.29 14.76 16.75 14.76L10.25 18.01L3.75 14.76zM6.55 13.57a1.3 1.55 0 1 0 2.6 0a1.3 1.55 0 1 0 -2.6 0zM11.35 13.57a1.3 1.55 0 1 0 2.6 0a1.3 1.55 0 1 0 -2.6 0zM3.75 17 10.25 20.25 16.75 17 16.75 18.75 10.25 22 3.75 18.75z"
+    }
   ]
 }

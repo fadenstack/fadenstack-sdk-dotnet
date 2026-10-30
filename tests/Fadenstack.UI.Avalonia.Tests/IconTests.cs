@@ -17,7 +17,22 @@ namespace Fadenstack.UI.Avalonia.Tests;
 /// <summary>The icon set (Themes/Icons.axaml) and the FsIcon control (design 22, section 4).</summary>
 public class IconTests
 {
-    internal static string[] ListedNames()
+    /// <summary>Every icon of the set: the Material names, then Fadenstack's own (<c>icons.json</c>, <c>own</c>).</summary>
+    internal static string[] ListedNames() => MaterialNames().Concat(OwnNames()).ToArray();
+
+    internal static string[] MaterialNames()
+    {
+        using var doc = IconsJson();
+        return doc.RootElement.GetProperty("icons").EnumerateArray().Select(e => e.GetString()!).ToArray();
+    }
+
+    internal static string[] OwnNames()
+    {
+        using var doc = IconsJson();
+        return doc.RootElement.TryGetProperty("own", out var own) ? own.EnumerateArray().Select(e => e.GetProperty("name").GetString()!).ToArray() : [];
+    }
+
+    private static JsonDocument IconsJson()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "tools", "icons", "icons.json")))
@@ -25,8 +40,7 @@ public class IconTests
             dir = dir.Parent;
         }
         Assert.NotNull(dir);
-        using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir.FullName, "tools", "icons", "icons.json")));
-        return doc.RootElement.GetProperty("icons").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        return JsonDocument.Parse(File.ReadAllText(Path.Combine(dir.FullName, "tools", "icons", "icons.json")));
     }
 
     internal static StreamGeometry Icon(string name)
@@ -40,7 +54,8 @@ public class IconTests
     public void Icons_axaml_contains_every_name_in_icons_json()
     {
         var names = ListedNames();
-        Assert.True(names.Length >= 70, "the first set of design 22, section 4");
+        Assert.True(MaterialNames().Length >= 70, "the first set of design 22, section 4");
+        Assert.Contains("Agent", OwnNames());
         Assert.Equal(names.Length, names.Distinct().Count());
         foreach (var name in names)
         {
@@ -57,6 +72,32 @@ public class IconTests
             var b = Icon(name).Bounds;
             Assert.True(b.X >= -0.01 && b.Y >= -0.01 && b.Right <= 24.01 && b.Bottom <= 24.01, $"{name}: {b}");
         }
+    }
+
+    /// <summary>
+    /// Icon.Agent is the stack avatar's silhouette (desktop-agent/25 section 2): at 48 px the lid, the middle plate and
+    /// the bottom plate are inked with gaps between them, the eyes are holes in the middle plate (even-odd), and the tail
+    /// hangs clear of the bottom plate. Points in the 24 box; the icon is drawn at 2 pixels per unit.
+    /// </summary>
+    [AvaloniaFact]
+    public void Icon_Agent_is_the_stack_with_its_eyes_cut_out()
+    {
+        var icon = new FsIcon { Data = Icon("Agent"), Size = 48, Foreground = Brushes.Black, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var frame = Render(new Border { Width = 48, Height = 48, Background = Brushes.White, Child = icon }, 1);
+        double At(double x, double y) => frame.Coverage((int)(x * 2), (int)(y * 2));
+
+        Assert.True(At(10.25, 6) > 0.9, "the lid");
+        Assert.True(At(10.25, 11.1) < 0.1, "the gap under the lid");
+        Assert.True(At(10.25, 15.5) > 0.9, "the middle plate between the eyes");
+        Assert.True(At(7.85, 13.6) < 0.1, "the left eye is a hole");
+        Assert.True(At(12.65, 13.6) < 0.1, "the right eye is a hole");
+        Assert.True(At(10.25, 19.1) < 0.1, "the gap over the bottom plate");
+        Assert.True(At(10.25, 21.1) > 0.9, "the bottom plate");
+        Assert.True(At(18.9, 14.9) > 0.9, "the tail");
+        Assert.True(At(17.7, 17.6) < 0.1, "the tail hangs clear of the bottom plate");
+        // Inside the live area of the Material icons (2 to 22), like the icons beside it.
+        var bounds = Icon("Agent").Bounds;
+        Assert.True(bounds.X >= 2 && bounds.Y >= 2 && bounds.Right <= 22 && bounds.Bottom <= 22, bounds.ToString());
     }
 
     [AvaloniaFact]
