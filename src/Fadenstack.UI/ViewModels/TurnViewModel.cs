@@ -38,6 +38,7 @@ public sealed class TurnViewModel : ObservableObject
     private string? _error;
     private long? _tokens;
     private TimeSpan? _elapsed;
+    private bool _waitingForSlot;
 
     /// <summary>A model call of the turn ended with nothing (<c>empty_answer</c>): Try again is offered, as for a failed turn.</summary>
     private bool _unanswered;
@@ -106,6 +107,7 @@ public sealed class TurnViewModel : ObservableObject
     /// </summary>
     public string StatusText => _state switch
     {
+        TurnState.Running when _waitingForSlot => _strings.WaitingForSlot,
         TurnState.Running => _text is null && _tools.Count == 0 ? _strings.Working : "",
         TurnState.Stopped => _strings.Stopped,
         TurnState.Failed => _strings.Failed,
@@ -278,6 +280,16 @@ public sealed class TurnViewModel : ObservableObject
             OnPropertyChanged(nameof(UsageText));
         }
         Finish(result.Outcome == ChatOutcome.PromptBlocked ? TurnState.Blocked : TurnState.Completed, now);
+    }
+
+    /// <summary>The host's turn gate holds this turn back: its line says so.</summary>
+    internal void SetWaitingForSlot(bool waiting)
+    {
+        if (_waitingForSlot != waiting)
+        {
+            _waitingForSlot = waiting;
+            OnPropertyChanged(nameof(StatusText));
+        }
     }
 
     internal void Stop(DateTimeOffset now) => Finish(TurnState.Stopped, now);

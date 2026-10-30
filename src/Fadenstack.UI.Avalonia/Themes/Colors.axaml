@@ -1,10 +1,22 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:svc="clr-namespace:Fadenstack.UI.Avalonia.Services">
     <!--
         The chat's colours, by the same names as the WPF skin's: neutral greys as Office's and Windows' themes use,
         blue only for what acts. Light and dark are theme variants, so the panel follows the system (or the host's
         RequestedThemeVariant). Every template reads them through DynamicResource.
+        High contrast is a third variant, "HighContrast", that inherits from Dark (a key it does not define falls back to
+        Dark's): see FadenstackTheme.HighContrastVariant. The sizes below are the defaults of the keys that
+        FadenstackTheme.Apply changes at runtime; every view reads them through DynamicResource.
     -->
+    <CornerRadius x:Key="Fadenstack.Radius">12</CornerRadius>
+    <Thickness x:Key="Fadenstack.Space.Small">4</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Medium">8</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Large">16</Thickness>
+    <x:Double x:Key="Fadenstack.ControlHeight">32</x:Double>
+    <x:Double x:Key="Fadenstack.FontSize.Small">12</x:Double>
+    <x:Double x:Key="Fadenstack.FontSize.Body">14</x:Double>
+    <x:Double x:Key="Fadenstack.FontSize.Title">20</x:Double>
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
             <SolidColorBrush x:Key="Fadenstack.Background" Color="#FFFFFF" />
@@ -65,6 +77,36 @@
             <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#66000000" />
             <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#747474" />
             <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#909090" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="{x:Static svc:FadenstackTheme.HighContrastVariant}">
+            <SolidColorBrush x:Key="Fadenstack.Background" Color="#000000" />
+            <SolidColorBrush x:Key="Fadenstack.Surface" Color="#000000" />
+            <SolidColorBrush x:Key="Fadenstack.SurfaceAlt" Color="#1A1A1A" />
+            <SolidColorBrush x:Key="Fadenstack.Border" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#E6E6E6" />
+            <SolidColorBrush x:Key="Fadenstack.Accent" Color="#FFFF00" />
+            <SolidColorBrush x:Key="Fadenstack.AccentHover" Color="#FFD700" />
+            <SolidColorBrush x:Key="Fadenstack.AccentForeground" Color="#000000" />
+            <SolidColorBrush x:Key="Fadenstack.AccentIcon" Color="#FFFF00" />
+            <SolidColorBrush x:Key="Fadenstack.Hover" Color="#262626" />
+            <SolidColorBrush x:Key="Fadenstack.Pressed" Color="#404040" />
+            <SolidColorBrush x:Key="Fadenstack.Link" Color="#00FFFF" />
+            <SolidColorBrush x:Key="Fadenstack.Danger" Color="#FF8080" />
+            <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FFB000" />
+            <SolidColorBrush x:Key="Fadenstack.Success" Color="#4DFF88" />
+            <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#000000" />
+            <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#262626" />
+            <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#1A1A1A" />
+            <SolidColorBrush x:Key="Fadenstack.InfoBackground" Color="#00264D" />
+            <SolidColorBrush x:Key="Fadenstack.WarningBackground" Color="#4D3B00" />
+            <SolidColorBrush x:Key="Fadenstack.BlockedBackground" Color="#4D0000" />
+            <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#004D1A" />
+            <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#4D0000" />
+            <SolidColorBrush x:Key="Fadenstack.Focus" Color="#FFFF00" />
+            <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#CC000000" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#BFBFBF" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#FFFFFF" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

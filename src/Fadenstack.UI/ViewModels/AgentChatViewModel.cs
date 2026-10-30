@@ -32,6 +32,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private readonly HashSet<string> _eventsWithoutRequest = new();
     private AgentSession? _session;
     private CancellationTokenSource? _stop;
+    private bool _isWaitingForSlot;
     private TurnViewModel? _current;
     private List<List<TranscriptEntry>> _history = new();
     private int _loadedFrom;
@@ -314,6 +315,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>The turn is held back by the host's <see cref="AgentChatOptions.TurnGate"/> until a slot is free.</summary>
+    public bool IsWaitingForSlot
+    {
+        get => _isWaitingForSlot;
+        private set => SetProperty(ref _isWaitingForSlot, value);
+    }
+
     public bool IsHistoryOpen
     {
         get => _isHistoryOpen;
@@ -470,6 +478,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         IsBusy = true;
         Error = null;
         TurnViewModel? turn = null;
+        IDisposable? lease = null;
         try
         {
             if (_options.BeforeSend is { } beforeSend)
@@ -510,11 +519,37 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             Turns.Add(started);
             OnPropertyChanged(nameof(IsEmpty));
             _current = started;
+            if (_options.TurnGate is { } gate)
+            {
+                IsWaitingForSlot = true;
+                started.SetWaitingForSlot(true);
+                try
+                {
+                    lease = await gate(stop.Token);
+                    stop.Token.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    started.Stop(_options.Clock());
+                    return;
+                }
+                catch (Exception e)
+                {
+                    started.Fail(e.Message, _options.Clock());
+                    return;
+                }
+                finally
+                {
+                    IsWaitingForSlot = false;
+                    started.SetWaitingForSlot(false);
+                }
+            }
             await Task.Run(() => RunTurnAsync(started, text, attached, skills, _selectedMode.Mode, stop.Token));
             await _batcher.WhenFlushedAsync();
         }
         finally
         {
+            lease?.Dispose();
             _current = null;
             _stop = null;
             stop.Dispose();

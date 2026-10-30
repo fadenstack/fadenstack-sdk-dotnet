@@ -17,13 +17,8 @@
         (one page of cache each way); StickToBottom, LoadEarlier and FarContent on the scroll viewer keep a session of
         thousands of turns light. Every part of a turn is a plain element with a class: Chat.axaml styles it.
     -->
-    <UserControl.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Colors.axaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </UserControl.Resources>
+    <!-- The colours, sizes and fonts (Colors.axaml) are not merged here: they sit on the application (FadenstackTheme.EnsureDefaults),
+         so a host's FadenstackTheme.Apply on a window or the application reaches the chat. -->
     <UserControl.Styles>
         <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Chat.axaml" />
         <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Parts.axaml" />
@@ -106,7 +101,7 @@
                         <Border DockPanel.Dock="Right" Classes="badge">
                             <TextBlock Classes="muted" FontSize="11" Text="{Binding ClassLabel}" />
                         </Border>
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{DynamicResource Fadenstack.FontSize.Body}" VerticalAlignment="Center" TextWrapping="Wrap" />
                     </DockPanel>
                     <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
                                IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
@@ -422,7 +417,7 @@
                         </Border>
                     </Popup>
                 </StackPanel>
-                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Fadenstack.FontSize.Body}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
         </Border>
 
@@ -501,7 +496,7 @@
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
                         <StackPanel Margin="3,0,8,0">
                             <StackPanel Margin="0,0,0,10" IsVisible="{Binding About.HasAgent}">
-                                <TextBlock Text="{Binding About.AgentName}" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding About.AgentName}" FontWeight="SemiBold" FontSize="{DynamicResource Fadenstack.FontSize.Body}" TextWrapping="Wrap" />
                                 <TextBlock Classes="muted" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
                                            IsVisible="{Binding About.AgentDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                             </StackPanel>
@@ -535,7 +530,7 @@
                         <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding NewChatCommand}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.Plus}" />
-                                <TextBlock Text="{v:Text NewChat}" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Text="{v:Text NewChat}" FontSize="{DynamicResource Fadenstack.FontSize.Small}" VerticalAlignment="Center" />
                             </StackPanel>
                         </Button>
                         <TextBlock Text="{v:Text History}" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -595,7 +590,7 @@
                             <Border Classes="chip filled" ToolTip.Tip="{Binding Description}">
                                 <StackPanel Orientation="Horizontal" Spacing="4">
                                     <Path Classes="icon small accent" Data="{StaticResource Fadenstack.Icon.Skill}" />
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" FontSize="12" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" FontSize="{DynamicResource Fadenstack.FontSize.Small}" />
                                     <TextBlock Classes="muted" FontSize="11" Text="{v:Text Skill}" Margin="2,0,0,0" />
                                     <Button Classes="ghost" Padding="3" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveSkillCommand}"
@@ -627,7 +622,7 @@
                                     </Border>
                                     <Path Classes="icon small muted" Data="{StaticResource Fadenstack.Icon.Document}" IsVisible="{Binding !IsImplicit}" />
                                     <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
-                                               ToolTip.Tip="{Binding Subtitle}" FontSize="12" />
+                                               ToolTip.Tip="{Binding Subtitle}" FontSize="{DynamicResource Fadenstack.FontSize.Small}" />
                                     <Button Classes="ghost" Padding="3" ToolTip.Tip="{v:Text RemoveAttachment}" IsVisible="{Binding !IsImplicit}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveAttachmentCommand}"
                                             CommandParameter="{Binding}">

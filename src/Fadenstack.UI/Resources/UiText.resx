@@ -38,6 +38,10 @@
     <value>Working...</value>
     <comment>The turn's line before anything arrives</comment>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>Waiting for a free slot</value>
+    <comment>The turn's line while the host's turn gate holds it back</comment>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>Stopped</value>
     <comment>A turn the user stopped</comment>

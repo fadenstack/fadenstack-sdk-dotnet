@@ -7,12 +7,7 @@
     -->
     <Styles.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Colors.axaml" />
-            </ResourceDictionary.MergedDictionaries>
-
-            <!-- Two radii, as the WPF skin: containers (composer, cards, bubbles, code, menus) 12, controls 6. -->
-            <CornerRadius x:Key="Fadenstack.Radius.Container">12</CornerRadius>
+            <!-- Containers (composer, cards, bubbles, code, menus) use Fadenstack.Radius (12, in Colors.axaml); controls 6. -->
             <CornerRadius x:Key="Fadenstack.Radius.Control">6</CornerRadius>
             <CornerRadius x:Key="Fadenstack.Radius.Chip">8</CornerRadius>
             <FontFamily x:Key="Fadenstack.CodeFont">Cascadia Mono, Consolas, Menlo, DejaVu Sans Mono, monospace</FontFamily>
@@ -70,12 +65,12 @@
 
     <Style Selector="TextBlock.muted, SelectableTextBlock.muted">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Small}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
         <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.CodeFont}" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Small}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="TextBlock.title">
@@ -165,7 +160,7 @@
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Link}" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Small}" />
         <Setter Property="Cursor" Value="Hand" />
     </Style>
     <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
@@ -187,7 +182,7 @@
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="Padding" Value="6" />
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>

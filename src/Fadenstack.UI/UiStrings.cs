@@ -86,6 +86,9 @@ public sealed class UiStrings
 
     public string Working => Text();
 
+    /// <summary>The turn's line while the host's turn gate holds it back.</summary>
+    public string WaitingForSlot => Text();
+
     public string Stopped => Text();
 
     public string Failed => Text();

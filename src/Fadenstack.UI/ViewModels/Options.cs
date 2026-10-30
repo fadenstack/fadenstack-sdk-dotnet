@@ -73,6 +73,14 @@ public sealed class AgentChatOptions
     public Action<OutgoingMessage>? AfterSend { get; set; }
 
     /// <summary>
+    /// A gate on running turns, for a host that runs several chats and limits how many work at the same time. It is awaited
+    /// when a turn is about to start (the user's message is shown, nothing is sent yet) and returns a lease that is disposed
+    /// once, when the turn ends. While it waits, <see cref="AgentChatViewModel.IsWaitingForSlot"/> is true and the turn says
+    /// so; Stop cancels the wait and nothing is sent. Null (the default) means no gate.
+    /// </summary>
+    public Func<CancellationToken, Task<IDisposable>>? TurnGate { get; set; }
+
+    /// <summary>
     /// Whether a small "Fadenstack" link to fadenstack.com shows on its own line under the AI notice (default true). False
     /// hides that line only: the notice and About, in the settings, stay.
     /// </summary>

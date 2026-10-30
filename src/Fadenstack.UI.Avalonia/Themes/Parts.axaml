@@ -15,7 +15,7 @@
     <Style Selector="Border.composer">
         <Setter Property="Margin" Value="12,4,12,12" />
         <Setter Property="Padding" Value="12,8,6,6" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
@@ -60,7 +60,7 @@
     <Style Selector="Border.bubble">
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="MaxWidth" Value="560" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="Padding" Value="12,8" />
         <Setter Property="Background" Value="{DynamicResource Fadenstack.UserBubble}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -84,12 +84,12 @@
         <Setter Property="Background" Value="{DynamicResource Fadenstack.CodeBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
     </Style>
     <Style Selector="Border.preview">
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="Margin" Value="0,2,0,12" />
         <Setter Property="ClipToBounds" Value="True" />
     </Style>
@@ -149,7 +149,7 @@
         <Setter Property="Height" Value="135" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="ClipToBounds" Value="True" />
     </Style>
 
@@ -157,7 +157,7 @@
     <Style Selector="Border.card">
         <Setter Property="Margin" Value="0,4,0,8" />
         <Setter Property="Padding" Value="14,10" />
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />

@@ -23,7 +23,7 @@ await chat.InitializeAsync();
 ```
 
 The application uses `FluentTheme`; the chat's styles (`Chat.axaml`, `Parts.axaml`) sit on its control templates and
-apply inside `ChatView` only. Light and dark colours are theme variants (`Colors.axaml`).
+apply inside `ChatView` only. Light, dark and high contrast (`FadenstackTheme.HighContrastVariant`, inheriting from Dark) are theme variants (`Colors.axaml`); `FadenstackTheme.Apply(target, new ThemeChoices { ... })` sets accent, density, text size and high contrast at runtime.
 
 It targets `net8.0` and runs wherever Avalonia 12 does.
 

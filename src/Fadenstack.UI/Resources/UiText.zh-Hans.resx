@@ -31,6 +31,9 @@
   <data name="Working" xml:space="preserve">
     <value>处理中…</value>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>等待空闲名额</value>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>已停止</value>
   </data>

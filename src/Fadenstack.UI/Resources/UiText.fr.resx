@@ -31,6 +31,9 @@
   <data name="Working" xml:space="preserve">
     <value>En cours…</value>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>En attente d’une place libre</value>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>Arrêtée</value>
   </data>

@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Styling;
 using Fadenstack.UI.Avalonia.Behaviors;
+using Fadenstack.UI.Avalonia.Services;
 using Fadenstack.UI.ViewModels;
 
 namespace Fadenstack.UI.Avalonia.Views;
@@ -37,6 +38,7 @@ public partial class ChatView : UserControl
 
     public ChatView()
     {
+        FadenstackTheme.EnsureDefaults();
         InitializeComponent();
         Composer.AddHandler(KeyDownEvent, OnComposerKeyDown, RoutingStrategies.Tunnel);
     }
