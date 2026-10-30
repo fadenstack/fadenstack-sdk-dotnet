@@ -89,6 +89,31 @@ public class ChatViewModelTests
     }
 
     [Fact]
+    public async Task The_header_title_is_the_agent_before_a_chat_then_the_chat_and_again_the_agent_after_new_chat()
+    {
+        var gateway = new Gateway().Then(Stream("Seven."), Gateway.Finish("stop"), FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var changes = new List<string>();
+        chat.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AgentChatViewModel.SessionTitle))
+            {
+                changes.Add(chat.SessionTitle);
+            }
+        };
+        Assert.Equal("Docs", chat.SessionTitle);
+
+        await chat.SendAsync("What is on page 7?");
+        Assert.Equal("What is on page 7?", chat.SessionTitle);
+        Assert.Contains("What is on page 7?", changes);
+
+        chat.NewChat();
+        Assert.Equal("Docs", chat.SessionTitle);
+        Assert.Equal("Docs", changes[^1]);
+    }
+
+    [Fact]
     public async Task A_tool_that_asks_shows_a_card_after_its_line_and_the_click_answers_it()
     {
         for (var run = 0; run < 5; run++) // the event and the broker race; the card must land in order every time

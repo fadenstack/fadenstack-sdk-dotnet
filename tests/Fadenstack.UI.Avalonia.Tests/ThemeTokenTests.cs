@@ -100,6 +100,27 @@ public class ThemeTokenTests
         }
     }
 
+    /// <summary>
+    /// The control styles' own pairs (design 22, section 5): tooltip text on the inverse fill 4.5:1, the hover outline of an
+    /// input 3:1, a switch's knob on its off track 3:1, the placeholder (ForegroundMuted) on the field 4.5:1.
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData("Light")]
+    [InlineData("Dark")]
+    [InlineData("HighContrast")]
+    public async Task The_control_styles_pairs_reach_their_contrast(string name)
+    {
+        using var host = await ChatHost.OpenAsync(1);
+        var v = Variant(name);
+        Color C(string key) => ColorOf(host, key, v);
+        var surface = C(FadenstackKeys.Surface);
+        Assert.True(Ratio(C(FadenstackKeys.InverseForeground), C(FadenstackKeys.Inverse)) >= 4.5, $"{name}: tooltip text");
+        Assert.True(Ratio(C(FadenstackKeys.BorderHover), surface) >= 3, $"{name}: hover outline");
+        Assert.True(Ratio(C(FadenstackKeys.ForegroundMuted), surface) >= 4.5, $"{name}: placeholder");
+        var track = Over(C(FadenstackKeys.BorderStrong), surface);
+        Assert.True(Ratio(C(FadenstackKeys.SwitchKnob), track) >= 1.3 || Ratio(track, surface) >= 3, $"{name}: switch off track");
+    }
+
     [AvaloniaTheory]
     [MemberData(nameof(AccentsAndModes))]
     public async Task Apply_sets_the_named_accent_per_variant_and_follows_a_variant_switch(ThemeAccent accent, bool dark)
@@ -121,6 +142,7 @@ public class ThemeTokenTests
         Assert.Equal(Color.FromArgb(31, ramp.Main.R, ramp.Main.G, ramp.Main.B), C("Hover"));
         Assert.Equal(Color.FromArgb(15, ramp.Main.R, ramp.Main.G, ramp.Main.B), C("Tint"));
         Assert.Equal(Color.FromArgb(51, ramp.Main.R, ramp.Main.G, ramp.Main.B), C("Pressed"));
+        Assert.Equal(Color.FromArgb(77, ramp.Foreground.R, ramp.Foreground.G, ramp.Foreground.B), C("SplitDivider"));
 
         // The same Apply serves the other variant: no second call after the mode changes.
         host.Window.RequestedThemeVariant = dark ? ThemeVariant.Light : ThemeVariant.Dark;
@@ -137,7 +159,7 @@ public class ThemeTokenTests
         var before = new Dictionary<string, Color>();
         foreach (var dark in new[] { false, true })
         {
-            foreach (var key in new[] { "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "NavSelected", "NavSelectedForeground", "Hover", "Tint", "Pressed", "Focus" })
+            foreach (var key in new[] { "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "NavSelected", "NavSelectedForeground", "Hover", "Tint", "Pressed", "Focus", "SplitDivider" })
             {
                 before[key + dark] = ColorOf(host, "Fadenstack." + key, dark ? ThemeVariant.Dark : ThemeVariant.Light);
             }
@@ -146,7 +168,7 @@ public class ThemeTokenTests
         await host.PumpAsync();
         foreach (var dark in new[] { false, true })
         {
-            foreach (var key in new[] { "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "NavSelected", "NavSelectedForeground", "Hover", "Tint", "Pressed", "Focus" })
+            foreach (var key in new[] { "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "NavSelected", "NavSelectedForeground", "Hover", "Tint", "Pressed", "Focus", "SplitDivider" })
             {
                 Assert.Equal(before[key + dark], ColorOf(host, "Fadenstack." + key, dark ? ThemeVariant.Dark : ThemeVariant.Light));
             }
@@ -177,7 +199,7 @@ public class ThemeTokenTests
         {
             (FadenstackKeys.FontSizeMicro, 11), (FadenstackKeys.FontSizeCaption, 12), (FadenstackKeys.FontSizeSmall, 12),
             (FadenstackKeys.FontSizeBody, 14), (FadenstackKeys.FontSizeSubtitle, 16), (FadenstackKeys.FontSizeTitle, 20),
-            (FadenstackKeys.FontSizeDisplay, 24),
+            (FadenstackKeys.FontSizeDisplay, 24), (FadenstackKeys.FontSizeHeading, 18), (FadenstackKeys.LineHeightBody, 20),
         };
         foreach (var (key, b) in sizes)
         {
