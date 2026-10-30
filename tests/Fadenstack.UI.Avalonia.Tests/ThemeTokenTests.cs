@@ -82,18 +82,22 @@ public class ThemeTokenTests
     }
 
     /// <summary>
-    /// The console's divider-strength outline (<c>BorderStrong</c>, MUI's outlined input) is below 3:1 on paper, in both modes.
-    /// The value is the console's, so it is kept and reported here; this test fails if it changes, to make that deliberate.
+    /// Outlines that identify a control reach 3:1 on the surface and the background (WCAG 2.2 SC 1.4.11), and error text
+    /// 4.5:1, in both modes. Both are deliberately stronger than the console's values (desktop-agent/22 §3.1).
     /// </summary>
     [AvaloniaTheory]
-    [InlineData(false, 1.5, 1.8)]
-    [InlineData(true, 1.9, 2.3)]
-    public async Task BorderStrong_is_the_consoles_and_below_3_to_1_on_the_surface(bool dark, double min, double max)
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Control_outlines_reach_3_to_1_and_error_text_4_5_to_1(bool dark)
     {
         using var host = await ChatHost.OpenAsync(1);
         var v = dark ? ThemeVariant.Dark : ThemeVariant.Light;
-        var ratio = Ratio(ColorOf(host, FadenstackKeys.BorderStrong, v), ColorOf(host, FadenstackKeys.Surface, v));
-        Assert.InRange(ratio, min, max);
+        Color C(string key) => ColorOf(host, key, v);
+        foreach (var back in new[] { FadenstackKeys.Surface, FadenstackKeys.Background })
+        {
+            Assert.True(Ratio(C(FadenstackKeys.BorderStrong), C(back)) >= 3, $"{v}: BorderStrong on {back}");
+            Assert.True(Ratio(C(FadenstackKeys.DangerText), C(back)) >= 4.5, $"{v}: DangerText on {back}");
+        }
     }
 
     [AvaloniaTheory]

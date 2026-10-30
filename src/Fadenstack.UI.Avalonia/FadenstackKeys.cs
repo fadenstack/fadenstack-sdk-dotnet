@@ -33,7 +33,10 @@ public static class FadenstackKeys
     /// <summary>Dividers and outlines.</summary>
     public const string Border = P + "Border";
 
-    /// <summary>Outlines of inputs and cards.</summary>
+    /// <summary>
+    /// Outlines that identify a control (inputs, the composer, secondary buttons): at least 3:1 on Surface (WCAG 2.2
+    /// SC 1.4.11), darker than the console's MUI outline on purpose (fadenstack-dev desktop-agent/22 §3.1).
+    /// </summary>
     public const string BorderStrong = P + "BorderStrong";
 
     // Accent (per named accent and theme variant)
@@ -93,6 +96,9 @@ public static class FadenstackKeys
 
     /// <summary>A warning as text on a surface.</summary>
     public const string WarningText = P + "WarningText";
+
+    /// <summary>An error as text on a surface (at least 4.5:1); <see cref="Danger"/> is for icons and fills.</summary>
+    public const string DangerText = P + "DangerText";
 
     /// <summary>Success.</summary>
     public const string Success = P + "Success";
