@@ -231,6 +231,21 @@ public sealed class UiStrings
 
     public string History => Text();
 
+    /// <summary>The header button that opens the list of chats.</summary>
+    public string ChatHistory => Text();
+
+    /// <summary>The header button that opens the panel's settings (language, About).</summary>
+    public string MoreOptions => Text();
+
+    /// <summary>The composer button that attaches files (where the host offers it).</summary>
+    public string Attach => Text();
+
+    /// <summary>The title of an empty chat, over the agent's greeting.</summary>
+    public string EmptyTitle => Text();
+
+    /// <summary>The title of the chat while the agent needs a sign-in first.</summary>
+    public string SignInTitle => Text();
+
     public string NoHistory => Text();
 
     public string DeleteSession => Text();

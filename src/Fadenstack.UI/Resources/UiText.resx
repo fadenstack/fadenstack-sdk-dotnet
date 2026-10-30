@@ -562,4 +562,24 @@
     <value>Diagram · Mermaid</value>
     <comment>Header of a Mermaid diagram given as code</comment>
   </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>Chat history</value>
+    <comment>Tooltip and screen-reader name of the header button that opens the list of chats</comment>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>More options</value>
+    <comment>Tooltip and screen-reader name of the header button that opens the panel settings (language, About)</comment>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>Attach files</value>
+    <comment>Tooltip and screen-reader name of the composer button that attaches files</comment>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>What shall we work on?</value>
+    <comment>Title of an empty chat, above the agent greeting</comment>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>Sign in to continue</value>
+    <comment>Title of the chat when the agent needs a sign-in first</comment>
+  </data>
 </root>

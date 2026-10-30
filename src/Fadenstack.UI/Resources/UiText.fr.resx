@@ -424,4 +424,19 @@
   <data name="DiagramMermaid" xml:space="preserve">
     <value>Diagramme · Mermaid</value>
   </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>Historique des conversations</value>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>Plus d'options</value>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>Joindre des fichiers</value>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>Sur quoi souhaitez-vous travailler ?</value>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>Connectez-vous pour continuer</value>
+  </data>
 </root>

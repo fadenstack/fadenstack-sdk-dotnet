@@ -226,8 +226,20 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public string Title
     {
         get => _title;
-        private set => SetProperty(ref _title, value);
+        private set
+        {
+            if (SetProperty(ref _title, value))
+            {
+                OnPropertyChanged(nameof(SessionTitle));
+            }
+        }
     }
+
+    /// <summary>
+    /// The open chat's name for a header: its title in the chat list ("New chat" until it has one), or the agent's name
+    /// while no chat is open yet.
+    /// </summary>
+    public string SessionTitle => _session is { } open && Sessions.FirstOrDefault(s => s.Id == open.Id) is { } item ? item.Title : _title;
 
     /// <summary>
     /// The agent's greeting for an empty chat (profile <c>ui.greeting</c>), in the panel's language when the definition
@@ -926,6 +938,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             session.Retext(strings, now);
         }
+        OnPropertyChanged(nameof(SessionTitle));
         foreach (var turn in Turns)
         {
             turn.Retext(strings);
@@ -1230,6 +1243,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             s.IsCurrent = s.Id == _session?.Id;
         }
+        OnPropertyChanged(nameof(SessionTitle));
     }
 
     private void Refresh()
