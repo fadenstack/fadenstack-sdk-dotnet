@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        The font families of the skin (design 22, 3.4). The files are embedded (Assets/Fonts) and registered by
+        AppBuilder.UseFadenstackFonts(); Inter comes from the Avalonia.Fonts.Inter package. A character a family does not
+        have falls to the next one, then to the operating system's fonts.
+    -->
+    <FontFamily x:Key="Fadenstack.FontFamily">fonts:Inter#Inter, fonts:Fadenstack#Noto Sans SC</FontFamily>
+    <FontFamily x:Key="Fadenstack.FontFamily.Mono">fonts:Fadenstack#JetBrains Mono, fonts:Fadenstack#Noto Sans SC</FontFamily>
+    <!-- The wordmark only. -->
+    <FontFamily x:Key="Fadenstack.FontFamily.Wordmark">fonts:Fadenstack#Sora</FontFamily>
+</ResourceDictionary>
