@@ -226,39 +226,18 @@ public class ChatViewAuditRenders
             var o = y * stride + x * 4;
             return bgra ? (data[o + 2], data[o + 1], data[o]) : (data[o], data[o + 1], data[o + 2]);
         }
-        var seen = new HashSet<string>();
-        foreach (var p in rig.View.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Path>().Where(p => p.IsEffectivelyVisible && p.Bounds.Width > 0 && p.Bounds.Width < 20 && p.Classes.Contains("icon")))
+        // Every visible icon button (ToggleButton too): where its icon's ink sits against where the 24 box puts it
+        // (the button's centre plus the glyph's own offset in the box). The reference colour is the button's own fill.
+        foreach (var b in rig.View.GetVisualDescendants().OfType<Button>().Cast<ContentControl>()
+                     .Concat(rig.View.GetVisualDescendants().OfType<ToggleButton>())
+                     .Where(b => b is not RepeatButton && b.Classes.Contains("icon") && b.IsEffectivelyVisible && b.Bounds.Width > 0))
         {
-            var pr = RectIn(p, rig.View);
-            var x0 = (int)Math.Round(pr.X * 2) - 4; var y0 = (int)Math.Round(pr.Y * 2) - 4;
-            var x1 = Math.Min(fw, (int)Math.Round(pr.Right * 2) + 4); var y1 = Math.Min(fh, (int)Math.Round(pr.Bottom * 2) + 4);
-            if (x0 < 0 || y0 < 0) continue;
-            var refc = At(x0, y0);
-            int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
-            for (var y = y0; y < y1; y++)
-                for (var x = x0; x < x1; x++)
-                {
-                    var c = At(x, y);
-                    if (Math.Abs(c.R - refc.R) + Math.Abs(c.G - refc.G) + Math.Abs(c.B - refc.B) > 80)
-                    { minX = Math.Min(minX, x); maxX = Math.Max(maxX, x); minY = Math.Min(minY, y); maxY = Math.Max(maxY, y); }
-                }
-            if (maxX < 0) continue;
-            var cx = (minX + maxX + 1) / 2.0 - (pr.X * 2 + pr.Width); // ink centre minus box centre, device px
-            var cy = (minY + maxY + 1) / 2.0 - (pr.Y * 2 + pr.Height);
-            var key = $"{string.Join(' ', p.Classes)}|{p.Data}|{theme}";
-            if (!seen.Add(key)) continue;
-            Metrics.AppendLine($"ICONPATH {scenario}/{theme} cls='{string.Join(' ', p.Classes)}' box={pr.Width:0.#}x{pr.Height:0.#} ink={(maxX - minX + 1) / 2.0:0.0}x{(maxY - minY + 1) / 2.0:0.0} inkCentreOffset dx={cx / 2:+0.00;-0.00;0.00}px dy={cy / 2:+0.00;-0.00;0.00}px data={p.Data?.ToString()?[..Math.Min(30, p.Data.ToString()!.Length)]}");
-        }
-        foreach (var b in rig.View.GetVisualDescendants().OfType<Button>().Where(b => b is not RepeatButton && b.IsEffectivelyVisible && b.Bounds.Width > 0))
-        {
-            var path = b.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Path>().FirstOrDefault(p => p.IsEffectivelyVisible);
-            if (path is null) continue;
+            if (b.Content is not Fadenstack.UI.Avalonia.Controls.FsIcon { Data: { } geometry } icon) continue;
             var r = RectIn(b, rig.View);
             var x0 = (int)Math.Round(r.X * 2); var y0 = (int)Math.Round(r.Y * 2);
             var x1 = Math.Min(fw, (int)Math.Round(r.Right * 2)); var y1 = Math.Min(fh, (int)Math.Round(r.Bottom * 2));
-            if (x1 - x0 < 8 || y1 - y0 < 8) continue;
-            // the reference: the button's own background, a few device pixels in from the left edge at mid height
-            var refc = At(x0 + Math.Max(4, (int)b.Padding.Left), (y0 + y1) / 2);
+            if (x1 - x0 < 8 || y1 - y0 < 8 || x0 < 0 || y0 < 0) continue;
+            var refc = At((x0 + x1) / 2, y0 + 3);
             int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
             for (var y = y0 + 2; y < y1 - 2; y++)
             {
@@ -271,11 +250,13 @@ public class ChatViewAuditRenders
                     }
                 }
             }
-            var pr = RectIn(path, rig.View);
-            var ink = maxX < 0 ? "none" :
-                $"inkL={(minX - x0) / 2.0:0.0} inkR={(x1 - 1 - maxX) / 2.0:0.0} inkT={(minY - y0) / 2.0:0.0} inkB={(y1 - 1 - maxY) / 2.0:0.0} => dx={(((minX - x0) - (x1 - 1 - maxX)) / 4.0):+0.00;-0.00;0.00} dy={(((minY - y0) - (y1 - 1 - maxY)) / 4.0):+0.00;-0.00;0.00}";
-            var content = b.Content is string s ? $"\"{s}\"" : b.Content?.GetType().Name ?? "null";
-            Metrics.AppendLine($"ICONBTN {scenario}/{theme} [{Label(b)}] classes='{string.Join(' ', b.Classes)}' size={r.Width:0.#}x{r.Height:0.#} pad={b.Padding} content={content} path={pr.Width:0.#}x{pr.Height:0.#}@({pr.X - r.X:0.#},{pr.Y - r.Y:0.#}) {ink}");
+            if (maxX < 0) { Metrics.AppendLine($"ICONBTN {scenario}/{theme} [{Label(b)}] no ink"); continue; }
+            var s = icon.Size / 24;
+            var expectX = r.X + r.Width / 2 + (geometry.Bounds.Center.X - 12) * s;
+            var expectY = r.Y + r.Height / 2 + (geometry.Bounds.Center.Y - 12) * s;
+            var dx = (minX + maxX + 1) / 4.0 - expectX;
+            var dy = (minY + maxY + 1) / 4.0 - expectY;
+            Metrics.AppendLine($"ICONBTN {scenario}/{theme} [{Label(b)}] classes='{string.Join(' ', b.Classes)}' size={r.Width:0.#}x{r.Height:0.#} icon={icon.Size} inkCentreOffset dx={dx:+0.00;-0.00;0.00} dy={dy:+0.00;-0.00;0.00}");
         }
     }
 
@@ -488,7 +469,7 @@ public class ChatViewAuditRenders
             typeof(TurnViewModel).GetMethod("Fail", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(turn, new object[] { "The server answered 503: the model is not reachable. Try again in a moment.", DateTimeOffset.Now });
             rig.Chat.PictureNotRead("holiday-photo-from-the-mountains.heic");
             await Pump(12);
-        }, v => new (string, Control)[] { ("banner", Find<Border>(v, b => b.Classes.Contains("notice")).Last()) }));
+        }, v => new (string, Control)[] { ("banner", Find<Border>(v, b => b.Classes.Contains("banner")).Last()) }));
 
         // 10. Sign-in required (the view shows the same banner as for any error; SignInRequired is not bound)
         await Run(new Scenario("10-signin", Start, false, async rig =>
@@ -511,7 +492,7 @@ public class ChatViewAuditRenders
             using var rig = await Open(Conversation, 380, 800, dark, true);
             rig.Host(2);
             await Pump(12);
-            var buttons = Find<Button>(rig.View, b => b.Classes.Contains("ghost") || b.Classes.Contains("primary")).Take(6).ToList();
+            var buttons = Find<Button>(rig.View, b => b.Classes.Contains("icon") || b.Classes.Contains("primary")).Take(8).ToList();
             var toggles = Find<ToggleButton>(rig.View).ToList();
             var all = buttons.Cast<Control>().Concat(toggles).ToList();
             var states = new[] { ":pointerover", ":pressed", ":focus-visible", ":focus" };

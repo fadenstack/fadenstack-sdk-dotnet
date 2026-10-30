@@ -5,20 +5,23 @@
              xmlns:vm="clr-namespace:Fadenstack.UI.ViewModels;assembly=Fadenstack.UI"
              xmlns:parts="clr-namespace:Fadenstack.UI.Parts;assembly=Fadenstack.UI"
              xmlns:m="clr-namespace:Fadenstack.Models;assembly=Fadenstack.Client"
+             xmlns:tools="clr-namespace:Fadenstack.Tools;assembly=Fadenstack.Client"
              xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
              xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
-             mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="720"
+             mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="720"
              x:Class="Fadenstack.UI.Avalonia.Views.ChatView"
              x:DataType="vm:AgentChatViewModel"
-             FontSize="13">
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
     <!--
-        The chat panel: header (agent, tool mode, history, new chat), the conversation (virtualized turns), the
-        composer. Binds to an AgentChatViewModel; it has no logic of its own. The turns are the virtualization unit
-        (one page of cache each way); StickToBottom, LoadEarlier and FarContent on the scroll viewer keep a session of
-        thousands of turns light. Every part of a turn is a plain element with a class: Chat.axaml styles it.
+        The chat panel (design 22, section 6.6): a header (the chat's title, history, new chat, more), the conversation
+        (virtualized turns: the user's bubble, the agent's bubble with its parts), a banner in the flow for a connection
+        problem, the composer (chips, a growing field, attach, the tool-mode pill, send / stop) and the AI notice. It binds to
+        an AgentChatViewModel and has no logic of its own. Every control takes its look from the skin's control styles
+        (Themes/Controls.axaml, by class) and the chat's (Chat.axaml, Parts.axaml); there is no colour, size or radius here.
     -->
-    <!-- The colours, sizes and fonts (Colors.axaml) are not merged here: they sit on the application (FadenstackTheme.EnsureDefaults),
-         so a host's FadenstackTheme.Apply on a window or the application reaches the chat. -->
+    <!-- The theme keys, fonts, icons and control styles sit on the application (FadenstackControls.EnsureLoaded), so a
+         host's FadenstackTheme.Apply reaches the chat and its menus. -->
     <UserControl.Styles>
         <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Chat.axaml" />
         <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Parts.axaml" />
@@ -36,55 +39,61 @@
         </DataTemplate>
 
         <DataTemplate DataType="parts:ReasoningPart">
-            <StackPanel Margin="0,0,0,8">
-                <Button Classes="ghost" Command="{Binding ToggleCommand}" HorizontalAlignment="Left">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding Title}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Path Classes="spinner" Classes.running="{Binding IsStreaming}" IsVisible="{Binding IsStreaming}" />
-                        <TextBlock Classes="muted" Text="{Binding Title}" />
-                        <Path Classes="icon small muted chevron" Classes.open="{Binding IsExpanded}" />
+                        <Panel Classes="mark">
+                            <Arc Classes="spinner" Classes.running="{Binding IsStreaming}" IsVisible="{Binding IsStreaming}" />
+                            <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding !IsStreaming}" />
+                        </Panel>
+                        <TextBlock Classes="caption muted" Text="{Binding Title}" VerticalAlignment="Center" />
+                        <c:FsIcon Classes="chevron" Classes.open="{Binding IsExpanded}" />
                     </StackPanel>
                 </Button>
                 <Border Classes="reasoning" IsVisible="{Binding IsExpanded}">
-                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" FontStyle="Italic" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+                    <SelectableTextBlock Classes="caption muted" Text="{Binding Text}" TextWrapping="Wrap" FontStyle="Italic" />
                 </Border>
             </StackPanel>
         </DataTemplate>
 
+        <!-- A tool line: status, the tool's name, its class, how long it took, a chevron when it has details. -->
         <DataTemplate DataType="parts:ToolCallPart">
-            <StackPanel Margin="0,1,0,3">
-                <!-- The line: the title wraps in a narrow pane, so the class, the duration and the chevron stay in view. -->
-                <Button Classes="ghost" Command="{Binding ToggleCommand}" HorizontalAlignment="Left" ToolTip.Tip="{Binding SourceLabel}">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left"
+                        ToolTip.Tip="{Binding SourceLabel}" AutomationProperties.Name="{Binding Title}">
                     <DockPanel>
-                        <Panel DockPanel.Dock="Left" Width="16" Height="16" VerticalAlignment="Center">
-                            <Path Classes="spinner" Classes.running="{Binding IsRunning}" IsVisible="{Binding IsRunning}" />
-                            <Path Classes="icon mark" IsVisible="{Binding !IsRunning}"
-                                  Classes.failed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Failed}}"
-                                  Classes.denied="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Denied}}"
-                                  Classes.cancelled="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Cancelled}}" />
+                        <Panel DockPanel.Dock="Left" Classes="mark" Margin="0,0,8,0">
+                            <Arc Classes="spinner" Classes.running="{Binding IsRunning}" IsVisible="{Binding IsRunning}" />
+                            <c:FsIcon Classes="mark" IsVisible="{Binding !IsRunning}"
+                                      Classes.failed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Failed}}"
+                                      Classes.denied="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Denied}}"
+                                      Classes.cancelled="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Cancelled}}" />
                         </Panel>
-                        <Path DockPanel.Dock="Right" Classes="icon small muted chevron" Classes.open="{Binding IsExpanded}" Margin="8,0,0,0"
-                              IsVisible="{Binding HasDetails}" />
-                        <TextBlock DockPanel.Dock="Right" Classes="muted" Margin="8,0,0,0" Text="{Binding DurationText}" />
-                        <Border DockPanel.Dock="Right" Classes="badge">
-                            <TextBlock Classes="muted" FontSize="11" Text="{Binding ClassLabel}" />
+                        <c:FsIcon DockPanel.Dock="Right" Classes="chevron" Classes.open="{Binding IsExpanded}" Margin="8,0,0,0" IsVisible="{Binding HasDetails}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="caption muted" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DurationText}"
+                                   IsVisible="{Binding DurationText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Border DockPanel.Dock="Right" Classes="badge" Margin="8,0,0,0"
+                                Classes.write="{Binding Class, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static tools:ToolClass.Write}}"
+                                Classes.danger="{Binding Class, Converter={x:Static v:ToolClasses.IsRisky}}">
+                            <TextBlock Text="{Binding ClassLabel}" />
                         </Border>
-                        <TextBlock Text="{Binding Title}" Margin="8,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Classes="mono caption" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </DockPanel>
                 </Button>
                 <!-- What the tool showed the agent (a rendered slide): small, under its line, decoded at that size. -->
                 <Border Classes="picture" IsVisible="{Binding HasPicture}">
                     <Image b:PictureSource.Data="{Binding Picture}" b:PictureSource.Width="240" Stretch="Uniform" />
                 </Border>
-                <Border Classes="card details" IsVisible="{Binding IsExpanded}">
-                    <StackPanel>
-                        <StackPanel IsVisible="{Binding ArgumentsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                            <TextBlock Classes="muted" Text="{v:Text Arguments}" Margin="0,0,0,2" />
-                            <SelectableTextBlock Classes="mono" Text="{Binding ArgumentsText}" Margin="0,0,0,8" />
+                <Border Classes="details" IsVisible="{Binding IsExpanded}">
+                    <StackPanel Spacing="8">
+                        <StackPanel Spacing="2" IsVisible="{Binding ArgumentsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="caption muted" Text="{v:Text Arguments}" />
+                            <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
                         </StackPanel>
-                        <StackPanel IsVisible="{Binding ResultText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                            <TextBlock Classes="muted" Text="{v:Text Result}" Margin="0,0,0,2" />
-                            <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
-                                <SelectableTextBlock Classes="mono" Text="{Binding ResultText}" />
+                        <StackPanel Spacing="2" IsVisible="{Binding ResultText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="caption muted" Text="{v:Text Result}" />
+                            <ScrollViewer Classes="result" VerticalScrollBarVisibility="Auto">
+                                <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ResultText}" />
                             </ScrollViewer>
                         </StackPanel>
                     </StackPanel>
@@ -92,77 +101,82 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- The approval card: answered in place, like Copilot's "Allow" / "Deny". -->
+        <!-- The approval card: answered in place. Deny, then Allow (with its choices when the request offers them). -->
         <DataTemplate DataType="parts:ApprovalPart">
             <Border Classes="card approval" Classes.destructive="{Binding IsDestructive}" Classes.answered="{Binding !IsPending}">
-                <StackPanel>
+                <StackPanel Spacing="8">
                     <DockPanel>
-                        <Path DockPanel.Dock="Left" Classes="icon glyph" Margin="0,0,10,0" />
-                        <Border DockPanel.Dock="Right" Classes="badge">
-                            <TextBlock Classes="muted" FontSize="11" Text="{Binding ClassLabel}" />
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <Border DockPanel.Dock="Right" Classes="badge" Margin="8,0,0,0"
+                                Classes.write="{Binding Class, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static tools:ToolClass.Write}}"
+                                Classes.danger="{Binding IsDestructive}">
+                            <TextBlock Text="{Binding ClassLabel}" />
                         </Border>
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="{DynamicResource Fadenstack.FontSize.Body}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
                     </DockPanel>
-                    <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                    <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
                                IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <!-- What the call acts on, as the tool says it: button "Send" on mail.example.com -->
-                    <TextBlock Text="{Binding Target}" TextWrapping="Wrap" Margin="0,8,0,0" FontWeight="SemiBold"
+                    <TextBlock Classes="strong" Text="{Binding Target}" TextWrapping="Wrap"
                                IsVisible="{Binding Target, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <Border Classes="arguments" IsVisible="{Binding ArgumentsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto">
-                            <SelectableTextBlock Classes="mono" Text="{Binding ArgumentsText}" />
+                        <ScrollViewer Classes="arguments" VerticalScrollBarVisibility="Auto">
+                            <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
                         </ScrollViewer>
                     </Border>
-                    <WrapPanel Margin="0,12,0,0" IsVisible="{Binding IsPending}">
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                         <!-- One split button: the main part allows once; the drop-down lists only the choices the request offers. -->
-                        <SplitButton Classes="allow" Margin="0,0,8,6" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
+                        <SplitButton Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
                                      AutomationProperties.Name="{v:Text Allow}" IsVisible="{Binding HasAllowChoices}">
                             <SplitButton.Flyout>
-                                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuFlyout Placement="BottomEdgeAlignedLeft" HorizontalOffset="-12" VerticalOffset="-2">
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
                                     <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}" IsVisible="{Binding CanAllowForTime}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
                                 </MenuFlyout>
                             </SplitButton.Flyout>
                         </SplitButton>
-                        <Button Classes="primary" Margin="0,0,8,6" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
-                                IsVisible="{Binding !HasAllowChoices}" />
-                        <Button Classes="secondary" Margin="0,0,8,6" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
+                        <Button Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}" IsVisible="{Binding !HasAllowChoices}" />
                     </WrapPanel>
-                    <TextBlock Classes="muted" Margin="0,8,0,0" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
+                    <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
 
+        <!-- A notice is a banner in the flow: info, warning, blocked or error. -->
         <DataTemplate DataType="parts:NoticePart">
-            <Border Classes="notice"
+            <Border Classes="banner notice"
                     Classes.warning="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:NoticeSeverity.Warning}}"
                     Classes.blocked="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:NoticeSeverity.Blocked}}"
-                    Classes.error="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:NoticeSeverity.Error}}">
-                <StackPanel>
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                    <TextBlock Classes="muted" Text="{Binding Detail}" FontSize="11" Margin="0,4,0,0"
-                               IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                </StackPanel>
+                    Classes.error="{Binding Severity, Converter={x:Static v:Notices.IsError}}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Margin="0,0,12,0" />
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="strong" Text="{Binding Title}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                        <TextBlock Classes="caption muted" Text="{Binding Detail}" TextWrapping="Wrap"
+                                   IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </DockPanel>
             </Border>
         </DataTemplate>
 
         <DataTemplate DataType="parts:CitationsPart">
-            <StackPanel Margin="0,0,0,6">
-                <Button Classes="ghost" Command="{Binding ToggleCommand}" HorizontalAlignment="Left">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding Title}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Path Classes="icon muted" Data="{StaticResource Fadenstack.Icon.Document}" />
-                        <TextBlock Classes="muted" Text="{Binding Title}" />
-                        <Path Classes="icon small muted chevron" Classes.open="{Binding IsExpanded}" />
+                        <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Description}" />
+                        <TextBlock Classes="caption muted" Text="{Binding Title}" VerticalAlignment="Center" />
+                        <c:FsIcon Classes="chevron" Classes.open="{Binding IsExpanded}" />
                     </StackPanel>
                 </Button>
-                <ItemsControl ItemsSource="{Binding Citations}" Focusable="False" Margin="30,2,0,4" IsVisible="{Binding IsExpanded}">
+                <ItemsControl Classes="citations" ItemsSource="{Binding Citations}" Focusable="False" IsVisible="{Binding IsExpanded}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="parts:Citation">
-                            <StackPanel Orientation="Horizontal" Margin="0,1" Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
                                 <TextBlock Text="{Binding Title}" />
-                                <TextBlock Classes="muted" Text="{Binding Detail}" />
+                                <TextBlock Classes="caption muted" Text="{Binding Detail}" VerticalAlignment="Center" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -171,14 +185,14 @@
         </DataTemplate>
 
         <DataTemplate DataType="parts:CardPart">
-            <Border Classes="card" HorizontalAlignment="Left" MinWidth="280">
-                <StackPanel>
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                    <TextBlock Classes="muted" Text="{Binding Subtitle}" IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <ItemsControl ItemsSource="{Binding Fields}" Focusable="False" Margin="0,6,0,0">
+            <Border Classes="card part">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="subtitle" Text="{Binding Title}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption muted" Text="{Binding Subtitle}" IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ItemsControl ItemsSource="{Binding Fields}" Focusable="False" Classes="fields">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="parts:CardField">
-                                <Grid Margin="0,2" ColumnDefinitions="Auto,*">
+                                <Grid ColumnDefinitions="Auto,*" Classes="field">
                                     <TextBlock Classes="muted" Text="{Binding Label}" Margin="0,0,16,0" />
                                     <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
                                 </Grid>
@@ -190,9 +204,8 @@
         </DataTemplate>
 
         <DataTemplate DataType="parts:TablePart">
-            <StackPanel Margin="0,4,0,8">
-                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,4"
-                           IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{Binding Title}" IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <Border Classes="table">
                     <StackPanel>
                         <Border Classes="table-head">
@@ -204,7 +217,7 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="x:String">
-                                        <TextBlock Text="{Binding}" FontWeight="SemiBold" />
+                                        <TextBlock Classes="strong" Text="{Binding}" TextWrapping="Wrap" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -235,24 +248,24 @@
         </DataTemplate>
 
         <DataTemplate DataType="parts:ProgressPart">
-            <StackPanel Margin="0,4,0,8" MaxWidth="360" HorizontalAlignment="Left">
-                <TextBlock Classes="muted" Text="{Binding Label}" Margin="0,0,0,4" />
-                <ProgressBar Height="4" Minimum="0" Maximum="1" Value="{Binding Value, Mode=OneWay, TargetNullValue=0}"
+            <StackPanel Classes="progress" Spacing="4">
+                <TextBlock Classes="caption muted" Text="{Binding Label}" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Value, Mode=OneWay, TargetNullValue=0}"
                              IsIndeterminate="{Binding IsIndeterminate, Mode=OneWay}" />
             </StackPanel>
         </DataTemplate>
 
         <DataTemplate DataType="parts:DiffPart">
-            <StackPanel Margin="0,4,0,8">
-                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,4" />
-                <Border Classes="table" Padding="0,4">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{Binding Title}" />
+                <Border Classes="table diff-frame">
                     <ItemsControl ItemsSource="{Binding Lines}" Focusable="False">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="parts:DiffLine">
-                                <Border Classes="diff" Padding="10,0"
+                                <Border Classes="diff"
                                         Classes.added="{Binding Kind, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:DiffLineKind.Added}}"
                                         Classes.removed="{Binding Kind, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:DiffLineKind.Removed}}">
-                                    <TextBlock Classes="mono" Text="{Binding Text}" />
+                                    <TextBlock Classes="mono caption" Text="{Binding Text}" TextWrapping="Wrap" />
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -261,16 +274,15 @@
             </StackPanel>
         </DataTemplate>
 
-        <!-- ===== A turn: the user's message, then the answer =============================================== -->
+        <!-- ===== A turn: the user's bubble, then the agent's ================================================ -->
 
         <DataTemplate DataType="vm:TurnViewModel">
-            <StackPanel Margin="20,14,20,6">
-                <Border Classes="bubble" Classes.blocked="{Binding IsPromptBlocked}">
-                    <SelectableTextBlock Text="{Binding UserText}" TextWrapping="Wrap" LineHeight="20" />
+            <StackPanel Classes="turn">
+                <Border Classes="bubble user" Classes.blocked="{Binding IsPromptBlocked}">
+                    <SelectableTextBlock Classes="user" Text="{Binding UserText}" TextWrapping="Wrap" />
                 </Border>
                 <!-- What went with the message: a skill (marked), a picture (small), context -->
-                <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" HorizontalAlignment="Right" Margin="0,4,0,0"
-                              IsVisible="{Binding HasAttachments}">
+                <ItemsControl Classes="sent" ItemsSource="{Binding Attachments}" Focusable="False" IsVisible="{Binding HasAttachments}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -278,173 +290,197 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:AttachmentChip">
-                            <Border Classes="chip" Padding="6,1" Margin="4,0,0,0" ToolTip.Tip="{Binding Subtitle}">
-                                <StackPanel Orientation="Horizontal" Spacing="5">
+                            <Border Classes="chip sent" ToolTip.Tip="{Binding Subtitle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
                                     <Border Classes="thumb" IsVisible="{Binding HasImage}">
-                                        <Image b:PictureSource.Data="{Binding Image}" b:PictureSource.Width="14" Stretch="UniformToFill" />
+                                        <Image b:PictureSource.Data="{Binding Image}" b:PictureSource.Width="16" Stretch="UniformToFill" />
                                     </Border>
-                                    <Path Classes="icon small accent" Data="{StaticResource Fadenstack.Icon.Skill}" IsVisible="{Binding IsSkill}" />
-                                    <TextBlock Classes="muted" FontSize="11" Text="{Binding Title}" />
+                                    <c:FsIcon Classes="accent" Data="{DynamicResource Icon.AutoAwesome}" IsVisible="{Binding IsSkill}" />
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0" Spacing="6" IsVisible="{Binding IsPromptBlocked}">
-                    <TextBlock Classes="muted" Text="{v:Text NotSent}" Foreground="{DynamicResource Fadenstack.Danger}" />
-                    <Button Classes="link" Command="{Binding EditCommand}" Content="{v:Text EditAndResend}" />
+                <StackPanel Classes="blocked" IsVisible="{Binding IsPromptBlocked}">
+                    <TextBlock Classes="caption danger" Text="{v:Text NotSent}" VerticalAlignment="Center" />
+                    <Button Classes="quiet small" Command="{Binding EditCommand}" Content="{v:Text EditAndResend}" />
                 </StackPanel>
 
-                <TextBlock Classes="agent" Text="{Binding $parent[v:ChatView].((vm:AgentChatViewModel)DataContext).Title}" />
+                <!-- The answer: its parts, and "Working..." with the thinking icon until the first token. -->
+                <Border Classes="bubble agent">
+                    <Border.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="Parts.Count" Converter="{x:Static v:Counts.Any}" />
+                            <Binding Path="StatusText" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                        </MultiBinding>
+                    </Border.IsVisible>
+                    <StackPanel Classes="answer">
+                        <ItemsControl Classes="parts" ItemsSource="{Binding Parts}" Focusable="False" IsVisible="{Binding Parts.Count, Converter={x:Static v:Counts.Any}}" />
+                        <StackPanel Classes="status">
+                            <StackPanel.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="StatusText" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                                    <Binding Path="ErrorMessage" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                </MultiBinding>
+                            </StackPanel.IsVisible>
+                            <Panel Classes="mark">
+                                <Arc Classes="spinner running" IsVisible="{Binding IsRunning}" />
+                                <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding !IsRunning}" />
+                            </Panel>
+                            <TextBlock Classes="caption muted" Text="{Binding StatusText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
-                <ItemsControl ItemsSource="{Binding Parts}" Focusable="False" Margin="30,0,0,0" />
+                <!-- A failed turn: a banner in the turn, with Try again. -->
+                <Border Classes="banner error turn-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                        <Button DockPanel.Dock="Right" Classes="quiet hidedisabled" Command="{Binding RetryCommand}" Content="{v:Text Retry}" />
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="strong" Text="{v:Text Failed}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
 
-                <StackPanel Orientation="Horizontal" Margin="30,2,0,0" Spacing="8"
-                            IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                    <Path Classes="spinner" Classes.running="{Binding IsRunning}" IsVisible="{Binding IsRunning}" />
-                    <TextBlock Classes="muted" Text="{Binding StatusText}" />
-                </StackPanel>
-
-                <TextBlock Margin="30,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Fadenstack.Danger}" Text="{Binding ErrorMessage}"
-                           IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-
-                <StackPanel Orientation="Horizontal" Margin="26,2,0,0" IsVisible="{Binding !IsRunning}">
-                    <Button Classes="ghost hidedisabled" Command="{Binding CopyCommand}" ToolTip.Tip="{v:Text Copy}">
-                        <Path Classes="icon muted" Data="{StaticResource Fadenstack.Icon.Copy}" />
+                <StackPanel Classes="turn-actions" IsVisible="{Binding !IsRunning}">
+                    <Button Classes="icon small hidedisabled" Command="{Binding CopyCommand}" ToolTip.Tip="{v:Text Copy}" AutomationProperties.Name="{v:Text Copy}">
+                        <c:FsIcon Data="{DynamicResource Icon.ContentCopy}" />
                     </Button>
-                    <Button Classes="ghost hidedisabled" Command="{Binding RetryCommand}" ToolTip.Tip="{v:Text Retry}">
-                        <Path Classes="icon muted" Data="{StaticResource Fadenstack.Icon.Retry}" />
+                    <Button Classes="icon small hidedisabled" Command="{Binding RetryCommand}" ToolTip.Tip="{v:Text Retry}" AutomationProperties.Name="{v:Text Retry}">
+                        <c:FsIcon Data="{DynamicResource Icon.Replay}" />
                     </Button>
-                    <TextBlock Classes="muted" FontSize="11" Margin="8,0,0,0" Text="{Binding DurationText}" />
-                    <TextBlock Classes="muted" FontSize="11" Margin="8,0,0,0" Text="{Binding UsageText}" />
+                    <TextBlock Classes="caption muted" Text="{Binding DurationText}" VerticalAlignment="Center" />
+                    <TextBlock Classes="caption muted" Text="{Binding UsageText}" VerticalAlignment="Center" />
                 </StackPanel>
             </StackPanel>
         </DataTemplate>
 
-        <!-- A mode in the mode menu: label and what it means. -->
-        <DataTemplate DataType="vm:ToolModeOption">
-            <StackPanel Margin="2,2,12,2">
-                <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-                <TextBlock Classes="muted" Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="260" />
-            </StackPanel>
-        </DataTemplate>
     </UserControl.DataTemplates>
 
     <ThemeVariantScope Name="Scope">
-    <Grid RowDefinitions="Auto,*,Auto,Auto" Background="{DynamicResource Fadenstack.Background}" TextElement.Foreground="{DynamicResource Fadenstack.Foreground}">
-        <!-- Header -->
+    <Grid Name="Root" Classes="chat" RowDefinitions="Auto,*,Auto,Auto,Auto">
+        <!-- ===== Header: the chat's title, then history, new chat, the host's items, more ===================== -->
         <Border Classes="header">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
-                    <ToggleButton Name="ModeButton" Classes="ghost" ToolTip.Tip="{Binding ToolModeHint}"
-                                  IsChecked="{Binding IsModeMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Path Classes="icon" Data="{StaticResource Fadenstack.Icon.Shield}" />
-                            <TextBlock Text="{Binding SelectedToolMode.Label}" VerticalAlignment="Center" />
-                            <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.ChevronDown}" />
-                        </StackPanel>
-                    </ToggleButton>
-                    <Popup IsOpen="{Binding IsModeMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #ModeButton}"
-                           Placement="BottomEdgeAlignedRight" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #ModeButton}">
-                        <Border Classes="menu">
-                            <StackPanel>
-                                <TextBlock Classes="muted" Text="{v:Text ToolModeMenu}" Margin="8,4,8,4" />
-                                <ItemsControl ItemsSource="{Binding ToolModes}" Focusable="False">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="vm:ToolModeOption">
-                                            <Button Classes="ghost" HorizontalContentAlignment="Left" Padding="8,6" Content="{Binding}"
-                                                    Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectToolModeCommand}"
-                                                    CommandParameter="{Binding}" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Classes="muted" Text="{Binding ToolModeHint}" TextWrapping="Wrap" MaxWidth="280" Margin="8,6,8,4" />
-                                <Border Classes="separator" />
-                                <Button Classes="ghost" HorizontalContentAlignment="Left" Padding="8,6"
-                                        Command="{Binding ResetApprovalsCommand}" Content="{v:Text ResetApprovals}" ToolTip.Tip="{v:Text ResetApprovalsHint}" />
-                            </StackPanel>
-                        </Border>
-                    </Popup>
-
-                    <ToggleButton Name="HistoryButton" Classes="ghost" ToolTip.Tip="{v:Text History}" AutomationProperties.Name="{v:Text History}"
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <ToggleButton Name="HistoryButton" Classes="icon" ToolTip.Tip="{v:Text ChatHistory}" AutomationProperties.Name="{v:Text ChatHistory}"
                                   IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}">
-                        <Path Classes="icon" Data="{StaticResource Fadenstack.Icon.History}" />
+                        <c:FsIcon Data="{DynamicResource Icon.History}" />
                     </ToggleButton>
-                    <Button Classes="ghost" ToolTip.Tip="{v:Text NewChatShortcut}" AutomationProperties.Name="{v:Text NewChat}" Command="{Binding NewChatCommand}">
-                        <Path Classes="icon" Data="{StaticResource Fadenstack.Icon.Plus}" />
+                    <Button Classes="icon" ToolTip.Tip="{v:Text NewChatShortcut}" AutomationProperties.Name="{v:Text NewChat}" Command="{Binding NewChatCommand}">
+                        <c:FsIcon Data="{DynamicResource Icon.Add}" />
                     </Button>
-                    <ToggleButton Name="SettingsButton" Classes="ghost" ToolTip.Tip="{v:Text Settings}" AutomationProperties.Name="{v:Text Settings}"
+                    <ToggleButton Name="SettingsButton" Classes="icon" ToolTip.Tip="{v:Text MoreOptions}" AutomationProperties.Name="{v:Text MoreOptions}"
                                   IsChecked="{Binding IsSettingsOpen, Mode=TwoWay}">
-                        <Path Classes="icon" Data="{StaticResource Fadenstack.Icon.Menu}" />
+                        <c:FsIcon Data="{DynamicResource Icon.MoreVert}" />
                     </ToggleButton>
-                    <!-- The settings: the language, the host's own items (SettingsContent), and About last. Always shown. -->
-                    <Popup IsOpen="{Binding IsSettingsOpen, Mode=TwoWay}" PlacementTarget="{Binding #SettingsButton}"
-                           Placement="BottomEdgeAlignedRight" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #SettingsButton}">
-                        <Border Classes="menu" MinWidth="220">
+                    <!-- The host's own icon buttons (the desktop's "Close the chat panel"). -->
+                    <ContentPresenter Content="{Binding $parent[v:ChatView].HeaderToolbar}" VerticalAlignment="Center"
+                                      IsVisible="{Binding $parent[v:ChatView].HeaderToolbar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <!-- The settings: the language, the host's own items (SettingsContent), and About last. -->
+                    <Popup IsOpen="{Binding IsSettingsOpen, Mode=TwoWay}" PlacementTarget="{Binding #SettingsButton}" Placement="BottomEdgeAlignedRight"
+                           HorizontalOffset="12" VerticalOffset="-2" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #SettingsButton}">
+                        <Border Classes="popup-room">
+                        <Border Classes="menu popup settings">
                             <StackPanel>
                                 <StackPanel IsVisible="{Binding HasLanguageSettings}">
-                                    <TextBlock Classes="muted" Text="{v:Text LanguageMenu}" Margin="8,4,8,4" />
+                                    <TextBlock Classes="menu-caption" Text="{v:Text LanguageMenu}" />
                                     <ItemsControl ItemsSource="{Binding LanguageOptions}" Focusable="False">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="vm:LanguageOption">
-                                                <Button Classes="ghost" HorizontalContentAlignment="Left" Padding="8,6" AutomationProperties.Name="{Binding Label}"
+                                                <Button Classes="menu-item" Classes.selected="{Binding IsSelected}" AutomationProperties.Name="{Binding Label}"
                                                         Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SetLanguageCommand}"
                                                         CommandParameter="{Binding Id}">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <Panel Width="20">
-                                                            <Path Classes="icon accent" Data="{StaticResource Fadenstack.Icon.Check}" IsVisible="{Binding IsSelected}" />
+                                                        <Panel Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}" IsVisible="{Binding IsSelected}" />
                                                         </Panel>
-                                                        <TextBlock Text="{Binding Label}" />
+                                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
                                                     </StackPanel>
                                                 </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <TextBlock Classes="muted" Text="{v:Text LanguageLocked}" Margin="8,4,8,4" IsVisible="{Binding IsLanguageLocked}" />
-                                    <Border Classes="separator" />
+                                    <TextBlock Classes="menu-caption" Text="{v:Text LanguageLocked}" IsVisible="{Binding IsLanguageLocked}" />
+                                    <Separator />
                                 </StackPanel>
                                 <ContentPresenter Content="{Binding $parent[v:ChatView].SettingsContent}" />
-                                <Button Classes="ghost" HorizontalContentAlignment="Left" Padding="8,6" Command="{Binding OpenAboutCommand}"
-                                        AutomationProperties.Name="{v:Text About}">
+                                <Button Classes="menu-item" Command="{Binding OpenAboutCommand}" AutomationProperties.Name="{v:Text About}">
                                     <StackPanel Orientation="Horizontal">
-                                        <Panel Width="20">
-                                            <Path Classes="icon muted" Data="{StaticResource Fadenstack.Icon.Info}" />
+                                        <Panel Classes="slot">
+                                            <c:FsIcon Classes="muted" Data="{DynamicResource Icon.InfoOutlined}" />
                                         </Panel>
-                                        <TextBlock Text="{v:Text About}" />
+                                        <TextBlock Text="{v:Text About}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
                             </StackPanel>
                         </Border>
+                        </Border>
                     </Popup>
                 </StackPanel>
-                <TextBlock Text="{Binding Title}" FontSize="{DynamicResource Fadenstack.FontSize.Body}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="subtitle header-title" Text="{Binding SessionTitle}" />
             </DockPanel>
         </Border>
 
-        <!-- Conversation -->
+        <!-- ===== The conversation ============================================================================ -->
         <Grid Grid.Row="1">
-            <!-- Empty chat: the agent's greeting and suggestions -->
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440" Margin="24" IsVisible="{Binding IsEmpty}">
-                <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,12,0,4" />
-                <TextBlock Text="{Binding Greeting}" TextWrapping="Wrap" TextAlignment="Center" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
-                <ItemsControl ItemsSource="{Binding Suggestions}" Focusable="False" Margin="0,16,0,0">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="x:String">
-                            <Button Classes="ghost suggestion" HorizontalContentAlignment="Left" HorizontalAlignment="Stretch" Padding="12,8" Margin="0,3"
-                                    Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SendSuggestionCommand}"
-                                    CommandParameter="{Binding}">
-                                <TextBlock Text="{Binding}" TextWrapping="Wrap" />
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+            <!-- Empty chat: the avatar, "What shall we work on?", the agent's greeting and suggestions -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="IsEmpty" />
+                        <Binding Path="!SignInRequired" />
+                    </MultiBinding>
+                </ScrollViewer.IsVisible>
+                <StackPanel Classes="empty">
+                    <Panel Classes="avatar">
+                        <Border Classes="avatar" IsVisible="{Binding $parent[v:ChatView].Avatar, Converter={x:Static ObjectConverters.IsNull}}">
+                            <c:FsIcon Classes="avatar" Data="{DynamicResource Icon.SmartToy}" />
+                        </Border>
+                        <ContentPresenter Content="{Binding $parent[v:ChatView].Avatar}"
+                                          IsVisible="{Binding $parent[v:ChatView].Avatar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </Panel>
+                    <TextBlock Classes="title" Text="{v:Text EmptyTitle}" TextAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted greeting" Text="{Binding Greeting}" TextWrapping="Wrap" TextAlignment="Center" />
+                    <ItemsControl Classes="suggestions" ItemsSource="{Binding Suggestions}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Button Classes="secondary suggestion" AutomationProperties.Name="{Binding}"
+                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SendSuggestionCommand}"
+                                        CommandParameter="{Binding}">
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Sign in required: the host's sign-in (SignInContent) in place of the turns, else the reason and Try again. -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsVisible="{Binding SignInRequired}">
+                <Panel>
+                    <ContentPresenter Content="{Binding $parent[v:ChatView].SignInContent}"
+                                      IsVisible="{Binding $parent[v:ChatView].SignInContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <StackPanel Classes="empty signin" IsVisible="{Binding $parent[v:ChatView].SignInContent, Converter={x:Static ObjectConverters.IsNull}}">
+                        <Border Classes="avatar">
+                            <c:FsIcon Classes="avatar" Data="{DynamicResource Icon.Lock}" />
+                        </Border>
+                        <TextBlock Classes="title" Text="{v:Text SignInTitle}" TextAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted greeting" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"
+                                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="secondary" HorizontalAlignment="Center" Content="{v:Text Retry}" Command="{Binding InitializeCommand}" />
+                    </StackPanel>
+                </Panel>
+            </ScrollViewer>
 
             <!-- The turns: virtualized and recycled, one page of cache each way, kept at the bottom while the user is there -->
             <ItemsControl Name="Turns" ItemsSource="{Binding Turns}" Focusable="False" IsVisible="{Binding !IsEmpty}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <v:TurnStackPanel CacheLength="0.5" EndPadding="12" />
+                        <v:TurnStackPanel CacheLength="0.5" EndPadding="16" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.Template>
@@ -454,17 +490,19 @@
                                           b:StickToBottom.IsEnabled="True" b:FarContent.Distance="100" b:LoadEarlier.Command="{Binding LoadEarlierCommand}">
                                 <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
                             </ScrollViewer>
-                            <Button Classes="ghost floating" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,8,0,0"
-                                    Command="{Binding LoadEarlierCommand}" IsVisible="{Binding HasEarlierTurns}">
-                                <TextBlock Classes="muted" Text="{v:Text ShowEarlier}" />
+                            <Button Classes="secondary floating top" Command="{Binding LoadEarlierCommand}" IsVisible="{Binding HasEarlierTurns}"
+                                    AutomationProperties.Name="{v:Text ShowEarlier}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowUp}" />
+                                    <TextBlock Text="{v:Text ShowEarlier}" VerticalAlignment="Center" />
+                                </StackPanel>
                             </Button>
                             <!-- Not at the end any more: one press goes back and follows it again. -->
-                            <Button Classes="ghost floating" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,12"
-                                    Command="{x:Static b:StickToBottom.ScrollToNewestCommand}" CommandParameter="{Binding #Scroller}"
-                                    IsVisible="{Binding !#Scroller.(b:StickToBottom.IsFollowing)}">
+                            <Button Classes="secondary floating bottom" Command="{x:Static b:StickToBottom.ScrollToNewestCommand}" CommandParameter="{Binding #Scroller}"
+                                    IsVisible="{Binding !#Scroller.(b:StickToBottom.IsFollowing)}" AutomationProperties.Name="{v:Text JumpToNewest}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.ArrowDown}" />
-                                    <TextBlock Classes="muted" Text="{v:Text JumpToNewest}" />
+                                    <c:FsIcon Data="{DynamicResource Icon.ArrowDownward}" />
+                                    <TextBlock Text="{v:Text JumpToNewest}" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -472,70 +510,59 @@
                 </ItemsControl.Template>
             </ItemsControl>
 
-            <Border Classes="notice blocked" VerticalAlignment="Top" Margin="12" IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Classes="secondary" Content="{v:Text Retry}" Command="{Binding InitializeCommand}" Margin="12,0,0,0" />
-                    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                </DockPanel>
-            </Border>
-
             <!-- About (the settings' last item): the agent, the app it runs in, the SDK, the server, and links. -->
-            <Border Classes="menu about" VerticalAlignment="Top" Margin="8,4,8,8" Padding="11,6,6,12" IsVisible="{Binding IsAboutOpen}"
-                    AutomationProperties.Name="{v:Text About}">
+            <Border Classes="menu about" IsVisible="{Binding IsAboutOpen}" AutomationProperties.Name="{v:Text About}">
                 <Border.KeyBindings>
                     <KeyBinding Gesture="Escape" Command="{Binding CloseAboutCommand}" />
                 </Border.KeyBindings>
                 <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="3,0,0,6">
-                        <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding CloseAboutCommand}" ToolTip.Tip="{v:Text Close}"
+                    <DockPanel DockPanel.Dock="Top" Classes="about-head">
+                        <Button DockPanel.Dock="Right" Classes="icon small" Command="{Binding CloseAboutCommand}" ToolTip.Tip="{v:Text Close}"
                                 AutomationProperties.Name="{v:Text Close}">
-                            <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.Close}" />
+                            <c:FsIcon Data="{DynamicResource Icon.Close}" />
                         </Button>
-                        <TextBlock Text="{v:Text About}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Classes="subtitle" Text="{v:Text About}" VerticalAlignment="Center" />
                     </DockPanel>
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-                        <StackPanel Margin="3,0,8,0">
-                            <StackPanel Margin="0,0,0,10" IsVisible="{Binding About.HasAgent}">
-                                <TextBlock Text="{Binding About.AgentName}" FontWeight="SemiBold" FontSize="{DynamicResource Fadenstack.FontSize.Body}" TextWrapping="Wrap" />
-                                <TextBlock Classes="muted" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
+                        <StackPanel Spacing="4">
+                            <StackPanel Classes="about-agent" IsVisible="{Binding About.HasAgent}">
+                                <TextBlock Classes="strong" Text="{Binding About.AgentName}" TextWrapping="Wrap" />
+                                <TextBlock Classes="caption muted" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
                                            IsVisible="{Binding About.AgentDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                             </StackPanel>
-                            <TextBlock Classes="muted" Text="{Binding About.AppText}" TextWrapping="Wrap" Margin="0,0,0,3"
+                            <TextBlock Classes="caption muted" Text="{Binding About.AppText}" TextWrapping="Wrap"
                                        IsVisible="{Binding About.AppText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                            <TextBlock Classes="muted" Text="{Binding About.SdkText}" TextWrapping="Wrap" Margin="0,0,0,3" />
-                            <TextBlock Classes="muted" Text="{Binding About.ServerText}" TextWrapping="Wrap"
+                            <TextBlock Classes="caption muted" Text="{Binding About.SdkText}" TextWrapping="Wrap" />
+                            <TextBlock Classes="caption muted" Text="{Binding About.ServerText}" TextWrapping="Wrap"
                                        IsVisible="{Binding About.ServerText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                            <Border Classes="separator" Margin="0,10,0,6" />
+                            <Separator />
                             <ItemsControl ItemsSource="{Binding About.Links}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="vm:PanelLink">
-                                        <Button Classes="link" Margin="0,2" HorizontalAlignment="Left" ToolTip.Tip="{Binding Url.AbsoluteUri}"
+                                        <Button Classes="quiet link" HorizontalAlignment="Left" ToolTip.Tip="{Binding Url.AbsoluteUri}"
                                                 AutomationProperties.Name="{Binding Name}" Content="{Binding Label}"
                                                 Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).OpenLinkCommand}"
                                                 CommandParameter="{Binding}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Classes="secondary" HorizontalAlignment="Left" Margin="0,8,0,0" Command="{Binding CopyDetailsCommand}"
-                                    Content="{v:Text CopyDetails}" />
+                            <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding CopyDetailsCommand}" Content="{v:Text CopyDetails}" />
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
 
-            <!-- The chats: a dropdown under the header, as wide as the panel -->
-            <Border Classes="menu history" VerticalAlignment="Top" Margin="8,4,8,8" MaxHeight="440" IsVisible="{Binding IsHistoryOpen}">
+            <!-- The chats: a menu under the header, as wide as the panel -->
+            <Border Classes="menu history" IsVisible="{Binding IsHistoryOpen}">
                 <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Margin="8,2,0,4">
-                        <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding NewChatCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.Plus}" />
-                                <TextBlock Text="{v:Text NewChat}" FontSize="{DynamicResource Fadenstack.FontSize.Small}" VerticalAlignment="Center" />
-                            </StackPanel>
+                    <DockPanel DockPanel.Dock="Top" Classes="history-head">
+                        <Button DockPanel.Dock="Right" Classes="icon small" Command="{Binding NewChatCommand}" ToolTip.Tip="{v:Text NewChat}"
+                                AutomationProperties.Name="{v:Text NewChat}">
+                            <c:FsIcon Data="{DynamicResource Icon.Add}" />
                         </Button>
-                        <TextBlock Text="{v:Text History}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Classes="strong" Text="{v:Text History}" VerticalAlignment="Center" />
                     </DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Classes="muted" Text="{v:Text NoHistory}" Margin="8,4,8,8" IsVisible="{Binding Sessions.Count, Converter={x:Static v:Counts.None}}" />
+                    <TextBlock DockPanel.Dock="Top" Classes="menu-caption" Text="{v:Text NoHistory}" IsVisible="{Binding Sessions.Count, Converter={x:Static v:Counts.None}}" />
                     <ItemsControl ItemsSource="{Binding Sessions}" Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -551,21 +578,19 @@
                         </ItemsControl.Template>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="vm:SessionItemViewModel">
-                                <Panel Margin="0,1">
-                                    <Button Classes="ghost" Classes.current="{Binding IsCurrent}" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch"
-                                            Padding="10,6,34,6" AutomationProperties.Name="{Binding Title}"
+                                <Panel>
+                                    <Button Classes="menu-item session" Classes.selected="{Binding IsCurrent}" AutomationProperties.Name="{Binding Title}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).OpenSessionCommand}"
                                             CommandParameter="{Binding}">
                                         <DockPanel>
-                                            <TextBlock DockPanel.Dock="Right" Classes="muted" FontSize="11" Text="{Binding WhenText}" Margin="8,0,0,0" />
-                                            <TextBlock Classes.title="{Binding IsCurrent}" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <TextBlock DockPanel.Dock="Right" Classes="caption muted" Text="{Binding WhenText}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                         </DockPanel>
                                     </Button>
-                                    <Button Classes="ghost" HorizontalAlignment="Right" Margin="0,0,4,0" ToolTip.Tip="{v:Text DeleteSession}"
-                                            AutomationProperties.Name="{v:Text DeleteSession}"
+                                    <Button Classes="icon small delete" ToolTip.Tip="{v:Text DeleteSession}" AutomationProperties.Name="{v:Text DeleteSession}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).DeleteSessionCommand}"
                                             CommandParameter="{Binding}">
-                                        <Path Classes="icon small muted" Data="{StaticResource Fadenstack.Icon.Close}" />
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
                                     </Button>
                                 </Panel>
                             </DataTemplate>
@@ -575,11 +600,26 @@
             </Border>
         </Grid>
 
-        <!-- Composer -->
-        <Border Name="ComposerBox" Grid.Row="2" Classes="composer">
+        <!-- ===== A problem with the agent or the connection: a banner in the flow, above the composer ======== -->
+        <Border Grid.Row="2" Classes="banner error chat-error">
+            <Border.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="Error" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                    <Binding Path="!SignInRequired" />
+                </MultiBinding>
+            </Border.IsVisible>
+            <DockPanel>
+                <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="{v:Text Retry}" Command="{Binding InitializeCommand}" />
+                <TextBlock Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- ===== The composer: chips, the field, then attach, the host's items, the tool mode, send / stop ===== -->
+        <Border Name="ComposerBox" Grid.Row="3" Classes="composer">
             <StackPanel>
                 <!-- The skills picked for the next message -->
-                <ItemsControl ItemsSource="{Binding PickedSkills}" Focusable="False" Margin="0,0,0,6" IsVisible="{Binding PickedSkills.Count, Converter={x:Static v:Counts.Any}}">
+                <ItemsControl Classes="chips" ItemsSource="{Binding PickedSkills}" Focusable="False" IsVisible="{Binding PickedSkills.Count, Converter={x:Static v:Counts.Any}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -587,15 +627,14 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="m:SkillOption">
-                            <Border Classes="chip filled" ToolTip.Tip="{Binding Description}">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <Path Classes="icon small accent" Data="{StaticResource Fadenstack.Icon.Skill}" />
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" FontSize="{DynamicResource Fadenstack.FontSize.Small}" />
-                                    <TextBlock Classes="muted" FontSize="11" Text="{v:Text Skill}" Margin="2,0,0,0" />
-                                    <Button Classes="ghost" Padding="3" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}"
+                            <Border Classes="chip removable" ToolTip.Tip="{Binding Description}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:FsIcon Classes="accent" Data="{DynamicResource Icon.AutoAwesome}" />
+                                    <TextBlock Classes="chip-title" Text="{Binding Name}" />
+                                    <Button Classes="icon small" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveSkillCommand}"
                                             CommandParameter="{Binding}">
-                                        <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.Close}" />
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
                                     </Button>
                                 </StackPanel>
                             </Border>
@@ -603,7 +642,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <!-- Attached context: chips, a picture's small; an implicit one (the current selection) can be switched off -->
-                <ItemsControl ItemsSource="{Binding Attachments}" Focusable="False" Margin="0,0,0,6" IsVisible="{Binding Attachments.Count, Converter={x:Static v:Counts.Any}}">
+                <ItemsControl Classes="chips" ItemsSource="{Binding Attachments}" Focusable="False" IsVisible="{Binding Attachments.Count, Converter={x:Static v:Counts.Any}}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -611,22 +650,29 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="vm:AttachmentViewModel">
-                            <Border Classes="chip filled" Classes.excluded="{Binding !IsIncluded}">
-                                <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <Button Classes="ghost" Padding="2" Command="{Binding ToggleCommand}" ToolTip.Tip="{v:Text IncludeAttachment}"
-                                            IsVisible="{Binding IsImplicit}">
-                                        <Path Classes="icon small muted" Data="{StaticResource Fadenstack.Icon.Check}" />
-                                    </Button>
+                            <Border Classes="chip" Classes.removable="{Binding !IsImplicit}" Classes.implicit="{Binding IsImplicit}" Classes.excluded="{Binding !IsIncluded}"
+                                    ToolTip.Tip="{Binding Subtitle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ToggleButton Classes="icon small include" IsChecked="{Binding IsIncluded, Mode=OneWay}" Command="{Binding ToggleCommand}"
+                                                  ToolTip.Tip="{v:Text IncludeAttachment}" AutomationProperties.Name="{v:Text IncludeAttachment}" IsVisible="{Binding IsImplicit}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Check}" />
+                                    </ToggleButton>
                                     <Border Classes="thumb" IsVisible="{Binding HasImage}">
                                         <Image b:PictureSource.Data="{Binding Image}" b:PictureSource.Width="16" Stretch="UniformToFill" />
                                     </Border>
-                                    <Path Classes="icon small muted" Data="{StaticResource Fadenstack.Icon.Document}" IsVisible="{Binding !IsImplicit}" />
-                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis"
-                                               ToolTip.Tip="{Binding Subtitle}" FontSize="{DynamicResource Fadenstack.FontSize.Small}" />
-                                    <Button Classes="ghost" Padding="3" ToolTip.Tip="{v:Text RemoveAttachment}" IsVisible="{Binding !IsImplicit}"
+                                    <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Description}">
+                                        <c:FsIcon.IsVisible>
+                                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                <Binding Path="!IsImplicit" />
+                                                <Binding Path="!HasImage" />
+                                            </MultiBinding>
+                                        </c:FsIcon.IsVisible>
+                                    </c:FsIcon>
+                                    <TextBlock Classes="chip-title" Text="{Binding Title}" />
+                                    <Button Classes="icon small" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}" IsVisible="{Binding !IsImplicit}"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveAttachmentCommand}"
                                             CommandParameter="{Binding}">
-                                        <Path Classes="icon small" Data="{StaticResource Fadenstack.Icon.Close}" />
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
                                     </Button>
                                 </StackPanel>
                             </Border>
@@ -635,33 +681,88 @@
                 </ItemsControl>
                 <TextBox Name="Composer" Classes="composer" Text="{Binding Input, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
                          PlaceholderText="{v:Text ComposerPlaceholder}" AutomationProperties.Name="{v:Text Message}" />
-                <DockPanel Margin="0,6,0,0">
+                <DockPanel Classes="composer-bar">
                     <Panel DockPanel.Dock="Right">
-                        <Button Classes="primary" Padding="8,5" ToolTip.Tip="{v:Text SendShortcut}" AutomationProperties.Name="{v:Text Send}"
+                        <Button Classes="icon large primary" ToolTip.Tip="{v:Text SendShortcut}" AutomationProperties.Name="{v:Text Send}"
                                 Command="{Binding SendCommand}" IsVisible="{Binding !IsBusy}">
-                            <Path Classes="icon onaccent" Data="{StaticResource Fadenstack.Icon.Send}" />
+                            <c:FsIcon Data="{DynamicResource Icon.Send}" />
                         </Button>
-                        <Button Classes="secondary" Padding="8,5" ToolTip.Tip="{v:Text StopShortcut}" AutomationProperties.Name="{v:Text Stop}"
+                        <Button Classes="icon large primary" ToolTip.Tip="{v:Text StopShortcut}" AutomationProperties.Name="{v:Text Stop}"
                                 Command="{Binding StopCommand}" IsVisible="{Binding IsBusy}">
-                            <Path Classes="icon" Data="{StaticResource Fadenstack.Icon.Stop}" />
+                            <c:FsIcon Data="{DynamicResource Icon.Stop}" />
                         </Button>
                     </Panel>
-                    <!-- A host's own buttons (e.g. "Add context") -->
-                    <ContentPresenter DockPanel.Dock="Left" Margin="0,0,6,0" VerticalAlignment="Center"
-                                      Content="{Binding $parent[v:ChatView].ComposerToolbar}" />
-                    <TextBlock Classes="muted" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                        <Run Text="{Binding SelectedToolMode.Label, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding SelectedToolMode.Description, Mode=OneWay}" />
-                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button Classes="icon large" ToolTip.Tip="{v:Text Attach}" AutomationProperties.Name="{v:Text Attach}"
+                                Command="{Binding $parent[v:ChatView].AttachCommand}"
+                                IsVisible="{Binding $parent[v:ChatView].AttachCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <c:FsIcon Data="{DynamicResource Icon.AttachFile}" />
+                        </Button>
+                        <!-- A host's own buttons (e.g. "Add context") -->
+                        <ContentPresenter VerticalAlignment="Center" Content="{Binding $parent[v:ChatView].ComposerToolbar}"
+                                          IsVisible="{Binding $parent[v:ChatView].ComposerToolbar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        <!-- The tool mode: "Ask" and its menu, which opens above. -->
+                        <ToggleButton Name="ModeButton" Classes="pill" ToolTip.Tip="{Binding ToolModeHint}" AutomationProperties.Name="{v:Text ToolModeMenu}"
+                                      AutomationProperties.HelpText="{Binding ToolModeHint}"
+                                      IsChecked="{Binding IsModeMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <c:FsIcon Data="{DynamicResource Icon.Shield}" />
+                                <TextBlock Text="{Binding SelectedToolMode.Label}" VerticalAlignment="Center" />
+                                <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsModeMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #ModeButton}" Placement="TopEdgeAlignedLeft"
+                               HorizontalOffset="-12" VerticalOffset="14" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #ModeButton}">
+                            <Border Classes="popup-room">
+                            <Border Classes="menu popup modes">
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text ToolModeMenu}" />
+                                    <ItemsControl ItemsSource="{Binding ToolModes}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ToolModeOption">
+                                                <Button Classes="menu-item mode" AutomationProperties.Name="{Binding Label}"
+                                                        AutomationProperties.HelpText="{Binding Description}" IsEnabled="{Binding IsAvailable}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectToolModeCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <DockPanel>
+                                                        <Panel DockPanel.Dock="Left" Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}">
+                                                                <c:FsIcon.IsVisible>
+                                                                    <MultiBinding Converter="{x:Static v:Same.Instance}">
+                                                                        <Binding />
+                                                                        <Binding Path="$parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectedToolMode" />
+                                                                    </MultiBinding>
+                                                                </c:FsIcon.IsVisible>
+                                                            </c:FsIcon>
+                                                        </Panel>
+                                                        <StackPanel Classes="mode-option">
+                                                            <TextBlock Classes="strong" Text="{Binding Label}" />
+                                                            <TextBlock Classes="caption muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="menu-caption" Text="{Binding ToolModeHint}" TextWrapping="Wrap" />
+                                    <Separator />
+                                    <Button Classes="menu-item" Command="{Binding ResetApprovalsCommand}" Content="{v:Text ResetApprovals}"
+                                            ToolTip.Tip="{v:Text ResetApprovalsHint}" />
+                                </StackPanel>
+                            </Border>
+                            </Border>
+                        </Popup>
+                    </StackPanel>
                 </DockPanel>
             </StackPanel>
         </Border>
 
         <!-- Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides it. -->
-        <StackPanel Grid.Row="3" Margin="12,-8,12,8">
-            <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding Strings.AiNotice}"
+        <StackPanel Grid.Row="4" Classes="notice-line">
+            <TextBlock Classes="caption muted" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding Strings.AiNotice}"
                        AutomationProperties.Name="{Binding Strings.AiNotice}"
                        IsVisible="{Binding Strings.AiNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-            <Button Classes="link muted" HorizontalAlignment="Center" IsVisible="{Binding BrandingLink, Converter={x:Static ObjectConverters.IsNotNull}}"
+            <Button Classes="quiet small branding" HorizontalAlignment="Center" IsVisible="{Binding BrandingLink, Converter={x:Static ObjectConverters.IsNotNull}}"
                     Command="{Binding OpenLinkCommand}" CommandParameter="{Binding BrandingLink}" Content="{Binding BrandingLink.Label}"
                     ToolTip.Tip="{Binding BrandingLink.Url.AbsoluteUri}" AutomationProperties.Name="{Binding BrandingLink.Name}" />
         </StackPanel>

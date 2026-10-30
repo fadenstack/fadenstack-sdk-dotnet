@@ -102,9 +102,13 @@ public class ChatViewTests
         StickToBottom.Release(viewer);
         viewer.Offset = new Vector(0, viewer.Offset.Y - 2 * viewer.Viewport.Height);
         await host.PumpAsync();
+        // The turn the reader sees: the top-most one that reaches into the viewport (a long answer can start above it and
+        // fill the whole cache, so its top may be negative).
         var seen = host.TurnList.ItemsPanelRoot!.Children
-            .Select(c => (Turn: (TurnViewModel)host.TurnList.ItemFromContainer(c)!, Top: c.TranslatePoint(default, viewer)!.Value.Y))
-            .First(t => t.Top + 1 > 0);
+            .Select(c => (Turn: (TurnViewModel)host.TurnList.ItemFromContainer(c)!, Top: c.TranslatePoint(default, viewer)!.Value.Y, c.Bounds.Height))
+            .Where(t => t.Top + t.Height > 1)
+            .OrderBy(t => t.Top)
+            .First();
 
         // Scroll further up: the turns that come into the cache are measured (their real height differs from the
         // estimate), and the turn the reader is looking at stays where it is.

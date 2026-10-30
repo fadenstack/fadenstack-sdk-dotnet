@@ -1,14 +1,16 @@
 using System.Collections.Specialized;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Fadenstack.UI.Avalonia.Behaviors;
+using Fadenstack.UI.Avalonia.Controls;
 using Fadenstack.UI.Markdown;
-using IconPath = Avalonia.Controls.Shapes.Path;
 
 namespace Fadenstack.UI.Avalonia.Views;
 
@@ -24,6 +26,9 @@ public class MarkdownView : StackPanel
     /// <summary>\n    /// How many lines of a code block share one text block; the chunk that grows is the only one laid out again, and shaping\n    /// text costs about 2.5 microseconds a character, so a chunk is kept to some 800 characters. Code is plain text (the copy\n    /// button takes all of it): selectable text blocks lay out about twice as slowly.\n    /// </summary>
     internal const int LinesPerChunk = 8;
 
+    /// <summary>How far a nested list item moves in: the marker's width.</summary>
+    private const double ListIndent = 20;
+
     public static readonly StyledProperty<IReadOnlyList<MarkdownBlock>?> BlocksProperty =
         AvaloniaProperty.Register<MarkdownView, IReadOnlyList<MarkdownBlock>?>(nameof(Blocks));
 
@@ -31,7 +36,18 @@ public class MarkdownView : StackPanel
     public static readonly StyledProperty<ICommand?> CopyCommandProperty =
         AvaloniaProperty.Register<MarkdownView, ICommand?>(nameof(CopyCommand));
 
+    /// <summary>
+    /// Code blocks wrap their long lines instead of scrolling them (design 22, section 6.6: wrap in the side panel, scroll in
+    /// the full chat). Inherited, so a chat sets it once on its root for every answer below; <c>ChatView</c> does so by width.
+    /// </summary>
+    public static readonly AttachedProperty<bool> WrapCodeProperty =
+        AvaloniaProperty.RegisterAttached<MarkdownView, Control, bool>("WrapCode", inherits: true);
+
     private INotifyCollectionChanged? _watching;
+
+    public static bool GetWrapCode(Control element) => element.GetValue(WrapCodeProperty);
+
+    public static void SetWrapCode(Control element, bool value) => element.SetValue(WrapCodeProperty, value);
 
     public IReadOnlyList<MarkdownBlock>? Blocks
     {
@@ -188,10 +204,11 @@ public class MarkdownView : StackPanel
         return text;
     }
 
+    /// <summary>A heading: its size is its class's (h1 Title 20, h2 Heading 18, h3 Subtitle 16, h4 to h6 Body 14; Chat.axaml).</summary>
     private static TextBlock Heading(HeadingBlock heading)
     {
         var text = Text(heading.Inlines, "md-heading", selectable: false);
-        text.FontSize = heading.Level switch { 1 => 20, 2 => 17, 3 => 15, _ => 14 };
+        text.Classes.Add(heading.Level switch { 1 => "h1", 2 => "h2", 3 => "h3", _ => "h4" });
         return text;
     }
 
@@ -204,32 +221,35 @@ public class MarkdownView : StackPanel
         return view;
     }
 
-    /// <summary>A code block: a header (the language, a copy button) over monospace text blocks of a few lines each.</summary>
+    /// <summary>
+    /// A code block: a header (the language, a small copy icon button) over monospace text blocks of a few lines each. The
+    /// look is the classes' (Chat.axaml): the lines wrap in a narrow panel and scroll in a wide one.
+    /// </summary>
     private sealed class CodeBlockView : Border
     {
         private readonly StackPanel _chunks = new();
-        private readonly TextBlock _language = new() { Classes = { "muted" } };
+        private readonly ScrollViewer _scroll;
+        private readonly TextBlock _language = new() { Classes = { "caption", "muted" }, VerticalAlignment = VerticalAlignment.Center };
         private CodeBlock? _block;
 
         public CodeBlockView(ICommand? copy)
         {
-            Copy = new Button { Classes = { "ghost" }, Command = copy, Content = new IconPath { Classes = { "icon", "muted", "copy" } } };
+            var icon = new FsIcon { [!FsIcon.DataProperty] = new DynamicResourceExtension("Icon.ContentCopy") };
+            Copy = new Button { Classes = { "icon", "small" }, Command = copy, Content = icon };
             DockPanel.SetDock(Copy, Dock.Right);
-            var header = new DockPanel { Margin = new Thickness(12, 5, 5, 0), Children = { Copy, _language } };
+            var header = new DockPanel { Classes = { "code-head" }, Children = { Copy, _language } };
             DockPanel.SetDock(header, Dock.Top);
-            var scroll = new ScrollViewer
-            {
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Padding = new Thickness(12, 4, 12, 10),
-                Content = _chunks,
-            };
+            _scroll = new ScrollViewer { Classes = { "code-scroll" }, Content = _chunks };
             Classes.Add("code");
-            Margin = new Thickness(0, 2, 0, 12);
-            Child = new DockPanel { Children = { header, scroll } };
+            Child = new DockPanel { Children = { header, _scroll } };
+            NameCopy();
+            Wrap();
         }
 
         public Button Copy { get; }
+
+        /// <summary>Styled as a <c>Border</c> (<c>Border.code</c>), not as a type of its own.</summary>
+        protected override Type StyleKeyOverride => typeof(Border);
 
         public void Show(CodeBlock block)
         {
@@ -251,7 +271,7 @@ public class MarkdownView : StackPanel
                 }
                 else
                 {
-                    _chunks.Children.Add(new TextBlock { Classes = { "mono" }, TextWrapping = TextWrapping.NoWrap, Text = text });
+                    _chunks.Children.Add(new TextBlock { Classes = { "code-line" }, Text = text, TextWrapping = Wrapping });
                 }
             }
             while (_chunks.Children.Count > chunks)
@@ -266,7 +286,32 @@ public class MarkdownView : StackPanel
             if (change.Property == ChatText.StringsProperty)
             {
                 ShowLanguage();
+                NameCopy();
             }
+            else if (change.Property == WrapCodeProperty)
+            {
+                Wrap();
+            }
+        }
+
+        private TextWrapping Wrapping => GetValue(WrapCodeProperty) ? TextWrapping.Wrap : TextWrapping.NoWrap;
+
+        /// <summary>Long lines wrap (a narrow chat) or scroll sideways in the block's own frame (a wide one).</summary>
+        private void Wrap()
+        {
+            _scroll.HorizontalScrollBarVisibility = GetValue(WrapCodeProperty) ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+            foreach (var chunk in _chunks.Children.OfType<TextBlock>())
+            {
+                chunk.TextWrapping = Wrapping;
+            }
+        }
+
+        /// <summary>The copy button's tooltip and screen-reader name, in the panel's language.</summary>
+        private void NameCopy()
+        {
+            var text = (ChatText.GetStrings(this) ?? ChatText.Fallback).CopyCode;
+            ToolTip.SetTip(Copy, text);
+            AutomationProperties.SetName(Copy, text);
         }
 
         /// <summary>The header: the fence's language, or the diagram mark for a diagram in text form.</summary>
@@ -287,17 +332,17 @@ public class MarkdownView : StackPanel
     /// <summary>A <c>markdown</c> fence: its content rendered, or its source (a code block) by the switch in the header.</summary>
     private sealed class PreviewView : Border
     {
-        private readonly Button _preview = new() { Classes = { "ghost" } };
-        private readonly Button _source = new() { Classes = { "ghost" } };
+        private readonly ToggleButton _preview = new() { Classes = { "pill" } };
+        private readonly ToggleButton _source = new() { Classes = { "pill" } };
 
         public PreviewView(ICommand? copy)
         {
-            Rendered = new StackPanel { Margin = new Thickness(12, 4, 12, 2) };
+            Rendered = new StackPanel { Classes = { "preview-body" } };
             // The preview has the frame, so the source inside it needs none of its own.
-            Source = new CodeBlockView(copy) { Margin = new Thickness(0), BorderThickness = new Thickness(0), IsVisible = false };
+            Source = new CodeBlockView(copy) { BorderThickness = new Thickness(0), IsVisible = false };
             _preview.Click += (_, _) => Select(preview: true);
             _source.Click += (_, _) => Select(preview: false);
-            var switcher = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(5, 5, 5, 0), Children = { _preview, _source } };
+            var switcher = new StackPanel { Classes = { "preview-switch" }, Children = { _preview, _source } };
             DockPanel.SetDock(switcher, Dock.Top);
             Classes.Add("preview");
             Child = new DockPanel { Children = { switcher, Rendered, Source } };
@@ -307,14 +352,17 @@ public class MarkdownView : StackPanel
 
         public StackPanel Rendered { get; }
 
+        /// <summary>Styled as a <c>Border</c> (<c>Border.preview</c>).</summary>
+        protected override Type StyleKeyOverride => typeof(Border);
+
         public CodeBlockView Source { get; }
 
         private void Select(bool preview)
         {
             Rendered.IsVisible = preview;
             Source.IsVisible = !preview;
-            _preview.Opacity = preview ? 1 : 0.55;
-            _source.Opacity = preview ? 0.55 : 1;
+            _preview.IsChecked = preview;
+            _source.IsChecked = !preview;
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -338,7 +386,7 @@ public class MarkdownView : StackPanel
 
     private StackPanel CreateList(ListBlock list)
     {
-        var rows = new StackPanel { Margin = new Thickness(4, 0, 0, 10) };
+        var rows = new StackPanel { Spacing = 4 };
         UpdateList(rows, list);
         return rows;
     }
@@ -351,17 +399,17 @@ public class MarkdownView : StackPanel
             if (i < rows.Children.Count)
             {
                 var row = (DockPanel)rows.Children[i];
-                row.Margin = new Thickness(18 * item.Level, 0, 0, 0);
+                row.Margin = new Thickness(ListIndent * item.Level, 0, 0, 0);
                 ((TextBlock)row.Children[0]).Text = item.Marker;
                 Sync((StackPanel)row.Children[1], item.Blocks, "md-item");
             }
             else
             {
-                var marker = new TextBlock { Classes = { "muted" }, Text = item.Marker, MinWidth = 18, VerticalAlignment = VerticalAlignment.Top };
+                var marker = new TextBlock { Classes = { "md-marker" }, Text = item.Marker };
                 DockPanel.SetDock(marker, Dock.Left);
                 var content = new StackPanel { Spacing = 2 };
                 Sync(content, item.Blocks, "md-item");
-                rows.Children.Add(new DockPanel { Margin = new Thickness(18 * item.Level, 0, 0, 0), Children = { marker, content } });
+                rows.Children.Add(new DockPanel { Margin = new Thickness(ListIndent * item.Level, 0, 0, 0), Children = { marker, content } });
             }
         }
         while (rows.Children.Count > list.Items.Count)
