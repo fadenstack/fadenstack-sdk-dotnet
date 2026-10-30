@@ -22,8 +22,26 @@ panel.Content = new ChatView { DataContext = chat };
 await chat.InitializeAsync();
 ```
 
-The application uses `FluentTheme`; the chat's styles (`Chat.axaml`, `Parts.axaml`) sit on its control templates and
-apply inside `ChatView` only. Light, dark and high contrast (`FadenstackTheme.HighContrastVariant`, inheriting from Dark) are theme variants (`Colors.axaml`); `FadenstackTheme.Apply(target, new ThemeChoices { ... })` sets accent, density, text size and high contrast at runtime.
+The application uses `FluentTheme`. The skin's control styles (`Themes/Controls.axaml`, the class `FadenstackControls`)
+go after it in the application's styles, so every view, menu, tooltip and the keyboard focus ring follow them;
+`ChatView` adds them itself when the application has not:
+
+```xml
+<Application.Styles>
+  <FluentTheme />
+  <fs:FadenstackControls xmlns:fs="using:Fadenstack.UI.Avalonia.Themes" />
+</Application.Styles>
+```
+
+They style by type (`TextBox`, `ToggleSwitch`, `ComboBox`, `Slider`, `CheckBox`, `RadioButton`, menus, `ToolTip`,
+scroll bars, `ListBox`) and by class: `Button.icon` / `ToggleButton.icon` (round icon buttons; `.large`, `.small`,
+`.primary`; the toggle is a `ToggleButton`), `Button.primary`, `.secondary`, `.quiet`, `SplitButton.primary`,
+`.pill`, `.row`, `.menu-item`, `Border.segmented` with `RadioButton.segment`, and the containers `Border.card`,
+`.sheet`, `.drawer`, `.banner` (`.info`, `.warning`, `.error`, `.success`), `.chip`, `.badge`, `.count`, `.menu`,
+`.popup-room`. Icons are `FsIcon` (`Data="{DynamicResource Icon.Send}"`). The chat's own styles (`Chat.axaml`,
+`Parts.axaml`) apply inside `ChatView` only.
+
+Light, dark and high contrast (`FadenstackTheme.HighContrastVariant`, inheriting from Dark) are theme variants (`Colors.axaml`); `FadenstackTheme.Apply(target, new ThemeChoices { ... })` sets accent, density, text size and high contrast at runtime.
 
 It targets `net8.0` and runs wherever Avalonia 12 does.
 

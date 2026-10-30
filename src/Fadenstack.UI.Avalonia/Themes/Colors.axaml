@@ -177,7 +177,7 @@
             <SolidColorBrush x:Key="Fadenstack.BorderHover" Color="#FFFF00" />
             <SolidColorBrush x:Key="Fadenstack.Inverse" Color="#FFFFFF" />
             <SolidColorBrush x:Key="Fadenstack.InverseForeground" Color="#000000" />
-            <SolidColorBrush x:Key="Fadenstack.SwitchKnob" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="Fadenstack.SwitchKnob" Color="#000000" />
             <SolidColorBrush x:Key="Fadenstack.Foreground" Color="#FFFFFF" />
             <SolidColorBrush x:Key="Fadenstack.ForegroundMuted" Color="#E6E6E6" />
             <SolidColorBrush x:Key="Fadenstack.Accent" Color="#FFFF00" />

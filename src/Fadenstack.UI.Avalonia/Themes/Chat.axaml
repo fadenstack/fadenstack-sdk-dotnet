@@ -234,7 +234,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
     </Style>
     <Style Selector="DockPanel.composer-bar">
-        <Setter Property="Margin" Value="-4,4,0,0" />
+        <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
 
     <!-- The AI notice under the composer: 12, ForegroundMuted, centred. -->

@@ -171,7 +171,7 @@ public static class FadenstackTheme
     {
         var ramp = choices.Accent is { } custom ? Custom(custom, dark) : Ramp(choices.AccentName, dark);
         static SolidColorBrush Brush(Color c) => new(c);
-        static SolidColorBrush Alpha(Color c, double a) => new(Color.FromArgb((byte)Math.Round(255 * a), c.R, c.G, c.B));
+        static SolidColorBrush Alpha(Color c, double a) => new(Color.FromArgb((byte)Math.Round(255 * a, MidpointRounding.AwayFromZero), c.R, c.G, c.B));
         into["Fadenstack.Accent"] = Brush(ramp.Main);
         into["Fadenstack.AccentHover"] = Brush(ramp.Hover);
         into["Fadenstack.AccentLight"] = Brush(ramp.Light);

@@ -1005,7 +1005,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
-        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="Padding" Value="10,0,0,0" />
         <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -1060,7 +1060,7 @@
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
-        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="Padding" Value="10,0,0,0" />
         <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
         <Setter Property="Cursor" Value="Hand" />

@@ -325,8 +325,8 @@
                                 </MultiBinding>
                             </StackPanel.IsVisible>
                             <Panel Classes="mark">
-                                <Arc Classes="spinner running" IsVisible="{Binding IsRunning}" />
-                                <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding !IsRunning}" />
+                                <c:FsIcon Classes="accent" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding IsRunning}" />
+                                <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Stop}" IsVisible="{Binding !IsRunning}" />
                             </Panel>
                             <TextBlock Classes="caption muted" Text="{Binding StatusText}" VerticalAlignment="Center" />
                         </StackPanel>
