@@ -26,6 +26,24 @@ using var client = new FadenstackClient(new FadenstackClientOptions
 `client.Chat` is an `IChatClient`, so it works with anything built on Microsoft.Extensions.AI. The server's
 policies apply to every call.
 
+## Sign in by pairing
+
+A desktop app signs a person in without handling a password: it shows a short code, the person approves it in the web
+console, and the app receives the agent tokens (OAuth device grant, RFC 8628).
+
+```csharp
+var store = new FileTokenStore();
+var pairing = new AgentPairing(serverUrl, new HttpClient(), store);
+var start = await pairing.StartAsync("docs-assistant", "Desktop agent on PC-7", PairingClient.ForThisDevice("My app", "1.0"));
+// show start.UserCode, open start.VerificationUriComplete in the browser
+var result = await pairing.WaitAsync(start, progress);   // result.SignedInUser says who approved
+var tokens = new AgentTokenProvider(serverUrl, "docs-assistant", store);   // signed in
+await tokens.SignOutAsync();   // revokes at the server (best effort), deletes the tokens
+```
+
+Denied, expired and unsupported pairings throw `FadenstackPairingDeniedException`, `FadenstackPairingExpiredException`
+and `FadenstackPairingUnsupportedException`. The pairing code is never stored or logged.
+
 It targets `netstandard2.0` (.NET Framework 4.7.2 and later) and `net8.0`, and needs a Fadenstack server 0.4.2 or
 later.
 
