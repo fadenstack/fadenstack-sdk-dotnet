@@ -48,11 +48,26 @@ public sealed class AgentTokenProvider : ITokenProvider
         _store = store ?? new MemoryTokenStore();
         _http = httpClient ?? new HttpClient();
         _now = clock ?? (() => DateTimeOffset.UtcNow);
-        _key = $"{_apiUrl.AbsoluteUri}|{agent}";
+        _key = KeyOf(_apiUrl, agent);
     }
+
+    /// <summary>The store key of an agent sign-in on a server: pairing saves under the same one.</summary>
+    internal static string KeyOf(Uri apiUrl, string agent) =>
+        $"{new Uri(apiUrl.AbsoluteUri.TrimEnd('/') + "/").AbsoluteUri}|{agent}";
 
     /// <summary>The device's sign-in id, once signed in.</summary>
     public string? DeviceId => _tokens?.DeviceId;
+
+    /// <summary>
+    /// Who is signed in, or null when nobody is or the server did not say. It reads what this provider has loaded:
+    /// after <see cref="IsSignedInAsync"/>, <see cref="GetAccessTokenAsync"/> or a sign-in. Use
+    /// <see cref="GetSignedInUserAsync"/> to read it from the store.
+    /// </summary>
+    public SignedInUser? SignedInUser => _tokens?.User;
+
+    /// <summary>Who is signed in, read from the store when this provider has not loaded the sign-in yet.</summary>
+    public async Task<SignedInUser?> GetSignedInUserAsync(CancellationToken cancellationToken = default) =>
+        (await CurrentAsync(cancellationToken).ConfigureAwait(false))?.User;
 
     /// <summary>
     /// Signs in to the agent with the user's login token (the web console's session token today; OAuth or
@@ -71,8 +86,62 @@ public sealed class AgentTokenProvider : ITokenProvider
     public async Task<bool> IsSignedInAsync(CancellationToken cancellationToken = default) =>
         (await CurrentAsync(cancellationToken).ConfigureAwait(false)) is { } t && t.RefreshExpiresAt > _now();
 
-    /// <summary>Forgets the sign-in on this device. (Revoking it on the server: the web console or <c>DELETE /api/agent-tokens/{device}</c>.)</summary>
+    /// <summary>
+    /// Signs out: asks the server to revoke the sign-in (<c>POST /api/agent-tokens/revoke</c> with the refresh token), then
+    /// deletes the tokens on this device. The revoke is best effort: when the server cannot be reached or refuses, the
+    /// tokens are deleted anyway (the sign-in then ends at the server on its own, or in the web console's list of
+    /// sign-ins). Afterwards the provider reports that sign-in is required. The refresh token is never logged.
+    /// </summary>
     public async Task SignOutAsync(CancellationToken cancellationToken = default)
+    {
+        await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var current = _tokens ?? await _store.LoadAsync(_key, cancellationToken).ConfigureAwait(false);
+            var revoked = false;
+            try
+            {
+                if (current is not null && !string.IsNullOrEmpty(current.RefreshToken))
+                {
+                    revoked = await RevokeAsync(current.RefreshToken, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                await ForgetAsync(cancellationToken).ConfigureAwait(false);
+            }
+            Log.SignedOut(_log, _agent, revoked);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Whether the server confirmed (any 2xx); a failure of any kind is not an error here.</summary>
+    private async Task<bool> RevokeAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var request = FadenstackTransport.JsonRequest(HttpMethod.Post, new Uri(_apiUrl, "api/agent-tokens/revoke"),
+                new { refresh_token = refreshToken });
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(15));
+            using var response = await _http.SendAsync(request, timeout.Token).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            Log.SignOutRevokeFailed(_log, _agent, e.GetType().Name);
+            return false;
+        }
+    }
+
+    private async Task ForgetAsync(CancellationToken cancellationToken)
     {
         _tokens = null;
         await _store.DeleteAsync(_key, cancellationToken).ConfigureAwait(false);
@@ -133,7 +202,7 @@ public sealed class AgentTokenProvider : ITokenProvider
         {
             // Revoked, reused elsewhere (the family is signed out), or the user lost access.
             Log.TokenRefreshFailed(_log, _agent, $"status {(int)e.Status}");
-            await SignOutAsync(cancellationToken).ConfigureAwait(false);
+            await ForgetAsync(cancellationToken).ConfigureAwait(false);
             throw new FadenstackSignInRequiredException($"The sign-in to '{_agent}' ended: {e.Message}", e);
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -141,7 +210,8 @@ public sealed class AgentTokenProvider : ITokenProvider
             Log.TokenRefreshFailed(_log, _agent, e.GetType().Name);
             throw;
         }
-        await RememberAsync(renewed, cancellationToken).ConfigureAwait(false);
+        // A renewal does not repeat who signed in: keep what the sign-in said.
+        await RememberAsync(renewed.User is null ? renewed with { User = current.User } : renewed, cancellationToken).ConfigureAwait(false);
         Log.TokenRefreshed(_log, _agent);
         return renewed;
     }
@@ -178,21 +248,29 @@ public sealed class AgentTokenProvider : ITokenProvider
             {
                 throw ErrorReader.ToException(response, text);
             }
-            var issued = JsonSerializer.Deserialize<Issued>(text, FadenstackJson.Options)!;
-            var now = _now();
-            return new TokenSet
-            {
-                AccessToken = issued.AccessToken,
-                AccessExpiresAt = now.AddSeconds(issued.ExpiresIn),
-                RefreshToken = issued.RefreshToken,
-                RefreshExpiresAt = now.AddSeconds(issued.RefreshExpiresIn),
-                DeviceId = issued.DeviceId,
-                AgentId = issued.AgentId,
-                Agent = issued.Agent,
-            };
+            return FromWire(text, _now());
         }
     }
 
+    /// <summary>The server's <c>AgentTokensDTO</c> (with its optional <c>user</c>) as a token set, expiries counted from <paramref name="now"/>.</summary>
+    internal static TokenSet FromWire(string json, DateTimeOffset now)
+    {
+        var issued = JsonSerializer.Deserialize<Issued>(json, FadenstackJson.Options)!;
+        return new TokenSet
+        {
+            AccessToken = issued.AccessToken,
+            AccessExpiresAt = now.AddSeconds(issued.ExpiresIn),
+            RefreshToken = issued.RefreshToken,
+            RefreshExpiresAt = now.AddSeconds(issued.RefreshExpiresIn),
+            DeviceId = issued.DeviceId,
+            AgentId = issued.AgentId,
+            Agent = issued.Agent,
+            User = issued.User is { Email: { } email } user ? new SignedInUser(user.Id, email, user.DisplayName) : null,
+        };
+    }
+
     private sealed record Issued(string AccessToken, int ExpiresIn, string RefreshToken, int RefreshExpiresIn,
-        string DeviceId, string AgentId, string Agent);
+        string DeviceId, string AgentId, string Agent, IssuedUser? User = null);
+
+    private sealed record IssuedUser(Guid Id, string? Email, string? DisplayName);
 }
