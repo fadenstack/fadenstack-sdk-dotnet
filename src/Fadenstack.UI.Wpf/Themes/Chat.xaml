@@ -287,6 +287,75 @@
         </Setter>
     </Style>
 
+    <!--
+        The split button's menu, in the card's look: surface and border, the container radius, the popup shadow, no icon column.
+        Keyed, never implicit: it styles only this menu, not a host's. HasDropShadow makes the popup transparent (rounded corners). The margin is room for the shadow (the popup is
+        transparent); the offsets take it back, so the menu's edge sits under the drop-down's.
+    -->
+    <Style x:Key="Fadenstack.AllowMenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.Font}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Root" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                            CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+                        </Trigger>
+                        <!-- The mouse focuses an item too; the ring is for the keyboard. -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsKeyboardFocused" Value="True" />
+                                <Condition Property="IsMouseOver" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource Fadenstack.Focus}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Fadenstack.AllowMenu" TargetType="ContextMenu">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.Font}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HasDropShadow" Value="True" />
+        <Setter Property="HorizontalOffset" Value="-6" />
+        <Setter Property="VerticalOffset" Value="-2" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Fadenstack.AllowMenuItem}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border x:Name="Card" Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}"
+                            BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="4" Margin="6,2,10,12"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                        </Border.Effect>
+                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" KeyboardNavigation.TabNavigation="Cycle"
+                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Fadenstack.SecondaryButton" TargetType="Button" BasedOn="{StaticResource Fadenstack.GhostButton}">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
         <Setter Property="Padding" Value="12,5" />
@@ -658,7 +727,7 @@
                                       AutomationProperties.Name="{v:Text AllowMore}" ToolTip="{v:Text AllowMore}">
                             <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE70D;" Foreground="{DynamicResource Fadenstack.AccentForeground}" />
                             <ToggleButton.ContextMenu>
-                                <ContextMenu Placement="Bottom">
+                                <ContextMenu Style="{StaticResource Fadenstack.AllowMenu}" Placement="Bottom">
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
                                               Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                     <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}"

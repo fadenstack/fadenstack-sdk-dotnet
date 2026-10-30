@@ -23,6 +23,7 @@
     <Project Path="tests/Fadenstack.Secrets.Tests/Fadenstack.Secrets.Tests.csproj" />
     <Project Path="tests/Fadenstack.UI.Avalonia.Tests/Fadenstack.UI.Avalonia.Tests.csproj" />
     <Project Path="tests/Fadenstack.UI.Tests/Fadenstack.UI.Tests.csproj" />
+    <Project Path="tests/Fadenstack.UI.Wpf.Tests/Fadenstack.UI.Wpf.Tests.csproj" />
     <Project Path="tests/Fadenstack.Workspaces.Tests/Fadenstack.Workspaces.Tests.csproj" />
   </Folder>
 </Solution>
