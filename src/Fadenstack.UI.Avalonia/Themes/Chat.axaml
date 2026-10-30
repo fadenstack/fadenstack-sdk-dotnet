@@ -115,6 +115,15 @@
         <Setter Property="Size" Value="48" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
     </Style>
+    <!-- The host's picture of the agent (ChatView.AgentPicture) in the same 96 square, centred: a control without a size of
+         its own fills it, one with a size and centred alignment sits in its middle. -->
+    <Style Selector="ContentPresenter.agent-picture">
+        <Setter Property="Width" Value="96" />
+        <Setter Property="Height" Value="96" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
     <Style Selector="StackPanel.signin Border.avatar">
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>

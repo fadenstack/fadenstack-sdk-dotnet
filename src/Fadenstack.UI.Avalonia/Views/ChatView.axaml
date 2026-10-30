@@ -427,8 +427,10 @@
 
         <!-- ===== The conversation ============================================================================ -->
         <Grid Grid.Row="1">
-            <!-- Empty chat: the avatar, "What shall we work on?", the agent's greeting and suggestions -->
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <!-- Empty chat: the agent's picture, "What shall we work on?", the agent's greeting and suggestions. The picture is
+                 the host's (AgentPicture) in the 96 slot, else the skin's icon; the code-behind puts the host's in the slot
+                 only while this shows. -->
+            <ScrollViewer Name="EmptyState" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <ScrollViewer.IsVisible>
                     <MultiBinding Converter="{x:Static BoolConverters.And}">
                         <Binding Path="IsEmpty" />
@@ -437,11 +439,12 @@
                 </ScrollViewer.IsVisible>
                 <StackPanel Classes="empty">
                     <Panel Classes="avatar">
-                        <Border Classes="avatar" IsVisible="{Binding $parent[v:ChatView].Avatar, Converter={x:Static ObjectConverters.IsNull}}">
+                        <Border Name="DefaultAgentPicture" Classes="avatar"
+                                IsVisible="{Binding $parent[v:ChatView].AgentPicture, Converter={x:Static ObjectConverters.IsNull}}">
                             <c:FsIcon Classes="avatar" Data="{DynamicResource Icon.SmartToy}" />
                         </Border>
-                        <ContentPresenter Content="{Binding $parent[v:ChatView].Avatar}"
-                                          IsVisible="{Binding $parent[v:ChatView].Avatar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        <ContentPresenter Name="AgentPictureSlot" Classes="agent-picture"
+                                          IsVisible="{Binding $parent[v:ChatView].AgentPicture, Converter={x:Static ObjectConverters.IsNotNull}}" />
                     </Panel>
                     <TextBlock Classes="title" Text="{v:Text EmptyTitle}" TextAlignment="Center" TextWrapping="Wrap" />
                     <TextBlock Classes="muted greeting" Text="{Binding Greeting}" TextWrapping="Wrap" TextAlignment="Center" />

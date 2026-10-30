@@ -43,6 +43,14 @@ scroll bars, `ListBox`) and by class: `Button.icon` / `ToggleButton.icon` (round
 
 Light, dark and high contrast (`FadenstackTheme.HighContrastVariant`, inheriting from Dark) are theme variants (`Colors.axaml`); `FadenstackTheme.Apply(target, new ThemeChoices { ... })` sets accent, density, text size and high contrast at runtime.
 
+`ChatView` takes the host's own content in slots: `HeaderToolbar` (icon buttons at the header's right end),
+`ComposerToolbar` (the composer's bottom left), `SettingsContent` (items in the panel's settings), `SignInContent`
+(shown in place of the turns while the agent needs a sign-in), `AttachCommand` (shows *Attach*) and `AgentPicture`:
+any control as the agent's picture over the empty chat, such as an animated avatar, in the place and size of the
+skin's own icon (96 px, centred). It is in the visual tree only while the empty chat shows, so a live picture can stop
+when it is detached. Without it the skin shows its icon. `Icon.Agent` is the agent's own icon (the stack avatar's
+silhouette) for wherever the agent has an icon.
+
 It targets `net8.0` and runs wherever Avalonia 12 does.
 
 - Documentation: <https://developers.fadenstack.com/sdk/dotnet/chat-panel/>
