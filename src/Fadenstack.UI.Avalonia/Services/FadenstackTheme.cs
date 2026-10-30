@@ -8,19 +8,43 @@ using Avalonia.Styling;
 
 namespace Fadenstack.UI.Avalonia.Services;
 
-/// <summary>How tall controls are: <see cref="Comfortable"/> (32 px) or <see cref="Compact"/> (28 px).</summary>
+/// <summary>How tall controls are: <see cref="Comfortable"/> (36 px) or <see cref="Compact"/> (32 px); the title and status bars follow.</summary>
 public enum ThemeDensity
 {
     Comfortable,
     Compact,
 }
 
+/// <summary>The named accents of the console's theme (doc 22 section 3.2). Each has its own ramp per theme variant (light, dark).</summary>
+public enum ThemeAccent
+{
+    /// <summary>A muted steel blue; the default.</summary>
+    Frost,
+
+    /// <summary>No hue at all: near-black on light, near-white on dark.</summary>
+    Graphite,
+
+    /// <summary>The Fadenstack violet.</summary>
+    Aurora,
+}
+
 /// <summary>What the person chose for the look of the app; <see cref="FadenstackTheme.Apply"/> puts it on screen.</summary>
 public sealed class ThemeChoices
 {
-    /// <summary>The accent colour, or null for the default blue. Its hover, foreground and icon colours are derived.</summary>
+    /// <summary>
+    /// A named accent (Frost by default). The ramps for the light and the dark variant are a fixed table, so the accent stays
+    /// correct when the theme variant changes. The light/dark mode itself is the host's <c>RequestedThemeVariant</c>.
+    /// </summary>
+    public ThemeAccent AccentName { get; set; } = ThemeAccent.Frost;
+
+    /// <summary>
+    /// A custom accent colour that overrides <see cref="AccentName"/>, or null to use the named accent. The hover, foreground,
+    /// icon, text and navigation colours are derived from it (text and navigation colours darkened or lightened until they reach
+    /// 4.5:1); the colour itself is used as given, so a custom colour is not checked for 3:1 on the surface.
+    /// </summary>
     public Color? Accent { get; set; }
 
+    /// <summary>Comfortable (control height 36) or compact (32).</summary>
     public ThemeDensity Density { get; set; } = ThemeDensity.Comfortable;
 
     /// <summary>The text size as a factor of the default (1.0), from 0.8 to 2.0; values outside are clamped.</summary>
@@ -31,9 +55,9 @@ public sealed class ThemeChoices
 }
 
 /// <summary>
-/// The theme keys every Fadenstack view reads through <c>DynamicResource</c> (<c>Fadenstack.*</c>): colours, the radius,
-/// spaces, the control height and the font sizes. <c>Colors.axaml</c> holds the defaults; <see cref="Apply"/> changes
-/// them at runtime, so views follow without a restart.
+/// The theme keys every Fadenstack view reads through <c>DynamicResource</c> (<c>Fadenstack.*</c>, named by
+/// <see cref="FadenstackKeys"/>): colours, the radius, spaces, sizes and the font sizes. <c>Colors.axaml</c> holds the
+/// defaults (Frost); <see cref="Apply"/> changes them at runtime, so views follow without a restart.
 /// </summary>
 public static class FadenstackTheme
 {
@@ -46,19 +70,44 @@ public static class FadenstackTheme
     /// </summary>
     public static readonly ThemeVariant HighContrastVariant = new("HighContrast", ThemeVariant.Dark);
 
+    // The accent-derived keys, without the "Fadenstack." prefix.
     private static readonly string[] AccentKeys =
     {
-        "Fadenstack.Accent", "Fadenstack.AccentHover", "Fadenstack.AccentForeground", "Fadenstack.AccentIcon",
+        "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "AccentIcon", "NavSelected",
+        "NavSelectedForeground", "Hover", "Tint", "Pressed", "Link", "Focus", "UserBubble",
     };
+
+    private static readonly Color LightSurface = Color.Parse("#FFFFFF");
+    private static readonly Color DarkSurface = Color.Parse("#111827");
 
     // The variant a target had before high contrast, to give back when it is switched off.
     private static readonly ConditionalWeakTable<object, StrongBox<ThemeVariant>> Before = new();
 
+    /// <summary>One accent in one mode: the console's ramp (doc 22 section 3.2).</summary>
+    internal readonly record struct AccentRamp(Color Main, Color Hover, Color Light, Color Foreground, Color Text, Color NavBackground, Color NavForeground);
+
+    /// <summary>The named accents' ramps for a theme variant, as the console's <c>theme.ts</c> has them.</summary>
+    internal static AccentRamp Ramp(ThemeAccent accent, bool dark)
+    {
+        static Color C(string hex) => Color.Parse(hex);
+        return (accent, dark) switch
+        {
+            (ThemeAccent.Graphite, false) => new(C("#1F2937"), C("#111827"), C("#4B5563"), C("#FFFFFF"), C("#1F2937"), C("#1F2937"), C("#FFFFFF")),
+            (ThemeAccent.Graphite, true) => new(C("#E5E7EB"), C("#D1D5DB"), C("#F3F4F6"), C("#111827"), C("#E5E7EB"), C("#374151"), C("#FFFFFF")),
+            (ThemeAccent.Aurora, false) => new(C("#7C4DFF"), C("#3F1DCB"), C("#B47CFF"), C("#FFFFFF"), C("#3F1DCB"), C("#3F1DCB"), C("#FFFFFF")),
+            (ThemeAccent.Aurora, true) => new(C("#7C4DFF"), C("#3F1DCB"), C("#B47CFF"), C("#FFFFFF"), C("#B47CFF"), C("#3F1DCB"), C("#FFFFFF")),
+            (_, false) => new(C("#4C6A92"), C("#3B5478"), C("#81A1C1"), C("#FFFFFF"), C("#3B5478"), C("#3B5478"), C("#FFFFFF")),
+            (_, true) => new(C("#81A1C1"), C("#6F8FB0"), C("#A9C0D8"), C("#0A0E1A"), C("#A9C0D8"), C("#4C6A92"), C("#FFFFFF")),
+        };
+    }
+
     /// <summary>
     /// Sets the person's choices on <paramref name="target"/> (an <see cref="Application"/>, a window or another element, or
     /// a <see cref="ThemeVariantScope"/>): the resources are set on it, so views below it that use <c>DynamicResource</c>
-    /// follow at once. High contrast needs a target that takes a theme variant (an <see cref="Application"/>, a
-    /// <see cref="TopLevel"/> or a <see cref="ThemeVariantScope"/>). With high contrast on, the accent choice is not used.
+    /// follow at once. The accent is written into the target's Light and Dark theme dictionaries, so it stays right when the
+    /// theme variant changes, without another call. High contrast needs a target that takes a theme variant (an
+    /// <see cref="Application"/>, a <see cref="TopLevel"/> or a <see cref="ThemeVariantScope"/>). With high contrast on, the
+    /// accent choice is not used.
     /// </summary>
     public static void Apply(IResourceHost target, ThemeChoices choices)
     {
@@ -72,32 +121,96 @@ public static class FadenstackTheme
         };
 
         var scale = Math.Clamp(double.IsNaN(choices.TextScale) ? 1.0 : choices.TextScale, MinScale, MaxScale);
+        var compact = choices.Density == ThemeDensity.Compact;
+        resources["Fadenstack.FontSize.Micro"] = 11 * scale;
+        resources["Fadenstack.FontSize.Caption"] = 12 * scale;
         resources["Fadenstack.FontSize.Small"] = 12 * scale;
         resources["Fadenstack.FontSize.Body"] = 14 * scale;
+        resources["Fadenstack.FontSize.Subtitle"] = 16 * scale;
         resources["Fadenstack.FontSize.Title"] = 20 * scale;
-        resources["Fadenstack.ControlHeight"] = choices.Density == ThemeDensity.Compact ? 28.0 : 32.0;
+        resources["Fadenstack.FontSize.Display"] = 24 * scale;
+        resources["Fadenstack.ControlHeight"] = compact ? 32.0 : 36.0;
+        resources["Fadenstack.TitleBar.Height"] = compact ? 44.0 : 48.0;
+        resources["Fadenstack.StatusBar.Height"] = compact ? 24.0 : 28.0;
         resources["Fadenstack.Radius"] = new CornerRadius(12);
         resources["Fadenstack.Space.Small"] = new Thickness(4);
         resources["Fadenstack.Space.Medium"] = new Thickness(8);
         resources["Fadenstack.Space.Large"] = new Thickness(16);
 
-        if (choices.Accent is { } accent && !choices.HighContrast)
+        if (resources is ResourceDictionary dictionary)
         {
-            var (hover, foreground, icon) = Derive(accent);
-            resources["Fadenstack.Accent"] = new SolidColorBrush(accent);
-            resources["Fadenstack.AccentHover"] = new SolidColorBrush(hover);
-            resources["Fadenstack.AccentForeground"] = new SolidColorBrush(foreground);
-            resources["Fadenstack.AccentIcon"] = new SolidColorBrush(icon);
-        }
-        else
-        {
-            foreach (var key in AccentKeys)
+            foreach (var (variant, dark) in new[] { (ThemeVariant.Light, false), (ThemeVariant.Dark, true) })
             {
-                resources.Remove(key);
+                ResourceDictionary themed;
+                if (dictionary.ThemeDictionaries.TryGetValue(variant, out var existing) && existing is ResourceDictionary found)
+                {
+                    themed = found;
+                    foreach (var key in AccentKeys)
+                    {
+                        themed.Remove("Fadenstack." + key);
+                    }
+                }
+                else
+                {
+                    themed = new ResourceDictionary();
+                    dictionary.ThemeDictionaries[variant] = themed;
+                }
+                if (!choices.HighContrast)
+                {
+                    WriteAccent(themed, choices, dark);
+                }
             }
         }
 
         SetHighContrast(target, choices.HighContrast);
+    }
+
+    private static void WriteAccent(ResourceDictionary into, ThemeChoices choices, bool dark)
+    {
+        var ramp = choices.Accent is { } custom ? Custom(custom, dark) : Ramp(choices.AccentName, dark);
+        static SolidColorBrush Brush(Color c) => new(c);
+        static SolidColorBrush Alpha(Color c, double a) => new(Color.FromArgb((byte)Math.Round(255 * a), c.R, c.G, c.B));
+        into["Fadenstack.Accent"] = Brush(ramp.Main);
+        into["Fadenstack.AccentHover"] = Brush(ramp.Hover);
+        into["Fadenstack.AccentLight"] = Brush(ramp.Light);
+        into["Fadenstack.AccentForeground"] = Brush(ramp.Foreground);
+        into["Fadenstack.AccentText"] = Brush(ramp.Text);
+        into["Fadenstack.AccentIcon"] = Brush(choices.Accent is null ? ramp.Main : Derive(ramp.Main).Icon);
+        into["Fadenstack.NavSelected"] = Brush(ramp.NavBackground);
+        into["Fadenstack.NavSelectedForeground"] = Brush(ramp.NavForeground);
+        into["Fadenstack.Hover"] = Alpha(ramp.Main, 0.12);
+        into["Fadenstack.Tint"] = Alpha(ramp.Main, 0.06);
+        into["Fadenstack.Pressed"] = Alpha(ramp.Main, 0.20);
+        into["Fadenstack.Link"] = Brush(ramp.Text);
+        into["Fadenstack.Focus"] = Brush(ramp.Text);
+        into["Fadenstack.UserBubble"] = Alpha(ramp.Main, 0.12);
+    }
+
+    /// <summary>The ramp of a custom accent colour in a mode: the main colour as given, the text and navigation colours at 4.5:1.</summary>
+    private static AccentRamp Custom(Color accent, bool dark)
+    {
+        var (hover, foreground, _) = Derive(accent);
+        var surface = dark ? DarkSurface : LightSurface;
+        var text = dark ? Lighten(accent, surface, 4.5) : Darken(accent, surface, 4.5);
+        return new AccentRamp(accent, hover, Mix(accent, Colors.White, 0.35), foreground, text, Darken(accent, Colors.White, 4.5), Colors.White);
+    }
+
+    private static Color Darken(Color c, Color against, double ratio)
+    {
+        for (var i = 0; i < 20 && Contrast(Luminance(c), Luminance(against)) < ratio; i++)
+        {
+            c = Mix(c, Colors.Black, 0.1);
+        }
+        return c;
+    }
+
+    private static Color Lighten(Color c, Color against, double ratio)
+    {
+        for (var i = 0; i < 20 && Contrast(Luminance(c), Luminance(against)) < ratio; i++)
+        {
+            c = Mix(c, Colors.White, 0.1);
+        }
+        return c;
     }
 
     /// <summary>

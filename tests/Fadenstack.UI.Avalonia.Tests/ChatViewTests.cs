@@ -233,8 +233,8 @@ public class ChatViewTests
 
         Assert.True(host.View.TryFindResource("Fadenstack.Background", ThemeVariant.Light, out var light));
         Assert.True(host.View.TryFindResource("Fadenstack.Background", ThemeVariant.Dark, out var dark));
-        Assert.Equal(Color.Parse("#FFFFFF"), ((ISolidColorBrush)light!).Color);
-        Assert.Equal(Color.Parse("#1F1F1F"), ((ISolidColorBrush)dark!).Color);
+        Assert.Equal(Color.Parse("#F5F7FB"), ((ISolidColorBrush)light!).Color);
+        Assert.Equal(Color.Parse("#0A0E1A"), ((ISolidColorBrush)dark!).Color);
 
         host.View.Appearance = ChatTheme.Dark;
         await host.PumpAsync();

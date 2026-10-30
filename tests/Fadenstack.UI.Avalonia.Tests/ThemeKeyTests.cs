@@ -67,13 +67,13 @@ public class ThemeKeyTests
         Assert.Equal(new Thickness(4), Find(host, "Fadenstack.Space.Small"));
         Assert.Equal(new Thickness(8), Find(host, "Fadenstack.Space.Medium"));
         Assert.Equal(new Thickness(16), Find(host, "Fadenstack.Space.Large"));
-        Assert.Equal(32.0, Find(host, "Fadenstack.ControlHeight"));
+        Assert.Equal(36.0, Find(host, "Fadenstack.ControlHeight"));
         Assert.Equal(12.0, Find(host, "Fadenstack.FontSize.Small"));
         Assert.Equal(14.0, Find(host, "Fadenstack.FontSize.Body"));
         Assert.Equal(20.0, Find(host, "Fadenstack.FontSize.Title"));
-        Assert.Equal(Color.Parse("#0F6CBD"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Light)));
-        Assert.Equal(Color.Parse("#2976C9"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Dark)));
-        Assert.Equal(Color.Parse("#FFFFFF"), ColorOf(Find(host, "Fadenstack.Background", ThemeVariant.Light)));
+        Assert.Equal(Color.Parse("#4C6A92"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Light)));
+        Assert.Equal(Color.Parse("#81A1C1"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Dark)));
+        Assert.Equal(Color.Parse("#F5F7FB"), ColorOf(Find(host, "Fadenstack.Background", ThemeVariant.Light)));
     }
 
     [AvaloniaFact]
@@ -91,7 +91,7 @@ public class ThemeKeyTests
             HighContrast = false,
         });
         await host.PumpAsync();
-        Assert.Equal(28.0, Find(host, "Fadenstack.ControlHeight"));
+        Assert.Equal(32.0, Find(host, "Fadenstack.ControlHeight"));
         Assert.Equal(18.0, Find(host, "Fadenstack.FontSize.Small"));
         Assert.Equal(21.0, Find(host, "Fadenstack.FontSize.Body"));
         Assert.Equal(30.0, Find(host, "Fadenstack.FontSize.Title"));
@@ -116,9 +116,9 @@ public class ThemeKeyTests
         FadenstackTheme.Apply(host.Window, new ThemeChoices());
         await host.PumpAsync();
         Assert.NotEqual(FadenstackTheme.HighContrastVariant, scope.ActualThemeVariant);
-        Assert.Equal(32.0, Find(host, "Fadenstack.ControlHeight"));
+        Assert.Equal(36.0, Find(host, "Fadenstack.ControlHeight"));
         Assert.Equal(12.0, Find(host, "Fadenstack.FontSize.Small"));
-        Assert.Equal(Color.Parse("#0F6CBD"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Light)));
+        Assert.Equal(Color.Parse("#4C6A92"), ColorOf(Find(host, "Fadenstack.Accent", ThemeVariant.Light)));
     }
 
     [AvaloniaFact]
@@ -130,7 +130,7 @@ public class ThemeKeyTests
             FadenstackTheme.Apply(Application.Current!, new ThemeChoices { TextScale = 2.0, Density = ThemeDensity.Compact });
             await host.PumpAsync();
             Assert.Equal(24.0, Find(host, "Fadenstack.FontSize.Small"));
-            Assert.Equal(28.0, Find(host, "Fadenstack.ControlHeight"));
+            Assert.Equal(32.0, Find(host, "Fadenstack.ControlHeight"));
         }
         finally
         {
