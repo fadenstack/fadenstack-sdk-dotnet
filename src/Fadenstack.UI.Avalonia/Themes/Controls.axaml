@@ -1,0 +1,1392 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Fadenstack.UI.Avalonia.Controls"
+        xmlns:b="using:Fadenstack.UI.Avalonia.Behaviors"
+        xmlns:conv="using:Avalonia.Controls.Converters"
+        x:Class="Fadenstack.UI.Avalonia.Themes.FadenstackControls">
+    <!--
+        The control styles of design 22, section 5, on top of FluentTheme. Every state is styled here: normal, :pointerover,
+        :pressed, :checked / :selected, :flyout-open, :disabled (never a grey fill) and keyboard focus (the FocusRing, 2 px
+        Focus at 2 px). Colours, radii and type are theme keys only (Colors.axaml, Typography.axaml), icons are FsIcon.
+
+        Order matters: within these styles the later of two active styles wins, so each control lists its states as
+        base, hover, pressed, checked, open, then disabled last. A style of a view (closer to the control) wins over these.
+
+        Classes a view uses:
+          Button.icon / ToggleButton.icon (+ .large, .normal, .small; .primary)   round icon buttons; a ToggleButton is the toggle
+          Button.primary / .secondary / .quiet (+ .small for a quiet one in a caption line)   text buttons
+          Button.row / ToggleButton.row                                            a line that folds out (a tool line)
+          SplitButton.primary                                                      "Allow" with its menu
+          Button.pill / ToggleButton.pill                                          a 28 high pill (the tool mode, a session)
+          Button.menu-item / ToggleButton.menu-item (+ .selected) in a Border.menu a menu drawn by a view (in a popup: inside a
+                                                                                   Border.popup-room, which leaves room for the shadow)
+          Border.segmented holding RadioButton.segment / ToggleButton.segment     2 to 4 choices
+          Border.card, .sheet, .drawer, .banner (.info .warning .error .success), .chip (.removable), .badge (.read .write
+          .danger), .count, .menu
+          TextBlock / SelectableTextBlock .caption .body .subtitle .title .display .micro .strong .muted .mono
+        TextBox, ToggleSwitch, ComboBox, Slider, CheckBox, RadioButton, menus, ToolTip, ScrollBar and ListBox are styled by
+        type: every one in the application gets the look.
+    -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <conv:PlatformKeyGestureConverter x:Key="Fadenstack.KeyGesture" />
+            <!-- Fluent draws placeholders at 50 %; the placeholder is ForegroundMuted as it is (4.5:1). -->
+            <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+
+            <!-- The two parts of SplitButton.primary: flat, the frame draws the accent. -->
+            <ControlTheme x:Key="Fadenstack.SplitPart" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Background="{TemplateBinding Background}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          RecognizesAccessKey="True"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover">
+                    <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                </Style>
+                <Style Selector="^:pressed">
+                    <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The scroll bar's thumb: a pill. -->
+            <ControlTheme x:Key="Fadenstack.ScrollThumb" TargetType="Thumb">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.ScrollThumb}" />
+                <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" />
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- The slider's rail parts: a 4 high line, the hit area the full height. -->
+            <ControlTheme x:Key="Fadenstack.SliderRail" TargetType="RepeatButton">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid Background="Transparent">
+                            <Border Name="FsRailLine" Background="{TemplateBinding Background}"
+                                    CornerRadius="{DynamicResource Fadenstack.Radius.Pill}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- The slider's thumb: 16 round, with a halo on hover and press. -->
+            <ControlTheme x:Key="Fadenstack.SliderThumb" TargetType="Thumb">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+                <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel>
+                            <Border Name="FsHalo" Margin="-6" CornerRadius="{TemplateBinding CornerRadius}" Background="Transparent" />
+                            <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" />
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- ===== Focus: one ring for every control, keyboard focus only ====================================== -->
+
+    <Style Selector="AdornerLayer">
+        <Setter Property="DefaultFocusAdorner">
+            <FocusAdornerTemplate>
+                <c:FocusRing BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" />
+            </FocusAdornerTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===== Type ======================================================================================== -->
+
+    <Style Selector=":is(TextBlock).caption">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+    </Style>
+    <Style Selector=":is(TextBlock).body">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+    </Style>
+    <Style Selector=":is(TextBlock).subtitle">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Subtitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector=":is(TextBlock).title">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Title}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector=":is(TextBlock).display">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Display}" />
+        <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <Style Selector=":is(TextBlock).micro">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Micro}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector=":is(TextBlock).strong">
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector=":is(TextBlock).muted">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector=":is(TextBlock).mono">
+        <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.FontFamily.Mono}" />
+    </Style>
+    <Style Selector="SelectableTextBlock">
+        <Setter Property="SelectionBrush" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+
+    <!-- ===== Icon buttons: round, icon in ForegroundMuted, no border ===================================== -->
+
+    <Style Selector="Button.icon, ToggleButton.icon">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.IconButton.Size.Normal}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Normal}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.icon c|FsIcon, ToggleButton.icon c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+    </Style>
+    <Style Selector="Button.icon.large, ToggleButton.icon.large">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.IconButton.Size.Large}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Large}" />
+    </Style>
+    <Style Selector="Button.icon.large c|FsIcon, ToggleButton.icon.large c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Large}" />
+    </Style>
+    <Style Selector="Button.icon.small, ToggleButton.icon.small">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+    </Style>
+    <Style Selector="Button.icon.small c|FsIcon, ToggleButton.icon.small c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+    </Style>
+    <Style Selector="Button.icon:pressed, ToggleButton.icon:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <!-- IconButton.Toggle: the ToggleButton; checked is the accent tint, its icon AccentText. -->
+    <Style Selector="ToggleButton.icon:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="ToggleButton.icon:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="ToggleButton.icon:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="Button.icon:disabled, ToggleButton.icon:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.icon:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.icon:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+
+    <!-- IconButton.Primary: Send. Accent fill; disabled is the Hover fill with the icon at 38 %, never grey. -->
+    <Style Selector="Button.icon.primary">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+    <Style Selector="Button.icon.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.icon.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+    <Style Selector="Button.icon.primary:disabled">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.icon.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.icon.primary:disabled c|FsIcon">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+
+    <!-- ===== Text buttons ================================================================================= -->
+
+    <Style Selector="Button.primary, Button.secondary, Button.quiet">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.primary:pressed, Button.secondary:pressed, Button.quiet:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+
+    <!-- Button.Primary: the one main action of a container. -->
+    <Style Selector="Button.primary">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+    <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+
+    <!-- Button.Secondary: the other actions; Surface with the control outline. -->
+    <Style Selector="Button.secondary">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.secondary:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- Button.Quiet: inline actions in text; no fill until hovered. -->
+    <Style Selector="Button.quiet">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="Padding" Value="8,0" />
+    </Style>
+    <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="Button.quiet:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.quiet:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+
+    <!-- A small quiet button (28 high, 12 px) for an action inside a caption line: "Edit and resend". -->
+    <Style Selector="Button.quiet.small">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+    </Style>
+
+    <!-- A row button: a line that folds out or opens (a tool line, a reasoning line); transparent until hovered. -->
+    <Style Selector="Button.row, ToggleButton.row">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.row c|FsIcon, ToggleButton.row c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+    </Style>
+    <Style Selector="Button.row:pressed, ToggleButton.row:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="Button.row:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.row:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.row:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.row:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ToggleButton.row:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ToggleButton.row:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="Button.row:disabled, ToggleButton.row:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.row:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.row:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== SplitButton.Primary: Button.Primary with a 36 x 36 arrow part behind a 1 px line =============== -->
+
+    <Style Selector="SplitButton.primary">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="16,0" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="SplitButton">
+                <Border Name="FsFrame" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <Button Name="PART_PrimaryButton" Theme="{StaticResource Fadenstack.SplitPart}"
+                                Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Command="{TemplateBinding Command}" CommandParameter="{TemplateBinding CommandParameter}"
+                                Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                Focusable="False" KeyboardNavigation.IsTabStop="False" AutomationProperties.AccessibilityView="Raw" />
+                        <Border Name="FsDivider" Grid.Column="1" Width="1" Background="{DynamicResource Fadenstack.SplitDivider}" />
+                        <Button Name="PART_SecondaryButton" Grid.Column="2" Theme="{StaticResource Fadenstack.SplitPart}"
+                                Width="{DynamicResource Fadenstack.ControlHeight}" Padding="0" Foreground="{TemplateBinding Foreground}"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                Focusable="False" KeyboardNavigation.IsTabStop="False" AutomationProperties.AccessibilityView="Raw">
+                            <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- Open: the arrow part pressed, while the menu shows below. -->
+    <Style Selector="SplitButton.primary:flyout-open /template/ Button#PART_SecondaryButton">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+    </Style>
+    <Style Selector="SplitButton.primary:disabled /template/ Border#FsFrame">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="SplitButton.primary:disabled /template/ Button">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="SplitButton.primary:disabled /template/ Border#FsDivider">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BorderStrong}" />
+    </Style>
+
+    <!-- ===== Pill: a 28 high round-ended button (the tool mode, a session) =============================== -->
+
+    <Style Selector="Button.pill, ToggleButton.pill">
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.pill c|FsIcon, ToggleButton.pill c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+    </Style>
+    <Style Selector="Button.pill:pressed, ToggleButton.pill:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="Button.pill:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.pill:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.pill:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ToggleButton.pill:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="ToggleButton.pill:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="Button.pill:disabled, ToggleButton.pill:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.pill:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.pill:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== Menus: MenuFlyout, ContextMenu, and Border.menu for a menu a view draws ===================== -->
+
+    <Style Selector="MenuFlyoutPresenter, ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.1}" />
+        <Setter Property="MinWidth" Value="160" />
+        <Setter Property="MaxWidth" Value="360" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="MenuBase">
+                <Border Name="FsMenuFrame" Margin="{DynamicResource Fadenstack.Popup.ShadowMargin}"
+                        Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}" BoxShadow="{DynamicResource Fadenstack.Elevation}">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        KeyboardNavigation.TabNavigation="Continue" Grid.IsSharedSizeScope="True" />
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- The surface, not the shadow's room, sits at the pointer. -->
+    <Style Selector="ContextMenu">
+        <Setter Property="HorizontalOffset" Value="{DynamicResource Fadenstack.Popup.OffsetX}" />
+        <Setter Property="VerticalOffset" Value="{DynamicResource Fadenstack.Popup.OffsetY}" />
+    </Style>
+
+    <!-- A menu item: 36 high, radius 8 inside the 12 frame, an 18 icon slot kept for alignment, the shortcut muted 12. -->
+    <Style Selector="MenuFlyoutPresenter MenuItem, ContextMenu MenuItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="MenuItem">
+                <Panel>
+                    <Border Name="FsItem" MinHeight="{TemplateBinding MinHeight}" Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="FsMenuGesture" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="FsMenuChevron" />
+                            </Grid.ColumnDefinitions>
+                            <Panel Name="FsIconSlot" Width="{DynamicResource Fadenstack.Icon.Size.Normal}" Height="{DynamicResource Fadenstack.Icon.Size.Normal}"
+                                   Margin="0,0,12,0" VerticalAlignment="Center">
+                                <ContentControl Name="FsIcon" Content="{TemplateBinding Icon}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                                                HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                                <c:FsIcon Name="FsCheck" Data="{DynamicResource Icon.Check}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}"
+                                          Foreground="{DynamicResource Fadenstack.AccentText}" IsVisible="False" />
+                            </Panel>
+                            <ContentPresenter Name="FsHeader" Grid.Column="1" Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}" RecognizesAccessKey="True"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Name="FsGesture" Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center"
+                                       FontSize="{DynamicResource Fadenstack.FontSize.Caption}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                                       Text="{TemplateBinding InputGesture, Converter={StaticResource Fadenstack.KeyGesture}}" />
+                            <c:FsIcon Name="FsChevron" Grid.Column="3" Margin="8,0,0,0" Data="{DynamicResource Icon.ChevronRight}"
+                                      Size="{DynamicResource Fadenstack.Icon.Size.Small}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" Placement="RightEdgeAlignedTop"
+                           HorizontalOffset="{DynamicResource Fadenstack.Popup.OffsetX}" VerticalOffset="{DynamicResource Fadenstack.Popup.OffsetY}"
+                           IsLightDismissEnabled="False" IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
+                        <Border Padding="{DynamicResource Fadenstack.Popup.ShadowMargin}">
+                            <Border Background="{DynamicResource Fadenstack.Surface}"
+                                    BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                                    CornerRadius="{DynamicResource Fadenstack.Radius}" Padding="{DynamicResource Fadenstack.Space.1}"
+                                    BoxShadow="{DynamicResource Fadenstack.Elevation}" MinWidth="160">
+                                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" Grid.IsSharedSizeScope="True" />
+                                </ScrollViewer>
+                            </Border>
+                        </Border>
+                    </Popup>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:empty /template/ c|FsIcon#FsChevron, ContextMenu MenuItem:empty /template/ c|FsIcon#FsChevron">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:selected /template/ Border#FsItem, ContextMenu MenuItem:selected /template/ Border#FsItem, MenuFlyoutPresenter MenuItem:open /template/ Border#FsItem, ContextMenu MenuItem:open /template/ Border#FsItem">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:selected /template/ ContentControl#FsIcon, ContextMenu MenuItem:selected /template/ ContentControl#FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:pressed /template/ Border#FsItem, ContextMenu MenuItem:pressed /template/ Border#FsItem">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <!-- A toggle shows its check in the icon slot. -->
+    <Style Selector="MenuFlyoutPresenter MenuItem:toggle /template/ ContentControl#FsIcon, ContextMenu MenuItem:toggle /template/ ContentControl#FsIcon">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:checked /template/ c|FsIcon#FsCheck, ContextMenu MenuItem:checked /template/ c|FsIcon#FsCheck">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:disabled, ContextMenu MenuItem:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+
+    <Style Selector="Separator">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="MinHeight" Value="1" />
+        <Setter Property="Margin" Value="0,4" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Separator">
+                <Border Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!--
+        A view's own popup that looks like the menu: Popup > Border.popup-room > Border.menu. The room is padding (a popup
+        host may ignore its child's margin), and the popup opens at Fadenstack.Popup.OffsetX / OffsetY so the surface, not
+        the room, sits at the anchor.
+    -->
+    <Style Selector="Border.popup-room">
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Popup.ShadowMargin}" />
+        <Setter Property="Background" Value="{x:Null}" />
+    </Style>
+    <Style Selector="Border.menu">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.1}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource Fadenstack.Elevation}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="TextElement.FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+    </Style>
+    <Style Selector="Button.menu-item, ToggleButton.menu-item">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTip.ShowDelay" Value="500" />
+    </Style>
+    <Style Selector="Button.menu-item c|FsIcon, ToggleButton.menu-item c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+    </Style>
+    <Style Selector="Button.menu-item:pressed, ToggleButton.menu-item:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="Button.menu-item:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.menu-item:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.menu-item:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.menu-item:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Button.menu-item.selected /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.menu-item:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.menu-item.selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.menu-item:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="Button.menu-item:disabled, ToggleButton.menu-item:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="Button.menu-item:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.menu-item:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== Tooltip: inverse, 12 px, radius 8, no shadow ================================================ -->
+
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Inverse}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.InverseForeground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="MaxWidth" Value="320" />
+    </Style>
+
+    <!-- ===== Text box: 36 high, radius 12, the control outline; focus is a 2 px Focus border ============= -->
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="PlaceholderForeground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="TextBox[AcceptsReturn=True]">
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+    <Style Selector="TextBox /template/ TextBlock#PART_Placeholder">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="TextBox:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderHover}" />
+    </Style>
+    <Style Selector="TextBox:focus">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Focus}" />
+        <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="TextBox:error /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+    <Style Selector="TextBox:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="TextBox:disabled /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- The error message: 12 px DangerText under the box. -->
+    <Style Selector="DataValidationErrors">
+        <Setter Property="ErrorTemplate">
+            <DataTemplate>
+                <ItemsControl ItemsSource="{ReflectionBinding}" Foreground="{DynamicResource Fadenstack.DangerText}"
+                              FontSize="{DynamicResource Fadenstack.FontSize.Caption}">
+                    <ItemsControl.Styles>
+                        <Style Selector="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </ItemsControl.Styles>
+                </ItemsControl>
+            </DataTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===== Toggle switch: 36 x 20 pill, 16 knob; on is the accent ======================================= -->
+
+    <Style Selector="ToggleSwitch">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ToggleSwitch">
+                <Grid Name="FsSwitchRoot" ColumnDefinitions="*,Auto" Background="Transparent">
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center" Margin="0,0,12,0" RecognizesAccessKey="True" />
+                    <Border Name="FsTrack" Grid.Column="1" Width="36" Height="20" VerticalAlignment="Center"
+                            CornerRadius="{DynamicResource Fadenstack.Radius.Pill}" Background="{DynamicResource Fadenstack.BorderStrong}"
+                            TemplatedControl.IsTemplateFocusTarget="True">
+                        <Canvas Name="PART_SwitchKnob" Width="16" Height="20" HorizontalAlignment="Left">
+                            <Panel Name="PART_MovingKnobs" Width="20" Height="20">
+                                <Ellipse Name="FsKnob" Width="16" Height="16" Fill="{DynamicResource Fadenstack.SwitchKnob}" />
+                            </Panel>
+                        </Canvas>
+                    </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleSwitch /template/ ContentPresenter#PART_ContentPresenter:empty">
+        <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="ToggleSwitch:pointerover /template/ Border#FsTrack">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BorderHover}" />
+    </Style>
+    <Style Selector="ToggleSwitch:checked /template/ Border#FsTrack">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+    </Style>
+    <Style Selector="ToggleSwitch:checked /template/ Ellipse#FsKnob">
+        <Setter Property="Fill" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+    <Style Selector="ToggleSwitch:checked:pointerover /template/ Border#FsTrack, ToggleSwitch:checked:pressed /template/ Border#FsTrack">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+    </Style>
+    <Style Selector="ToggleSwitch:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== Combo box: the text box look with KeyboardArrowDown; the drop-down is the menu ============== -->
+
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="12,0,8,0" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="PlaceholderForeground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="FocusAdorner">
+            <FocusAdornerTemplate>
+                <c:FocusRing BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" />
+            </FocusAdornerTemplate>
+        </Setter>
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ComboBox">
+                <DataValidationErrors>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Border Name="FsField" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" />
+                        <TextBlock Name="FsPlaceholder" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
+                                   Text="{TemplateBinding PlaceholderText}" Foreground="{TemplateBinding PlaceholderForeground}"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="SelectionBoxItem" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static ObjectConverters.IsNull}" />
+                                    <Binding Path="!IsEditable" RelativeSource="{RelativeSource TemplatedParent}" />
+                                </MultiBinding>
+                            </TextBlock.IsVisible>
+                        </TextBlock>
+                        <ContentControl Name="FsSelection" Margin="{TemplateBinding Padding}" Content="{TemplateBinding SelectionBoxItem}"
+                                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="Center"
+                                        IsVisible="{TemplateBinding IsEditable, Converter={x:Static BoolConverters.Not}}" />
+                        <TextBox Name="PART_EditableTextBox" Padding="{TemplateBinding Padding}" Background="Transparent" BorderThickness="0"
+                                 MinHeight="0" Foreground="{TemplateBinding Foreground}" Text="{TemplateBinding Text, Mode=TwoWay}"
+                                 PlaceholderText="{TemplateBinding PlaceholderText}" IsVisible="{TemplateBinding IsEditable}" />
+                        <c:FsIcon Name="FsArrow" Grid.Column="1" Margin="0,0,10,0" Data="{DynamicResource Icon.KeyboardArrowDown}"
+                                  Size="{DynamicResource Fadenstack.Icon.Size.Normal}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                                  VerticalAlignment="Center" IsHitTestVisible="False" />
+                        <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                               MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                               PlacementTarget="FsField" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="True" InheritsTransform="True"
+                               HorizontalOffset="{DynamicResource Fadenstack.Popup.OffsetX}" VerticalOffset="{DynamicResource Fadenstack.Popup.OffsetY}">
+                            <Border Padding="{DynamicResource Fadenstack.Popup.ShadowMargin}">
+                                <Border Background="{DynamicResource Fadenstack.Surface}" MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                        BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1" CornerRadius="{DynamicResource Fadenstack.Radius}"
+                                        Padding="{DynamicResource Fadenstack.Space.1}" BoxShadow="{DynamicResource Fadenstack.Elevation}">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsScrollChainingEnabled="False">
+                                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ComboBox:pointerover /template/ Border#FsField">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderHover}" />
+    </Style>
+    <Style Selector="ComboBox:pressed /template/ Border#FsField, ComboBox:dropdownopen /template/ Border#FsField">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderHover}" />
+    </Style>
+    <Style Selector="ComboBox:dropdownopen /template/ c|FsIcon#FsArrow">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="ComboBox:error /template/ Border#FsField">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+    <Style Selector="ComboBox:disabled /template/ Border#FsField">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="ComboBox:disabled /template/ ContentControl#FsSelection">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="ComboBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ComboBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ComboBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="ComboBoxItem:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="ComboBoxItem:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== Slider: a 4 high track, the accent up to the 16 round thumb ================================ -->
+
+    <Style Selector="Slider">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Slider:horizontal">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Slider">
+                <DataValidationErrors>
+                    <Grid Name="FsSliderRoot" Background="Transparent">
+                        <Track Name="PART_Track" Orientation="Horizontal" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                            <Track.DecreaseButton>
+                                <RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource Fadenstack.SliderRail}" Background="{TemplateBinding Foreground}" />
+                            </Track.DecreaseButton>
+                            <Track.IncreaseButton>
+                                <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource Fadenstack.SliderRail}" Background="{TemplateBinding Background}" />
+                            </Track.IncreaseButton>
+                            <Thumb Name="FsThumb" Theme="{StaticResource Fadenstack.SliderThumb}" Width="16" Height="16"
+                                   Background="{TemplateBinding Foreground}" TemplatedControl.IsTemplateFocusTarget="True" />
+                        </Track>
+                    </Grid>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Slider:vertical">
+        <Setter Property="MinWidth" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Slider">
+                <DataValidationErrors>
+                    <Grid Name="FsSliderRoot" Background="Transparent">
+                        <Track Name="PART_Track" Orientation="Vertical" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                            <Track.DecreaseButton>
+                                <RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource Fadenstack.SliderRail}" Background="{TemplateBinding Foreground}" />
+                            </Track.DecreaseButton>
+                            <Track.IncreaseButton>
+                                <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource Fadenstack.SliderRail}" Background="{TemplateBinding Background}" />
+                            </Track.IncreaseButton>
+                            <Thumb Name="FsThumb" Theme="{StaticResource Fadenstack.SliderThumb}" Width="16" Height="16"
+                                   Background="{TemplateBinding Foreground}" TemplatedControl.IsTemplateFocusTarget="True" />
+                        </Track>
+                    </Grid>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Slider:horizontal /template/ RepeatButton /template/ Border#FsRailLine">
+        <Setter Property="Height" Value="4" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Slider:vertical /template/ RepeatButton /template/ Border#FsRailLine">
+        <Setter Property="Width" Value="4" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <!-- Fluent recolours the parts per state; they keep the accent. -->
+    <Style Selector="Slider:pointerover /template/ RepeatButton#PART_DecreaseButton, Slider:pressed /template/ RepeatButton#PART_DecreaseButton, Slider:disabled /template/ RepeatButton#PART_DecreaseButton, Slider:pointerover /template/ Thumb#FsThumb, Slider:pressed /template/ Thumb#FsThumb, Slider:disabled /template/ Thumb#FsThumb">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+    </Style>
+    <Style Selector="Slider:pointerover /template/ RepeatButton#PART_IncreaseButton, Slider:pressed /template/ RepeatButton#PART_IncreaseButton, Slider:disabled /template/ RepeatButton#PART_IncreaseButton">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="Slider:pointerover /template/ Thumb#FsThumb /template/ Border#FsHalo">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="Slider:pressed /template/ Thumb#FsThumb /template/ Border#FsHalo">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="Slider:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+
+    <!-- ===== Check box and radio button: 18 boxes (radius 4 / round); checked is the accent ============== -->
+
+    <Style Selector="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CheckBox">
+                <Grid ColumnDefinitions="Auto,*" Background="{TemplateBinding Background}">
+                    <Panel Width="18" Height="18" VerticalAlignment="Center">
+                        <Border Name="FsBox" CornerRadius="{DynamicResource Fadenstack.Radius.Check}" BorderThickness="2"
+                                BorderBrush="{DynamicResource Fadenstack.BorderStrong}" Background="Transparent"
+                                TemplatedControl.IsTemplateFocusTarget="True" />
+                        <c:FsIcon Name="FsMark" Data="{DynamicResource Icon.Check}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                  Foreground="{DynamicResource Fadenstack.AccentForeground}" IsVisible="False" />
+                        <c:FsIcon Name="FsDash" Data="{DynamicResource Icon.Remove}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                  Foreground="{DynamicResource Fadenstack.AccentForeground}" IsVisible="False" />
+                    </Panel>
+                    <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Margin="{TemplateBinding Padding}"
+                                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center" TextWrapping="Wrap" RecognizesAccessKey="True" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- Fluent colours the label per state; the label stays Foreground. -->
+    <Style Selector="CheckBox:pointerover /template/ ContentPresenter#PART_ContentPresenter, CheckBox:pressed /template/ ContentPresenter#PART_ContentPresenter, CheckBox:checked /template/ ContentPresenter#PART_ContentPresenter, CheckBox:indeterminate /template/ ContentPresenter#PART_ContentPresenter, CheckBox:disabled /template/ ContentPresenter#PART_ContentPresenter, RadioButton:pointerover /template/ ContentPresenter#PART_ContentPresenter, RadioButton:pressed /template/ ContentPresenter#PART_ContentPresenter, RadioButton:checked /template/ ContentPresenter#PART_ContentPresenter, RadioButton:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="CheckBox /template/ ContentPresenter#PART_ContentPresenter:empty">
+        <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="CheckBox:pointerover /template/ Border#FsBox">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderHover}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="CheckBox:pressed /template/ Border#FsBox">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="CheckBox:checked /template/ Border#FsBox, CheckBox:indeterminate /template/ Border#FsBox">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Accent}" />
+    </Style>
+    <Style Selector="CheckBox:checked:pointerover /template/ Border#FsBox, CheckBox:indeterminate:pointerover /template/ Border#FsBox">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentHover}" />
+    </Style>
+    <Style Selector="CheckBox:checked /template/ c|FsIcon#FsMark, CheckBox:indeterminate /template/ c|FsIcon#FsDash">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="CheckBox:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+
+    <Style Selector="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="RadioButton">
+                <Grid ColumnDefinitions="Auto,*" Background="{TemplateBinding Background}">
+                    <Panel Width="18" Height="18" VerticalAlignment="Center">
+                        <Border Name="FsRing" CornerRadius="{DynamicResource Fadenstack.Radius.Pill}" BorderThickness="2"
+                                BorderBrush="{DynamicResource Fadenstack.BorderStrong}" Background="Transparent"
+                                TemplatedControl.IsTemplateFocusTarget="True" />
+                        <Ellipse Name="FsDot" Width="8" Height="8" Fill="{DynamicResource Fadenstack.AccentForeground}" IsVisible="False" />
+                    </Panel>
+                    <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Margin="{TemplateBinding Padding}"
+                                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center" TextWrapping="Wrap" RecognizesAccessKey="True" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton /template/ ContentPresenter#PART_ContentPresenter:empty">
+        <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="RadioButton:pointerover /template/ Border#FsRing">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderHover}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="RadioButton:pressed /template/ Border#FsRing">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="RadioButton:checked /template/ Border#FsRing">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Accent}" />
+    </Style>
+    <Style Selector="RadioButton:checked:pointerover /template/ Border#FsRing">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentHover}" />
+    </Style>
+    <Style Selector="RadioButton:checked /template/ Ellipse#FsDot">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="RadioButton:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+
+    <!-- ===== Segmented: 2 to 4 choices in a frame; the selected one is the tint with AccentText 600 ====== -->
+
+    <Style Selector="Border.segmented">
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="RadioButton.segment, ToggleButton.segment">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ToggleButton">
+                <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}"
+                                  Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" />
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RadioButton.segment:pressed, ToggleButton.segment:pressed">
+        <Setter Property="RenderTransform" Value="none" />
+    </Style>
+    <Style Selector="RadioButton.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="RadioButton.segment:pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="RadioButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="RadioButton.segment:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="RadioButton.segment:disabled, ToggleButton.segment:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="RadioButton.segment:disabled /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- ===== Scroll bars: overlay, 6 thin / 10 on hover, ForegroundMuted at 40 %, shown only while scrolling == -->
+
+    <Style Selector="ScrollViewer /template/ Panel#PART_ScrollBarsSeparator">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ScrollBar">
+        <Setter Property="b:ScrollActivity.IsEnabled" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ScrollBar:vertical">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ScrollBar">
+                <Track Name="FsScrollTrack" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}"
+                       DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}" ViewportSize="{TemplateBinding ViewportSize}"
+                       Orientation="Vertical" IsDirectionReversed="True">
+                    <Thumb Name="FsScrollThumb" Theme="{StaticResource Fadenstack.ScrollThumb}" Width="6" Margin="0,2,2,2" HorizontalAlignment="Right" MinHeight="24" />
+                </Track>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar:horizontal">
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ScrollBar">
+                <Track Name="FsScrollTrack" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value, Mode=TwoWay}"
+                       DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}" ViewportSize="{TemplateBinding ViewportSize}"
+                       Orientation="Horizontal">
+                    <Thumb Name="FsScrollThumb" Theme="{StaticResource Fadenstack.ScrollThumb}" Height="6" Margin="2,0,2,2" VerticalAlignment="Bottom" MinWidth="24" />
+                </Track>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar /template/ Thumb#FsScrollThumb">
+        <Setter Property="Opacity" Value="0" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar:scrolling /template/ Thumb#FsScrollThumb, ScrollBar[IsExpanded=true] /template/ Thumb#FsScrollThumb, ScrollBar /template/ Thumb#FsScrollThumb:pressed">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ScrollBar:vertical[IsExpanded=true] /template/ Thumb#FsScrollThumb">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.ScrollThumbHover}" />
+    </Style>
+    <Style Selector="ScrollBar:horizontal[IsExpanded=true] /template/ Thumb#FsScrollThumb">
+        <Setter Property="Height" Value="10" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.ScrollThumbHover}" />
+    </Style>
+
+    <!-- ===== Lists: rows 36 high, radius 12 in a padding-4 list; hover Hover, selected Tint + AccentText 600 = -->
+
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.1}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+    </Style>
+    <Style Selector="ListBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+    </Style>
+    <Style Selector="ListBoxItem:disabled">
+        <Setter Property="Opacity" Value="0.38" />
+    </Style>
+    <Style Selector="ListBoxItem:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <Style Selector="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="MinHeight" Value="4" />
+    </Style>
+
+    <!-- ===== Containers ================================================================================== -->
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.4}" />
+    </Style>
+    <Style Selector="Border.sheet">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.Sheet.Width}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.5}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource Fadenstack.Elevation}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Border.drawer">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.Drawer.Width}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+        <Setter Property="BoxShadow" Value="{DynamicResource Fadenstack.Elevation}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <!-- Banners sit in the flow, never over content: the status fill, a 20 status icon (FsIcon.status), title 14/600, text 14. -->
+    <Style Selector="Border.banner">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.4}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="TextElement.FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+    </Style>
+    <Style Selector="Border.banner c|FsIcon.status">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Large}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Border.banner.warning">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+    </Style>
+    <Style Selector="Border.banner.warning c|FsIcon.status">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+    </Style>
+    <Style Selector="Border.banner.error">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+    </Style>
+    <Style Selector="Border.banner.error c|FsIcon.status">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.DangerText}" />
+    </Style>
+    <Style Selector="Border.banner.success">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SuccessBackground}" />
+    </Style>
+    <Style Selector="Border.banner.success c|FsIcon.status">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Success}" />
+    </Style>
+    <!-- A chip: pill 28 high, the tint, text 12/600, a 16 icon, a small remove icon button flush right (.removable). -->
+    <Style Selector="Border.chip">
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="TextElement.FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.chip.removable">
+        <Setter Property="Padding" Value="10,0,0,0" />
+    </Style>
+    <Style Selector="Border.chip c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+    </Style>
+    <!-- A badge: pill 20 high, 8 aside, text 11/600; read is the tint, write the warning. -->
+    <Style Selector="Border.badge">
+        <Setter Property="Height" Value="20" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="TextElement.FontSize" Value="{DynamicResource Fadenstack.FontSize.Micro}" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.badge.write">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+    </Style>
+    <Style Selector="Border.badge.danger">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.DangerText}" />
+    </Style>
+    <Style Selector="Border.badge TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- A count: 16 high, the warning fill. -->
+    <Style Selector="Border.count">
+        <Setter Property="Height" Value="16" />
+        <Setter Property="MinWidth" Value="16" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Warning}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.InverseForeground}" />
+        <Setter Property="TextElement.FontSize" Value="{DynamicResource Fadenstack.FontSize.Micro}" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.count TextBlock">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+</Styles>
