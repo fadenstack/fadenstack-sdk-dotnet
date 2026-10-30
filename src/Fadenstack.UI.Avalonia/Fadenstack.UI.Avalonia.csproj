@@ -10,6 +10,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="12.1.4" />
+    <!-- Inter (SIL OFL), the Avalonia team's package; its version is Avalonia's. -->
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Noto Sans SC, JetBrains Mono and Sora (SIL OFL), fetched by tools/fonts/fetch-fonts.ps1; read as avares://. -->
+    <AvaloniaResource Include="Assets\Fonts\*.ttf;Assets\Fonts\*.otf" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />

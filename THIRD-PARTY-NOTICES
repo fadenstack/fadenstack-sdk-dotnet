@@ -1,0 +1,25 @@
+Third-party notices for the Fadenstack .NET SDK
+
+The Fadenstack.UI.Avalonia package bundles the fonts and icons below. Their licence texts are kept in
+src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/ and are repeated by the project's NuGet package.
+
+== Fonts (SIL Open Font License 1.1) ==
+
+Inter 4.x, the Avalonia.Fonts.Inter NuGet package (version = Avalonia's)
+  Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
+  Licence: src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/Inter-OFL.txt
+
+Noto Sans SC (Sans2.004, notofonts/noto-cjk), Regular, Medium and Bold, subset to GB 2312, CJK punctuation and Latin
+  Copyright 2014-2021 Adobe (http://www.adobe.com/), as in the font's name table
+  Licence: src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/NotoSansSC-OFL.txt
+  The subset is made by tools/fonts/fetch-fonts.ps1; the glyphs are not changed.
+
+JetBrains Mono 2.304 (JetBrains/JetBrainsMono), Regular and Bold
+  Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+  Licence: src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/JetBrainsMono-OFL.txt
+
+Sora (sora-xor/sora-font, commit 7f9a9c5), SemiBold
+  Copyright 2019 The Sora Project Authors (https://github.com/sora-xor/sora-font)
+  Licence: src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/Sora-OFL.txt
+
+The pinned sources and their SHA-256 are in tools/fonts/fonts.json.
