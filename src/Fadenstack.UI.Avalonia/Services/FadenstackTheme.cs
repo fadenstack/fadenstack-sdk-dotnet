@@ -74,7 +74,7 @@ public static class FadenstackTheme
     private static readonly string[] AccentKeys =
     {
         "Accent", "AccentHover", "AccentLight", "AccentForeground", "AccentText", "AccentIcon", "NavSelected",
-        "NavSelectedForeground", "Hover", "Tint", "Pressed", "Link", "Focus", "UserBubble",
+        "NavSelectedForeground", "Hover", "Tint", "Pressed", "Link", "Focus", "UserBubble", "SplitDivider",
     };
 
     private static readonly Color LightSurface = Color.Parse("#FFFFFF");
@@ -129,6 +129,8 @@ public static class FadenstackTheme
         resources["Fadenstack.FontSize.Subtitle"] = 16 * scale;
         resources["Fadenstack.FontSize.Title"] = 20 * scale;
         resources["Fadenstack.FontSize.Display"] = 24 * scale;
+        resources["Fadenstack.FontSize.Heading"] = 18 * scale;
+        resources["Fadenstack.LineHeight.Body"] = 20 * scale;
         resources["Fadenstack.ControlHeight"] = compact ? 32.0 : 36.0;
         resources["Fadenstack.TitleBar.Height"] = compact ? 44.0 : 48.0;
         resources["Fadenstack.StatusBar.Height"] = compact ? 24.0 : 28.0;
@@ -184,6 +186,7 @@ public static class FadenstackTheme
         into["Fadenstack.Link"] = Brush(ramp.Text);
         into["Fadenstack.Focus"] = Brush(ramp.Text);
         into["Fadenstack.UserBubble"] = Alpha(ramp.Main, 0.12);
+        into["Fadenstack.SplitDivider"] = Alpha(ramp.Foreground, 0.30);
     }
 
     /// <summary>The ramp of a custom accent colour in a mode: the main colour as given, the text and navigation colours at 4.5:1.</summary>

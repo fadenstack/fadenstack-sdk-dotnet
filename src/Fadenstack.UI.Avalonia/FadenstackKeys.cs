@@ -39,6 +39,18 @@ public static class FadenstackKeys
     /// </summary>
     public const string BorderStrong = P + "BorderStrong";
 
+    /// <summary>The outline of an input under the pointer: the text colour at 60 %.</summary>
+    public const string BorderHover = P + "BorderHover";
+
+    /// <summary>Tooltips: dark on a light theme, light on a dark one.</summary>
+    public const string Inverse = P + "Inverse";
+
+    /// <summary>Text on <see cref="Inverse"/>.</summary>
+    public const string InverseForeground = P + "InverseForeground";
+
+    /// <summary>The knob of a switch that is off (white on light, light grey on dark).</summary>
+    public const string SwitchKnob = P + "SwitchKnob";
+
     // Accent (per named accent and theme variant)
 
     /// <summary>The accent: primary fill, selection, user bubble.</summary>
@@ -73,6 +85,9 @@ public static class FadenstackKeys
 
     /// <summary>Pressed fill: the accent at 20 %.</summary>
     public const string Pressed = P + "Pressed";
+
+    /// <summary>The line between a primary split button's two parts: the text on the accent at 30 %.</summary>
+    public const string SplitDivider = P + "SplitDivider";
 
     /// <summary>The keyboard focus ring (the accent as text).</summary>
     public const string Focus = P + "Focus";
@@ -160,6 +175,25 @@ public static class FadenstackKeys
 
     /// <summary>The agent's message bubble corners, 4 12 12 12.</summary>
     public const string RadiusBubbleAgent = P + "Radius.Bubble.Agent";
+
+    /// <summary>Inside a 12 frame (menu items, segments) and tooltips: 8.</summary>
+    public const string RadiusInner = P + "Radius.Inner";
+
+    /// <summary>The checkbox: 4.</summary>
+    public const string RadiusCheck = P + "Radius.Check";
+
+    /// <summary>
+    /// The room around a popup's surface that its shadow is drawn in (<c>Thickness</c>). A popup of one's own puts its
+    /// surface (<c>Border.menu</c>) in a <c>Border.popup-room</c>, which pads it by this, and opens at
+    /// <see cref="PopupOffsetX"/>, <see cref="PopupOffsetY"/>, so the surface, not the room, sits at the anchor.
+    /// </summary>
+    public const string PopupShadowMargin = P + "Popup.ShadowMargin";
+
+    /// <summary>The horizontal offset that cancels <see cref="PopupShadowMargin"/>'s left side.</summary>
+    public const string PopupOffsetX = P + "Popup.OffsetX";
+
+    /// <summary>The vertical offset that cancels <see cref="PopupShadowMargin"/>'s top side.</summary>
+    public const string PopupOffsetY = P + "Popup.OffsetY";
 
     /// <summary>Space 4 (<c>Thickness</c>, the older name of <see cref="Space1"/>).</summary>
     public const string SpaceSmall = P + "Space.Small";
@@ -287,4 +321,10 @@ public static class FadenstackKeys
 
     /// <summary>Display, 24: the sign-in title only.</summary>
     public const string FontSizeDisplay = P + "FontSize.Display";
+
+    /// <summary>Heading, 18: second-level headings in chat Markdown.</summary>
+    public const string FontSizeHeading = P + "FontSize.Heading";
+
+    /// <summary>The line height of body text, 20 (14 x 1.43), scaled with the text size.</summary>
+    public const string LineHeightBody = P + "LineHeight.Body";
 }

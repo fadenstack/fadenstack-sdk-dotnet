@@ -3,8 +3,8 @@
   "version": "7.3.8",
   "licences": ["MIT (MUI)", "Apache-2.0 (Google Material Icons)"],
   "icons": [
-    "OpenInFull", "CloseFullscreen", "Minimize", "Remove", "Search", "Tune", "ViewSidebar", "SpaceDashboard", "MoreVert", "KeyboardArrowDown", "ChevronLeft", "ChevronRight", "Close",
-    "Send", "Stop", "AttachFile", "Bolt", "PushPin", "PushPinOutlined", "History", "Add", "ContentCopy", "Replay", "Check", "ErrorOutline", "WarningAmber", "InfoOutlined", "Shield", "Lock", "AutoAwesome", "Psychology", "Person",
+    "OpenInFull", "CloseFullscreen", "Minimize", "Remove", "Search", "Tune", "ViewSidebar", "SpaceDashboard", "MoreVert", "KeyboardArrowDown", "KeyboardArrowUp", "ChevronLeft", "ChevronRight", "Close",
+    "Send", "Stop", "AttachFile", "Bolt", "PushPin", "PushPinOutlined", "History", "Add", "ContentCopy", "Replay", "Check", "ErrorOutline", "Block", "ArrowDownward", "WarningAmber", "InfoOutlined", "Shield", "Lock", "AutoAwesome", "Psychology", "Person",
     "ChatBubbleOutline", "FolderOutlined", "Timeline", "Extension", "SettingsOutlined", "People", "VerticalSplit", "HorizontalSplit", "DragIndicator",
     "Palette", "ViewQuilt", "Face", "SmartToy", "Translate", "PrivacyTip", "Keyboard", "Info", "Download", "DeleteOutline", "Visibility", "VisibilityOff", "VerifiedUser", "Code", "Key",
     "Folder", "FolderOpen", "InsertDriveFile", "Description", "TableChart", "Slideshow", "PictureAsPdf", "Image", "CreateNewFolder",

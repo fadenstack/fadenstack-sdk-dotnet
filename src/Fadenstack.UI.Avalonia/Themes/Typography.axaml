@@ -7,6 +7,8 @@
     -->
     <FontFamily x:Key="Fadenstack.FontFamily">fonts:Inter#Inter, fonts:Fadenstack#Noto Sans SC</FontFamily>
     <FontFamily x:Key="Fadenstack.FontFamily.Mono">fonts:Fadenstack#JetBrains Mono, fonts:Fadenstack#Noto Sans SC</FontFamily>
+    <!-- The older name of the mono family (code), kept for hosts that read it. -->
+    <FontFamily x:Key="Fadenstack.CodeFont">fonts:Fadenstack#JetBrains Mono, fonts:Fadenstack#Noto Sans SC</FontFamily>
     <!-- The wordmark only. -->
     <FontFamily x:Key="Fadenstack.FontFamily.Wordmark">fonts:Fadenstack#Sora</FontFamily>
 </ResourceDictionary>
