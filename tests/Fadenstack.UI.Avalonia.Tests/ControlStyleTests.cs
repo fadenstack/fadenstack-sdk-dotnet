@@ -71,11 +71,13 @@ public class ControlStyleTests
     [InlineData("large", 36.0, 20.0)]
     [InlineData("normal", 32.0, 18.0)]
     [InlineData("small", 28.0, 16.0)]
+    [InlineData("large primary", 36.0, 20.0)]
+    [InlineData("small primary", 28.0, 16.0)]
     public void Icon_buttons_are_round_and_sized_by_class_with_the_icon_size_to_match(string size, double edge, double iconSize)
     {
         FadenstackControls.EnsureLoaded();
         var icon = new FsIcon { Data = IconTests.Icon("Add") };
-        var button = IconButton(icon, size);
+        var button = IconButton(icon, size.Split(' '));
         var (window, _) = Show(button, 1);
         Assert.Equal(new Size(edge, edge), button.Bounds.Size);
         Assert.Equal(iconSize, icon.Size);

@@ -239,7 +239,7 @@
 
     <!-- ===== Text buttons ================================================================================= -->
 
-    <Style Selector="Button.primary, Button.secondary, Button.quiet">
+    <Style Selector="Button.primary:not(.icon), Button.secondary:not(.icon), Button.quiet:not(.icon)">
         <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.ControlHeight}" />
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="Padding" Value="16,0" />
@@ -253,79 +253,79 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="ToolTip.ShowDelay" Value="500" />
     </Style>
-    <Style Selector="Button.primary:pressed, Button.secondary:pressed, Button.quiet:pressed">
+    <Style Selector="Button.primary:not(.icon):pressed, Button.secondary:not(.icon):pressed, Button.quiet:not(.icon):pressed">
         <Setter Property="RenderTransform" Value="none" />
     </Style>
 
     <!-- Button.Primary: the one main action of a container. -->
-    <Style Selector="Button.primary">
+    <Style Selector="Button.primary:not(.icon)">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
     </Style>
-    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.primary:not(.icon):pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:not(.icon):pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
     </Style>
-    <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.primary:not(.icon):disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
     </Style>
 
     <!-- Button.Secondary: the other actions; Surface with the control outline. -->
-    <Style Selector="Button.secondary">
+    <Style Selector="Button.secondary:not(.icon)">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
         <Setter Property="BorderThickness" Value="1" />
     </Style>
-    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.secondary:not(.icon):pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
     </Style>
-    <Style Selector="Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.secondary:not(.icon):pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
     </Style>
-    <Style Selector="Button.secondary:disabled">
+    <Style Selector="Button.secondary:not(.icon):disabled">
         <Setter Property="Opacity" Value="0.38" />
     </Style>
-    <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.secondary:not(.icon):disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
     </Style>
 
     <!-- Button.Quiet: inline actions in text; no fill until hovered. -->
-    <Style Selector="Button.quiet">
+    <Style Selector="Button.quiet:not(.icon)">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
         <Setter Property="Padding" Value="8,0" />
     </Style>
-    <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.quiet:not(.icon):pointerover /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
     </Style>
-    <Style Selector="Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.quiet:not(.icon):pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
     </Style>
-    <Style Selector="Button.quiet:disabled">
+    <Style Selector="Button.quiet:not(.icon):disabled">
         <Setter Property="Opacity" Value="0.38" />
     </Style>
-    <Style Selector="Button.quiet:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="Button.quiet:not(.icon):disabled /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
     </Style>
 
     <!-- A small quiet button (28 high, 12 px) for an action inside a caption line: "Edit and resend". -->
-    <Style Selector="Button.quiet.small">
+    <Style Selector="Button.quiet.small:not(.icon)">
         <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
         <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />
@@ -534,13 +534,15 @@
                             Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
+                                <!-- The icon slot is shared by the menu's items: kept for alignment when one item has an icon or a
+                                     check, gone when none has. -->
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="FsMenuIcon" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="FsMenuGesture" />
                                 <ColumnDefinition Width="Auto" SharedSizeGroup="FsMenuChevron" />
                             </Grid.ColumnDefinitions>
                             <Panel Name="FsIconSlot" Width="{DynamicResource Fadenstack.Icon.Size.Normal}" Height="{DynamicResource Fadenstack.Icon.Size.Normal}"
-                                   Margin="0,0,12,0" VerticalAlignment="Center">
+                                   Margin="0,0,12,0" VerticalAlignment="Center" IsVisible="False">
                                 <ContentControl Name="FsIcon" Content="{TemplateBinding Icon}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
                                                 HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
                                 <c:FsIcon Name="FsCheck" Data="{DynamicResource Icon.Check}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}"
@@ -550,6 +552,7 @@
                                               ContentTemplate="{TemplateBinding HeaderTemplate}" RecognizesAccessKey="True"
                                               VerticalAlignment="Center" />
                             <TextBlock Name="FsGesture" Grid.Column="2" Margin="24,0,0,0" VerticalAlignment="Center"
+                                       IsVisible="{TemplateBinding InputGesture, Converter={x:Static ObjectConverters.IsNotNull}}"
                                        FontSize="{DynamicResource Fadenstack.FontSize.Caption}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
                                        Text="{TemplateBinding InputGesture, Converter={StaticResource Fadenstack.KeyGesture}}" />
                             <c:FsIcon Name="FsChevron" Grid.Column="3" Margin="8,0,0,0" Data="{DynamicResource Icon.ChevronRight}"
@@ -574,6 +577,9 @@
                 </Panel>
             </ControlTemplate>
         </Setter>
+    </Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem:icon /template/ Panel#FsIconSlot, ContextMenu MenuItem:icon /template/ Panel#FsIconSlot, MenuFlyoutPresenter MenuItem:toggle /template/ Panel#FsIconSlot, ContextMenu MenuItem:toggle /template/ Panel#FsIconSlot, MenuFlyoutPresenter MenuItem:radio /template/ Panel#FsIconSlot, ContextMenu MenuItem:radio /template/ Panel#FsIconSlot">
+        <Setter Property="IsVisible" Value="True" />
     </Style>
     <Style Selector="MenuFlyoutPresenter MenuItem:empty /template/ c|FsIcon#FsChevron, ContextMenu MenuItem:empty /template/ c|FsIcon#FsChevron">
         <Setter Property="IsVisible" Value="False" />
