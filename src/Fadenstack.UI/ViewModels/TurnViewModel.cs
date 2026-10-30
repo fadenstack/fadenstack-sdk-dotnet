@@ -239,7 +239,7 @@ public sealed class TurnViewModel : ObservableObject
         if (part is { IsPending: true })
         {
             part.State = decision.Approved
-                    ? (decision.Always ? ApprovalState.ApprovedAlways : decision.ForSession ? ApprovalState.ApprovedForSession : ApprovalState.Approved)
+                    ? (decision.Always ? ApprovalState.ApprovedAlways : decision.ForTime ? ApprovalState.ApprovedForTime : decision.ForSession ? ApprovalState.ApprovedForSession : ApprovalState.Approved)
                 : decision.Reason == "No answer in time." ? ApprovalState.Expired : ApprovalState.Denied;
         }
         if (_tools.TryGetValue(Key(request.CallId, request.ToolName), out var tool) && tool.State == ToolCallState.WaitingForApproval)

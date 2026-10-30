@@ -227,6 +227,66 @@
         </Setter>
     </Style>
 
+    <!--
+        The approval card's split button, WPF having none: the main part (a button, rounded on its left) allows once; the
+        drop-down part (a toggle, rounded on its right) opens a menu of the other choices (b:DropDown.Opens).
+    -->
+    <Style x:Key="Fadenstack.AllowMainButton" TargetType="Button" BasedOn="{StaticResource Fadenstack.PrimaryButton}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="6,0,0,6"
+                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource Fadenstack.Foreground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Fadenstack.AllowDropDown" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root" Background="{TemplateBinding Background}" CornerRadius="0,6,6,0"
+                            Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Root" Property="BorderBrush" Value="{DynamicResource Fadenstack.Foreground}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Fadenstack.SecondaryButton" TargetType="Button" BasedOn="{StaticResource Fadenstack.GhostButton}">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
         <Setter Property="Padding" Value="12,5" />
@@ -588,11 +648,27 @@
                 </Border>
                 <!-- One row when they fit; else two by two (or one under the other), never "Deny" alone on a row. -->
                 <v:ButtonRow Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
-                            Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
-                            Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                    <!-- One split button when the request offers more than "Allow"; else the plain button. -->
+                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
+                            Visibility="{Binding HasAllowChoices, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasAllowChoices, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                        <Button Style="{StaticResource Fadenstack.AllowMainButton}" Content="{v:Text Allow}" Command="{Binding AllowCommand}" />
+                        <Border Width="1" Background="{DynamicResource Fadenstack.AccentForeground}" Opacity="0.35" />
+                        <ToggleButton Style="{StaticResource Fadenstack.AllowDropDown}" b:DropDown.Opens="True"
+                                      AutomationProperties.Name="{v:Text AllowMore}" ToolTip="{v:Text AllowMore}">
+                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE70D;" Foreground="{DynamicResource Fadenstack.AccentForeground}" />
+                            <ToggleButton.ContextMenu>
+                                <ContextMenu Placement="Bottom">
+                                    <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
+                                              Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                    <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}"
+                                              Visibility="{Binding CanAllowForTime, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                    <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
+                                              Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                </ContextMenu>
+                            </ToggleButton.ContextMenu>
+                        </ToggleButton>
+                    </StackPanel>
                     <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                 </v:ButtonRow>
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"

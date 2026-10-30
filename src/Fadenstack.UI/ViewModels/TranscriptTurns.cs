@@ -90,6 +90,7 @@ internal static class TranscriptTurns
                     var decided = Json.Bool(d, "timed_out") ? ApprovalState.Expired
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
                         : Json.Str(d, "scope") == ApprovalScopes.Always ? ApprovalState.ApprovedAlways
+                        : Json.Str(d, "scope") == ApprovalScopes.Time ? ApprovalState.ApprovedForTime
                         : Json.Bool(d, "for_session") ? ApprovalState.ApprovedForSession : ApprovalState.Approved;
                     turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength, chat.Strings));
                     break;

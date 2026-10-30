@@ -119,11 +119,19 @@
                         </ScrollViewer>
                     </Border>
                     <WrapPanel Margin="0,12,0,0" IsVisible="{Binding IsPending}">
-                        <Button Classes="primary" Margin="0,0,8,6" Content="{v:Text Allow}" Command="{Binding AllowCommand}" />
-                        <Button Classes="secondary" Margin="0,0,8,6" Content="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
-                                IsVisible="{Binding CanAllowForSession}" />
-                        <Button Classes="secondary" Margin="0,0,8,6" Content="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
-                                IsVisible="{Binding CanAllowAlways}" />
+                        <!-- One split button: the main part allows once; the drop-down lists only the choices the request offers. -->
+                        <SplitButton Classes="allow" Margin="0,0,8,6" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
+                                     AutomationProperties.Name="{v:Text Allow}" IsVisible="{Binding HasAllowChoices}">
+                            <SplitButton.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                    <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
+                                    <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}" IsVisible="{Binding CanAllowForTime}" />
+                                    <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
+                                </MenuFlyout>
+                            </SplitButton.Flyout>
+                        </SplitButton>
+                        <Button Classes="primary" Margin="0,0,8,6" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
+                                IsVisible="{Binding !HasAllowChoices}" />
                         <Button Classes="secondary" Margin="0,0,8,6" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                     </WrapPanel>
                     <TextBlock Classes="muted" Margin="0,8,0,0" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />

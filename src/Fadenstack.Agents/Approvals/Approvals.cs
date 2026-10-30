@@ -38,6 +38,13 @@ public sealed record ApprovalRequest
     /// <summary>Whether "Allow always" may be offered: where "Allow for this chat" may.</summary>
     public bool CanAllowAlways { get; init; }
 
+    /// <summary>
+    /// Whether "Allow for 1 hour" may be offered: where "Allow for this chat" may, except for a tool that reaches outside
+    /// the organisation (<see cref="OpenWorld"/>), and only when the server's profile advertises
+    /// <see cref="FadenstackAgent.TimeScopeFeature"/>.
+    /// </summary>
+    public bool CanAllowForTime { get; init; }
+
     /// <summary>An admin's "Ask first" rule covers the call: <see cref="Reason"/> is the admin's message. It asks every time.</summary>
     public bool RequiredByRule { get; init; }
 
@@ -73,6 +80,13 @@ public sealed record ApprovalDecision
     /// </summary>
     public bool Always { get; init; }
 
+    /// <summary>
+    /// Approve this tool for 1 hour in every session of this agent on this device, in memory (<see cref="FadenstackAgent.TimeGrants"/>).
+    /// Taken only where the request offers it (<see cref="ApprovalRequest.CanAllowForTime"/>); otherwise it approves
+    /// this call only.
+    /// </summary>
+    public bool ForTime { get; init; }
+
     public string? Reason { get; init; }
 
     public static ApprovalDecision Approve() => new() { Approved = true };
@@ -80,6 +94,8 @@ public sealed record ApprovalDecision
     public static ApprovalDecision ApproveForSession() => new() { Approved = true, ForSession = true };
 
     public static ApprovalDecision ApproveAlways() => new() { Approved = true, Always = true };
+
+    public static ApprovalDecision ApproveForTime() => new() { Approved = true, ForTime = true };
 
     public static ApprovalDecision Deny(string? reason = null) => new() { Approved = false, Reason = reason };
 }
@@ -112,9 +128,18 @@ public static class ApprovalScopes
     /// <summary>The user approved the tool always, on this device.</summary>
     public const string Always = "always";
 
+    /// <summary>
+    /// The user approved the tool for 1 hour, in every session of this agent on this device. Reported to the server
+    /// (with <c>expires_at</c>) only when the profile advertises <see cref="FadenstackAgent.TimeScopeFeature"/>.
+    /// </summary>
+    public const string Time = "time";
+
     /// <summary>The agent runs in <see cref="PermissionMode.Bypass"/>.</summary>
     public const string Bypass = "bypass";
 }
+
+/// <summary>A tool the user allowed for a while, in every session of the agent: until <see cref="Expires"/>.</summary>
+public sealed record TimeGrant(string Tool, DateTimeOffset Expires);
 
 /// <summary>Shows the prompt (a dialog, a card in the chat) and returns what the user decided.</summary>
 public interface IApprovalHandler

@@ -8,6 +8,66 @@ using Fadenstack.UI.Wpf.Services;
 namespace Fadenstack.UI.Wpf.Behaviors;
 
 /// <summary>
+/// Makes a toggle button the drop-down of a split button: a click (or Down) opens its <see cref="FrameworkElement.ContextMenu"/>
+/// under it; the toggle is checked while the menu is open. The menu closes as any menu does (a choice, Esc, a click elsewhere).
+/// </summary>
+public static class DropDown
+{
+    public static readonly DependencyProperty OpensProperty = DependencyProperty.RegisterAttached(
+        "Opens", typeof(bool), typeof(DropDown), new PropertyMetadata(false, OnChanged));
+
+    public static bool GetOpens(DependencyObject element) => (bool)element.GetValue(OpensProperty);
+
+    public static void SetOpens(DependencyObject element, bool value) => element.SetValue(OpensProperty, value);
+
+    private static void OnChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not System.Windows.Controls.Primitives.ToggleButton button)
+        {
+            return;
+        }
+        button.Click -= Open;
+        button.KeyDown -= OpenByKey;
+        if (e.NewValue is true)
+        {
+            button.Click += Open;
+            button.KeyDown += OpenByKey;
+        }
+    }
+
+    private static void OpenByKey(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Down || (e.Key == Key.System && e.SystemKey == Key.Down))
+        {
+            Open(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private static void Open(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Primitives.ToggleButton { ContextMenu: { } menu } button)
+        {
+            return;
+        }
+        menu.PlacementTarget = button;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.Closed -= Closed;
+        menu.Closed += Closed;
+        button.IsChecked = true;
+        menu.IsOpen = true;
+    }
+
+    private static void Closed(object sender, RoutedEventArgs e)
+    {
+        if (sender is ContextMenu { PlacementTarget: System.Windows.Controls.Primitives.ToggleButton button })
+        {
+            button.IsChecked = false;
+        }
+    }
+}
+
+/// <summary>
 /// Keeps a scroll viewer at the bottom while new content arrives, as long as the user is there; scrolling up
 /// to read stops it, scrolling back down resumes it (as Copilot's chat does).
 /// </summary>

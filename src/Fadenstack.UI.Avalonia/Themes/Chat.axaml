@@ -129,6 +129,25 @@
         <Setter Property="Opacity" Value="0.45" />
     </Style>
 
+    <!-- The approval card's split button ("Allow" with its drop-down): the primary look; the inner buttons read these resources. -->
+    <Style Selector="SplitButton.allow">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Control}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Padding" Value="12,5" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+    </Style>
+    <Style Selector="SplitButton.allow /template/ Button">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Control}" />
+    </Style>
+    <Style Selector="SplitButton.allow /template/ Button:pointerover /template/ ContentPresenter#PART_ContentPresenter, SplitButton.allow /template/ Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+    </Style>
+
     <Style Selector="Button.secondary">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
         <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />

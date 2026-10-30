@@ -147,6 +147,10 @@ public sealed class UiStrings
 
     public string AllowForChat => Text();
 
+    public string AllowForTime => Text();
+
+    public string AllowMore => Text();
+
     public string AllowAlways => Text();
 
     public string Deny => Text();
@@ -154,6 +158,8 @@ public sealed class UiStrings
     public string Allowed => Text();
 
     public string AllowedForChat => Text();
+
+    public string AllowedForTime => Text();
 
     public string AllowedAlways => Text();
 

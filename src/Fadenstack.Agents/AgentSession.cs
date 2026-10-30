@@ -999,8 +999,8 @@ public sealed class AgentSession
         /// <summary>
         /// Settles a call that needs approval, first that applies: an admin's rule asks (once only, even in bypass);
         /// bypass mode approves; a destructive or unclassified tool asks (once only); what the user allowed always,
-        /// then what they allowed for this chat, approves; else the user is asked, and may allow once, for this chat or
-        /// always. Every outcome goes in the transcript and the server's record, with what let the call through.
+        /// then what they allowed for 1 hour (only when the server advertises it), then what they allowed for this chat,
+        /// approves; else the user is asked, and may allow once, for this chat, for 1 hour or always. Every outcome goes in the transcript and the server's record, with what let the call through.
         /// <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
         /// </summary>
         private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken,
@@ -1008,19 +1008,43 @@ public sealed class AgentSession
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
-            var standing = rule ? null
-                : Agent.PermissionMode == PermissionMode.Bypass ? ApprovalScopes.Bypass
-                : !open ? null
-                : await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
-                : _session.ApprovedForChat(name) ? ApprovalScopes.Chat
-                : null;
+            DateTimeOffset? expires = null;
+            string? standing;
+            if (rule)
+            {
+                standing = null;
+            }
+            else if (Agent.PermissionMode == PermissionMode.Bypass)
+            {
+                standing = ApprovalScopes.Bypass;
+            }
+            else if (!open)
+            {
+                standing = null;
+            }
+            else if (await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false))
+            {
+                standing = ApprovalScopes.Always;
+            }
+            else if (!request.OpenWorld && Agent.TimeGrantOf(name) is { } granted) // never for a call that reaches outside
+            {
+                (standing, expires) = (ApprovalScopes.Time, granted);
+            }
+            else
+            {
+                standing = _session.ApprovedForChat(name) ? ApprovalScopes.Chat : null;
+            }
             if (standing is not null)
             {
-                await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
+                await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null, expires).ConfigureAwait(false);
                 return new Settled(true, false, null, standing);
             }
             var described = target is null ? null : await target().ConfigureAwait(false);
-            request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule, Target = described };
+            request = request with
+            {
+                CanAllowForSession = open, CanAllowAlways = open, CanAllowForTime = open && !request.OpenWorld && Agent.OffersTimeGrants,
+                RequiredByRule = rule, Target = described,
+            };
             Emit(new ApprovalRequested(request));
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (timeout is { } t)
@@ -1041,6 +1065,7 @@ public sealed class AgentSession
             // What the request offered, and nothing more: a handler cannot widen it.
             var scope = decision is not { Approved: true } ? null
                 : decision.Always && open ? ApprovalScopes.Always
+                : decision.ForTime && request.CanAllowForTime ? ApprovalScopes.Time
                 : decision.ForSession && open ? ApprovalScopes.Chat
                 : ApprovalScopes.Once;
             if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass).ConfigureAwait(false))
@@ -1051,9 +1076,14 @@ public sealed class AgentSession
             {
                 _session.ApproveForChat(name);
             }
-            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited).ConfigureAwait(false);
+            else if (scope == ApprovalScopes.Time)
+            {
+                expires = Agent.GrantTime(name);
+            }
+            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, expires).ConfigureAwait(false);
             Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
                 : scope == ApprovalScopes.Always ? ApprovalDecision.ApproveAlways()
+                : scope == ApprovalScopes.Time ? ApprovalDecision.ApproveForTime()
                 : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
                 : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
                 : decision));
@@ -1064,10 +1094,12 @@ public sealed class AgentSession
         private static string? KindOf(string? scope, bool rule) => scope is null ? null : rule ? RuleKind : scope;
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
-        private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs)
+        private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs,
+            DateTimeOffset? expiresAt = null)
         {
             await _session.AppendAsync(EntryTypes.ApprovalDecision, _id, new
             {
+                expires_at = scope == ApprovalScopes.Time ? expiresAt?.ToUniversalTime() : null, // only a grant for a while has an end
                 call_id = request.CallId,
                 name = request.ToolName,
                 source = request.Source,
@@ -1082,6 +1114,7 @@ public sealed class AgentSession
             Agent.Reporter.Add(new ApprovalDecidedEvent
             {
                 ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope,
+                ExpiresAt = scope == ApprovalScopes.Time ? expiresAt?.ToUniversalTime() : null,
                 Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
             });
             var toolClass = request.ToolClass.ToWire();

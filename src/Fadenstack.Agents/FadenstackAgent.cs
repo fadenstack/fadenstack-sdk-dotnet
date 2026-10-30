@@ -21,6 +21,7 @@ public sealed class FadenstackAgent : IDisposable
     private AgentProfile? _profile;
     private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
     private bool _warned;
+    private readonly Dictionary<string, DateTimeOffset> _timeGrants = new();
     private ILogger? _logger;
 
     internal FadenstackAgent(AgentSettings settings)
@@ -274,12 +275,92 @@ public sealed class FadenstackAgent : IDisposable
         await SessionStore.DeleteAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>The profile feature that tells the server takes the scope <c>time</c> (and <c>expires_at</c>): without it "for 1 hour" is not offered.</summary>
+    public const string TimeScopeFeature = "approval_scopes.time";
+
+    /// <summary>How long "Allow for 1 hour" lasts.</summary>
+    public static readonly TimeSpan TimeGrantDuration = TimeSpan.FromMinutes(60);
+
+    /// <summary>The clock for time grants; tests set it.</summary>
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+
     /// <summary>
-    /// Forgets what the user allowed always on this device for this agent: every tool, or <paramref name="tool"/> only.
-    /// (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
+    /// What the user allowed for 1 hour, in every session of this agent: the tools whose grant has not ended yet. Kept in
+    /// memory only: a restart asks again.
+    /// </summary>
+    public IReadOnlyList<TimeGrant> TimeGrants
+    {
+        get
+        {
+            var now = Clock();
+            lock (_timeGrants)
+            {
+                return _timeGrants.Where(g => g.Value > now).Select(g => new TimeGrant(g.Key, g.Value)).OrderBy(g => g.Tool, StringComparer.Ordinal).ToList();
+            }
+        }
+    }
+
+    /// <summary>Ends the grant of <paramref name="tool"/> now; the next call asks again.</summary>
+    public void RevokeTimeGrant(string tool) => ClearTimeGrants(tool);
+
+    /// <summary>Whether the server's profile says it takes the scope <c>time</c>.</summary>
+    internal bool OffersTimeGrants => _profile?.Features.Contains(TimeScopeFeature) == true;
+
+    /// <summary>When the grant of <paramref name="tool"/> ends; null when it has none (or none that still holds).</summary>
+    internal DateTimeOffset? TimeGrantOf(string tool)
+    {
+        if (!OffersTimeGrants)
+        {
+            return null;
+        }
+        var now = Clock();
+        lock (_timeGrants)
+        {
+            if (_timeGrants.TryGetValue(tool, out var expires))
+            {
+                if (expires > now)
+                {
+                    return expires;
+                }
+                _timeGrants.Remove(tool);
+            }
+            return null;
+        }
+    }
+
+    /// <summary>Allows <paramref name="tool"/> for <see cref="TimeGrantDuration"/> from now; returns when that ends.</summary>
+    internal DateTimeOffset GrantTime(string tool)
+    {
+        var expires = Clock() + TimeGrantDuration;
+        lock (_timeGrants)
+        {
+            _timeGrants[tool] = expires;
+        }
+        return expires;
+    }
+
+    private void ClearTimeGrants(string? tool)
+    {
+        lock (_timeGrants)
+        {
+            if (tool is null)
+            {
+                _timeGrants.Clear();
+            }
+            else
+            {
+                _timeGrants.Remove(tool);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Forgets what the user allowed always on this device for this agent, and what they allowed for 1 hour: every tool,
+    /// or <paramref name="tool"/> only. (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
     /// </summary>
     public async Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default)
     {
+        ClearTimeGrants(tool); // also what was allowed for 1 hour: in memory, so first
         await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
         await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
     }
@@ -332,6 +413,7 @@ public sealed class FadenstackAgent : IDisposable
 
     public void Dispose()
     {
+        ClearTimeGrants(null);
         foreach (var source in _settings.Sources.OfType<IDisposable>())
         {
             source.Dispose();

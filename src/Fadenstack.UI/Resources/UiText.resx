@@ -182,6 +182,14 @@
     <value>Allow for this chat</value>
     <comment>A card's button</comment>
   </data>
+  <data name="AllowForTime" xml:space="preserve">
+    <value>Allow for 1 hour</value>
+    <comment>A card's button</comment>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>More ways to allow</value>
+    <comment>A card's button, read out by screen readers</comment>
+  </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>Allow always</value>
     <comment>A card's button</comment>
@@ -196,6 +204,10 @@
   </data>
   <data name="AllowedForChat" xml:space="preserve">
     <value>Allowed for this chat</value>
+    <comment>A card once answered</comment>
+  </data>
+  <data name="AllowedForTime" xml:space="preserve">
+    <value>Allowed for 1 hour</value>
     <comment>A card once answered</comment>
   </data>
   <data name="AllowedAlways" xml:space="preserve">

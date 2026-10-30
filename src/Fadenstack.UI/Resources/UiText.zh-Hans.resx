@@ -139,6 +139,12 @@
   <data name="AllowForChat" xml:space="preserve">
     <value>在此聊天中允许</value>
   </data>
+  <data name="AllowForTime" xml:space="preserve">
+    <value>允许 1 小时</value>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>更多允许方式</value>
+  </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>始终允许</value>
   </data>
@@ -150,6 +156,9 @@
   </data>
   <data name="AllowedForChat" xml:space="preserve">
     <value>已在此聊天中允许</value>
+  </data>
+  <data name="AllowedForTime" xml:space="preserve">
+    <value>已允许 1 小时</value>
   </data>
   <data name="AllowedAlways" xml:space="preserve">
     <value>已始终允许</value>

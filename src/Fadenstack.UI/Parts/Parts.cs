@@ -317,10 +317,11 @@ public enum ApprovalState
     Denied,
     Expired,
     ApprovedAlways,
+    ApprovedForTime,
 }
 
 /// <summary>
-/// "Run delete_page?" with Allow, Allow for this chat, Allow always, and Deny -- answered in place, like Copilot.
+/// "Run delete_page?" with Allow, Allow for this chat, Allow for 1 hour, Allow always, and Deny -- answered in place, like Copilot.
 /// "Allow for this chat" and "Allow always" are offered only where the request allows them: never for a destructive
 /// or unclassified tool, nor for a call an admin's rule covers.
 /// </summary>
@@ -348,6 +349,8 @@ public sealed class ApprovalPart : ResponsePart
         AllowCommand = new RelayCommand(() => Decide(ApprovalDecision.Approve(), ApprovalState.Approved), () => IsPending);
         AllowForSessionCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForSession(), ApprovalState.ApprovedForSession),
             () => IsPending && CanAllowForSession);
+        AllowForTimeCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveForTime(), ApprovalState.ApprovedForTime),
+            () => IsPending && CanAllowForTime);
         AllowAlwaysCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveAlways(), ApprovalState.ApprovedAlways),
             () => IsPending && CanAllowAlways);
         DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(), ApprovalState.Denied), () => IsPending);
@@ -355,6 +358,12 @@ public sealed class ApprovalPart : ResponsePart
 
     /// <summary>Whether the card offers "Allow for this chat".</summary>
     public bool CanAllowForSession => Request.CanAllowForSession;
+
+    /// <summary>Whether the card offers "Allow for 1 hour": only where the server advertises it.</summary>
+    public bool CanAllowForTime => Request.CanAllowForTime;
+
+    /// <summary>Whether the card offers any choice beyond "Allow" (the drop-down of the split button).</summary>
+    public bool HasAllowChoices => CanAllowForSession || CanAllowForTime || CanAllowAlways;
 
     /// <summary>Whether the card offers "Allow always".</summary>
     public bool CanAllowAlways => Request.CanAllowAlways;
@@ -403,6 +412,7 @@ public sealed class ApprovalPart : ResponsePart
                 OnPropertyChanged(nameof(StateText));
                 AllowCommand.NotifyCanExecuteChanged();
                 AllowForSessionCommand.NotifyCanExecuteChanged();
+                AllowForTimeCommand.NotifyCanExecuteChanged();
                 AllowAlwaysCommand.NotifyCanExecuteChanged();
                 DenyCommand.NotifyCanExecuteChanged();
             }
@@ -415,6 +425,7 @@ public sealed class ApprovalPart : ResponsePart
     {
         ApprovalState.Approved => _strings.Allowed,
         ApprovalState.ApprovedForSession => _strings.AllowedForChat,
+        ApprovalState.ApprovedForTime => _strings.AllowedForTime,
         ApprovalState.ApprovedAlways => _strings.AllowedAlways,
         ApprovalState.Denied => _strings.Denied,
         ApprovalState.Expired => _strings.NoAnswer,
@@ -424,6 +435,8 @@ public sealed class ApprovalPart : ResponsePart
     public IRelayCommand AllowCommand { get; }
 
     public IRelayCommand AllowForSessionCommand { get; }
+
+    public IRelayCommand AllowForTimeCommand { get; }
 
     public IRelayCommand AllowAlwaysCommand { get; }
 

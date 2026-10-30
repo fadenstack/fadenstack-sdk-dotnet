@@ -201,11 +201,14 @@ public sealed class Gateway
                  "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
-                 "required_client_modules":{{modules}},"edition":"community","features":["agents"],
+                 "required_client_modules":{{modules}},"edition":"community","features":{{System.Text.Json.JsonSerializer.Serialize(Features)}},
                  "user":{"language":{{language}} },"principal":{{Principal ?? "null"}},
                  "local_retention":{{LocalRetention ?? "null"}} }
                 """;
     }
+
+    /// <summary>The profile's <c>features</c>: what the server advertises (add <c>approval_scopes.time</c> for "for 1 hour").</summary>
+    public List<string> Features { get; } = new() { "agents" };
 
     public List<Recorded> ChatRequests => Server.Requests.Where(r => r.Path == Chat).ToList();
 

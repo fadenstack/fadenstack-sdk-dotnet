@@ -46,6 +46,12 @@ public sealed record ApprovalDecidedEvent : AgentClientEvent
     /// <c>bypass</c>. Null when it was not approved.
     /// </summary>
     public string? Scope { get; init; }
+
+    /// <summary>
+    /// When an approval for a while ends (UTC), set only with scope <c>time</c>. Sent only to a server whose profile
+    /// advertises <c>approval_scopes.time</c>: the server refuses fields it does not know.
+    /// </summary>
+    public DateTimeOffset? ExpiresAt { get; init; }
 }
 
 /// <summary>A local MCP server was attached, and the tools it offers.</summary>
