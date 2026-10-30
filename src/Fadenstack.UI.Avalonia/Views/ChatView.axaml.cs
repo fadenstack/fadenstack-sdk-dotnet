@@ -39,6 +39,7 @@ public partial class ChatView : UserControl
     public ChatView()
     {
         FadenstackTheme.EnsureDefaults();
+        FadenstackAssets.EnsureLoaded();
         InitializeComponent();
         Composer.AddHandler(KeyDownEvent, OnComposerKeyDown, RoutingStrategies.Tunnel);
     }
