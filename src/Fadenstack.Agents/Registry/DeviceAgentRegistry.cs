@@ -3,7 +3,7 @@ using System.Text.Json;
 using Fadenstack.Auth;
 using Fadenstack.Storage;
 
-namespace Fadenstack.Workspaces;
+namespace Fadenstack.Agents.Registry;
 
 /// <summary>
 /// The Fadenstack agents active on this device for this user: each agent registers itself (one small file in

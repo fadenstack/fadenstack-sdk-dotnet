@@ -137,44 +137,6 @@ public sealed record WorkspaceInfo
     public IReadOnlyList<AgentPresence> Agents { get; init; } = [];
 }
 
-public enum AgentStatus
-{
-    Idle,
-    Busy,
-}
-
-/// <summary>
-/// A Fadenstack agent active on this device, as it registered itself (<see cref="DeviceAgentRegistry"/>). The
-/// agent's loop may run in the instance itself (an add-in) or in a service next to it (a thin host), so the
-/// instance and the host process are separate.
-/// </summary>
-public sealed record AgentPresence
-{
-    /// <summary>The server agent's slug: <c>word-assistant</c>.</summary>
-    public string Agent { get; init; } = "";
-
-    /// <summary>The instance it works in (<see cref="InstanceKey"/> text); empty for the desktop agent.</summary>
-    public string Instance { get; init; } = "";
-
-    /// <summary>The host's window key, for hosts with an agent per window (Office panes).</summary>
-    public string? Window { get; init; }
-
-    /// <summary>Locations of the workspaces it is attached to.</summary>
-    public IReadOnlyList<string> Workspaces { get; init; } = [];
-
-    public AgentStatus Status { get; init; }
-
-    /// <summary>A pipe name, when the agent accepts delegation or lends tools; null otherwise.</summary>
-    public string? Bridge { get; init; }
-
-    /// <summary>The process the agent's loop runs in, and its start time (to tell a restarted process).</summary>
-    public int HostProcessId { get; init; }
-
-    public long HostStartTicks { get; init; }
-
-    public DateTime HeartbeatUtc { get; init; }
-}
-
 /// <summary>A write lease on a workspace (<see cref="DocumentLeases"/>).</summary>
 public sealed record LeaseInfo
 {

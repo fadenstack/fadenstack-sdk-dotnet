@@ -11,6 +11,8 @@
     <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The device agent registry lives in Fadenstack.Agents (a packable package both hosts reference). -->
+    <Using Include="Fadenstack.Agents.Registry" />
     <InternalsVisibleTo Include="Fadenstack.Workspaces.Tests" />
   </ItemGroup>
 </Project>
