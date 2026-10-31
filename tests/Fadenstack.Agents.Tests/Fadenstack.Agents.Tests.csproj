@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Fadenstack.Agents.Delegation\Fadenstack.Agents.Delegation.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Mcp\Fadenstack.Mcp.csproj" />
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Client.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />

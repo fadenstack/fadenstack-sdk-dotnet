@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Fadenstack.Client\Fadenstack.Client.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.Agents.Delegation" />
     <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
     <InternalsVisibleTo Include="Fadenstack.Mcp" />
     <InternalsVisibleTo Include="Fadenstack.Provenance" />

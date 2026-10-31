@@ -2,6 +2,8 @@
 
 This page covers how one agent hands a task to another agent on the same computer with `Fadenstack.Agents`: for example a desktop agent that gives Office work to the add-in agent running in Word.
 
+`IAgentDelegate` and its request and result types are in `Fadenstack.Agents`. The implementation (`DelegationHost`, `LocalAgentDelegate`, `DelegateToolModule`) is in `Fadenstack.Agents.Delegation`, a package for applications that is not published to nuget.org with the SDK.
+
 The other agent runs the task as a new session of its own: its own server agent, tool contract, tool modes and approvals. Only the task text and the references you choose go over, and only its final answer comes back. An approval the other agent needs is asked of the caller's person.
 
 ## In the add-in: take tasks

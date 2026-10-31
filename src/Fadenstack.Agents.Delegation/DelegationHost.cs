@@ -359,7 +359,7 @@ public sealed class DelegationHost : IDisposable
         public async Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
             var summary = request.Target ?? request.Reason;
-            var ask = new ApprovalAsk(Guid.NewGuid().ToString("N"), request.ToolName, request.ToolClass.ToWire(),
+            var ask = new ApprovalAsk(Guid.NewGuid().ToString("N"), request.ToolName, request.ToolClass.ToString().ToLowerInvariant(),
                 Cut(summary, SummaryLimit), Cut(Preview(request.Arguments), PreviewLimit));
             _task.State = TaskState.InputRequired.ToWire();
             _task.StatusText = "Waiting for approval: " + request.ToolName;

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Fadenstack.Agents.Delegation</RootNamespace>
+    <PackageId>Fadenstack.Agents.Delegation</PackageId>
+    <Description>Delegation between agents on one device: an add-in's agent takes tasks from another agent (DelegationHost), a caller hands them over (LocalAgentDelegate), and the one delegate tool for the model. Local pipe for the current user only.</Description>
+    <!-- Not published to nuget.org with the SDK (release.yml leaves it out): the transport becomes the A2A library's, which has
+         no netstandard2.0 build upstream yet (a2aproject/a2a-dotnet issue #197); only apps use this package. The
+         interface (IAgentDelegate) is in Fadenstack.Agents. See sdk/08 decision 11. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
+  </ItemGroup>
+</Project>
