@@ -8,9 +8,18 @@
          interface (IAgentDelegate) is in Fadenstack.Agents. See sdk/08 decision 11. -->
   </PropertyGroup>
   <ItemGroup>
+    <!-- The A2A library, in the Fadenstack fork with a netstandard2.0 build (a2aproject/a2a-dotnet issue #197); only apps use it.
+         Until it is on nuget.org the fork's package comes from the local feed that sits next to the repositories. -->
+    <PackageReference Include="A2A" Version="1.0.0-preview4-fs.1" />
+  </ItemGroup>
+  <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\.local\sdk-feed')">
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(MSBuildThisFileDirectory)..\..\..\.local\sdk-feed</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
+    <InternalsVisibleTo Include="Fadenstack.Agents.Delegation.Tests" />
   </ItemGroup>
 </Project>
