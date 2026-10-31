@@ -6,57 +6,27 @@ namespace Fadenstack.Agents.Delegation;
 
 // The local pipe's wire: one JSON object per line (newline-delimited JSON), UTF-8, at most MaxBytes a line.
 //
-//   caller -> agent   hello {version, secret}            agent -> caller   ready {slug}
-//   caller -> agent   task/start {taskId, message{text, references}, from{slug, name}}
-//   agent -> caller   task/status {taskId, state, text?}
-//   agent -> caller   task/approval {taskId, approvalId, tool, toolClass, summary, argumentsPreview}   (state input-required)
-//   caller -> agent   task/approve {taskId, approvalId, decision: once | chat | deny}
-//   agent -> caller   task/artifact {taskId, text}       (then the final task/status)
-//   caller -> agent   task/cancel {taskId}
+//   caller -> agent   {"type":"hello","version":1,"secret":"..."}     agent -> caller   {"type":"ready","version":1,"slug":"..."}
+//
+// After that handshake (transport security, ours) every line is a JSON-RPC 2.0 request from the caller or a response
+// from the agent in A2A 1.0 form (A2A.JsonRpcRequest / A2A.JsonRpcResponse, A2AJsonUtilities options): the methods
+// SendStreamingMessage, CancelTask, GetTask and GetExtendedAgentCard (A2AMethods). A streaming request is answered by one
+// response line per StreamResponse, all with the request's id.
 
 /// <summary>The message types of the pipe wire.</summary>
 internal static class FrameTypes
 {
     public const string Hello = "hello";
     public const string Ready = "ready";
-    public const string TaskStart = "task/start";
-    public const string TaskStatus = "task/status";
-    public const string TaskApproval = "task/approval";
-    public const string TaskApprove = "task/approve";
-    public const string TaskArtifact = "task/artifact";
-    public const string TaskCancel = "task/cancel";
 }
 
-/// <summary>One wire message; the fields a type does not use stay out of the JSON.</summary>
+/// <summary>The handshake message: <c>hello</c> with the launch's secret, answered by <c>ready</c>.</summary>
 internal sealed class Frame
 {
     public string Type { get; set; } = "";
     public int? Version { get; set; }
     public string? Secret { get; set; }
     public string? Slug { get; set; }
-    public string? TaskId { get; set; }
-    public FrameMessage? Message { get; set; }
-    public FrameParty? From { get; set; }
-    public string? State { get; set; }
-    public string? Text { get; set; }
-    public string? ApprovalId { get; set; }
-    public string? Tool { get; set; }
-    public string? ToolClass { get; set; }
-    public string? Summary { get; set; }
-    public string? ArgumentsPreview { get; set; }
-    public string? Decision { get; set; }
-}
-
-internal sealed class FrameMessage
-{
-    public string Text { get; set; } = "";
-    public List<string> References { get; set; } = new();
-}
-
-internal sealed class FrameParty
-{
-    public string Slug { get; set; } = "";
-    public string Name { get; set; } = "";
 }
 
 /// <summary>A message that is too large, not JSON, or not one this side accepts: the connection ends.</summary>
@@ -90,8 +60,30 @@ internal sealed class FrameStream
         _maxBytes = maxBytes;
     }
 
-    /// <summary>The next message; null when the other side closed the connection.</summary>
+    /// <summary>The next handshake message; null when the other side closed the connection.</summary>
     public async Task<Frame?> ReadAsync(CancellationToken cancellationToken)
+    {
+        var line = await ReadLineAsync(cancellationToken).ConfigureAwait(false);
+        if (line is null)
+        {
+            return null;
+        }
+        try
+        {
+            var frame = JsonSerializer.Deserialize<Frame>(line, Json);
+            return frame is { Type.Length: > 0 } ? frame : throw new WireException("A message has no type.");
+        }
+        catch (JsonException)
+        {
+            throw new WireException("A message is not valid JSON.");
+        }
+    }
+
+    public Task WriteAsync(Frame frame, CancellationToken cancellationToken) =>
+        WriteLineAsync(JsonSerializer.Serialize(frame, Json), cancellationToken);
+
+    /// <summary>The next line (at most the limit); null when the other side closed the connection.</summary>
+    public async Task<string?> ReadLineAsync(CancellationToken cancellationToken)
     {
         _line.SetLength(0);
         while (true)
@@ -122,21 +114,13 @@ internal sealed class FrameStream
             {
                 continue; // an empty line is nothing
             }
-            try
-            {
-                var frame = JsonSerializer.Deserialize<Frame>(Encoding.UTF8.GetString(_line.GetBuffer(), 0, (int)_line.Length), Json);
-                return frame is { Type.Length: > 0 } ? frame : throw new WireException("A message has no type.");
-            }
-            catch (JsonException)
-            {
-                throw new WireException("A message is not valid JSON.");
-            }
+            return Encoding.UTF8.GetString(_line.GetBuffer(), 0, (int)_line.Length);
         }
     }
 
-    public async Task WriteAsync(Frame frame, CancellationToken cancellationToken)
+    public async Task WriteLineAsync(string line, CancellationToken cancellationToken)
     {
-        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(frame, Json) + "\n");
+        var bytes = Encoding.UTF8.GetBytes(line + "\n");
         if (bytes.Length > _maxBytes + 1)
         {
             throw new WireException($"A message is larger than {_maxBytes} bytes.");

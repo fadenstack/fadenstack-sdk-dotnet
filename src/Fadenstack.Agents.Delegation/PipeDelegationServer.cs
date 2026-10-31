@@ -1,95 +1,62 @@
 using System.IO.Pipes;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
+using System.Text.Json;
 using Fadenstack.Agents.Registry;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Agents.Delegation;
 
-/// <summary>
-/// Pipes for delegation: created for the current OS user only. On .NET 8 with <c>PipeOptions.CurrentUserOnly</c>; on
-/// .NET Framework (the netstandard2.0 build) with a <c>PipeSecurity</c> that names the current user's SID alone.
-/// </summary>
-internal static class DelegationPipes
+/// <summary>The A2A server of one embedded agent: the library's <see cref="A2A.A2AServer"/>, which also serves the agent's card.</summary>
+internal sealed class DelegationA2AServer : A2A.A2AServer
 {
-    public const string Machine = ".";
+    private readonly A2A.AgentCard _card;
 
-    public static NamedPipeServerStream CreateServer(string name, int maxInstances)
+    public DelegationA2AServer(A2A.IAgentHandler handler, A2A.AgentCard card)
+        : base(handler, new A2A.InMemoryTaskStore(), new A2A.ChannelEventNotifier(), NullLogger<A2A.A2AServer>.Instance,
+            new A2A.A2AServerOptions { SupportsStreaming = true, SupportsExtendedAgentCard = true })
     {
-#if NET8_0_OR_GREATER
-        return new NamedPipeServerStream(name, PipeDirection.InOut, maxInstances, PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-#else
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // A netstandard2.0 build on another system is not a supported host; the pipe is still found only through the owner-only registry.
-            return new NamedPipeServerStream(name, PipeDirection.InOut, maxInstances, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-        }
-        return CreateWindowsServer(name, maxInstances);
-#endif
+        _card = card;
     }
 
-#if !NET8_0_OR_GREATER
-    private static NamedPipeServerStream CreateWindowsServer(string name, int maxInstances)
-    {
-        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
-        var security = new PipeSecurity();
-        security.AddAccessRule(new PipeAccessRule(identity.User!, PipeAccessRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
-        // .NET Framework has a constructor that takes the PipeSecurity at creation (no moment with the default ACL, which lets
-        // Everyone read); the netstandard2.0 reference lacks it, so it is called by reflection, and the ACL is set
-        // afterwards where only another runtime has no such constructor.
-        var constructor = typeof(NamedPipeServerStream).GetConstructor(new[]
-        {
-            typeof(string), typeof(PipeDirection), typeof(int), typeof(PipeTransmissionMode), typeof(PipeOptions),
-            typeof(int), typeof(int), typeof(PipeSecurity),
-        });
-        if (constructor is not null)
-        {
-            return (NamedPipeServerStream)constructor.Invoke(new object[]
-            {
-                name, PipeDirection.InOut, maxInstances, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, security,
-            });
-        }
-        var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, maxInstances, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-        pipe.SetAccessControl(security);
-        return pipe;
-    }
-#endif
+    public override Task<A2A.AgentCard> GetExtendedAgentCardAsync(A2A.GetExtendedAgentCardRequest request, A2A.A2ARequestContext? requestContext,
+        CancellationToken cancellationToken = default) => Task.FromResult(_card);
 
-    public static NamedPipeClientStream CreateClient(string name)
+    /// <summary>The A2A Agent Card for an agent's registry summary.</summary>
+    public static A2A.AgentCard CardFor(AgentCardSummary summary, string pipe) => new()
     {
-#if NET8_0_OR_GREATER
-        return new NamedPipeClientStream(Machine, name, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly,
-            System.Security.Principal.TokenImpersonationLevel.Identification);
-#else
-        return new NamedPipeClientStream(Machine, name, PipeDirection.InOut, PipeOptions.Asynchronous,
-            System.Security.Principal.TokenImpersonationLevel.Identification);
-#endif
-    }
-
-    /// <summary>A random token (hex) for pipe names and launch secrets.</summary>
-    public static string RandomHex(int bytes)
-    {
-        var data = new byte[bytes];
-        using var random = RandomNumberGenerator.Create();
-        random.GetBytes(data);
-        var text = new char[bytes * 2];
-        for (var i = 0; i < bytes; i++)
+        Name = summary.Name.Length > 0 ? summary.Name : summary.Slug,
+        Description = summary.Description,
+        Version = "1.0",
+        SupportedInterfaces = new List<A2A.AgentInterface>
         {
-            text[i * 2] = "0123456789abcdef"[data[i] >> 4];
-            text[i * 2 + 1] = "0123456789abcdef"[data[i] & 15];
-        }
-        return new string(text);
+            new() { Url = "pipe://" + pipe, ProtocolBinding = "JSONRPC", ProtocolVersion = "1.0" },
+        },
+        Capabilities = new A2A.AgentCapabilities { Streaming = true, PushNotifications = false, ExtendedAgentCard = true },
+        Skills = summary.Skills.Select(s => new A2A.AgentSkill
+        {
+            Id = Slug(s.Name), Name = s.Name, Description = s.Description, Tags = new List<string>(),
+        }).ToList(),
+        DefaultInputModes = new List<string> { "text/plain" },
+        DefaultOutputModes = new List<string> { "text/plain" },
+    };
+
+    private static string Slug(string name)
+    {
+        var id = new string(name.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
+        return id.Length == 0 ? "skill" : id;
     }
 }
 
 /// <summary>
-/// The embedded agent's end of the local pipe: accepts connections of the current user, checks the launch's secret
-/// (the first message must be <c>hello</c> with it, else the connection closes), and gives each <c>task/start</c> to
-/// the runner, relaying its status and approvals as the wire's messages.
+/// The embedded agent's end of the local pipe: accepts connections of the current user, checks the launch's secret (the first
+/// message must be <c>hello</c> with it, else the connection closes), and then speaks A2A 1.0 JSON-RPC, one request or response
+/// per line, over an <see cref="A2A.A2AServer"/> whose handler runs each task with the host's runner. The library's JSON-RPC
+/// processing is in A2A.AspNetCore (net8+ only), so the small dispatcher here follows its method handling.
 /// </summary>
 internal sealed class PipeDelegationServer : IDelegationServer
 {
     private const int MaxInstances = 8;
+    private static readonly System.Text.Json.Serialization.Metadata.JsonTypeInfo RequestInfo = A2A.A2AJsonUtilities.DefaultOptions.GetTypeInfo(typeof(A2A.JsonRpcRequest));
+    private static readonly System.Text.Json.Serialization.Metadata.JsonTypeInfo ResponseInfo = A2A.A2AJsonUtilities.DefaultOptions.GetTypeInfo(typeof(A2A.JsonRpcResponse));
 
     private readonly int _maxBytes;
     private readonly TimeSpan _handshakeTimeout;
@@ -98,7 +65,8 @@ internal sealed class PipeDelegationServer : IDelegationServer
     private readonly List<NamedPipeServerStream> _active = new();
     private int _connections;
     private int _disposed;
-    private IDelegatedTaskRunner? _runner;
+    private A2ARunnerHandler? _handler;
+    private DelegationA2AServer? _a2a;
     private Task? _accepting;
 
     public PipeDelegationServer(AgentCardSummary card, int maxMessageBytes = FrameStream.DefaultMaxBytes, TimeSpan? handshakeTimeout = null)
@@ -113,11 +81,12 @@ internal sealed class PipeDelegationServer : IDelegationServer
 
     public void Start(IDelegatedTaskRunner runner)
     {
-        if (_runner is not null)
+        if (_handler is not null)
         {
             throw new InvalidOperationException("The server is already started.");
         }
-        _runner = runner;
+        _handler = new A2ARunnerHandler(runner);
+        _a2a = new DelegationA2AServer(_handler, DelegationA2AServer.CardFor(Endpoint.Card, Endpoint.Pipe));
         // The first pipe instance exists before Start returns, so a caller that finds the registration can connect.
         var first = DelegationPipes.CreateServer(Endpoint.Pipe, MaxInstances);
         _accepting = Task.Run(() => AcceptAsync(first));
@@ -172,7 +141,9 @@ internal sealed class PipeDelegationServer : IDelegationServer
         {
             _active.Add(pipe);
         }
-        using var task = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+        using var connection = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+        var tasks = new List<string>(); // the A2A tasks this connection started
+        var requests = new List<Task>();
         try
         {
             if (connections > MaxInstances - 2)
@@ -185,41 +156,12 @@ internal sealed class PipeDelegationServer : IDelegationServer
             {
                 return; // anything but a hello with the secret closes the connection
             }
-            await frames.WriteAsync(new Frame { Type = FrameTypes.Ready, Version = 1, Slug = _slug }, task.Token).ConfigureAwait(false);
-            var start = await ReadWithin(frames).ConfigureAwait(false);
-            if (start is not { Type: FrameTypes.TaskStart, TaskId.Length: > 0, Message: { } message })
+            await frames.WriteAsync(new Frame { Type = FrameTypes.Ready, Version = 1, Slug = _slug }, connection.Token).ConfigureAwait(false);
+            while (await frames.ReadLineAsync(connection.Token).ConfigureAwait(false) is { } line)
             {
-                return;
+                requests.Add(Task.Run(() => ServeAsync(frames, line, tasks, connection.Token)));
+                requests.RemoveAll(r => r.IsCompleted);
             }
-            var request = new TaskRequest(start.TaskId, message.Text, message.References ?? new List<string>(),
-                start.From?.Slug ?? "", start.From?.Name ?? "");
-            var channel = new Channel(frames, request.TaskId, task);
-            var reading = Task.Run(() => channel.ReadCallerAsync());
-            TaskOutcome outcome;
-            try
-            {
-                outcome = await _runner!.RunAsync(request, channel, task.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                outcome = new TaskOutcome(request.TaskId, TaskState.Canceled, "The task was canceled.");
-            }
-            catch (Exception e)
-            {
-                outcome = new TaskOutcome(request.TaskId, TaskState.Failed, "The agent failed: " + e.GetType().Name + ".");
-            }
-            await channel.FinishAsync(outcome).ConfigureAwait(false);
-            try
-            {
-                // Closing a pipe with unread data discards it: let the caller read the last message first.
-                await Task.Run(() => Drain(pipe)).WaitAsyncWithin(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is IOException or ObjectDisposedException or TimeoutException or InvalidOperationException
-                                          or PlatformNotSupportedException or NotSupportedException)
-            {
-            }
-            task.Cancel();
-            await reading.ConfigureAwait(false);
         }
         catch (Exception e) when (e is WireException or IOException or OperationCanceledException or ObjectDisposedException)
         {
@@ -227,6 +169,22 @@ internal sealed class PipeDelegationServer : IDelegationServer
         }
         finally
         {
+            // A caller that is gone leaves no one to answer an approval: its tasks stop.
+            connection.Cancel();
+            lock (tasks)
+            {
+                foreach (var id in tasks)
+                {
+                    _handler?.Abandon(id);
+                }
+            }
+            try
+            {
+                await Task.WhenAll(requests).WaitAsyncWithin(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+            }
             Interlocked.Decrement(ref _connections);
             lock (_active)
             {
@@ -234,17 +192,6 @@ internal sealed class PipeDelegationServer : IDelegationServer
             }
             pipe.Dispose();
         }
-    }
-
-    private static void Drain(NamedPipeServerStream pipe)
-    {
-#if NET8_0_OR_GREATER
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-#endif
-        pipe.WaitForPipeDrain();
     }
 
     private async Task<Frame?> ReadWithin(FrameStream frames)
@@ -261,6 +208,113 @@ internal sealed class PipeDelegationServer : IDelegationServer
         }
     }
 
+    /// <summary>One JSON-RPC request: answered by one response line, or by one line per event for a streaming method.</summary>
+    private async Task ServeAsync(FrameStream frames, string line, List<string> tasks, CancellationToken cancellationToken)
+    {
+        A2A.JsonRpcRequest? request = null;
+        try
+        {
+            request = (A2A.JsonRpcRequest?)JsonSerializer.Deserialize(line, RequestInfo);
+            if (request is null)
+            {
+                throw new JsonException();
+            }
+            if (request.Params is not { } parameters)
+            {
+                await WriteAsync(frames, A2A.JsonRpcResponse.InvalidParamsResponse(request.Id), cancellationToken).ConfigureAwait(false);
+                return;
+            }
+            switch (request.Method)
+            {
+                case A2A.A2AMethods.SendStreamingMessage:
+                    await foreach (var item in _a2a!.SendStreamingMessageAsync(Parameters<A2A.SendMessageRequest>(parameters), null, cancellationToken)
+                        .ConfigureAwait(false))
+                    {
+                        Remember(tasks, item);
+                        await WriteAsync(frames, A2A.JsonRpcResponse.CreateJsonRpcResponse(request.Id, item), cancellationToken).ConfigureAwait(false);
+                    }
+                    break;
+                case A2A.A2AMethods.SendMessage:
+                    var sent = await _a2a!.SendMessageAsync(Parameters<A2A.SendMessageRequest>(parameters), null, cancellationToken).ConfigureAwait(false);
+                    await WriteAsync(frames, A2A.JsonRpcResponse.CreateJsonRpcResponse(request.Id, sent), cancellationToken).ConfigureAwait(false);
+                    break;
+                case A2A.A2AMethods.GetTask:
+                    var task = await _a2a!.GetTaskAsync(Parameters<A2A.GetTaskRequest>(parameters), null, cancellationToken).ConfigureAwait(false);
+                    await WriteAsync(frames, A2A.JsonRpcResponse.CreateJsonRpcResponse(request.Id, task), cancellationToken).ConfigureAwait(false);
+                    break;
+                case A2A.A2AMethods.CancelTask:
+                    var cancelled = await _a2a!.CancelTaskAsync(Parameters<A2A.CancelTaskRequest>(parameters), null, cancellationToken).ConfigureAwait(false);
+                    await WriteAsync(frames, A2A.JsonRpcResponse.CreateJsonRpcResponse(request.Id, cancelled), cancellationToken).ConfigureAwait(false);
+                    break;
+                case A2A.A2AMethods.GetExtendedAgentCard:
+                    var card = await _a2a!.GetExtendedAgentCardAsync(Parameters<A2A.GetExtendedAgentCardRequest>(parameters), null, cancellationToken)
+                        .ConfigureAwait(false);
+                    await WriteAsync(frames, A2A.JsonRpcResponse.CreateJsonRpcResponse(request.Id, card), cancellationToken).ConfigureAwait(false);
+                    break;
+                default:
+                    await WriteAsync(frames, A2A.JsonRpcResponse.MethodNotFoundResponse(request.Id), cancellationToken).ConfigureAwait(false);
+                    break;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // the connection ended
+        }
+        catch (Exception e) when (e is IOException or ObjectDisposedException)
+        {
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            var id = request?.Id ?? new A2A.JsonRpcId((string?)null);
+            var response = e switch
+            {
+                A2A.A2AException a2a => A2A.JsonRpcResponse.CreateJsonRpcErrorResponse(id, a2a),
+                JsonException => A2A.JsonRpcResponse.ParseErrorResponse(id),
+                WireException => A2A.JsonRpcResponse.InternalErrorResponse(id, "The answer is too large to hand over."),
+                _ => A2A.JsonRpcResponse.InternalErrorResponse(id, "An internal error occurred."), // never the exception's own words
+            };
+            try
+            {
+                await WriteAsync(frames, response, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException or WireException)
+            {
+            }
+        }
+    }
+
+    private static T Parameters<T>(JsonElement parameters) where T : class
+    {
+        try
+        {
+            return parameters.Deserialize(A2A.A2AJsonUtilities.DefaultOptions.GetTypeInfo(typeof(T))) as T
+                ?? throw new A2A.A2AException("Invalid parameters.", A2A.A2AErrorCode.InvalidParams);
+        }
+        catch (JsonException ex)
+        {
+            throw new A2A.A2AException($"Invalid parameters: they could not be read as {typeof(T).Name}.", ex, A2A.A2AErrorCode.InvalidParams);
+        }
+    }
+
+    private static void Remember(List<string> tasks, A2A.StreamResponse item)
+    {
+        var id = item.Task?.Id ?? item.StatusUpdate?.TaskId ?? item.ArtifactUpdate?.TaskId;
+        if (id is null)
+        {
+            return;
+        }
+        lock (tasks)
+        {
+            if (!tasks.Contains(id))
+            {
+                tasks.Add(id);
+            }
+        }
+    }
+
+    private static Task WriteAsync(FrameStream frames, A2A.JsonRpcResponse response, CancellationToken cancellationToken) =>
+        frames.WriteLineAsync(JsonSerializer.Serialize(response, ResponseInfo), cancellationToken);
+
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) == 1)
@@ -268,6 +322,7 @@ internal sealed class PipeDelegationServer : IDelegationServer
             return;
         }
         _stop.Cancel();
+        _handler?.AbandonAll();
         lock (_active)
         {
             foreach (var pipe in _active)
@@ -282,160 +337,13 @@ internal sealed class PipeDelegationServer : IDelegationServer
         catch (AggregateException)
         {
         }
+        try
+        {
+            _a2a?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException)
+        {
+        }
         _stop.Dispose();
-    }
-
-    /// <summary>One task's conversation with its caller.</summary>
-    private sealed class Channel : IDelegatedTaskChannel
-    {
-        private readonly FrameStream _frames;
-        private readonly string _taskId;
-        private readonly CancellationTokenSource _task;
-        private readonly Dictionary<string, TaskCompletionSource<ApprovalChoice>> _waiting = new();
-        private bool _gone;
-
-        public Channel(FrameStream frames, string taskId, CancellationTokenSource task)
-        {
-            _frames = frames;
-            _taskId = taskId;
-            _task = task;
-        }
-
-        public Task StatusAsync(TaskState state, string? text) =>
-            SendAsync(new Frame { Type = FrameTypes.TaskStatus, TaskId = _taskId, State = state.ToWire(), Text = text });
-
-        public async Task<ApprovalChoice> RequestApprovalAsync(ApprovalAsk ask, CancellationToken cancellationToken)
-        {
-            var answer = new TaskCompletionSource<ApprovalChoice>(TaskCreationOptions.RunContinuationsAsynchronously);
-            lock (_waiting)
-            {
-                if (_gone)
-                {
-                    return ApprovalChoice.Deny;
-                }
-                _waiting[ask.ApprovalId] = answer;
-            }
-            await SendAsync(new Frame
-            {
-                Type = FrameTypes.TaskApproval, TaskId = _taskId, State = TaskState.InputRequired.ToWire(), ApprovalId = ask.ApprovalId,
-                Tool = ask.Tool, ToolClass = ask.ToolClass, Summary = ask.Summary, ArgumentsPreview = ask.ArgumentsPreview,
-            }).ConfigureAwait(false);
-            using (cancellationToken.Register(() => answer.TrySetResult(ApprovalChoice.Deny)))
-            {
-                var choice = await answer.Task.ConfigureAwait(false);
-                lock (_waiting)
-                {
-                    _waiting.Remove(ask.ApprovalId);
-                }
-                return choice;
-            }
-        }
-
-        /// <summary>The caller's messages after the start: approvals and a cancel. The end of them is the caller going away.</summary>
-        public async Task ReadCallerAsync()
-        {
-            try
-            {
-                while (await _frames.ReadAsync(_task.Token).ConfigureAwait(false) is { } frame)
-                {
-                    if (frame.TaskId != _taskId)
-                    {
-                        continue;
-                    }
-                    if (frame.Type == FrameTypes.TaskCancel)
-                    {
-                        _task.Cancel();
-                    }
-                    else if (frame.Type == FrameTypes.TaskApprove && frame.ApprovalId is { } id)
-                    {
-                        TaskCompletionSource<ApprovalChoice>? answer;
-                        lock (_waiting)
-                        {
-                            _waiting.TryGetValue(id, out answer);
-                        }
-                        answer?.TrySetResult(frame.Decision switch
-                        {
-                            "once" => ApprovalChoice.Once,
-                            "chat" => ApprovalChoice.Chat,
-                            _ => ApprovalChoice.Deny,
-                        });
-                    }
-                }
-            }
-            catch (Exception e) when (e is WireException or IOException or OperationCanceledException or ObjectDisposedException)
-            {
-            }
-            Abandon(); // EOF, a broken message or the end of the task
-        }
-
-        /// <summary>The caller is gone (or the task ended): pending approvals are denied and the task is cancelled.</summary>
-        private void Abandon()
-        {
-            lock (_waiting)
-            {
-                _gone = true;
-                foreach (var answer in _waiting.Values)
-                {
-                    answer.TrySetResult(ApprovalChoice.Deny);
-                }
-            }
-            try
-            {
-                _task.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-        }
-
-        public async Task FinishAsync(TaskOutcome outcome)
-        {
-            if (outcome.State == TaskState.Completed && !string.IsNullOrEmpty(outcome.Text))
-            {
-                try
-                {
-                    await SendAsync(new Frame { Type = FrameTypes.TaskArtifact, TaskId = _taskId, Text = outcome.Text }).ConfigureAwait(false);
-                }
-                catch (WireException)
-                {
-                    outcome = new TaskOutcome(outcome.TaskId, TaskState.Failed, "The answer is too large to hand over.");
-                }
-            }
-            await SendAsync(new Frame
-            {
-                Type = FrameTypes.TaskStatus, TaskId = _taskId, State = outcome.State.ToWire(),
-                Text = outcome.State == TaskState.Completed ? null : outcome.Text,
-            }).ConfigureAwait(false);
-        }
-
-        private async Task SendAsync(Frame frame)
-        {
-            try
-            {
-                await _frames.WriteAsync(frame, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception e) when (e is IOException or ObjectDisposedException or WireException)
-            {
-                if (e is WireException && frame.Type == FrameTypes.TaskArtifact)
-                {
-                    throw; // an answer too large to send is the task's failure, not a lost caller
-                }
-                Abandon();
-            }
-        }
-    }
-}
-
-internal static class TaskExtensions
-{
-    /// <summary>Waits for the task for at most <paramref name="limit"/>; throws <see cref="TimeoutException"/> after that.</summary>
-    public static async Task WaitAsyncWithin(this Task task, TimeSpan limit)
-    {
-        var finished = await Task.WhenAny(task, Task.Delay(limit)).ConfigureAwait(false);
-        if (finished != task)
-        {
-            throw new TimeoutException();
-        }
-        await task.ConfigureAwait(false);
     }
 }

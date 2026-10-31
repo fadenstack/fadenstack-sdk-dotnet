@@ -61,3 +61,7 @@ var agent = FadenstackAgent.CreateBuilder()
 ```
 
 Each call is reported to the server as a `tool.executed` event for the tool `delegate` (name, outcome, duration), never with the task or the answer. With `ReportDelegations` the module also sends an `agent.delegated` event (from, to, task id, outcome, duration) once the server accepts that kind.
+
+## On the wire
+
+The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview}`; the answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
