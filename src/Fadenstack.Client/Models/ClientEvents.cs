@@ -73,3 +73,28 @@ public sealed record SessionStatsEvent : AgentClientEvent
     public int? RetentionSessions { get; init; }
     public int? RetentionDays { get; init; }
 }
+
+/// <summary>
+/// An agent handed a task to another agent on the device (<c>Fadenstack.Agents.Delegation</c>): who, to whom, how it ended
+/// and how long it took -- never the task or the answer. A server accepts this kind only from a release that lists it
+/// (<c>agent.delegated</c>); until then the delegation is counted by the tool's own <see cref="ToolExecutedEvent"/>
+/// (tool <c>delegate</c>), and the SDK sends this one only when asked to.
+/// </summary>
+public sealed record AgentDelegatedEvent : AgentClientEvent
+{
+    public override string Type => "agent.delegated";
+
+    /// <summary>The calling agent's slug.</summary>
+    public string FromAgent { get; init; } = "";
+
+    /// <summary>The slug of the agent the task went to.</summary>
+    public string ToAgent { get; init; } = "";
+
+    /// <summary>The delegation's id, to match the two agents' records.</summary>
+    public string TaskId { get; init; } = "";
+
+    /// <summary><c>completed</c>, <c>failed</c>, <c>canceled</c>, <c>rejected</c> or <c>not_running</c>.</summary>
+    public string Outcome { get; init; } = "";
+
+    public long DurationMs { get; init; }
+}
