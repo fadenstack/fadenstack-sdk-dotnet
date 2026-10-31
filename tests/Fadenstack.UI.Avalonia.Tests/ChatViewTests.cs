@@ -230,6 +230,72 @@ public class ChatViewTests
         Assert.Contains(host.View.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == card.StateText);
     }
 
+    private static Border Header(ChatHost host) => host.View.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("header"));
+
+    private static TextBox Composer(ChatHost host) => host.View.GetVisualDescendants().OfType<TextBox>().First(t => t.Name == "Composer");
+
+    [AvaloniaFact]
+    public async Task The_default_is_not_compact_and_shows_the_header_and_takes_the_focus_when_asked()
+    {
+        using var host = await ChatHost.OpenAsync(3);
+
+        Assert.False(host.View.IsCompact);
+        Assert.True(host.View.AutoFocusComposer);
+        Assert.True(Header(host).IsEffectivelyVisible);
+        host.Chat.RequestComposerFocus();
+        await host.PumpAsync();
+        Assert.True(Composer(host).IsFocused);
+    }
+
+    [AvaloniaFact]
+    public async Task Compact_hides_the_header_keeps_the_ai_notice_and_never_takes_the_focus()
+    {
+        using var host = await ChatHost.OpenAsync(3);
+        host.View.IsCompact = true;
+        await host.PumpAsync();
+
+        Assert.False(Header(host).IsEffectivelyVisible);
+        var notice = host.Chat.Strings.AiNotice;
+        Assert.False(string.IsNullOrEmpty(notice));
+        Assert.Contains(host.View.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == notice && t.IsEffectivelyVisible);
+
+        host.Chat.RequestComposerFocus();
+        await host.PumpAsync();
+        Assert.False(Composer(host).IsFocused);
+        Assert.True(Composer(host).IsEffectivelyVisible);
+
+        // Back to the normal panel: header again.
+        host.View.IsCompact = false;
+        await host.PumpAsync();
+        Assert.True(Header(host).IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public async Task A_host_can_switch_the_automatic_focus_off_without_compact()
+    {
+        using var host = await ChatHost.OpenAsync(3);
+        host.View.AutoFocusComposer = false;
+
+        host.Chat.RequestComposerFocus();
+        await host.PumpAsync();
+
+        Assert.False(Composer(host).IsFocused);
+        Assert.True(Header(host).IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public async Task Compact_gives_the_turns_tighter_margins_than_the_panel()
+    {
+        using var host = await ChatHost.OpenAsync(3);
+        var composer = host.View.GetVisualDescendants().OfType<Border>().First(b => b.Name == "ComposerBox");
+        var normal = composer.Margin;
+
+        host.View.IsCompact = true;
+        await host.PumpAsync();
+
+        Assert.True(composer.Margin.Left < normal.Left);
+    }
+
     [AvaloniaFact]
     public async Task Light_and_dark_are_theme_variants_of_the_same_names()
     {

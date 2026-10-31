@@ -253,6 +253,28 @@
         <Setter Property="Spacing" Value="0" />
     </Style>
 
+    <!-- ===== Compact mode (ChatView.IsCompact): the panel in a small floating host ===================== -->
+
+    <!-- The host has its own header; the turns, the bubbles and the composer take less room. -->
+    <Style Selector="Grid.chat.compact Border.header">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Grid.chat.compact StackPanel.turn">
+        <Setter Property="Margin" Value="8,8,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.bubble">
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.banner.chat-error">
+        <Setter Property="Margin" Value="8,4,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.composer">
+        <Setter Property="Margin" Value="8,4,8,2" />
+    </Style>
+    <Style Selector="Grid.chat.compact StackPanel.notice-line">
+        <Setter Property="Margin" Value="8,0,8,4" />
+    </Style>
+
     <!-- ===== Markdown ==================================================================================== -->
 
     <Style Selector="v|MarkdownView">

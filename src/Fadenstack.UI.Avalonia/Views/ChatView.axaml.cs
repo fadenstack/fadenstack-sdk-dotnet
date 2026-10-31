@@ -53,6 +53,20 @@ public partial class ChatView : UserControl
     /// <summary>The host's sign-in, shown in place of the turns while the agent needs a sign-in.</summary>
     public static readonly StyledProperty<object?> SignInContentProperty = AvaloniaProperty.Register<ChatView, object?>(nameof(SignInContent));
 
+    /// <summary>
+    /// The compact mode, for a small floating host such as a bubble beside an avatar: the view's own header is hidden (the host
+    /// has its own), paddings and the composer's margin are tighter, code always wraps, and the composer never takes the focus
+    /// by itself (the host decides, <see cref="AutoFocusComposer"/> has no effect). The AI notice stays, as one small line under
+    /// the composer. Default false: the panel looks and behaves as before.
+    /// </summary>
+    public static readonly StyledProperty<bool> IsCompactProperty = AvaloniaProperty.Register<ChatView, bool>(nameof(IsCompact));
+
+    /// <summary>
+    /// Whether the composer takes the focus when the chat asks for it (a new chat, an opened session). Default true. A host that
+    /// must never take the focus from another window or control sets it to false; <see cref="IsCompact"/> implies false.
+    /// </summary>
+    public static readonly StyledProperty<bool> AutoFocusComposerProperty = AvaloniaProperty.Register<ChatView, bool>(nameof(AutoFocusComposer), true);
+
     /// <summary>Below this width the panel is a side panel: code wraps instead of scrolling.</summary>
     internal const double NarrowWidth = 600;
 
@@ -94,6 +108,20 @@ public partial class ChatView : UserControl
         set => SetValue(AgentPictureProperty, value);
     }
 
+    /// <inheritdoc cref="IsCompactProperty"/>
+    public bool IsCompact
+    {
+        get => GetValue(IsCompactProperty);
+        set => SetValue(IsCompactProperty, value);
+    }
+
+    /// <inheritdoc cref="AutoFocusComposerProperty"/>
+    public bool AutoFocusComposer
+    {
+        get => GetValue(AutoFocusComposerProperty);
+        set => SetValue(AutoFocusComposerProperty, value);
+    }
+
     public object? SignInContent
     {
         get => GetValue(SignInContentProperty);
@@ -111,7 +139,7 @@ public partial class ChatView : UserControl
         var turn = Math.Max(0, Math.Min(width - 2 * TurnMargin, TurnWidth));
         Resources[UserBubbleMaxWidth] = Math.Floor(turn * (width < 480 ? 0.85 : 0.75));
         Root.Classes.Set("narrow", width < NarrowWidth);
-        MarkdownView.SetWrapCode(Root, width < NarrowWidth);
+        MarkdownView.SetWrapCode(Root, width < NarrowWidth || IsCompact);
     }
 
     public object? ComposerToolbar
@@ -138,6 +166,11 @@ public partial class ChatView : UserControl
         if (change.Property == DataContextProperty)
         {
             Follow(DataContext as AgentChatViewModel);
+        }
+        else if (change.Property == IsCompactProperty)
+        {
+            Root.Classes.Set("compact", IsCompact);
+            MarkdownView.SetWrapCode(Root, IsCompact || Bounds.Width < NarrowWidth);
         }
         else if (change.Property == AgentPictureProperty)
         {
@@ -217,6 +250,10 @@ public partial class ChatView : UserControl
 
     private void OnComposerFocusRequested(object? sender, EventArgs e)
     {
+        if (IsCompact || !AutoFocusComposer)
+        {
+            return; // the host decides where the focus goes
+        }
         Composer.Focus();
         Composer.CaretIndex = Composer.Text?.Length ?? 0;
     }
