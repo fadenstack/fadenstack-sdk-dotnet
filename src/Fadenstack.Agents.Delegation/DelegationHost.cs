@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Fadenstack.Agents.Registry;
 using Fadenstack.Chat;
@@ -358,7 +359,9 @@ public sealed class DelegationHost : IDisposable
 
         public async Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
-            var summary = request.Target ?? request.Reason;
+            // What the call acts on, or the admin's message for a rule or a gateway tool. The loop's own reason ("'x' is
+            // write; the tool mode is ask.") is not for people, as on the local card; the caller then names the tool.
+            var summary = request.Target ?? (request.RequiredByRule || request.Source == "gateway" ? request.Reason : null);
             var ask = new ApprovalAsk(Guid.NewGuid().ToString("N"), request.ToolName, request.ToolClass.ToString().ToLowerInvariant(),
                 Cut(summary, SummaryLimit), Cut(Preview(request.Arguments), PreviewLimit));
             _task.State = TaskState.InputRequired.ToWire();
@@ -384,15 +387,28 @@ public sealed class DelegationHost : IDisposable
             };
         }
 
-        private static string Preview(IReadOnlyDictionary<string, object?> arguments)
+        // One "name: value" line per argument, strings as they are: the same text as the local approval card shows.
+        private static string Preview(IReadOnlyDictionary<string, object?> arguments) =>
+            string.Join("\n", arguments.Select(a => $"{a.Key}: {Value(a.Value)}"));
+
+        private static string Value(object? value) => value switch
+        {
+            null => "null",
+            JsonElement { ValueKind: JsonValueKind.String } s => s.GetString() ?? "",
+            JsonElement j => j.GetRawText(),
+            string s => s,
+            _ => Serialize(value),
+        };
+
+        private static string Serialize(object value)
         {
             try
             {
-                return JsonSerializer.Serialize(arguments);
+                return JsonSerializer.Serialize(value, new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
             }
             catch (Exception e) when (e is NotSupportedException or JsonException or InvalidOperationException)
             {
-                return "";
+                return value.ToString() ?? "";
             }
         }
 

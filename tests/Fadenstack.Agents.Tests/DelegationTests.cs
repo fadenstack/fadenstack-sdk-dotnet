@@ -117,6 +117,30 @@ public sealed class DelegationTests : IDisposable
     }
 
     [Fact]
+    public async Task A_forwarded_approval_shows_the_arguments_as_the_local_card_does_without_the_loops_reason()
+    {
+        var gateway = new Gateway(Contract).Calls(("call-1", "add_comment", """{"page":2,"text":"Great job — I'm proud"}""")).Says("Commented.");
+        await Embedded(gateway);
+        DelegationApprovalRequest? asked = null;
+
+        var result = await Caller().RunAsync(Ask(), new DelegationCallbacks
+        {
+            Approve = (r, _) =>
+            {
+                asked = r;
+                return Task.FromResult(ApprovalDecision.Approve());
+            },
+        });
+
+        Assert.True(DelegationOutcome.Completed == result.Outcome, result.Outcome + ": " + result.Text);
+        Assert.NotNull(asked);
+        // Strings as they are, one "name: value" line each; not JSON with \u escapes.
+        Assert.Equal("page: 2\ntext: Great job — I'm proud", asked!.ArgumentsPreview);
+        // "'add_comment' is write; the tool mode is ask." is the loop's reason, not for people: the caller names the tool.
+        Assert.Equal("", asked.Summary);
+    }
+
+    [Fact]
     public async Task A_denial_keeps_the_tool_from_running_and_the_task_still_ends()
     {
         var gateway = new Gateway(Contract).Calls(("call-1", "add_comment", """{"page":2,"text":"Check"}""")).Says("I could not comment.");
