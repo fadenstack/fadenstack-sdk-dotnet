@@ -41,6 +41,13 @@ public sealed class AgentSession
     /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
 
+    /// <summary>
+    /// Who is asked about this session's calls that need approval, instead of the agent's own handler
+    /// (<see cref="AgentBuilder.UseApprovals(IApprovalHandler)"/>); null: the agent's. A session that someone else's person
+    /// supervises sets it, such as a task delegated by another agent (<c>Fadenstack.Agents.Delegation.DelegationHost</c>).
+    /// </summary>
+    public IApprovalHandler? Approvals { get; set; }
+
     /// <summary>The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any.</summary>
     public ToolMode EffectiveToolMode => ToolModes.Narrowest(ToolMode, _agent.Ceiling);
 
@@ -1055,7 +1062,7 @@ public sealed class AgentSession
             ApprovalDecision? decision;
             try
             {
-                decision = await Agent.Settings.Approvals.RequestAsync(request, limit.Token).ConfigureAwait(false);
+                decision = await (_session.Approvals ?? Agent.Settings.Approvals).RequestAsync(request, limit.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
