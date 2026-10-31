@@ -8,6 +8,10 @@
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.10.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <!-- Restricts a named pipe to the current user on .NET Framework (PipeSecurity); .NET 8 has PipeOptions.CurrentUserOnly. -->
+    <PackageReference Include="System.IO.Pipes.AccessControl" Version="5.0.0" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fadenstack.Client\Fadenstack.Client.csproj" />
   </ItemGroup>
