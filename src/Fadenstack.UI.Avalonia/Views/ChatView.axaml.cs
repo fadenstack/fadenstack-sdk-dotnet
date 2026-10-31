@@ -42,8 +42,13 @@ public partial class ChatView : UserControl
     /// <summary>Attaches files: when the host sets it, the composer shows the Attach icon button.</summary>
     public static readonly StyledProperty<ICommand?> AttachCommandProperty = AvaloniaProperty.Register<ChatView, ICommand?>(nameof(AttachCommand));
 
-    /// <summary>The agent's avatar over an empty chat (96 px); without one the chat shows its own mark.</summary>
-    public static readonly StyledProperty<object?> AvatarProperty = AvaloniaProperty.Register<ChatView, object?>(nameof(Avatar));
+    /// <summary>
+    /// The agent's picture over an empty chat ("What shall we work on?"): any control of the host's, such as its animated
+    /// avatar. The skin keeps the place and the size (a 96 square, centred, where its own icon is); without a picture the
+    /// skin shows its own icon. The control is in the visual tree only while the empty chat shows (not while the chat has
+    /// turns or asks for a sign-in), so a live picture can stop when it is detached.
+    /// </summary>
+    public static readonly StyledProperty<Control?> AgentPictureProperty = AvaloniaProperty.Register<ChatView, Control?>(nameof(AgentPicture));
 
     /// <summary>The host's sign-in, shown in place of the turns while the agent needs a sign-in.</summary>
     public static readonly StyledProperty<object?> SignInContentProperty = AvaloniaProperty.Register<ChatView, object?>(nameof(SignInContent));
@@ -82,10 +87,11 @@ public partial class ChatView : UserControl
         set => SetValue(AttachCommandProperty, value);
     }
 
-    public object? Avatar
+    /// <inheritdoc cref="AgentPictureProperty"/>
+    public Control? AgentPicture
     {
-        get => GetValue(AvatarProperty);
-        set => SetValue(AvatarProperty, value);
+        get => GetValue(AgentPictureProperty);
+        set => SetValue(AgentPictureProperty, value);
     }
 
     public object? SignInContent
@@ -133,6 +139,10 @@ public partial class ChatView : UserControl
         {
             Follow(DataContext as AgentChatViewModel);
         }
+        else if (change.Property == AgentPictureProperty)
+        {
+            PlaceAgentPicture();
+        }
         else if (change.Property == AppearanceProperty)
         {
             Scope.RequestedThemeVariant = Appearance switch
@@ -160,15 +170,34 @@ public partial class ChatView : UserControl
             _chat.ComposerFocusRequested += OnComposerFocusRequested;
         }
         ApplyStrings();
+        PlaceAgentPicture();
     }
 
-    /// <summary>The user picked another language: the panel's texts, language and direction follow.</summary>
+    /// <summary>The user picked another language: the panel's texts, language and direction follow. The empty chat came or went: the picture follows.</summary>
     private void OnChatChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AgentChatViewModel.Strings) or null or "")
         {
             ApplyStrings();
         }
+        if (e.PropertyName is nameof(AgentChatViewModel.IsEmpty) or nameof(AgentChatViewModel.SignInRequired) or null or "")
+        {
+            PlaceAgentPicture();
+        }
+    }
+
+    /// <summary>
+    /// The host's picture goes into its slot while the empty chat shows (the same condition as the empty state's
+    /// visibility), and leaves the visual tree otherwise.
+    /// </summary>
+    private void PlaceAgentPicture()
+    {
+        if (AgentPictureSlot is not { } slot)
+        {
+            return; // before InitializeComponent
+        }
+        var showing = _chat is { IsEmpty: true, SignInRequired: false };
+        slot.Content = showing ? AgentPicture : null;
     }
 
     /// <summary>The view model's texts for everything in the panel (<see cref="ChatText"/>), with their language and direction.</summary>
