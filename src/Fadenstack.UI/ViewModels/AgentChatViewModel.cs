@@ -416,8 +416,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// The level new messages think at: the person's pick, kept for them and this agent on this device, else the agent's
-    /// default. Changing it applies from the next message; a running turn is not changed.
+    /// The level new messages think at: the person's pick, kept for them and this agent on this device, else Auto -- each
+    /// lowered to the server's maximum. Changing it applies from the next message; a running turn is not changed.
     /// </summary>
     public ReasoningOption? SelectedReasoning
     {
@@ -435,10 +435,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 _session.Reasoning = value.Level;
             }
             OnPropertyChanged(nameof(ReasoningPillText));
-                OnPropertyChanged(nameof(ReasoningAutomationName));
+            OnPropertyChanged(nameof(ReasoningAutomationName));
             OnPropertyChanged(nameof(ReasoningToolTip));
-        OnPropertyChanged(nameof(ReasoningAutomationName));
-        OnPropertyChanged(nameof(ReasoningToolTip));
             OnPropertyChanged(nameof(ReasoningHint));
         }
     }

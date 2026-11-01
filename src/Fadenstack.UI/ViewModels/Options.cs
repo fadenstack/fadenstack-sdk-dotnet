@@ -176,7 +176,7 @@ public sealed class ReasoningOption : ObservableObject
 
     public ReasoningLevel Level { get; }
 
-    /// <summary>"Low"; "On" and "Off" when the agent offers only those two.</summary>
+    /// <summary>"Low".</summary>
     public string Label => _strings.ReasoningLabel(Level);
 
     public string Description => _strings.ReasoningDescription(Level);

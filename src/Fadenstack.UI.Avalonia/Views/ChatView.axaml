@@ -767,7 +767,7 @@
                             </Border>
                             </Border>
                         </Popup>
-                        <!-- How long the agent thinks: its levels, from the agent's profile; hidden when there is nothing to pick. -->
+                        <!-- How long the agent thinks: Auto, Off, and the levels up to the maximum the agent's profile may set. -->
                         <ToggleButton Name="ReasoningButton" Classes="pill" ToolTip.Tip="{Binding ReasoningToolTip}" AutomationProperties.Name="{Binding ReasoningAutomationName}"
                                       AutomationProperties.HelpText="{Binding ReasoningHint}"
                                       IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">

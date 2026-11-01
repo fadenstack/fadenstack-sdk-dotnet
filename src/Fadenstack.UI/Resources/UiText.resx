@@ -420,7 +420,7 @@
   </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Thinking: {0}</value>
-    <comment>The pill: {0} is the level, e.g. Low, or Off / On</comment>
+    <comment>The pill: {0} is the level, e.g. Low or Off</comment>
   </data>
   <data name="ReasoningMenu" xml:space="preserve">
     <value>How long it thinks</value>
