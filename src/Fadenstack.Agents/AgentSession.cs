@@ -26,6 +26,7 @@ public sealed class AgentSession
     private readonly HashSet<string> _approvedForSession = new();
     private readonly SemaphoreSlim _turn = new(1, 1);
     private readonly ContextBuilder _context;
+    private ReasoningLevel? _reasoning;
 
     internal AgentSession(FadenstackAgent agent, string id, List<TranscriptEntry> entries, ToolMode toolMode)
     {
@@ -40,6 +41,20 @@ public sealed class AgentSession
 
     /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
+
+    /// <summary>
+    /// How long the model thinks on the next message. Until it is set, the agent's level (<see cref="FadenstackAgent.Reasoning"/>:
+    /// the person's pick, the profile's default, the app's) -- so a new conversation starts from the person's pick. A turn
+    /// that already started keeps the level it started with.
+    /// </summary>
+    public ReasoningLevel Reasoning
+    {
+        get => _reasoning ?? _agent.Reasoning;
+        set => _reasoning = value;
+    }
+
+    /// <summary>What a turn started now would send: the session's level, or -- while it follows the agent -- the agent's own effort.</summary>
+    internal ReasoningEffort? RequestEffort => _reasoning is { } level ? level.ToEffort() : _agent.RequestEffort;
 
     /// <summary>
     /// Who is asked about this session's calls that need approval, instead of the agent's own handler
@@ -303,6 +318,7 @@ public sealed class AgentSession
         private GovernanceNotice? _blocked;
         private bool _toolDenied;
         private ToolMode _mode;
+        private ReasoningEffort? _effort;
         private IReadOnlyList<string> _skills = Array.Empty<string>();
 
         // The turn's span and clock, and the model requests it made: what its end reports.
@@ -330,6 +346,7 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
+            _effort = _session.RequestEffort;
             using var scope = Log.TurnScope(Agent.Logger, _session.Id, _id);
             using var activity = AgentTelemetry.Source.StartActivity("invoke_agent " + Agent.Slug);
             _activity = activity;
@@ -338,6 +355,7 @@ public sealed class AgentSession
             activity?.SetTag("gen_ai.conversation.id", _session.Id);
             activity?.SetTag("fadenstack.turn.id", _id);
             activity?.SetTag("fadenstack.tool_mode", _mode.ToWire());
+            activity?.SetTag("fadenstack.reasoning_effort", ReasoningLevels.Record(_effort));
             Log.TurnStarted(Agent.Logger, _session.Id, _id, _mode.ToWire(), attachments.Count);
             var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
             _skills = picked.Select(s => s.Slug).ToList();
@@ -359,6 +377,7 @@ public sealed class AgentSession
             {
                 tool_mode = _session.ToolMode.ToWire(),
                 effective_tool_mode = _mode.ToWire(),
+                reasoning_effort = ReasoningLevels.Record(_effort),
             }).ConfigureAwait(false);
             Emit(new TurnStarted(_mode));
             try
@@ -436,7 +455,7 @@ public sealed class AgentSession
             var options = new ChatOptions { Tools = Agent.Offer(_mode, _session) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
-            if (Agent.Settings.Reasoning is { } effort)
+            if (_effort is { } effort)
             {
                 options.Reasoning = new ReasoningOptions { Effort = effort };
             }

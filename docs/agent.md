@@ -310,6 +310,19 @@ A cancelled turn is recorded as cancelled in the session and is never sent to th
 
 `ReasoningEffort` is the Microsoft.Extensions.AI type.
 
+### How long it thinks: the person's choice
+
+The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto (sends nothing), Off (`none`), Low, Medium or High. Which levels it offers, and where it starts, come from the agent's profile, in the agent version's `ui`:
+
+```json
+{ "reasoning": { "default": "none", "levels": ["none", "high"] } }
+```
+
+- Offering exactly Off and one other level makes the pill read "Thinking: Off / On"; one level hides the pill. Without `ui.reasoning`, or with something unreadable, all five levels are offered and the default is Auto.
+- The order is: the person's choice, then `ui.reasoning.default`, then `UseReasoning`, then Auto. A choice the agent does not offer is ignored.
+- The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder). A new chat starts from it, and a change applies from the next message.
+- In code: `agent.ReasoningChoices`, `agent.Reasoning`, `agent.ReasoningChoice`, `agent.SetReasoningAsync(level)` and `session.Reasoning`. The turn's start entry in the session records `reasoning_effort`; the client events carry nothing about it.
+
 ## What is reported to the server
 
 With event reporting on (the default), the agent reports what it did as names, counts, durations and outcomes: tool runs, approval decisions with what let each call through (`once`, `chat`, `always` or `bypass`), attached local MCP servers and session counts. It never reports arguments, results or messages. Reports are sent after each turn; a report that fails is dropped and never fails the turn. `agent.FlushAsync()` sends what is pending.

@@ -30,6 +30,9 @@ public sealed class FadenstackAgent : IDisposable
     private bool _warned;
     private readonly Dictionary<string, DateTimeOffset> _timeGrants = new();
     private ILogger? _logger;
+    private ReasoningChoiceStore? _reasoningStore;
+    private ReasoningChoices _reasoningChoices = ReasoningChoices.Everything;
+    private ReasoningLevel? _reasoningPick;
 
     internal FadenstackAgent(AgentSettings settings)
     {
@@ -146,6 +149,8 @@ public sealed class FadenstackAgent : IDisposable
             UseDefaultStores(profile.Principal, _settings.Retention.Within(profile.LocalRetention));
             _tools = tools;
             _profile = profile;
+            _reasoningChoices = ReasoningChoices.FromUi(profile.Ui);
+            _reasoningPick = _reasoningStore?.Get(Slug);
             Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
             Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
@@ -189,6 +194,70 @@ public sealed class FadenstackAgent : IDisposable
             }
         }
         _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
+        if (_reasoningStore is null && (_settings.Sessions is null || _settings.ApprovalStore is null))
+        {
+            // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.
+            _reasoningStore = new ReasoningChoiceStore(Folder("preferences"));
+        }
+    }
+
+    /// <summary>
+    /// The levels of thinking the agent offers and the one it starts at, from the profile's <c>ui.reasoning</c>: the five
+    /// levels with Auto when the profile says nothing usable. A UI shows a control only when there is more than one.
+    /// </summary>
+    public ReasoningChoices ReasoningChoices => _reasoningChoices;
+
+    /// <summary>
+    /// The level this person picked for this agent on this device, if any and if the agent still offers it. Kept per person
+    /// and per agent in the SDK's user folder, so it survives a restart and a new agent instance -- unless the host passed
+    /// both its own session and approval stores, which leaves the pick in memory for the run.
+    /// </summary>
+    public ReasoningLevel? ReasoningChoice => _reasoningPick is { } pick && _reasoningChoices.Offers(pick) ? pick : null;
+
+    /// <summary>
+    /// How long new messages think: the person's pick, else the profile's default, else what the app set with
+    /// <see cref="AgentBuilder.UseReasoning"/>, else <see cref="ReasoningLevel.Auto"/>.
+    /// </summary>
+    public ReasoningLevel Reasoning => ResolveReasoning().Level;
+
+    /// <summary>What a request carries when nothing else was set for the session; null (no field) for Auto.</summary>
+    internal ReasoningEffort? RequestEffort => ResolveReasoning().Effort;
+
+    private (ReasoningLevel Level, ReasoningEffort? Effort) ResolveReasoning()
+    {
+        if (ReasoningChoice is { } pick)
+        {
+            return (pick, pick.ToEffort());
+        }
+        if (_reasoningChoices.Default is { } start)
+        {
+            return (start, start.ToEffort());
+        }
+        // The app's own effort goes out exactly as it set it (extra high stays extra high).
+        return (ReasoningLevels.FromEffort(_settings.Reasoning), _settings.Reasoning);
+    }
+
+    /// <summary>
+    /// Keeps the person's pick for this agent (null forgets it), from the next message on; a running turn is not changed.
+    /// A level the agent does not offer is ignored. Returns the level new messages think at.
+    /// </summary>
+    public async Task<ReasoningLevel> SetReasoningAsync(ReasoningLevel? level, CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return SetReasoning(level);
+    }
+
+    /// <summary>
+    /// <see cref="SetReasoningAsync"/> for a UI thread, once the agent started: it writes one small file and waits for nothing.
+    /// </summary>
+    public ReasoningLevel SetReasoning(ReasoningLevel? level)
+    {
+        if (level is null || _reasoningChoices.Offers(level.Value))
+        {
+            _reasoningPick = level;
+            _reasoningStore?.Set(Slug, level);
+        }
+        return Reasoning;
     }
 
     /// <summary>
@@ -406,7 +475,7 @@ public sealed class FadenstackAgent : IDisposable
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
         var folders = principal is null
-            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals") }
+            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences") }
             : new[] { FadenstackPaths.UserFolder(principal.UserId) };
         try
         {
