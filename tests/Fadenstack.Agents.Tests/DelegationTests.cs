@@ -470,6 +470,45 @@ public sealed class DelegationTests : IDisposable
         Assert.Contains(reported, e => e.GetProperty("type").GetString() == "tool.executed" && e.GetProperty("tool").GetString() == "delegate");
     }
 
+    [Fact]
+    public async Task A_host_whose_workspaces_lack_the_tasks_document_rejects_it_and_an_empty_list_accepts()
+    {
+        var gateway = new Gateway(Contract).Says("Done.").Says("Done again.");
+        var (host, _, events) = await Embedded(gateway, new DelegationHostOptions { Name = "Word", Workspaces = new[] { @"C:\Docs\other.docx" } });
+        var presence = Assert.Single(_registry.List());
+        Assert.Equal(new[] { @"C:\Docs\other.docx" }, presence.Workspaces);
+
+        Task<TaskOutcome> Send(string document) => new PipeDelegationClient().RunAsync(host.Endpoint,
+            new TaskRequest("t-" + document.Length, "Comment.", Array.Empty<string>(), "a", "A") { Document = document }, new Observer(), CancellationToken.None);
+        var rejected = await Send(@"C:\Docseport.docx");
+        var accepted = await Send(@"c:\docs\OTHER.docx");
+        host.UpdateWorkspaces(Array.Empty<string>());
+        var open = await Send(@"C:\Docseport.docx");
+
+        Assert.Equal((TaskState.Rejected, "This window works in another document."), (rejected.State, rejected.Text));
+        Assert.Equal(TaskState.Completed, accepted.State);
+        Assert.Equal(TaskState.Completed, open.State);
+        Assert.Equal(@"c:\docs\OTHER.docx", events.First(e => e.Change == DelegatedTaskChange.Started).Task.Document);
+        Assert.Empty(Assert.Single(_registry.List()).Workspaces);
+    }
+
+    [Fact]
+    public async Task The_delegate_tool_takes_an_optional_document_and_passes_it_on()
+    {
+        var gateway = new Gateway(Contract, ui: Ui("word-assistant"))
+            .Calls(("call-1", "delegate", """{"agent":"word-assistant","task":"Comment.","document":"C:\\Docs\\report.docx"}""")).Says("Done.");
+        var (agent, fake) = await WithTool(gateway);
+        var schema = Assert.Single(agent.Tools).Function.JsonSchema;
+        var session = await agent.StartSessionAsync(ToolMode.Auto);
+
+        await session.SendAsync("Ask Word.");
+
+        Assert.Equal("string", schema.GetProperty("properties").GetProperty("document").GetProperty("type").GetString());
+        Assert.Contains("The app opens it when it is not open.", schema.GetProperty("properties").GetProperty("document").GetProperty("description").GetString());
+        Assert.DoesNotContain("document", schema.GetProperty("required").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(@"C:\Docs\report.docx", Assert.Single(fake.Requests).Document);
+    }
+
     // -- the A2A wire: what a plain A2A client sees on the pipe ------------------------------------------------------
 
     /// <summary>A bare JSON-RPC client over the pipe, as any A2A peer would write it.</summary>

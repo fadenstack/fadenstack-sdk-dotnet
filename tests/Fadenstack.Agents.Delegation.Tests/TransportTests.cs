@@ -103,6 +103,17 @@ public sealed class TransportTests : IDisposable
             (received.Text, received.FromSlug, received.FromName, received.References.Single()));
     }
 
+    [Fact]
+    public async Task The_document_arrives_in_the_message_metadata_and_is_absent_when_none_is_given()
+    {
+        var (server, runner) = Serve();
+
+        await new PipeDelegationClient().RunAsync(server.Endpoint, Request() with { Document = @"C:\Docs\report.docx" }, new Observer(), CancellationToken.None);
+        await new PipeDelegationClient().RunAsync(server.Endpoint, Request(), new Observer(), CancellationToken.None);
+
+        Assert.Equal(new string?[] { @"C:\Docs\report.docx", null }, runner.Requests.Select(r => r.Document).ToArray());
+    }
+
     [Theory]
     [InlineData("Once")]
     [InlineData("Chat")]
