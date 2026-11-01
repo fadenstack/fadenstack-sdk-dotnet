@@ -78,6 +78,51 @@
                             </StackPanel>
                         </Border>
                     </Popup>
+                    <!-- How long the agent thinks: its levels come from the agent's profile; hidden when there is nothing to pick. -->
+                    <ToggleButton x:Name="ReasoningButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{Binding ReasoningHint}" Margin="4,0,0,0"
+                                  AutomationProperties.Name="{local:Text ReasoningMenu}" AutomationProperties.HelpText="{Binding ReasoningHint}"
+                                  Visibility="{Binding HasReasoningChoice, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                                  IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=ReasoningMenu, Converter={StaticResource Fadenstack.InverseBool}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE82F;" Margin="0,0,6,0" />
+                            <TextBlock Text="{Binding ReasoningPillText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE70D;" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </ToggleButton>
+                    <Popup x:Name="ReasoningMenu" IsOpen="{Binding IsReasoningMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ReasoningButton}"
+                           Placement="Custom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                        <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="8,4,8,12">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text ReasoningMenu}" Margin="8,4,8,4" />
+                                <ItemsControl ItemsSource="{Binding ReasoningOptions}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                                    Command="{Binding DataContext.SelectReasoningCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Label}"
+                                                    AutomationProperties.HelpText="{Binding Description}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Grid Width="20" VerticalAlignment="Top" Margin="0,3,0,0">
+                                                        <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;" Foreground="{DynamicResource Fadenstack.AccentIcon}"
+                                                                   Visibility="{Binding IsSelected, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                                    </Grid>
+                                                    <StackPanel Margin="2,0,12,0">
+                                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                                        <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Description}" TextWrapping="Wrap" MaxWidth="240" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Popup>
                     <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostToggle}" ToolTip="{local:Text History}" Margin="4,0,0,0"
                                   AutomationProperties.Name="{local:Text History}" IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=HistoryMenu, Converter={StaticResource Fadenstack.InverseBool}}">
