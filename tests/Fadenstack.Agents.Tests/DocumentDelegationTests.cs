@@ -102,14 +102,71 @@ public sealed class DocumentDelegationTests : IDisposable
     }
 
     [Fact]
-    public async Task Without_a_document_the_newest_instance_takes_the_task_as_before()
+    public async Task Without_a_document_and_several_documents_open_the_task_is_refused_with_their_list()
     {
-        Register("pipe-first", "A");
-        Register("pipe-second", "B");
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        Register("pipe-first", Path.Combine(docs, "a.docx"));
+        Register("pipe-second", Path.Combine(docs, "b.docx"));
 
-        await Caller().RunAsync(Ask(null));
+        var result = await Caller().RunAsync(Ask(null));
 
-        Assert.Equal("pipe-second", Assert.Single(_client.Sent).Pipe);
+        Assert.Equal(DelegationOutcome.Rejected, result.Outcome);
+        Assert.Contains(Path.Combine(docs, "a.docx"), result.Text);
+        Assert.Contains(Path.Combine(docs, "b.docx"), result.Text);
+        Assert.Contains("document set to the one the person means", result.Text);
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task With_several_documents_open_the_person_chooses_and_the_task_goes_to_that_one()
+    {
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        Register("pipe-a", Path.Combine(docs, "a.docx"));
+        Register("pipe-b", Path.Combine(docs, "b.docx"));
+        DelegationChoiceRequest? asked = null;
+
+        var result = await Caller().RunAsync(Ask(null), new DelegationCallbacks
+        {
+            Choose = (request, _) =>
+            {
+                asked = request;
+                return Task.FromResult<string?>(request.Documents[0]);
+            },
+        });
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        Assert.Equal(("word-assistant", "Word"), (asked!.Agent, asked.AgentName));
+        Assert.Equal(new[] { Path.Combine(docs, "a.docx"), Path.Combine(docs, "b.docx") }, asked.Documents);
+        var sent = Assert.Single(_client.Sent);
+        Assert.Equal(("pipe-a", Path.Combine(docs, "a.docx")), (sent.Pipe, sent.Request.Document));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not-one-of-them.docx")]
+    public async Task A_person_who_chooses_none_of_the_documents_cancels_the_task(string? answer)
+    {
+        Register("pipe-a", "a.docx");
+        Register("pipe-b", "b.docx");
+
+        var result = await Caller().RunAsync(Ask(null), new DelegationCallbacks { Choose = (_, _) => Task.FromResult(answer) });
+
+        Assert.Equal(DelegationOutcome.Canceled, result.Outcome);
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task Without_a_document_one_document_open_in_two_windows_or_beside_an_instance_without_one_takes_the_task()
+    {
+        var doc = Path.Combine(Path.GetTempPath(), "Docs", "a.docx");
+        Register("pipe-first", doc);
+        Register("pipe-second", doc);
+        Register("pipe-none");
+
+        var result = await Caller().RunAsync(Ask(null));
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        Assert.Equal("pipe-none", Assert.Single(_client.Sent).Pipe); // the newest, as before
         Assert.Null(_client.Sent[0].Request.Document);
     }
 

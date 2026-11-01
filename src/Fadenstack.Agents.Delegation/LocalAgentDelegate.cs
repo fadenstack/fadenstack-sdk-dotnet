@@ -7,9 +7,10 @@ namespace Fadenstack.Agents.Delegation;
 /// <summary>
 /// Delegation to agents on this device: finds the agent in the <see cref="DeviceAgentRegistry"/> (an add-in's
 /// <see cref="DelegationHost"/>), connects on its local pipe with the secret of its launch, sends the task and relays
-/// progress and approvals. With several instances of the agent open (two Word windows) it picks an idle one, the most
-/// recently active first. A task for a document goes to the instance that works in it; when none is open and an
-/// <see cref="IAgentLauncher"/> can start one, it does, and the task waits for it.
+/// progress and approvals. A task for a document goes to the instance that works in it; when none is open and an
+/// <see cref="IAgentLauncher"/> can start one, it does, and the task waits for it. A task without a document goes to
+/// the agent's only document; with several documents open (two Word windows) it is refused with their list, so the
+/// caller names one instead of the task landing in a guessed one.
 /// </summary>
 public sealed class LocalAgentDelegate : IAgentDelegate
 {
@@ -64,6 +65,34 @@ public sealed class LocalAgentDelegate : IAgentDelegate
         var watch = Stopwatch.StartNew();
         var taskId = Guid.NewGuid().ToString("N");
         var document = string.IsNullOrWhiteSpace(request.Document) ? null : request.Document;
+        if (document is null && OpenDocuments(request.Agent) is { Count: > 1 } open)
+        {
+            // Two Word windows, "my document": which one is not ours to guess, a wrong guess edits the wrong file. The
+            // caller's person chooses; a caller that cannot ask gets the list and names one.
+            if (callbacks?.Choose is not { } choose)
+            {
+                return new DelegationResult(DelegationOutcome.Rejected,
+                    DisplayName(request.Agent) + " has several documents open: " + string.Join("; ", open)
+                    + ". Call delegate again with document set to the one the person means; if that is not clear, ask them.",
+                    taskId, watch.Elapsed);
+            }
+            string? chosen;
+            try
+            {
+                chosen = await choose(new DelegationChoiceRequest(taskId, request.Agent, DisplayName(request.Agent), open), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                chosen = null;
+            }
+            document = open.FirstOrDefault(o => DocumentPaths.Same(o, chosen));
+            if (document is null)
+            {
+                return new DelegationResult(DelegationOutcome.Canceled, "The person chose no document, so nothing was handed over.",
+                    taskId, watch.Elapsed);
+            }
+        }
         var endpoint = Find(request.Agent, document)?.Delegation;
         if (endpoint is null && _options.Launcher is { } launcher && launcher.CanLaunch(request.Agent, document))
         {
@@ -155,12 +184,28 @@ public sealed class LocalAgentDelegate : IAgentDelegate
 
     private AgentPresence? Find(string agent, string? document)
     {
-        var running = _registry.List()
-            .Where(p => p.Delegation is not null && (p.Agent == agent || p.Delegation.Card.Slug == agent)
-                && (document is null || p.Workspaces.Any(w => DocumentPaths.Same(w, document))))
+        var running = Running(agent)
+            .Where(p => document is null || p.Workspaces.Any(w => DocumentPaths.Same(w, document)))
             .ToList();
         // The list is oldest heartbeat first: the newest idle one, else the newest.
         return running.LastOrDefault(p => p.Status == AgentStatus.Idle) ?? running.LastOrDefault();
+    }
+
+    private IEnumerable<AgentPresence> Running(string agent) => _registry.List()
+        .Where(p => p.Delegation is not null && (p.Agent == agent || p.Delegation.Card.Slug == agent));
+
+    /// <summary>The different documents the agent's instances work in (instances without one do not count).</summary>
+    private List<string> OpenDocuments(string agent)
+    {
+        var open = new List<string>();
+        foreach (var workspace in Running(agent).SelectMany(p => p.Workspaces))
+        {
+            if (!string.IsNullOrWhiteSpace(workspace) && !open.Any(o => DocumentPaths.Same(o, workspace)))
+            {
+                open.Add(workspace);
+            }
+        }
+        return open;
     }
 
     private sealed class Observer : ITaskObserver

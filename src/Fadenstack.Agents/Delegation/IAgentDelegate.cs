@@ -45,9 +45,19 @@ public sealed record DelegationStatus(string TaskId, string Agent, string State,
 public sealed record DelegationApprovalRequest(string TaskId, string ApprovalId, string Agent, string AgentName, string Tool,
     ToolClass ToolClass, string Summary, string ArgumentsPreview);
 
+/// <summary>The agent has several documents open and the task named none: which one, for the caller's person to choose.</summary>
+public sealed record DelegationChoiceRequest(string TaskId, string Agent, string AgentName, IReadOnlyList<string> Documents);
+
 /// <summary>What the caller supplies for a delegation: where its person answers, and where progress shows.</summary>
 public sealed class DelegationCallbacks
 {
+    /// <summary>
+    /// Asks the caller's person which document a task without one is for, when the agent has several open (two Word
+    /// windows); returns one of <see cref="DelegationChoiceRequest.Documents"/>, or null to cancel the task. Without it such
+    /// a task is refused with the list, and the caller names one.
+    /// </summary>
+    public Func<DelegationChoiceRequest, CancellationToken, Task<string?>>? Choose { get; set; }
+
     /// <summary>
     /// Asks the caller's person (the desktop routes it to its own approval card); returns their decision. Without it every
     /// approval is denied. <see cref="ApprovalDecision.ForSession"/> approves the tool for the rest of that task.

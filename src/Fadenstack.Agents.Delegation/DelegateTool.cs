@@ -17,6 +17,9 @@ public sealed class DelegateToolOptions
     /// <summary>Progress of a running delegation, for the host's UI (see <see cref="DelegationCallbacks.Status"/>).</summary>
     public Action<DelegationStatus>? Status { get; set; }
 
+    /// <summary>Asks the person which open document a task is for (see <see cref="DelegationCallbacks.Choose"/>).</summary>
+    public Func<DelegationChoiceRequest, CancellationToken, Task<string?>>? Choose { get; set; }
+
     /// <summary>The calling agent's slug, for <see cref="ReportDelegations"/>.</summary>
     public string FromAgent { get; set; } = "";
 
@@ -156,7 +159,7 @@ public sealed class DelegateToolModule : IFadenstackModule, IToolSource
             return "Error: give the task as text.";
         }
         var result = await _delegate.RunAsync(new DelegationRequest(agent, task) { References = References(arguments), Document = Document(arguments) },
-            new DelegationCallbacks { Approve = _options.Approve, Status = _options.Status }, cancellationToken).ConfigureAwait(false);
+            new DelegationCallbacks { Approve = _options.Approve, Status = _options.Status, Choose = _options.Choose }, cancellationToken).ConfigureAwait(false);
         if (_options.ReportDelegations)
         {
             try
