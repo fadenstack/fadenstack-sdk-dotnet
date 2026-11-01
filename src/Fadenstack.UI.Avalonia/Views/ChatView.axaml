@@ -118,12 +118,13 @@
                                 Classes.danger="{Binding IsDestructive}">
                             <TextBlock Text="{Binding ClassLabel}" />
                         </Border>
-                        <!-- A tool from a local MCP server says where it comes from. -->
-                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding HasSourceLine}">
-                            <c:FsIcon Classes="source" />
-                            <TextBlock Classes="caption muted" Text="{Binding SourceLine}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                        </StackPanel>
                     </WrapPanel>
+                    <!-- A tool from a local MCP server says where it comes from, on its own row so it wraps: in a horizontal
+                         panel the text never wrapped and a 300 px chat panel cut it ("…on thi", live run 2026-11-01). -->
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding HasSourceLine}">
+                        <c:FsIcon Classes="source" VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1" Classes="caption muted" Text="{Binding SourceLine}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
                     <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
                                IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <!-- What the call acts on, as the tool says it: button "Send" on mail.example.com -->
