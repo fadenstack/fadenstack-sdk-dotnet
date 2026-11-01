@@ -115,8 +115,11 @@ public static class FadenstackKeys
     /// <summary>An error as text on a surface (at least 4.5:1); <see cref="Danger"/> is for icons and fills.</summary>
     public const string DangerText = P + "DangerText";
 
-    /// <summary>Success.</summary>
+    /// <summary>Success as a fill or icon (a status dot).</summary>
     public const string Success = P + "Success";
+
+    /// <summary>Success as text on a surface (at least 4.5:1, as <see cref="DangerText"/>): "Running", "Allowed by your organisation".</summary>
+    public const string SuccessText = P + "SuccessText";
 
     /// <summary>Info banner fill.</summary>
     public const string InfoBackground = P + "InfoBackground";

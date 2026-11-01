@@ -101,6 +101,7 @@
             <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FB8C00" />
             <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#B26A00" />
             <SolidColorBrush x:Key="Fadenstack.Success" Color="#2E7D32" />
+            <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#2E7D32" />
             <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#F7F7F7" />
             <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#EEEEEE" />
             <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#1F4C6A92" />
@@ -150,6 +151,8 @@
             <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FB8C00" />
             <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#FB8C00" />
             <SolidColorBrush x:Key="Fadenstack.Success" Color="#2E7D32" />
+            <!-- The success green as text on the dark surfaces: #2E7D32 is about 3:1 there; MUI's success.light reaches 4.5:1. -->
+            <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#66BB6A" />
             <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#262626" />
             <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#383838" />
             <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#1F81A1C1" />
@@ -199,6 +202,7 @@
             <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FFB000" />
             <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#FFB000" />
             <SolidColorBrush x:Key="Fadenstack.Success" Color="#4DFF88" />
+            <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#4DFF88" />
             <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#000000" />
             <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#262626" />
             <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#1A1A1A" />

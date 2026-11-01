@@ -97,6 +97,7 @@ public class ThemeTokenTests
         {
             Assert.True(Ratio(C(FadenstackKeys.BorderStrong), C(back)) >= 3, $"{v}: BorderStrong on {back}");
             Assert.True(Ratio(C(FadenstackKeys.DangerText), C(back)) >= 4.5, $"{v}: DangerText on {back}");
+            Assert.True(Ratio(C(FadenstackKeys.SuccessText), C(back)) >= 4.5, $"{v}: SuccessText on {back}");
         }
     }
 
