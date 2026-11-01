@@ -19,7 +19,14 @@ public sealed class FadenstackAgent : IDisposable
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
-    private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
+    private volatile IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
+    private IReadOnlyList<AgentTool> _hostTools = Array.Empty<AgentTool>();
+    private readonly List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)> _sourceTools = new();
+    private readonly HashSet<IToolSource> _changed = new();
+    private readonly HashSet<string> _gone = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _refreshing = new(1, 1);
+    private readonly List<(IChangingToolSource Source, EventHandler Handler)> _subscriptions = new();
+    private AgentContext? _context;
     private bool _warned;
     private readonly Dictionary<string, DateTimeOffset> _timeGrants = new();
     private ILogger? _logger;
@@ -112,21 +119,28 @@ public sealed class FadenstackAgent : IDisposable
                 }
                 var risk = ToolModes.ParseClass(entry?.Risk);
                 tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs });
+                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope });
             }
             var hostTools = tools.Count;
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            var fromSources = new List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)>();
             foreach (var source in _settings.Sources)
             {
-                foreach (var tool in await source.GetToolsAsync(context, cancellationToken).ConfigureAwait(false))
+                if (source is IChangingToolSource changing)
                 {
-                    if (tools.Any(t => t.Name == tool.Name))
-                    {
-                        continue; // a host tool wins over an MCP tool of the same name
-                    }
-                    tools.Add(tool);
+                    EventHandler handler = (_, _) => OnSourceChanged(source);
+                    changing.Changed += handler;
+                    _subscriptions.Add((changing, handler));
                 }
+                fromSources.Add((source, await source.GetToolsAsync(context, cancellationToken).ConfigureAwait(false)));
             }
+            _hostTools = tools;
+            _context = context;
+            lock (_changed)
+            {
+                _sourceTools.AddRange(fromSources);
+            }
+            tools = Compose();
             UseDefaultStores(profile.Principal, _settings.Retention.Within(profile.LocalRetention));
             _tools = tools;
             _profile = profile;
@@ -414,6 +428,11 @@ public sealed class FadenstackAgent : IDisposable
     public void Dispose()
     {
         ClearTimeGrants(null);
+        foreach (var (source, handler) in _subscriptions)
+        {
+            source.Changed -= handler;
+        }
+        _subscriptions.Clear();
         foreach (var source in _settings.Sources.OfType<IDisposable>())
         {
             source.Dispose();
@@ -423,10 +442,123 @@ public sealed class FadenstackAgent : IDisposable
             _settings.Client.Dispose();
         }
         _starting.Dispose();
+        _refreshing.Dispose();
     }
 
-    internal IList<AITool> Offer(ToolMode mode) =>
-        _tools.Where(t => ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden).Select(t => (AITool)t.Function).ToList();
+    /// <summary>The host tools, then each source's tools in the builder's order; a host tool wins over an MCP tool of the same name.</summary>
+    private List<AgentTool> Compose()
+    {
+        var tools = new List<AgentTool>(_hostTools);
+        var names = new HashSet<string>(tools.Select(t => t.Name), StringComparer.Ordinal);
+        foreach (var (_, fromSource) in _sourceTools)
+        {
+            foreach (var tool in fromSource)
+            {
+                if (names.Add(tool.Name))
+                {
+                    tools.Add(tool);
+                }
+            }
+        }
+        return tools;
+    }
+
+    private void OnSourceChanged(IToolSource source)
+    {
+        lock (_changed)
+        {
+            _changed.Add(source);
+        }
+    }
+
+    /// <summary>
+    /// Asks the sources that said they changed for their tools again, and settles them as at start. Called at the start of a
+    /// turn, never inside one, so a turn's tools do not change under it. A tool that went away stays refused by name.
+    /// A source that fails keeps the tools it had.
+    /// </summary>
+    internal async Task RefreshToolsAsync(CancellationToken cancellationToken)
+    {
+        lock (_changed)
+        {
+            if (_changed.Count == 0 || _context is null)
+            {
+                return;
+            }
+        }
+        await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            List<IToolSource> changed;
+            lock (_changed)
+            {
+                changed = _changed.ToList();
+                _changed.Clear();
+            }
+            if (changed.Count == 0)
+            {
+                return;
+            }
+            var before = _tools;
+            foreach (var source in changed)
+            {
+                IReadOnlyList<AgentTool> fresh;
+                try
+                {
+                    fresh = await source.GetToolsAsync(_context!, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Log.ToolsRefreshFailed(Logger, Slug, e.GetType().Name); // it keeps the tools it had
+                    continue;
+                }
+                lock (_changed)
+                {
+                    var at = _sourceTools.FindIndex(s => ReferenceEquals(s.Source, source));
+                    if (at >= 0)
+                    {
+                        _sourceTools[at] = (source, fresh);
+                    }
+                }
+            }
+            List<AgentTool> after;
+            lock (_changed)
+            {
+                after = Compose();
+            }
+            var now = new HashSet<string>(after.Select(t => t.Name), StringComparer.Ordinal);
+            lock (_gone)
+            {
+                foreach (var tool in before)
+                {
+                    if (!now.Contains(tool.Name))
+                    {
+                        _gone.Add(tool.Name);
+                    }
+                }
+                _gone.RemoveWhere(now.Contains);
+            }
+            _tools = after;
+            Log.ToolsRefreshed(Logger, Slug, changed.Count, after.Count);
+        }
+        finally
+        {
+            _refreshing.Release();
+        }
+    }
+
+    /// <summary>Whether a tool of this name was offered and went away: a call to it is refused as such, not as unknown.</summary>
+    internal bool IsGone(string name)
+    {
+        lock (_gone)
+        {
+            return _gone.Contains(name);
+        }
+    }
+
+    /// <summary>The tools the model gets in <paramref name="session"/> this round: the mode's, and those the tool's scope offers.</summary>
+    internal IList<AITool> Offer(ToolMode mode, AgentSession session) =>
+        _tools.Where(t => (t.Scope is null || t.Scope.Offers(t, session)) && ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden)
+            .Select(t => (AITool)t.Function).ToList();
 
     internal AgentTool? Find(string name) => _tools.FirstOrDefault(t => t.Name == name);
 }

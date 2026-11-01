@@ -363,6 +363,7 @@ public sealed class AgentSession
             Emit(new TurnStarted(_mode));
             try
             {
+                await Agent.RefreshToolsAsync(cancellationToken).ConfigureAwait(false); // tools that changed since the last turn, never inside one
                 for (var round = 0; ; round++)
                 {
                     if (round == Agent.Settings.MaxRounds)
@@ -432,7 +433,7 @@ public sealed class AgentSession
             activity?.SetTag("gen_ai.conversation.id", _session.Id);
             activity?.SetTag("fadenstack.round", round);
             var requested = Stopwatch.StartNew();
-            var options = new ChatOptions { Tools = Agent.Offer(_mode) }
+            var options = new ChatOptions { Tools = Agent.Offer(_mode, _session) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
             if (Agent.Settings.Reasoning is { } effort)
@@ -780,7 +781,7 @@ public sealed class AgentSession
             IReadOnlyList<DataContent> pictures = Array.Empty<DataContent>();
             if (tool is null)
             {
-                (result, outcome) = ($"Tool '{call.Name}' does not exist here.", "error");
+                (result, outcome) = (Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
             }
             else if (planned.Denied)
             {
@@ -797,6 +798,10 @@ public sealed class AgentSession
             else if (call.Exception is not null)
             {
                 (result, outcome) = ($"Error: the arguments are not valid JSON ({call.Exception.Message}).", "error");
+            }
+            else if (tool.Scope?.BeforeCall(tool, _session) is { } answered)
+            {
+                (result, outcome) = (answered, "ok"); // a tool outside the conversation's scope, now switched on
             }
             else
             {
@@ -904,7 +909,7 @@ public sealed class AgentSession
             try
             {
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
-                    Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
+                    Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync, _session);
                 services.Bind(invocation);
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);

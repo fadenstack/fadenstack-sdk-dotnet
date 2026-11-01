@@ -26,6 +26,14 @@ internal static partial class Log
         Message = "Agent {Agent} tools settled: {HostTools} host, {SourceTools} from sources, {Dropped} dropped by the contract")]
     internal static partial void ToolsSettled(ILogger logger, string agent, int hostTools, int sourceTools, int dropped);
 
+    [LoggerMessage(EventId = 2013, Level = LogLevel.Information,
+        Message = "Agent {Agent} asked {Sources} changed tool sources again: {Tools} tools now")]
+    internal static partial void ToolsRefreshed(ILogger logger, string agent, int sources, int tools);
+
+    [LoggerMessage(EventId = 2014, Level = LogLevel.Warning,
+        Message = "Agent {Agent} could not ask a changed tool source again ({ErrorType}); it keeps the tools it had")]
+    internal static partial void ToolsRefreshFailed(ILogger logger, string agent, string errorType);
+
     [LoggerMessage(EventId = 2002, Level = LogLevel.Warning, Message = "Host tool {Tool} is not in the agent's contract and was dropped")]
     internal static partial void ToolDropped(ILogger logger, string tool);
 

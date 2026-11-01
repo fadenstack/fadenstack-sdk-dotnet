@@ -107,6 +107,22 @@ public sealed record ToolOutput
     public bool IsContentFor(IReadOnlyDictionary<string, object?> arguments) => EditKindFor(arguments) is not null;
 }
 
+/// <summary>
+/// Lets a tool source choose, per conversation, which of its tools the model is offered: tools that come in only when the
+/// model asks for them. Called from any thread.
+/// </summary>
+public interface IToolScope
+{
+    /// <summary>Whether the model is offered <paramref name="tool"/> in <paramref name="session"/> now.</summary>
+    bool Offers(AgentTool tool, AgentSession session);
+
+    /// <summary>
+    /// Called before a call of <paramref name="tool"/> is approved or run. Returns the text that answers the call instead (the tool
+    /// was not in scope and is now), or null to run it.
+    /// </summary>
+    string? BeforeCall(AgentTool tool, AgentSession session);
+}
+
 /// <summary>A tool the agent can run: the function, what it does, and where it runs.</summary>
 public sealed class AgentTool
 {
@@ -148,6 +164,12 @@ public sealed class AgentTool
     /// edit. Empty for a tool that writes none.
     /// </summary>
     public IReadOnlyList<ToolOutput> Outputs { get; init; } = Array.Empty<ToolOutput>();
+
+    /// <summary>
+    /// Decides per conversation whether the model is offered this tool (local MCP tools are, once found); null: always offered.
+    /// A tool it does not offer can still be called by name: <see cref="IToolScope.BeforeCall"/> answers.
+    /// </summary>
+    public IToolScope? Scope { get; init; }
 
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>
     public static IReadOnlyList<AgentTool> From(object target)
