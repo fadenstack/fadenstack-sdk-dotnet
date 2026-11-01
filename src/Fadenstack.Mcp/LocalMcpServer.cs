@@ -26,6 +26,24 @@ public sealed class LocalMcpServer
 
     internal Func<CancellationToken, Task<IClientTransport>> Connect { get; }
 
+    /// <summary>The longest a call may take when the server does not say otherwise.</summary>
+    public static readonly TimeSpan DefaultCallTimeout = TimeSpan.FromMinutes(2);
+
+    /// <summary>The most a call may be given.</summary>
+    public static readonly TimeSpan MaxCallTimeout = TimeSpan.FromMinutes(10);
+
+    private TimeSpan _callTimeout = DefaultCallTimeout;
+
+    /// <summary>
+    /// How long one call to this server may take before it is cancelled (default 2 minutes, at most 10; a value above is cut to
+    /// the most, zero or less means the default).
+    /// </summary>
+    public TimeSpan CallTimeout
+    {
+        get => _callTimeout;
+        set => _callTimeout = value <= TimeSpan.Zero ? DefaultCallTimeout : value > MaxCallTimeout ? MaxCallTimeout : value;
+    }
+
     /// <summary>How it connects, for logs: <c>stdio</c>, <c>http</c> or <c>custom</c>. Never the program, its arguments or the URL.</summary>
     internal string Transport => Command is not null ? "stdio" : Url is not null ? "http" : "custom";
 
@@ -47,13 +65,45 @@ public sealed class LocalMcpServer
         };
     }
 
-    public static LocalMcpServer Http(string label, Uri url, HttpClient? httpClient = null) =>
-        new(label, _ => Task.FromResult<IClientTransport>(httpClient is null
-            ? new HttpClientTransport(new HttpClientTransportOptions { Name = label, Endpoint = url })
-            : new HttpClientTransport(new HttpClientTransportOptions { Name = label, Endpoint = url }, httpClient)))
+    /// <summary>An HTTP endpoint; the <paramref name="headers"/> are sent with every request, and their values are never logged or reported.</summary>
+    public static LocalMcpServer Http(string label, Uri url, HttpClient? httpClient = null, IDictionary<string, string>? headers = null)
+    {
+        var extra = headers is null ? null : new Dictionary<string, string>(headers);
+        return new(label, _ =>
+        {
+            var options = new HttpClientTransportOptions { Name = label, Endpoint = url, AdditionalHeaders = extra };
+            return Task.FromResult<IClientTransport>(httpClient is null ? new HttpClientTransport(options) : new HttpClientTransport(options, httpClient));
+        })
         {
             Url = url,
         };
+    }
+
+    /// <summary>
+    /// Whether <paramref name="url"/> is on this computer: http or https to <c>localhost</c>, 127.0.0.0/8 or ::1. A host that
+    /// refuses network servers checks the address with this before it adds a server.
+    /// </summary>
+    public static bool IsLoopback(Uri url)
+    {
+        if (url is null || !url.IsAbsoluteUri || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps))
+        {
+            return false;
+        }
+        var host = url.IdnHost.Trim('[', ']');
+        if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        if (!System.Net.IPAddress.TryParse(host, out var address))
+        {
+            return false;
+        }
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+        return System.Net.IPAddress.IsLoopback(address);
+    }
 
     /// <summary>Any transport: a named pipe, an in-process stream.</summary>
     public static LocalMcpServer FromTransport(string label, Func<CancellationToken, Task<IClientTransport>> transport) =>

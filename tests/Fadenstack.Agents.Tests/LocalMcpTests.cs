@@ -49,7 +49,9 @@ public class LocalMcpTests
     {
         var calls = new List<string>();
         var gateway = new Gateway(localMcp: DeveloperMode)
-            .Calls(("call-1", "count_terminals", """{"page":4}""")).Says("12 terminals.");
+            .Calls(("call-0", "find_tool", """{"query":"count terminals"}"""))
+            .Calls(("call-1", "count_terminals", """{"page":4}"""))
+            .Says("12 terminals.");
         var module = new LocalMcpModule([InProcess("notes-db", calls)]);
         var asked = new List<ApprovalRequest>();
         using var agent = gateway.Builder().AddLocalMcp(module)
@@ -59,19 +61,20 @@ public class LocalMcpTests
         var result = await session.SendAsync("How many terminals on page 4?");
 
         Assert.Equal(ChatOutcome.Completed, result.Outcome);
-        var tool = agent.Tools.Single();
+        var tool = agent.Tools.Single(t => t.Name == "count_terminals");
+        Assert.Equal(ToolClass.Read, agent.Tools.Single(t => t.Name == LocalMcpModule.FindToolName).Class);
         Assert.Equal((ToolClass.Unknown, "mcp", "notes-db", (bool?)false), (tool.Class, tool.Source, tool.Server, tool.OpenWorld));
         Assert.Equal(("count_terminals", "mcp"), (asked.Single().ToolName, asked.Single().Source)); // readOnlyHint is not trusted
         Assert.Equal(new[] { "count 4" }, calls);
-        var answer = JsonSerializer.Deserialize<JsonElement>(
-            JsonSerializer.Deserialize<JsonElement>(gateway.ChatRequests[1].Body).GetProperty("messages")[2].GetProperty("content").GetString()!);
-        Assert.Contains("12 terminals", answer.GetRawText());
+        var answer = McpRig.LastToolResult(gateway.ChatRequests[2]);
+        Assert.Contains("page 4: 12 terminals", answer);
+        Assert.StartsWith("<<mcp-result ", answer); // a server's words are fenced as data
 
         var events = gateway.Reports.SelectMany(r => r.Json.GetProperty("events").EnumerateArray()).ToList();
         var attached = events.Single(e => e.GetProperty("type").GetString() == "local_mcp.attached");
         Assert.Equal("notes-db", attached.GetProperty("label").GetString());
         Assert.Equal("count_terminals", attached.GetProperty("tools")[0].GetString());
-        var executed = events.Single(e => e.GetProperty("type").GetString() == "tool.executed");
+        var executed = events.Single(e => e.GetProperty("type").GetString() == "tool.executed" && e.GetProperty("tool").GetString() == "count_terminals");
         Assert.Equal(("mcp", "notes-db"), (executed.GetProperty("source").GetString(), executed.GetProperty("server").GetString()));
     }
 
@@ -82,8 +85,8 @@ public class LocalMcpTests
         using var agent = gateway.Builder().AddLocalMcp(InProcess("notes-db", [])).Build();
         var session = await agent.StartSessionAsync(ToolMode.ReadOnly);
         await session.SendAsync("Hi");
-        Assert.Single(agent.Tools);
-        Assert.False(gateway.ChatRequests[0].Json.TryGetProperty("tools", out _));
+        Assert.Equal(2, agent.Tools.Count);
+        Assert.Equal(new[] { "find_tool" }, McpRig.ToolNames(gateway.ChatRequests[0])); // the server's tool is unclassified: hidden
     }
 
     [Fact]
@@ -95,7 +98,7 @@ public class LocalMcpTests
         ]);
         using var agent = new Gateway(localMcp: DeveloperMode).Builder().AddLocalMcp(module).Build();
         await agent.StartAsync();
-        Assert.Equal("count_terminals", agent.Tools.Single().Name);
+        Assert.Equal(new[] { "find_tool", "count_terminals" }, agent.Tools.Select(t => t.Name));
         var skipped = module.Skipped.Single();
         Assert.Equal("broken", skipped.Label);
         Assert.StartsWith("Could not attach", skipped.Reason);
@@ -108,6 +111,6 @@ public class LocalMcpTests
         var module = new LocalMcpModule([InProcess("a", []), InProcess("b", [])]) { PrefixToolNames = true };
         using var agent = new Gateway(localMcp: DeveloperMode).Builder().AddLocalMcp(module).Build();
         await agent.StartAsync();
-        Assert.Equal(new[] { "a_count_terminals", "b_count_terminals" }, agent.Tools.Select(t => t.Name));
+        Assert.Equal(new[] { "find_tool", "a_count_terminals", "b_count_terminals" }, agent.Tools.Select(t => t.Name));
     }
 }

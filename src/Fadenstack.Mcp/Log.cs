@@ -19,4 +19,16 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 3002, Level = LogLevel.Warning, Message = "MCP server {Label} ({Transport}) could not be attached ({ErrorType})")]
     internal static partial void AttachFailed(ILogger logger, string label, string transport, string errorType);
+
+    [LoggerMessage(EventId = 3003, Level = LogLevel.Warning, Message = "MCP server {Label} ({Transport}) stopped; starting it again (try {Attempt} of {Max})")]
+    internal static partial void Restarting(ILogger logger, string label, string transport, int attempt, int max);
+
+    [LoggerMessage(EventId = 3004, Level = LogLevel.Information, Message = "MCP server {Label} changed its tools: {ToolCount} now")]
+    internal static partial void ToolsChanged(ILogger logger, string label, int toolCount);
+
+    [LoggerMessage(EventId = 3005, Level = LogLevel.Warning, Message = "A call to MCP server {Label} did not finish within {Seconds} s and was cancelled")]
+    internal static partial void CallTimedOut(ILogger logger, string label, int seconds);
+
+    [LoggerMessage(EventId = 3006, Level = LogLevel.Information, Message = "MCP server {Label} asked the person a question: {Outcome}")]
+    internal static partial void Question(ILogger logger, string label, string outcome);
 }
