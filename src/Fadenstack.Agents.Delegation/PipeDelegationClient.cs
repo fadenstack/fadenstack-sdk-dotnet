@@ -252,6 +252,7 @@ internal sealed class PipeDelegationClient : IDelegationClient
                         [A2AParts.MetadataKey] = JsonSerializer.SerializeToElement(new
                         {
                             from = new { slug = _request.FromSlug, name = _request.FromName }, references = _request.References,
+                            document = _request.Document,
                         }),
                     },
                 };

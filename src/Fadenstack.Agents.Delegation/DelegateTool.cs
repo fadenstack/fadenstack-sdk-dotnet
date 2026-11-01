@@ -32,7 +32,7 @@ public sealed class DelegateToolOptions
 }
 
 /// <summary>
-/// The one <c>delegate(agent, task, references)</c> tool for all other agents (Hermes style): <c>agent</c> is an enum of
+/// The one <c>delegate(agent, task, references, document)</c> tool for all other agents (Hermes style): <c>agent</c> is an enum of
 /// the agents the caller's published version allows (<c>ui.delegates</c> in the agent profile), which is also the
 /// allowlist; the tool's description lists <c>slug: name, summary</c> for each from the Agent Cards of those running.
 /// Class <see cref="ToolClass.Write"/>. The answer comes back as untrusted content, fenced with a random tag. An allowed
@@ -133,6 +133,11 @@ public sealed class DelegateToolModule : IFadenstackModule, IToolSource
                 items = new { type = "string" },
                 description = "Short pointers it can look up itself: record ids, file paths. Optional.",
             },
+            ["document"] = new
+            {
+                type = "string",
+                description = "The full path of the file the work is in, when the task is about one document. The app opens it when it is not open.",
+            },
         },
         required = new[] { "agent", "task" },
     });
@@ -150,7 +155,7 @@ public sealed class DelegateToolModule : IFadenstackModule, IToolSource
         {
             return "Error: give the task as text.";
         }
-        var result = await _delegate.RunAsync(new DelegationRequest(agent, task) { References = References(arguments) },
+        var result = await _delegate.RunAsync(new DelegationRequest(agent, task) { References = References(arguments), Document = Document(arguments) },
             new DelegationCallbacks { Approve = _options.Approve, Status = _options.Status }, cancellationToken).ConfigureAwait(false);
         if (_options.ReportDelegations)
         {
@@ -213,6 +218,9 @@ public sealed class DelegateToolModule : IFadenstackModule, IToolSource
             _ => null,
         }
         : null;
+
+    private static string? Document(AIFunctionArguments arguments) =>
+        Text(arguments, "document") is { } document && !string.IsNullOrWhiteSpace(document) ? document.Trim() : null;
 
     private static IReadOnlyList<string> References(AIFunctionArguments arguments)
     {

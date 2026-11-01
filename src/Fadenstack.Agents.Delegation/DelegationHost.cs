@@ -26,6 +26,13 @@ public sealed class DelegationHostOptions
     /// <summary>The host's window key, for hosts with an agent per window.</summary>
     public string? Window { get; set; }
 
+    /// <summary>
+    /// The documents this window works in (full paths, or the name shown for an unsaved one); empty for none. A task that
+    /// names another document is rejected; with none given every task is accepted. Change them later with
+    /// <see cref="DelegationHost.UpdateWorkspaces"/>.
+    /// </summary>
+    public IReadOnlyList<string> Workspaces { get; set; } = Array.Empty<string>();
+
     /// <summary>The largest message on the pipe in bytes (default 256 KB).</summary>
     public int MaxMessageBytes { get; set; } = 256 * 1024;
 
@@ -61,11 +68,12 @@ public enum DelegatedTaskChange
 /// <summary>A task another agent delegated to this one, as the host application shows it.</summary>
 public sealed class DelegatedTask
 {
-    internal DelegatedTask(string taskId, string fromSlug, string fromName)
+    internal DelegatedTask(string taskId, string fromSlug, string fromName, string? document = null)
     {
         TaskId = taskId;
         FromSlug = fromSlug;
         FromName = fromName;
+        Document = document;
         StartedUtc = DateTime.UtcNow;
     }
 
@@ -75,6 +83,9 @@ public sealed class DelegatedTask
     public string FromSlug { get; }
 
     public string FromName { get; }
+
+    /// <summary>The document the task is about; null when it names none.</summary>
+    public string? Document { get; }
 
     /// <summary>What to call it in the UI: <c>Task from Desktop agent</c>.</summary>
     public string Label => string.IsNullOrWhiteSpace(FromName) ? "Task from another agent" : "Task from " + FromName;
@@ -129,6 +140,7 @@ public sealed class DelegationHost : IDisposable
     private readonly object _gate = new();
     private AgentRegistration? _registration;
     private DelegatedTask? _current;
+    private IReadOnlyList<string> _workspaces;
 
     /// <param name="agent">A started agent (<see cref="FadenstackAgent.StartAsync"/>, or after its first session).</param>
     /// <param name="registry">The device's agent registry.</param>
@@ -143,6 +155,7 @@ public sealed class DelegationHost : IDisposable
         _agent = agent ?? throw new ArgumentNullException(nameof(agent));
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         _options = options ?? new DelegationHostOptions();
+        _workspaces = _options.Workspaces ?? Array.Empty<string>();
         _server = server ?? new PipeDelegationServer(new AgentCardSummary
         {
             Slug = agent.Slug,
@@ -186,8 +199,31 @@ public sealed class DelegationHost : IDisposable
             Agent = _agent.Slug,
             Instance = _options.Instance,
             Window = _options.Window,
+            Workspaces = Workspaces(),
             Delegation = _server.Endpoint,
         });
+    }
+
+    /// <summary>
+    /// Sets the documents this window works in (after Save As, for one), in the registry and for the check of each task's
+    /// document.
+    /// </summary>
+    public void UpdateWorkspaces(IReadOnlyList<string> workspaces)
+    {
+        var copy = (workspaces ?? Array.Empty<string>()).ToList();
+        lock (_gate)
+        {
+            _workspaces = copy;
+        }
+        _registration?.Update(workspaces: copy);
+    }
+
+    private IReadOnlyList<string> Workspaces()
+    {
+        lock (_gate)
+        {
+            return _workspaces;
+        }
     }
 
     public void Dispose()
@@ -217,10 +253,15 @@ public sealed class DelegationHost : IDisposable
         public async Task<TaskOutcome> RunAsync(TaskRequest request, IDelegatedTaskChannel channel, CancellationToken cancellationToken)
         {
             var host = _host;
-            var task = new DelegatedTask(request.TaskId, request.FromSlug, request.FromName);
+            var task = new DelegatedTask(request.TaskId, request.FromSlug, request.FromName, request.Document);
             if (string.IsNullOrWhiteSpace(request.Text))
             {
                 return new TaskOutcome(request.TaskId, TaskState.Rejected, "The task has no text.");
+            }
+            var workspaces = host.Workspaces();
+            if (!string.IsNullOrWhiteSpace(request.Document) && workspaces.Count > 0 && !workspaces.Any(w => DocumentPaths.Same(w, request.Document)))
+            {
+                return new TaskOutcome(request.TaskId, TaskState.Rejected, "This window works in another document.");
             }
             lock (host._gate)
             {

@@ -6,7 +6,7 @@ namespace Fadenstack.Agents.Delegation;
 
 // How a delegated task looks as A2A 1.0 (the shapes the caller and the agent agree on):
 //
-//   new task      SendStreamingMessage: message {role user, parts [text], metadata {"fadenstack": {"from": {slug, name}, "references": [...]}}}
+//   new task      SendStreamingMessage: message {role user, parts [text], metadata {"fadenstack": {"from": {slug, name}, "references": [...], "document": "..."}}}
 //   progress      TaskStatusUpdateEvent state TASK_STATE_WORKING, status.message with a text part
 //   approval      TaskStatusUpdateEvent state TASK_STATE_INPUT_REQUIRED, status.message {role agent, parts [text, data
 //                 {approvalId, tool, toolClass, summary, argumentsPreview}]}; the stream ends there
@@ -81,10 +81,10 @@ internal sealed class A2ARunnerHandler : A2A.IAgentHandler, A2A.IAgentCancellati
             if (!context.IsContinuation)
             {
                 await updater.SubmitAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-                var (from, references) = Metadata(context.Message);
+                var (from, references, document) = Metadata(context.Message);
                 run = new Run(context.TaskId);
                 _runs[context.TaskId] = run;
-                run.Start(_runner, new TaskRequest(context.TaskId, context.UserText ?? "", references, from.Slug, from.Name),
+                run.Start(_runner, new TaskRequest(context.TaskId, context.UserText ?? "", references, from.Slug, from.Name) { Document = document },
                     () => _runs.TryRemove(context.TaskId, out _));
             }
             else if (!_runs.TryGetValue(context.TaskId, out run))
@@ -170,22 +170,27 @@ internal sealed class A2ARunnerHandler : A2A.IAgentHandler, A2A.IAgentCancellati
         await new A2A.TaskUpdater(eventQueue, context.TaskId, context.ContextId).CancelAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private static (FromInfo From, IReadOnlyList<string> References) Metadata(A2A.Message message)
+    private static (FromInfo From, IReadOnlyList<string> References, string? Document) Metadata(A2A.Message message)
     {
         var from = new FromInfo("", "");
         var references = new List<string>();
+        string? document = null;
         if (message.Metadata is { } metadata && metadata.TryGetValue(A2AParts.MetadataKey, out var info) && info.ValueKind == JsonValueKind.Object)
         {
             if (info.TryGetProperty("from", out var party))
             {
                 from = new FromInfo(A2AParts.String(party, "slug"), A2AParts.String(party, "name"));
             }
+            if (info.TryGetProperty("document", out var file) && file.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(file.GetString()))
+            {
+                document = file.GetString();
+            }
             if (info.TryGetProperty("references", out var list) && list.ValueKind == JsonValueKind.Array)
             {
                 references.AddRange(list.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.String).Select(e => e.GetString()!));
             }
         }
-        return (from, references);
+        return (from, references, document);
     }
 
     private readonly record struct FromInfo(string Slug, string Name);

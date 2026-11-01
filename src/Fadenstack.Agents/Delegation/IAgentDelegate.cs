@@ -8,6 +8,12 @@ public sealed record DelegationRequest(string Agent, string Task)
 {
     /// <summary>Short strings that point at things the other agent can look up itself: record ids, file paths.</summary>
     public IReadOnlyList<string> References { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// The document the task is about: a full file path, or for an unsaved document the name the app shows. When set, the
+    /// task goes only to an instance of the agent that works in that document.
+    /// </summary>
+    public string? Document { get; init; }
 }
 
 /// <summary>How a delegation ended.</summary>

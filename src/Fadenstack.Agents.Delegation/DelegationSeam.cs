@@ -54,7 +54,11 @@ internal static class TaskStates
 }
 
 /// <summary>A task a caller hands over: its text, the references it chose to share, and who it is from.</summary>
-internal sealed record TaskRequest(string TaskId, string Text, IReadOnlyList<string> References, string FromSlug, string FromName);
+internal sealed record TaskRequest(string TaskId, string Text, IReadOnlyList<string> References, string FromSlug, string FromName)
+{
+    /// <summary>The document the task is about (see <see cref="DelegationRequest.Document"/>); null for none.</summary>
+    public string? Document { get; init; }
+}
 
 /// <summary>An approval the embedded agent's loop needs, for the caller's person to decide.</summary>
 internal sealed record ApprovalAsk(string ApprovalId, string Tool, string ToolClass, string Summary, string ArgumentsPreview);
