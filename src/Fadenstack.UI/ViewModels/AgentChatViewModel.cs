@@ -51,6 +51,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _isBusy;
     private bool _isHistoryOpen;
     private bool _isModeMenuOpen;
+    private bool _isReasoningMenuOpen;
+    private bool _hasReasoningChoice;
+    private ReasoningOption? _selectedReasoning;
     private bool _signInRequired;
     private string? _error;
     private ToolModeOption _selectedMode;
@@ -80,6 +83,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
             .Select(m => new ToolModeOption(m, Strings)));
         _selectedMode = ToolModes[2];
+        ReasoningOptions = new ObservableCollection<ReasoningOption>();
         _approvals.Requested += OnApprovalRequested;
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
@@ -116,6 +120,14 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             }
             IsModeMenuOpen = false;
         }, option => option is { IsAvailable: true });
+        SelectReasoningCommand = new RelayCommand<ReasoningOption>(option =>
+        {
+            if (option is not null)
+            {
+                SelectedReasoning = option;
+            }
+            IsReasoningMenuOpen = false;
+        }, option => option is not null);
         ResetApprovalsCommand = new AsyncRelayCommand(ResetApprovalsAsync, () => _isReady);
         OpenAboutCommand = new RelayCommand(OpenAbout);
         CloseAboutCommand = new RelayCommand(() => IsAboutOpen = false);
@@ -392,6 +404,91 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    // -- how long the agent thinks ---------------------------------------------------------------------
+
+    /// <summary>The levels of thinking the agent offers (its profile's <c>ui.reasoning</c>); empty until it started.</summary>
+    public ObservableCollection<ReasoningOption> ReasoningOptions { get; }
+
+    /// <summary>The pill shows: the agent offers more than one level. With one (or before it started) there is nothing to pick.</summary>
+    public bool HasReasoningChoice
+    {
+        get => _hasReasoningChoice;
+        private set => SetProperty(ref _hasReasoningChoice, value);
+    }
+
+    /// <summary>The thinking menu is open (presentation state, so the skin needs no code).</summary>
+    public bool IsReasoningMenuOpen
+    {
+        get => _isReasoningMenuOpen;
+        set => SetProperty(ref _isReasoningMenuOpen, value);
+    }
+
+    /// <summary>
+    /// The level new messages think at: the person's pick, kept for them and this agent on this device, else the agent's
+    /// default. Changing it applies from the next message; a running turn is not changed.
+    /// </summary>
+    public ReasoningOption? SelectedReasoning
+    {
+        get => _selectedReasoning;
+        set
+        {
+            if (value is null || !SetProperty(ref _selectedReasoning, value))
+            {
+                return;
+            }
+            MarkReasoning();
+            _agent.SetReasoning(value.Level);
+            if (_session is not null)
+            {
+                _session.Reasoning = value.Level;
+            }
+            OnPropertyChanged(nameof(ReasoningPillText));
+            OnPropertyChanged(nameof(ReasoningHint));
+        }
+    }
+
+    /// <summary>"Low" (beside the pill's brain icon), or "Thinking: Off" / "Thinking: On" for an agent that offers just those two.</summary>
+    public string ReasoningPillText => _selectedReasoning is { } option ? (option.AsSwitch ? Strings.ReasoningPill(option.Label) : option.Label) : "";
+
+    /// <summary>What the pick means, in one line.</summary>
+    public string ReasoningHint => _selectedReasoning?.Description ?? "";
+
+    public IRelayCommand<ReasoningOption> SelectReasoningCommand { get; }
+
+    /// <summary>Builds the levels from the profile and selects the one new messages think at.</summary>
+    private void RefreshReasoning()
+    {
+        var choices = _agent.ReasoningChoices;
+        ReasoningOptions.Clear();
+        foreach (var level in choices.Levels)
+        {
+            ReasoningOptions.Add(new ReasoningOption(level, Strings, choices.IsSwitch));
+        }
+        HasReasoningChoice = !choices.IsFixed;
+        FollowReasoning();
+    }
+
+    /// <summary>Selects the level new messages think at (for a new or opened chat: the person's pick), without changing the pick.</summary>
+    private void FollowReasoning()
+    {
+        var level = _session?.Reasoning ?? _agent.Reasoning;
+        // A level the agent starts at but does not list (the app set it) still shows as it is.
+        var option = ReasoningOptions.FirstOrDefault(o => o.Level == level)
+            ?? new ReasoningOption(level, Strings, asSwitch: false);
+        SetProperty(ref _selectedReasoning, option, nameof(SelectedReasoning));
+        MarkReasoning();
+        OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningHint));
+    }
+
+    private void MarkReasoning()
+    {
+        foreach (var option in ReasoningOptions)
+        {
+            option.IsSelected = ReferenceEquals(option, _selectedReasoning);
+        }
+    }
+
     internal IClipboard Clipboard => _options.Clipboard;
 
     // -- commands ------------------------------------------------------------------------------------
@@ -459,6 +556,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             var start = ToolModes.First(o => o.Mode == _agent.DefaultToolMode);
             SetProperty(ref _selectedMode, start.IsAvailable ? start : ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
+            RefreshReasoning();
             await RefreshSessionsAsync();
             IsReady = true;
         }
@@ -647,6 +745,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         PickedSkills.Clear();
         SetProperty(ref _selectedMode, ToolModes.FirstOrDefault(o => o.Mode == _agent.DefaultToolMode && o.IsAvailable) ?? ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
         OnPropertyChanged(nameof(ToolModeHint));
+        FollowReasoning();
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasEarlierTurns));
         OnPropertyChanged(nameof(CurrentSessionId));
@@ -684,6 +783,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             var mode = ToolModes.First(o => o.Mode == session.ToolMode);
             SetProperty(ref _selectedMode, mode, nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
+            FollowReasoning();
             OnPropertyChanged(nameof(IsEmpty));
             OnPropertyChanged(nameof(HasEarlierTurns));
             OnPropertyChanged(nameof(CurrentSessionId));
@@ -792,6 +892,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     {
         IsSettingsOpen = false;
         IsModeMenuOpen = false;
+        IsReasoningMenuOpen = false;
         IsHistoryOpen = false;
         IsAboutOpen = true;
     }
@@ -933,6 +1034,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             option.Retext(strings);
         }
+        foreach (var option in ReasoningOptions)
+        {
+            option.Retext(strings);
+        }
+        _selectedReasoning?.Retext(strings);
+        OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningHint));
         var now = _options.Clock();
         foreach (var session in Sessions)
         {

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Fadenstack.Agents;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
 
@@ -149,6 +150,47 @@ public sealed class ToolModeOption : ObservableObject
     {
         get => _isAvailable;
         internal set => SetProperty(ref _isAvailable, value);
+    }
+
+    public override string ToString() => Label;
+
+    internal void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(Description));
+    }
+}
+
+/// <summary>A level of thinking in the picker, with what it means.</summary>
+public sealed class ReasoningOption : ObservableObject
+{
+    private readonly bool _asSwitch;
+    private bool _isSelected;
+    private UiStrings _strings;
+
+    internal ReasoningOption(ReasoningLevel level, UiStrings strings, bool asSwitch)
+    {
+        Level = level;
+        _strings = strings;
+        _asSwitch = asSwitch;
+    }
+
+    public ReasoningLevel Level { get; }
+
+    /// <summary>The agent offers just Off and one other level: this one reads "Off" or "On".</summary>
+    public bool AsSwitch => _asSwitch;
+
+    /// <summary>"Low"; "On" and "Off" when the agent offers only those two.</summary>
+    public string Label => _strings.ReasoningLabel(Level, _asSwitch);
+
+    public string Description => _strings.ReasoningDescription(Level, _asSwitch);
+
+    /// <summary>The level new messages think at: the menu marks it.</summary>
+    public bool IsSelected
+    {
+        get => _isSelected;
+        internal set => SetProperty(ref _isSelected, value);
     }
 
     public override string ToString() => Label;

@@ -386,6 +386,52 @@
     <value>Tools in this chat</value>
     <comment>The heading of the tool-mode menu</comment>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+    <comment>A level of thinking (the pill beside the tool mode)</comment>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>The agent's own setting.</value>
+    <comment>What the level means</comment>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Answers at once.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Thinks briefly.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Thinks for a while.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Thinks longest.</value>
+  </data>
+  <data name="Reasoning_On_Label" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Reasoning_On_Description" xml:space="preserve">
+    <value>Thinks before it answers.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Thinking: {0}</value>
+    <comment>The pill: {0} is the level, e.g. Low, or Off / On</comment>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>How long it thinks</value>
+    <comment>The heading of the thinking menu and the pill's name for screen readers</comment>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
     <comment>The chats on this device: the button and the menu's heading</comment>

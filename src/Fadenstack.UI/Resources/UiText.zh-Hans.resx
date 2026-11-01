@@ -292,6 +292,48 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>此聊天中的工具</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>使用智能体自身的设置。</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>立即作答。</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>低</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>简短思考。</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>中</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>思考一段时间。</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>高</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>思考最久。</value>
+  </data>
+  <data name="Reasoning_On_Label" xml:space="preserve">
+    <value>开启</value>
+  </data>
+  <data name="Reasoning_On_Description" xml:space="preserve">
+    <value>先思考，再作答。</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>思考：{0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>思考时长</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>聊天</value>
   </data>

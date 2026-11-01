@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Resources;
 using System.Runtime.CompilerServices;
+using Fadenstack.Agents;
 using Fadenstack.Tools;
 
 namespace Fadenstack.UI;
@@ -237,6 +238,20 @@ public sealed class UiStrings
     public string LimitedTo(string description, string mode) => Fill2(description, mode);
 
     public string ToolModeMenu => Text();
+
+    /// <summary>A level of thinking. In a two-level Off / On switch every level but Off reads "On".</summary>
+    public string ReasoningLabel(ReasoningLevel level, bool asSwitch = false) =>
+        this[$"Reasoning_{(asSwitch && level != ReasoningLevel.Off ? "On" : level.ToString())}_Label"];
+
+    /// <summary>What the level means, in one line.</summary>
+    public string ReasoningDescription(ReasoningLevel level, bool asSwitch = false) =>
+        this[$"Reasoning_{(asSwitch && level != ReasoningLevel.Off ? "On" : level.ToString())}_Description"];
+
+    /// <summary>The pill: "Thinking: Low".</summary>
+    public string ReasoningPill(string level) => Fill(level);
+
+    /// <summary>The heading of the thinking menu, and the pill's name for screen readers.</summary>
+    public string ReasoningMenu => Text();
 
     // -- the skin's controls --------------------------------------------------------------------------
 

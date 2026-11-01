@@ -292,6 +292,48 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>Herramientas en este chat</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>El ajuste propio del agente.</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Responde de inmediato.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Bajo</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Piensa brevemente.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Medio</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Piensa durante un rato.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>Alto</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Piensa durante más tiempo.</value>
+  </data>
+  <data name="Reasoning_On_Label" xml:space="preserve">
+    <value>Activado</value>
+  </data>
+  <data name="Reasoning_On_Description" xml:space="preserve">
+    <value>Piensa antes de responder.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Razonamiento: {0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>Cuánto tiempo piensa</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
   </data>

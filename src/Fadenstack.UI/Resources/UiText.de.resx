@@ -292,6 +292,48 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>Tools in diesem Chat</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>Die Einstellung des Agenten.</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Aus</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Antwortet sofort.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Niedrig</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Denkt kurz nach.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Mittel</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Denkt eine Weile nach.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>Hoch</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Denkt am längsten nach.</value>
+  </data>
+  <data name="Reasoning_On_Label" xml:space="preserve">
+    <value>Ein</value>
+  </data>
+  <data name="Reasoning_On_Description" xml:space="preserve">
+    <value>Denkt nach, bevor er antwortet.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Nachdenken: {0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>Wie lange nachgedacht wird</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
   </data>

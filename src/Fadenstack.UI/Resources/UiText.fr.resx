@@ -292,6 +292,48 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>Outils dans cette conversation</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>Le réglage propre à l'agent.</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Désactivée</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Répond immédiatement.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Faible</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Réfléchit brièvement.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Moyenne</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Réfléchit un moment.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>Élevée</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Réfléchit le plus longtemps.</value>
+  </data>
+  <data name="Reasoning_On_Label" xml:space="preserve">
+    <value>Activée</value>
+  </data>
+  <data name="Reasoning_On_Description" xml:space="preserve">
+    <value>Réfléchit avant de répondre.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Réflexion : {0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>Durée de réflexion</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Conversations</value>
   </data>
