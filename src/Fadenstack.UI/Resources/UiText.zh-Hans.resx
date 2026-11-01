@@ -130,6 +130,18 @@
   <data name="ServerTool" xml:space="preserve">
     <value>服务器工具</value>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>来自 {0}，此计算机上的 MCP 服务器</value>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>贵组织尚未审查此工具。</value>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>服务器表示它只读取。</value>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>服务器表示它可能删除或覆盖。</value>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>发送到外部</value>
   </data>

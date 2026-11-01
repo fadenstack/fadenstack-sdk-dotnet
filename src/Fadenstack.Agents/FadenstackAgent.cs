@@ -119,7 +119,9 @@ public sealed class FadenstackAgent : IDisposable
                 }
                 var risk = ToolModes.ParseClass(entry?.Risk);
                 tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope });
+                    tool.Source, tool.Server, tool.OpenWorld) {
+                    Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope, ReadOnlyHint = tool.ReadOnlyHint, DestructiveHint = tool.DestructiveHint,
+                });
             }
             var hostTools = tools.Count;
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);

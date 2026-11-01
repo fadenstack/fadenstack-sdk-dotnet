@@ -779,7 +779,10 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDi
                 {
                     if (seen.Add(tool.Name))
                     {
-                        tools.Add(new AgentTool(tool.Function, ToolClass.Unknown, "mcp", entry.Server.Label, tool.OpenWorld) { Scope = _scope });
+                        tools.Add(new AgentTool(tool.Function, ToolClass.Unknown, "mcp", entry.Server.Label, tool.OpenWorld)
+                        {
+                            Scope = _scope, ReadOnlyHint = tool.Info.Hints.ReadOnly, DestructiveHint = tool.Info.Hints.Destructive,
+                        });
                     }
                 }
             }

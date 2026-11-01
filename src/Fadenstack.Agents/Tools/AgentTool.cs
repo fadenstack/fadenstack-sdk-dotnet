@@ -152,6 +152,12 @@ public sealed class AgentTool
     /// <summary>Reaches outside the organisation (a web search, opening a page); null when nobody said.</summary>
     public bool? OpenWorld { get; }
 
+    /// <summary>What the MCP server's annotations say: the tool only reads. Null when the server did not say; the card shows it, no mode acts on it.</summary>
+    public bool? ReadOnlyHint { get; init; }
+
+    /// <summary>What the MCP server's annotations say: the tool may delete or overwrite. Null when the server did not say.</summary>
+    public bool? DestructiveHint { get; init; }
+
     /// <summary>
     /// What a call acts on, in the user's words (<c>button "Send" on mail.example.com</c>), for the approval card
     /// (<see cref="ApprovalRequest.Target"/>): called only when the user is asked, so they see what the call will touch,

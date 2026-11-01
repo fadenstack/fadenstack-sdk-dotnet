@@ -225,6 +225,15 @@
         <Setter Property="Data" Value="{DynamicResource Icon.WarningAmber}" />
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
     </Style>
+    <Style Selector="WrapPanel.source">
+        <Setter Property="ItemSpacing" Value="8" />
+        <Setter Property="LineSpacing" Value="4" />
+    </Style>
+    <Style Selector="Border.approval c|FsIcon.source">
+        <Setter Property="Data" Value="{DynamicResource Icon.Extension}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
     <Style Selector="Border.arguments">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceSubtle}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Inner}" />

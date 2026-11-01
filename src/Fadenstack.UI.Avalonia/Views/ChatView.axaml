@@ -105,15 +105,25 @@
         <DataTemplate DataType="parts:ApprovalPart">
             <Border Classes="card approval" Classes.destructive="{Binding IsDestructive}" Classes.answered="{Binding !IsPending}">
                 <StackPanel Spacing="8">
+                    <!-- The title alone on its row, as wide as the card: beside the badge a narrow panel left it a word's width and
+                         broke the name mid-word. The class is on the line below. -->
                     <DockPanel>
                         <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
-                        <Border DockPanel.Dock="Right" Classes="badge" Margin="8,0,0,0"
+                        <TextBlock Classes="subtitle" b:MarkdownText.Inlines="{Binding TitleInlines}" AutomationProperties.Name="{Binding Title}"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <WrapPanel Classes="source">
+                        <Border Classes="badge"
                                 Classes.write="{Binding Class, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static tools:ToolClass.Write}}"
                                 Classes.danger="{Binding IsDestructive}">
                             <TextBlock Text="{Binding ClassLabel}" />
                         </Border>
-                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                    </DockPanel>
+                        <!-- A tool from a local MCP server says where it comes from. -->
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding HasSourceLine}">
+                            <c:FsIcon Classes="source" />
+                            <TextBlock Classes="caption muted" Text="{Binding SourceLine}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </WrapPanel>
                     <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
                                IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <!-- What the call acts on, as the tool says it: button "Send" on mail.example.com -->

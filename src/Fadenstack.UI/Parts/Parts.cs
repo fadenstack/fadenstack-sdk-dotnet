@@ -374,6 +374,16 @@ public sealed class ApprovalPart : ResponsePart
 
     public string Title => _strings.ApprovalTitle(Request.ToolName);
 
+    /// <summary>The title as runs, the tool's name in code style (a skin sets it in its mono font), so it stands on its own row.</summary>
+    public IReadOnlyList<InlineRun> TitleInlines => MarkdownParser.Inlines(_strings.ApprovalTitle("`" + Request.ToolName + "`"));
+
+    /// <summary>For a tool from a local MCP server: "From Files, an MCP server on this computer"; else "".</summary>
+    public string SourceLine => IsMcpTool ? _strings.ApprovalFromMcp(Request.Server!) : "";
+
+    public bool HasSourceLine => IsMcpTool;
+
+    private bool IsMcpTool => Request.Source == "mcp" && Request.Server is { Length: > 0 };
+
     public ToolClass Class => Request.ToolClass;
 
     public bool IsDestructive => Request.ToolClass is ToolClass.Destructive or ToolClass.Unknown;
@@ -392,7 +402,13 @@ public sealed class ApprovalPart : ResponsePart
     /// </summary>
     public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason
         : GoesOutside ? _strings.ApprovalOutsideWhy
+        : IsMcpTool && Request.ToolClass == ToolClass.Unknown ? McpReason()
         : _strings.ApprovalWhy(Request.ToolClass);
+
+    /// <summary>An MCP tool nobody classified: that the organisation has not checked it, then what the server itself says.</summary>
+    private string McpReason() => Request.DestructiveHint == true ? _strings.ApprovalUnchecked + " " + _strings.ApprovalServerDestructive
+        : Request.ReadOnlyHint == true ? _strings.ApprovalUnchecked + " " + _strings.ApprovalServerReadOnly
+        : _strings.ApprovalUnchecked;
 
     private bool GoesOutside => Request.OpenWorld && Request.ToolClass != ToolClass.Destructive;
 

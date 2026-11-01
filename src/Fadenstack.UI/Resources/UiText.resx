@@ -170,6 +170,22 @@
     <value>Server tool</value>
     <comment>A tool the server runs</comment>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>From {0}, an MCP server on this computer</value>
+    <comment>The source line of a card for a tool from a local MCP server; {0}: the server's label</comment>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>Your organisation has not checked this tool.</value>
+    <comment>Why a card asks about a local MCP server's tool nobody classified</comment>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>The server says it only reads.</value>
+    <comment>What the server's own annotations say about the tool</comment>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>The server says it may delete or overwrite.</value>
+    <comment>What the server's own annotations say about the tool</comment>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>Goes outside</value>
     <comment>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page)</comment>

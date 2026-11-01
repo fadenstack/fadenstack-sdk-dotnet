@@ -140,6 +140,17 @@ public sealed class UiStrings
 
     public string ServerTool => Text();
 
+    /// <summary>The source line of a card for a local MCP server's tool: "From {0}, an MCP server on this computer".</summary>
+    public string ApprovalFromMcp(string label) => Fill(label);
+
+    /// <summary>Why a card asks about a local MCP server's tool nobody classified.</summary>
+    public string ApprovalUnchecked => Text();
+
+    /// <summary>What the server's own annotations say, after <see cref="ApprovalUnchecked"/>.</summary>
+    public string ApprovalServerReadOnly => Text();
+
+    public string ApprovalServerDestructive => Text();
+
     /// <summary>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page).</summary>
     public string ApprovalOutside => Text();
 

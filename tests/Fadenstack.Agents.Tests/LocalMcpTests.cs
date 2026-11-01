@@ -65,6 +65,9 @@ public class LocalMcpTests
         Assert.Equal(ToolClass.Read, agent.Tools.Single(t => t.Name == LocalMcpModule.FindToolName).Class);
         Assert.Equal((ToolClass.Unknown, "mcp", "notes-db", (bool?)false), (tool.Class, tool.Source, tool.Server, tool.OpenWorld));
         Assert.Equal(("count_terminals", "mcp"), (asked.Single().ToolName, asked.Single().Source)); // readOnlyHint is not trusted
+        // The card shows the server and its own hint, still not trusted for the class.
+        Assert.Equal(("notes-db", (bool?)true), (asked.Single().Server, asked.Single().ReadOnlyHint));
+        Assert.Equal(true, tool.ReadOnlyHint);
         Assert.Equal(new[] { "count 4" }, calls);
         var answer = McpRig.LastToolResult(gateway.ChatRequests[2]);
         Assert.Contains("page 4: 12 terminals", answer);

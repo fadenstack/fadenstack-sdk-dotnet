@@ -889,6 +889,9 @@ public sealed class AgentSession
                     ToolName = tool.Name,
                     ToolClass = toolClass,
                     Source = tool.Source,
+                    Server = tool.Server,
+                    ReadOnlyHint = tool.ReadOnlyHint,
+                    DestructiveHint = tool.DestructiveHint,
                     Reason = rule ? mark!.Message
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
