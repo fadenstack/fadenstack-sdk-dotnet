@@ -239,13 +239,11 @@ public sealed class UiStrings
 
     public string ToolModeMenu => Text();
 
-    /// <summary>A level of thinking. In a two-level Off / On switch every level but Off reads "On".</summary>
-    public string ReasoningLabel(ReasoningLevel level, bool asSwitch = false) =>
-        this[$"Reasoning_{(asSwitch && level != ReasoningLevel.Off ? "On" : level.ToString())}_Label"];
+    /// <summary>A level of thinking.</summary>
+    public string ReasoningLabel(ReasoningLevel level) => this[$"Reasoning_{level}_Label"];
 
     /// <summary>What the level means, in one line.</summary>
-    public string ReasoningDescription(ReasoningLevel level, bool asSwitch = false) =>
-        this[$"Reasoning_{(asSwitch && level != ReasoningLevel.Off ? "On" : level.ToString())}_Description"];
+    public string ReasoningDescription(ReasoningLevel level) => this[$"Reasoning_{level}_Description"];
 
     /// <summary>The pill: "Thinking: Low".</summary>
     public string ReasoningPill(string level) => Fill(level);

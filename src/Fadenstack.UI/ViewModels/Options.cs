@@ -165,26 +165,21 @@ public sealed class ToolModeOption : ObservableObject
 /// <summary>A level of thinking in the picker, with what it means.</summary>
 public sealed class ReasoningOption : ObservableObject
 {
-    private readonly bool _asSwitch;
     private bool _isSelected;
     private UiStrings _strings;
 
-    internal ReasoningOption(ReasoningLevel level, UiStrings strings, bool asSwitch)
+    internal ReasoningOption(ReasoningLevel level, UiStrings strings)
     {
         Level = level;
         _strings = strings;
-        _asSwitch = asSwitch;
     }
 
     public ReasoningLevel Level { get; }
 
-    /// <summary>The agent offers just Off and one other level: this one reads "Off" or "On".</summary>
-    public bool AsSwitch => _asSwitch;
-
     /// <summary>"Low"; "On" and "Off" when the agent offers only those two.</summary>
-    public string Label => _strings.ReasoningLabel(Level, _asSwitch);
+    public string Label => _strings.ReasoningLabel(Level);
 
-    public string Description => _strings.ReasoningDescription(Level, _asSwitch);
+    public string Description => _strings.ReasoningDescription(Level);
 
     /// <summary>The level new messages think at: the menu marks it.</summary>
     public bool IsSelected

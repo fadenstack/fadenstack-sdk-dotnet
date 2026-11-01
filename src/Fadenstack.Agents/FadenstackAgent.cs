@@ -202,40 +202,43 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>
-    /// The levels of thinking the agent offers and the one it starts at, from the profile's <c>ui.reasoning</c>: the five
-    /// levels with Auto when the profile says nothing usable. A UI shows a control only when there is more than one.
+    /// The levels of thinking the agent offers: Auto, Off, and Low, Medium and High up to the maximum the profile's
+    /// <c>ui.reasoning.max</c> sets, if any.
     /// </summary>
     public ReasoningChoices ReasoningChoices => _reasoningChoices;
 
     /// <summary>
-    /// The level this person picked for this agent on this device, if any and if the agent still offers it. Kept per person
-    /// and per agent in the SDK's user folder, so it survives a restart and a new agent instance -- unless the host passed
-    /// both its own session and approval stores, which leaves the pick in memory for the run.
+    /// The level this person picked for this agent on this device, if any. Kept per person and per agent in the SDK's user
+    /// folder, so it survives a restart and a new agent instance -- unless the host passed both its own session and approval
+    /// stores, which leaves the pick in memory for the run. A pick above a maximum the server set later still counts, and
+    /// is lowered to it.
     /// </summary>
-    public ReasoningLevel? ReasoningChoice => _reasoningPick is { } pick && _reasoningChoices.Offers(pick) ? pick : null;
+    public ReasoningLevel? ReasoningChoice => _reasoningPick;
 
     /// <summary>
-    /// How long new messages think: the person's pick, else the profile's default, else what the app set with
-    /// <see cref="AgentBuilder.UseReasoning"/>, else <see cref="ReasoningLevel.Auto"/>.
+    /// How long new messages think: the person's pick, else what the app set with <see cref="AgentBuilder.UseReasoning"/>,
+    /// else <see cref="ReasoningLevel.Auto"/> -- each lowered to the server's maximum, if it sets one.
     /// </summary>
     public ReasoningLevel Reasoning => ResolveReasoning().Level;
 
-    /// <summary>What a request carries when nothing else was set for the session; null (no field) for Auto.</summary>
+    /// <summary>What a request carries when nothing else was set for the session; null (no field) for Auto without a maximum.</summary>
     internal ReasoningEffort? RequestEffort => ResolveReasoning().Effort;
+
+    /// <summary>What a request carries for a level the session was given: Auto is the maximum, if there is one.</summary>
+    internal ReasoningEffort? EffortFor(ReasoningLevel level) =>
+        level == ReasoningLevel.Auto ? _reasoningChoices.Max : _reasoningChoices.Cap(level.ToEffort());
 
     private (ReasoningLevel Level, ReasoningEffort? Effort) ResolveReasoning()
     {
-        if (ReasoningChoice is { } pick)
+        if (_reasoningPick is { } pick)
         {
-            return (pick, pick.ToEffort());
+            return pick == ReasoningLevel.Auto ? (ReasoningLevel.Auto, _reasoningChoices.Max) : Capped(_reasoningChoices.Cap(pick.ToEffort()));
         }
-        if (_reasoningChoices.Default is { } start)
-        {
-            return (start, start.ToEffort());
-        }
-        // The app's own effort goes out exactly as it set it (extra high stays extra high).
-        return (ReasoningLevels.FromEffort(_settings.Reasoning), _settings.Reasoning);
+        // The app's own effort goes out exactly as it set it (extra high stays extra high) unless the maximum is lower.
+        return _settings.Reasoning is { } app ? Capped(_reasoningChoices.Cap(app)) : (ReasoningLevel.Auto, _reasoningChoices.Max);
     }
+
+    private static (ReasoningLevel Level, ReasoningEffort? Effort) Capped(ReasoningEffort? effort) => (ReasoningLevels.FromEffort(effort), effort);
 
     /// <summary>
     /// Keeps the person's pick for this agent (null forgets it), from the next message on; a running turn is not changed.

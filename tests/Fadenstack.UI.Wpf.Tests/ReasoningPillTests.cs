@@ -24,7 +24,7 @@ namespace Fadenstack.UI.Wpf.Tests;
 /// </summary>
 public class ReasoningPillTests
 {
-    private const string Switch = """{"default":"none","levels":["none","high"]}""";
+    private const string Capped = """{"max":"low"}""";
 
     private sealed class Profile : HttpMessageHandler
     {
@@ -130,33 +130,21 @@ public class ReasoningPillTests
     [InlineData("Dark", 280)]
     [InlineData("Dark", 300)]
     [InlineData("Dark", 360)]
-    public void Off_and_on_show_compact_with_the_full_wording_in_name_and_tooltip(string theme, int width) => Sta.Run(() =>
+    public void A_maximum_hides_levels_and_the_pill_stays_compact(string theme, int width) => Sta.Run(() =>
     {
-        var (view, chat, agent) = Open(Switch, theme, width);
+        var (view, chat, agent) = Open(Capped, theme, width);
         using (agent)
         {
             var pill = Named<ToggleButton>(view, "ReasoningButton");
-            Assert.Equal("Thinking: Off", chat.ReasoningPillText);
-            Assert.Equal("Off", chat.ReasoningShortText);
+            Assert.Equal(new[] { "Auto", "Off", "Low" }, chat.ReasoningOptions.Select(o => o.Label));
+            chat.SelectReasoningCommand.Execute(chat.ReasoningOptions[1]);
+            Assert.Equal("Off", chat.ReasoningPillText);
             Assert.Equal("Thinking: Off", System.Windows.Automation.AutomationProperties.GetName(pill));
             var tip = Assert.IsType<string>(pill.ToolTip);
             Assert.Contains("How long it thinks", tip);
             Assert.Contains("Thinking: Off", tip);
             AssertHeaderFits(view, pill);
-            RenderHeaderAndMenu(view, $"wpf-switch-{theme.ToLowerInvariant()}-{width}");
-            chat.SelectReasoningCommand.Execute(chat.ReasoningOptions[1]);
-            Assert.Equal("On", chat.ReasoningShortText);
-        }
-    });
-
-    [Fact]
-    public void With_one_level_the_pill_is_collapsed() => Sta.Run(() =>
-    {
-        var (view, _, agent) = Open("""{"levels":["high"]}""", "Light", 300);
-        using (agent)
-        {
-            Assert.Equal(Visibility.Collapsed, Named<ToggleButton>(view, "ReasoningButton").Visibility);
-            RenderHeaderAndMenu(view, "wpf-hidden-light");
+            RenderHeaderAndMenu(view, $"wpf-max-{theme.ToLowerInvariant()}-{width}");
         }
     });
 

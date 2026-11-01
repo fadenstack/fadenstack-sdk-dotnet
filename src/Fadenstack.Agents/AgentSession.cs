@@ -49,12 +49,12 @@ public sealed class AgentSession
     /// </summary>
     public ReasoningLevel Reasoning
     {
-        get => _reasoning ?? _agent.Reasoning;
+        get => _reasoning is { } level && level != ReasoningLevel.Auto ? ReasoningLevels.FromEffort(_agent.EffortFor(level)) : _reasoning ?? _agent.Reasoning;
         set => _reasoning = value;
     }
 
     /// <summary>What a turn started now would send: the session's level, or -- while it follows the agent -- the agent's own effort.</summary>
-    internal ReasoningEffort? RequestEffort => _reasoning is { } level ? level.ToEffort() : _agent.RequestEffort;
+    internal ReasoningEffort? RequestEffort => _reasoning is { } level ? _agent.EffortFor(level) : _agent.RequestEffort;
 
     /// <summary>
     /// Who is asked about this session's calls that need approval, instead of the agent's own handler

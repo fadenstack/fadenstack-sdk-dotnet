@@ -322,12 +322,6 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Réfléchit le plus longtemps.</value>
   </data>
-  <data name="Reasoning_On_Label" xml:space="preserve">
-    <value>Activée</value>
-  </data>
-  <data name="Reasoning_On_Description" xml:space="preserve">
-    <value>Réfléchit avant de répondre.</value>
-  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Réflexion : {0}</value>
   </data>

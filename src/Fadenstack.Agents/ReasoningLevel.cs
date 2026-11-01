@@ -83,64 +83,57 @@ public static class ReasoningLevels
 }
 
 /// <summary>
-/// The levels an agent offers and where it starts, from its profile's <c>ui.reasoning</c>
-/// (<c>{"default": "none", "levels": ["none", "high"]}</c>). The server does not say which levels a model tells apart, so
-/// the agent's version does. Without it, or with something unreadable, all five are offered and the default is Auto.
+/// The levels an agent offers: always Auto and Off, and Low, Medium and High up to the maximum the server may set in the
+/// agent's profile, <c>ui.reasoning</c> (<c>{"max": "low"}</c>; none, low, medium, high or xhigh). Without a maximum, or
+/// with one that is not readable, all five are offered and Auto sends no field. With one, Auto means the maximum.
 /// </summary>
 public sealed class ReasoningChoices
 {
-    /// <summary>All five levels and no default of its own (so Auto, unless the app set one): what an agent offers when its profile says nothing usable.</summary>
+    /// <summary>All five levels and no maximum: what an agent offers when its profile says nothing usable.</summary>
     public static ReasoningChoices Everything { get; } = new(ReasoningLevels.All, null);
 
-    internal ReasoningChoices(IReadOnlyList<ReasoningLevel> levels, ReasoningLevel? @default)
+    internal ReasoningChoices(IReadOnlyList<ReasoningLevel> levels, ReasoningEffort? max)
     {
         Levels = levels;
-        Default = @default;
+        Max = max;
     }
 
     /// <summary>The levels offered, in menu order.</summary>
     public IReadOnlyList<ReasoningLevel> Levels { get; }
 
-    /// <summary>The level the profile starts at; null when it names none (or one that is not offered).</summary>
-    public ReasoningLevel? Default { get; }
-
-    /// <summary>One level or none: there is nothing to pick, so the UI shows no control.</summary>
-    public bool IsFixed => Levels.Count < 2;
-
-    /// <summary>Exactly Off and one other level: the UI calls them "Thinking: Off / On".</summary>
-    public bool IsSwitch => Levels.Count == 2 && Levels.Contains(ReasoningLevel.Off);
-
-    /// <summary>The level of a two-level switch that is not Off; null otherwise.</summary>
-    public ReasoningLevel? OnLevel => IsSwitch ? Levels.First(l => l != ReasoningLevel.Off) : null;
+    /// <summary>The most the server lets the agent think; null when it sets none.</summary>
+    public ReasoningEffort? Max { get; }
 
     public bool Offers(ReasoningLevel level) => Levels.Contains(level);
 
-    /// <summary>Reads <c>ui.reasoning</c> out of a profile's <c>ui</c>; never throws on what a server wrote there.</summary>
+    /// <summary>The effort a request carries for <paramref name="effort"/>: lowered to the maximum when above it.</summary>
+    public ReasoningEffort? Cap(ReasoningEffort? effort) =>
+        effort is { } e && Max is { } max && Rank(e) > Rank(max) ? max : effort;
+
+    /// <summary>Reads <c>ui.reasoning.max</c> out of a profile's <c>ui</c>; never throws on what a server wrote there.</summary>
     public static ReasoningChoices FromUi(IReadOnlyDictionary<string, JsonElement>? ui)
     {
-        if (ui is null || !ui.TryGetValue("reasoning", out var node) || node.ValueKind != JsonValueKind.Object)
+        if (ui is null || !ui.TryGetValue("reasoning", out var node) || node.ValueKind != JsonValueKind.Object
+            || !node.TryGetProperty("max", out var raw) || raw.ValueKind != JsonValueKind.String)
         {
             return Everything;
         }
-        var levels = new List<ReasoningLevel>();
-        if (node.TryGetProperty("levels", out var list) && list.ValueKind == JsonValueKind.Array)
+        ReasoningEffort? max = raw.GetString()?.Trim().ToLowerInvariant() switch
         {
-            var named = new HashSet<ReasoningLevel>();
-            foreach (var item in list.EnumerateArray())
-            {
-                if (item.ValueKind == JsonValueKind.String && ReasoningLevels.Parse(item.GetString()) is { } level)
-                {
-                    named.Add(level);
-                }
-            }
-            levels.AddRange(ReasoningLevels.All.Where(named.Contains));
-        }
-        if (levels.Count == 0)
+            "none" => ReasoningEffort.None,
+            "low" => ReasoningEffort.Low,
+            "medium" => ReasoningEffort.Medium,
+            "high" => ReasoningEffort.High,
+            "xhigh" => ReasoningEffort.ExtraHigh,
+            _ => null,
+        };
+        if (max is not { } cap)
         {
-            levels.AddRange(ReasoningLevels.All);
+            return Everything;
         }
-        ReasoningLevel? start = node.TryGetProperty("default", out var d) && d.ValueKind == JsonValueKind.String
-            ? ReasoningLevels.Parse(d.GetString()) : null;
-        return new ReasoningChoices(levels, start is { } s && levels.Contains(s) ? s : null);
+        return new ReasoningChoices(ReasoningLevels.All.Where(l => l.ToEffort() is not { } e || Rank(e) <= Rank(cap)).ToList(), cap);
     }
+
+    private static int Rank(ReasoningEffort effort) => effort == ReasoningEffort.None ? 0
+        : effort == ReasoningEffort.Low ? 1 : effort == ReasoningEffort.Medium ? 2 : effort == ReasoningEffort.High ? 3 : 4;
 }

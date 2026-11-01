@@ -322,12 +322,6 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Denkt am längsten nach.</value>
   </data>
-  <data name="Reasoning_On_Label" xml:space="preserve">
-    <value>Ein</value>
-  </data>
-  <data name="Reasoning_On_Description" xml:space="preserve">
-    <value>Denkt nach, bevor er antwortet.</value>
-  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Nachdenken: {0}</value>
   </data>

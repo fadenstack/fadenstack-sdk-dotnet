@@ -322,12 +322,6 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Piensa durante más tiempo.</value>
   </data>
-  <data name="Reasoning_On_Label" xml:space="preserve">
-    <value>Activado</value>
-  </data>
-  <data name="Reasoning_On_Description" xml:space="preserve">
-    <value>Piensa antes de responder.</value>
-  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Razonamiento: {0}</value>
   </data>

@@ -28,42 +28,43 @@ public class ReasoningPillTests
     public async Task Without_a_setting_there_are_five_levels_starting_at_auto()
     {
         var (chat, _) = Chat(new Gateway());
-        Assert.False(chat.HasReasoningChoice); // not before it started
         await chat.InitializeAsync();
-        Assert.True(chat.HasReasoningChoice);
         Assert.Equal(new[] { "Auto", "Off", "Low", "Medium", "High" }, chat.ReasoningOptions.Select(o => o.Label));
         Assert.Equal(ReasoningLevel.Auto, chat.SelectedReasoning!.Level);
         Assert.Equal("Auto", chat.ReasoningPillText);
+        Assert.Equal("Thinking: Auto", chat.ReasoningAutomationName);
+        Assert.Contains("How long it thinks", chat.ReasoningToolTip);
+        Assert.Contains("Thinking: Auto", chat.ReasoningToolTip);
         Assert.All(chat.ReasoningOptions, o => Assert.False(string.IsNullOrWhiteSpace(o.Description)));
     }
 
     [Fact]
-    public async Task With_one_level_the_pill_is_hidden()
+    public async Task A_maximum_hides_the_levels_above_it_and_off_stays()
     {
-        var (chat, _) = Chat(new Gateway(ui: Ui("""{"levels":["high"]}""")));
+        var (chat, _) = Chat(new Gateway(ui: Ui("""{"max":"low"}""")));
         await chat.InitializeAsync();
-        Assert.False(chat.HasReasoningChoice);
+        Assert.Equal(new[] { "Auto", "Off", "Low" }, chat.ReasoningOptions.Select(o => o.Label));
     }
 
     [Fact]
-    public async Task With_off_and_one_other_level_the_pill_reads_off_and_on()
+    public async Task The_old_levels_and_default_of_a_profile_change_nothing()
     {
         var (chat, _) = Chat(new Gateway(ui: Ui("""{"default":"none","levels":["none","high"]}""")));
         await chat.InitializeAsync();
-        Assert.True(chat.HasReasoningChoice);
-        Assert.Equal(new[] { "Off", "On" }, chat.ReasoningOptions.Select(o => o.Label));
-        Assert.Equal("Thinking: Off", chat.ReasoningPillText);
-        chat.SelectReasoningCommand.Execute(chat.ReasoningOptions[1]);
-        Assert.Equal("Thinking: On", chat.ReasoningPillText);
-        Assert.Equal(ReasoningLevel.High, chat.SelectedReasoning!.Level);
+        Assert.Equal(5, chat.ReasoningOptions.Count);
+        Assert.Equal("Auto", chat.ReasoningPillText);
     }
 
     [Fact]
-    public async Task Two_levels_without_off_keep_their_own_names()
+    public async Task A_stored_pick_above_the_maximum_shows_the_maximum()
     {
-        var (chat, _) = Chat(new Gateway(ui: Ui("""{"levels":["low","high"]}""")));
+        var (chat, agent) = Chat(new Gateway(ui: Ui("""{"max":"low"}""")));
+        await agent.StartAsync();
+        typeof(FadenstackAgent).GetField("_reasoningPick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(agent, ReasoningLevel.High); // as left by an earlier run with no maximum
         await chat.InitializeAsync();
-        Assert.Equal(new[] { "Low", "High" }, chat.ReasoningOptions.Select(o => o.Label));
+        Assert.Equal("Low", chat.ReasoningPillText);
+        Assert.True(chat.ReasoningOptions.Single(o => o.Level == ReasoningLevel.Low).IsSelected);
     }
 
     [Fact]
@@ -96,21 +97,13 @@ public class ReasoningPillTests
     }
 
     [Fact]
-    public async Task The_apps_own_level_shows_even_when_the_profile_does_not_list_it()
-    {
-        var (chat, _) = Chat(new Gateway(ui: Ui("""{"levels":["none","high"]}""")), b => b.UseReasoning(ReasoningEffort.Medium));
-        await chat.InitializeAsync();
-        Assert.Equal("Medium", chat.ReasoningPillText);
-        Assert.Equal(2, chat.ReasoningOptions.Count);
-    }
-
-    [Fact]
     public async Task The_texts_follow_the_panels_language()
     {
         var (chat, _) = Chat(new Gateway());
         await chat.InitializeAsync();
         chat.SetLanguageCommand.Execute("de");
         Assert.Equal("Auto", chat.ReasoningPillText);
+        Assert.Equal("Nachdenken: Auto", chat.ReasoningAutomationName);
         chat.SelectReasoningCommand.Execute(chat.ReasoningOptions.Single(o => o.Level == ReasoningLevel.Low));
         Assert.Equal("Niedrig", chat.ReasoningPillText);
         Assert.Equal("Niedrig", chat.ReasoningOptions.Single(o => o.Level == ReasoningLevel.Low).Label);
@@ -127,11 +120,8 @@ public class ReasoningPillTests
         var strings = new UiStrings(new CultureInfo(language));
         foreach (var level in ReasoningLevels.All)
         {
-            foreach (var asSwitch in new[] { false, true })
-            {
-                Assert.DoesNotContain("Reasoning_", strings.ReasoningLabel(level, asSwitch));
-                Assert.DoesNotContain("Reasoning_", strings.ReasoningDescription(level, asSwitch));
-            }
+            Assert.DoesNotContain("Reasoning_", strings.ReasoningLabel(level));
+            Assert.DoesNotContain("Reasoning_", strings.ReasoningDescription(level));
         }
         Assert.DoesNotContain("Reasoning", strings.ReasoningPill("x"));
         Assert.Contains("x", strings.ReasoningPill("x"));

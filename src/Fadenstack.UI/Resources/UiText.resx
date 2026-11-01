@@ -418,12 +418,6 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Thinks longest.</value>
   </data>
-  <data name="Reasoning_On_Label" xml:space="preserve">
-    <value>On</value>
-  </data>
-  <data name="Reasoning_On_Description" xml:space="preserve">
-    <value>Thinks before it answers.</value>
-  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Thinking: {0}</value>
     <comment>The pill: {0} is the level, e.g. Low, or Off / On</comment>

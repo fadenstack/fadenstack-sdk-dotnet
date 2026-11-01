@@ -52,7 +52,6 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _isHistoryOpen;
     private bool _isModeMenuOpen;
     private bool _isReasoningMenuOpen;
-    private bool _hasReasoningChoice;
     private ReasoningOption? _selectedReasoning;
     private bool _signInRequired;
     private string? _error;
@@ -409,13 +408,6 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The levels of thinking the agent offers (its profile's <c>ui.reasoning</c>); empty until it started.</summary>
     public ObservableCollection<ReasoningOption> ReasoningOptions { get; }
 
-    /// <summary>The pill shows: the agent offers more than one level. With one (or before it started) there is nothing to pick.</summary>
-    public bool HasReasoningChoice
-    {
-        get => _hasReasoningChoice;
-        private set => SetProperty(ref _hasReasoningChoice, value);
-    }
-
     /// <summary>The thinking menu is open (presentation state, so the skin needs no code).</summary>
     public bool IsReasoningMenuOpen
     {
@@ -443,21 +435,16 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 _session.Reasoning = value.Level;
             }
             OnPropertyChanged(nameof(ReasoningPillText));
-            OnPropertyChanged(nameof(ReasoningShortText));
-            OnPropertyChanged(nameof(ReasoningAutomationName));
+                OnPropertyChanged(nameof(ReasoningAutomationName));
             OnPropertyChanged(nameof(ReasoningToolTip));
-        OnPropertyChanged(nameof(ReasoningShortText));
         OnPropertyChanged(nameof(ReasoningAutomationName));
         OnPropertyChanged(nameof(ReasoningToolTip));
             OnPropertyChanged(nameof(ReasoningHint));
         }
     }
 
-    /// <summary>"Low" (beside the pill's brain icon), or "Thinking: Off" / "Thinking: On" for an agent that offers just those two.</summary>
-    public string ReasoningPillText => _selectedReasoning is { } option ? (option.AsSwitch ? Strings.ReasoningPill(option.Label) : option.Label) : "";
-
-    /// <summary>The bare state for a compact pill: "Off", "On" or the level's name.</summary>
-    public string ReasoningShortText => _selectedReasoning?.Label ?? "";
+    /// <summary>The bare level beside the pill's icon: "Low". The full wording is <see cref="ReasoningAutomationName"/> and <see cref="ReasoningToolTip"/>.</summary>
+    public string ReasoningPillText => _selectedReasoning?.Label ?? "";
 
     /// <summary>The pill's name for screen readers, in full: "Thinking: Off".</summary>
     public string ReasoningAutomationName => _selectedReasoning is { } option ? Strings.ReasoningPill(option.Label) : Strings.ReasoningMenu;
@@ -479,9 +466,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         ReasoningOptions.Clear();
         foreach (var level in choices.Levels)
         {
-            ReasoningOptions.Add(new ReasoningOption(level, Strings, choices.IsSwitch));
+            ReasoningOptions.Add(new ReasoningOption(level, Strings));
         }
-        HasReasoningChoice = !choices.IsFixed;
         FollowReasoning();
     }
 
@@ -491,11 +477,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         var level = _session?.Reasoning ?? _agent.Reasoning;
         // A level the agent starts at but does not list (the app set it) still shows as it is.
         var option = ReasoningOptions.FirstOrDefault(o => o.Level == level)
-            ?? new ReasoningOption(level, Strings, asSwitch: false);
+            ?? new ReasoningOption(level, Strings);
         SetProperty(ref _selectedReasoning, option, nameof(SelectedReasoning));
         MarkReasoning();
         OnPropertyChanged(nameof(ReasoningPillText));
-        OnPropertyChanged(nameof(ReasoningShortText));
         OnPropertyChanged(nameof(ReasoningAutomationName));
         OnPropertyChanged(nameof(ReasoningToolTip));
         OnPropertyChanged(nameof(ReasoningHint));
@@ -1060,7 +1045,6 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         _selectedReasoning?.Retext(strings);
         OnPropertyChanged(nameof(ReasoningPillText));
-        OnPropertyChanged(nameof(ReasoningShortText));
         OnPropertyChanged(nameof(ReasoningAutomationName));
         OnPropertyChanged(nameof(ReasoningToolTip));
         OnPropertyChanged(nameof(ReasoningHint));

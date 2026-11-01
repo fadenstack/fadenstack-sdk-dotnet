@@ -118,7 +118,7 @@ public class ReasoningPillTests
         rig.Window.CaptureRenderedFrame()!.Save(Path.Combine(Out, name + ".png"), new PngBitmapEncoderOptions());
     }
 
-    private const string Switch = """{"default":"none","levels":["none","high"]}""";
+    private const string Capped = """{"max":"low"}""";
 
     [AvaloniaTheory]
     [InlineData(false)]
@@ -143,25 +143,18 @@ public class ReasoningPillTests
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Off_and_on_read_thinking_off_and_on(bool dark)
+    public async Task A_maximum_hides_the_levels_above_it(bool dark)
     {
         var theme = dark ? "dark" : "light";
-        using var rig = await OpenAsync(Switch, dark, 300);
-        Assert.Equal("Thinking: Off", rig.Chat.ReasoningPillText);
+        using var rig = await OpenAsync(Capped, dark, 300);
+        Assert.True(rig.Pill!.IsVisible);
         rig.AssertPillFits();
-        await Save(rig, $"pill-switch-{theme}-300");
+        Assert.Equal("Auto", rig.Chat.ReasoningPillText);
+        await Save(rig, $"pill-max-{theme}-300");
         rig.Chat.IsReasoningMenuOpen = true;
         await Pump(14);
-        await Save(rig, $"menu-switch-{theme}-300");
-        Assert.Equal(new[] { "Off", "On" }, rig.Chat.ReasoningOptions.Select(o => o.Label));
-    }
-
-    [AvaloniaFact]
-    public async Task With_one_level_the_pill_is_not_shown()
-    {
-        using var rig = await OpenAsync("""{"levels":["high"]}""", false, 300);
-        Assert.False(rig.Pill!.IsVisible);
-        await Save(rig, "pill-hidden-light-300");
+        await Save(rig, $"menu-max-{theme}-300");
+        Assert.Equal(new[] { "Auto", "Off", "Low" }, rig.Chat.ReasoningOptions.Select(o => o.Label));
     }
 
     [AvaloniaFact]

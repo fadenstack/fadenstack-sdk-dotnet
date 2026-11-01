@@ -42,64 +42,53 @@ public class ReasoningTests : IDisposable
     private static IReadOnlyDictionary<string, JsonElement> Parsed(string ui) =>
         JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(ui)!;
 
-    // -- the levels, from the profile -----------------------------------------------------------------
+    // -- the levels and the server's maximum --------------------------------------------------------
+
+    private static readonly ReasoningLevel[] Ladder = { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High };
 
     [Fact]
-    public void Without_a_setting_all_five_levels_are_offered_and_none_is_the_default()
+    public void Without_a_setting_all_five_levels_are_offered_and_there_is_no_maximum()
     {
         var choices = ReasoningChoices.FromUi(null);
-        Assert.Equal(new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High }, choices.Levels);
-        Assert.Null(choices.Default);
-        Assert.False(choices.IsFixed);
-        Assert.False(choices.IsSwitch);
+        Assert.Equal(Ladder, choices.Levels);
+        Assert.Null(choices.Max);
     }
 
-    [Fact]
-    public void The_profile_names_the_levels_and_the_default()
+    [Theory]
+    [InlineData("none", new[] { ReasoningLevel.Auto, ReasoningLevel.Off })]
+    [InlineData("low", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low })]
+    [InlineData("medium", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium })]
+    [InlineData("high", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High })]
+    [InlineData("xhigh", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High })]
+    public void Levels_above_the_maximum_are_hidden_and_off_stays(string max, ReasoningLevel[] expected)
     {
-        var choices = ReasoningChoices.FromUi(Parsed(Ui("""{"default":"none","levels":["high","none"]}""")));
-        Assert.Equal(new[] { ReasoningLevel.Off, ReasoningLevel.High }, choices.Levels); // menu order, not the profile's
-        Assert.Equal(ReasoningLevel.Off, choices.Default);
-        Assert.True(choices.IsSwitch);
-        Assert.Equal(ReasoningLevel.High, choices.OnLevel);
-    }
-
-    [Fact]
-    public void Two_levels_without_off_are_no_switch_and_one_level_is_fixed()
-    {
-        Assert.False(ReasoningChoices.FromUi(Parsed(Ui("""{"levels":["low","high"]}"""))).IsSwitch);
-        Assert.True(ReasoningChoices.FromUi(Parsed(Ui("""{"levels":["high"]}"""))).IsFixed);
+        var choices = ReasoningChoices.FromUi(Parsed(Ui("{\"max\":\"" + max + "\"}")));
+        Assert.Equal(expected, choices.Levels);
+        Assert.NotNull(choices.Max);
     }
 
     [Theory]
     [InlineData("""{"ui":null}""")]
     [InlineData("""{"reasoning":"high"}""")]
     [InlineData("""{"reasoning":[1,2]}""")]
-    [InlineData("""{"reasoning":{"levels":"none"}}""")]
-    [InlineData("""{"reasoning":{"levels":[]}}""")]
-    [InlineData("""{"reasoning":{"levels":[3,null,"extreme"]}}""")]
-    [InlineData("""{"reasoning":{"levels":{"a":1},"default":7}}""")]
-    public void Anything_unreadable_falls_back_to_all_five(string ui)
+    [InlineData("""{"reasoning":{"max":7}}""")]
+    [InlineData("""{"reasoning":{"max":"extreme"}}""")]
+    [InlineData("""{"reasoning":{"max":null}}""")]
+    [InlineData("""{"reasoning":{"levels":["none"],"default":"high"}}""")]
+    public void Anything_unreadable_is_ignored_and_the_old_levels_and_default_do_nothing(string ui)
     {
         var choices = ReasoningChoices.FromUi(Parsed(ui));
-        Assert.Equal(ReasoningLevels.All, choices.Levels);
-        Assert.Null(choices.Default);
+        Assert.Equal(Ladder, choices.Levels);
+        Assert.Null(choices.Max);
     }
 
     [Fact]
-    public void A_default_that_is_not_offered_is_dropped()
+    public async Task The_agent_reads_the_maximum_from_its_profile_ui()
     {
-        var choices = ReasoningChoices.FromUi(Parsed(Ui("""{"default":"low","levels":["none","high"]}""")));
-        Assert.Null(choices.Default);
-    }
-
-    [Fact]
-    public async Task The_agent_reads_the_levels_from_its_profile_ui()
-    {
-        using var agent = new Gateway(ui: Ui("""{"default":"none","levels":["none","high"]}""")).Builder().Build();
+        using var agent = new Gateway(ui: Ui("""{"max":"low"}""")).Builder().Build();
         await agent.StartAsync();
-        Assert.True(agent.ReasoningChoices.IsSwitch);
-        Assert.Equal(ReasoningLevel.Off, agent.Reasoning);
+        Assert.Equal(ReasoningEffort.Low, agent.ReasoningChoices.Max);
+        Assert.DoesNotContain(ReasoningLevel.High, agent.ReasoningChoices.Levels);
     }
 
     // -- precedence ----------------------------------------------------------------------------------
@@ -122,36 +111,76 @@ public class ReasoningTests : IDisposable
     }
 
     [Fact]
-    public async Task The_profiles_default_beats_the_apps_setting()
+    public async Task The_persons_choice_beats_the_apps_setting()
     {
-        using var agent = new Gateway(ui: Ui("""{"default":"none"}""")).Builder().UseReasoning(ReasoningEffort.High).Build();
-        await agent.StartAsync();
-        Assert.Equal(ReasoningLevel.Off, agent.Reasoning);
-    }
-
-    [Fact]
-    public async Task The_persons_choice_beats_the_profiles_default()
-    {
-        using var agent = new Gateway(ui: Ui("""{"default":"none"}""")).Builder().UseReasoning(ReasoningEffort.High).Build();
+        using var agent = new Gateway().Builder().UseReasoning(ReasoningEffort.High).Build();
         Assert.Equal(ReasoningLevel.Low, await agent.SetReasoningAsync(ReasoningLevel.Low));
-        Assert.Equal(ReasoningLevel.Low, agent.Reasoning);
         Assert.Equal(ReasoningLevel.Low, agent.ReasoningChoice);
+        Assert.Equal(ReasoningLevel.Auto, await agent.SetReasoningAsync(ReasoningLevel.Auto));
     }
 
     [Fact]
-    public async Task A_choice_outside_the_offered_levels_is_ignored()
+    public async Task A_choice_above_the_maximum_is_not_taken()
     {
-        using var agent = new Gateway(ui: Ui("""{"default":"none","levels":["none","high"]}""")).Builder().Build();
-        Assert.Equal(ReasoningLevel.Off, await agent.SetReasoningAsync(ReasoningLevel.Medium));
+        using var agent = new Gateway(ui: Ui("""{"max":"low"}""")).Builder().Build();
+        Assert.Equal(ReasoningLevel.Auto, await agent.SetReasoningAsync(ReasoningLevel.High));
         Assert.Null(agent.ReasoningChoice);
     }
 
     [Fact]
-    public async Task Forgetting_the_choice_goes_back_to_the_default()
+    public async Task The_apps_setting_is_lowered_to_the_maximum()
     {
-        using var agent = new Gateway(ui: Ui("""{"default":"none"}""")).Builder().Build();
+        using var agent = new Gateway(ui: Ui("""{"max":"low"}""")).Builder().UseReasoning(ReasoningEffort.High).Build();
+        await agent.StartAsync();
+        Assert.Equal(ReasoningLevel.Low, agent.Reasoning);
+    }
+
+    [Fact]
+    public async Task Auto_means_the_maximum_when_there_is_one()
+    {
+        var gateway = new Gateway(ui: Ui("""{"max":"medium"}""")).Says("Hello.");
+        using var agent = gateway.Builder().Build();
+        var session = await agent.StartSessionAsync();
+        Assert.Equal(ReasoningLevel.Auto, session.Reasoning);
+        await session.SendAsync("Hi");
+        Assert.Equal("medium", gateway.ChatRequests.Single().Json.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public async Task A_stored_choice_above_a_lowered_maximum_shows_and_sends_the_maximum()
+    {
+        using (var first = Plain(new Gateway { Principal = Principal }).Build())
+        {
+            await first.SetReasoningAsync(ReasoningLevel.High);
+        }
+        var gateway = new Gateway(ui: Ui("""{"max":"low"}""")) { Principal = Principal }.Says("Hello.");
+        using var later = Plain(gateway).Build();
+        await later.StartAsync();
+        Assert.Equal(ReasoningLevel.High, later.ReasoningChoice); // kept as it was picked
+        Assert.Equal(ReasoningLevel.Low, later.Reasoning);
+        var session = await later.StartSessionAsync();
+        Assert.Equal(ReasoningLevel.Low, session.Reasoning);
+        await session.SendAsync("Hi");
+        Assert.Equal("low", gateway.ChatRequests.Single().Json.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public async Task Off_always_goes_out_as_none_even_with_a_maximum()
+    {
+        var gateway = new Gateway(ui: Ui("""{"max":"low"}""")).Says("Hello.");
+        using var agent = gateway.Builder().Build();
+        await agent.SetReasoningAsync(ReasoningLevel.Off);
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("Hi");
+        Assert.Equal("none", gateway.ChatRequests.Single().Json.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public async Task Forgetting_the_choice_goes_back_to_the_apps_setting()
+    {
+        using var agent = new Gateway().Builder().UseReasoning(ReasoningEffort.Medium).Build();
         await agent.SetReasoningAsync(ReasoningLevel.High);
-        Assert.Equal(ReasoningLevel.Off, await agent.SetReasoningAsync(null));
+        Assert.Equal(ReasoningLevel.Medium, await agent.SetReasoningAsync(null));
     }
 
     // -- what a request carries ----------------------------------------------------------------------

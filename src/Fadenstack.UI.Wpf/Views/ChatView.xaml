@@ -83,12 +83,11 @@
                     <!-- How long the agent thinks: its levels come from the agent's profile; hidden when there is nothing to pick. -->
                     <ToggleButton x:Name="ReasoningButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{Binding ReasoningToolTip}" Margin="2,0,0,0"
                                   AutomationProperties.Name="{Binding ReasoningAutomationName}" AutomationProperties.HelpText="{Binding ReasoningHint}"
-                                  Visibility="{Binding HasReasoningChoice, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                   IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=ReasoningMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE82F;" Margin="0,0,4,0" />
-                            <TextBlock Text="{Binding ReasoningShortText}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding ReasoningPillText}" VerticalAlignment="Center" />
                         </StackPanel>
                     </ToggleButton>
                     <Popup x:Name="ReasoningMenu" IsOpen="{Binding IsReasoningMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ReasoningButton}"

@@ -312,16 +312,19 @@ A cancelled turn is recorded as cancelled in the session and is never sent to th
 
 ### How long it thinks: the person's choice
 
-The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto (sends nothing), Off (`none`), Low, Medium or High. Which levels it offers, and where it starts, come from the agent's profile, in the agent version's `ui`:
+The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto, Off (`none`), Low, Medium or High, as in other agents. The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder); a new chat starts from it and a change applies from the next message.
+
+The server can only set a maximum, in the agent version's `ui`:
 
 ```json
-{ "reasoning": { "default": "none", "levels": ["none", "high"] } }
+{ "reasoning": { "max": "low" } }
 ```
 
-- Offering exactly Off and one other level makes the pill read "Thinking: Off / On"; one level hides the pill. Without `ui.reasoning`, or with something unreadable, all five levels are offered and the default is Auto.
-- The order is: the person's choice, then `ui.reasoning.default`, then `UseReasoning`, then Auto. A choice the agent does not offer is ignored.
-- The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder). A new chat starts from it, and a change applies from the next message.
-- In code: `agent.ReasoningChoices`, `agent.Reasoning`, `agent.ReasoningChoice`, `agent.SetReasoningAsync(level)` and `session.Reasoning`. The turn's start entry in the session records `reasoning_effort`; the client events carry nothing about it.
+- `max` is optional: `none`, `low`, `medium`, `high` or `xhigh`. Anything else is ignored.
+- The pill hides the levels above the maximum; Off is always offered. A stored choice above a later, lower maximum shows and sends the maximum.
+- With a maximum, Auto means the maximum (it is sent). Without one, Auto sends no field.
+- The order is: the person's choice, then `UseReasoning`, then Auto, each lowered to the maximum.
+- In code: `agent.ReasoningChoices` (`Levels`, `Max`), `agent.Reasoning`, `agent.ReasoningChoice`, `agent.SetReasoningAsync(level)` and `session.Reasoning`. The turn's start entry in the session records `reasoning_effort`; the client events carry nothing about it.
 
 ## What is reported to the server
 

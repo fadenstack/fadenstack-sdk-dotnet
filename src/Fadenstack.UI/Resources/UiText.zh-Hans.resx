@@ -322,12 +322,6 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>思考最久。</value>
   </data>
-  <data name="Reasoning_On_Label" xml:space="preserve">
-    <value>开启</value>
-  </data>
-  <data name="Reasoning_On_Description" xml:space="preserve">
-    <value>先思考，再作答。</value>
-  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>思考：{0}</value>
   </data>

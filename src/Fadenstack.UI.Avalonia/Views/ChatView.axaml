@@ -768,8 +768,8 @@
                             </Border>
                         </Popup>
                         <!-- How long the agent thinks: its levels, from the agent's profile; hidden when there is nothing to pick. -->
-                        <ToggleButton Name="ReasoningButton" Classes="pill" ToolTip.Tip="{Binding ReasoningHint}" AutomationProperties.Name="{v:Text ReasoningMenu}"
-                                      AutomationProperties.HelpText="{Binding ReasoningHint}" IsVisible="{Binding HasReasoningChoice}"
+                        <ToggleButton Name="ReasoningButton" Classes="pill" ToolTip.Tip="{Binding ReasoningToolTip}" AutomationProperties.Name="{Binding ReasoningAutomationName}"
+                                      AutomationProperties.HelpText="{Binding ReasoningHint}"
                                       IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <c:FsIcon Data="{DynamicResource Icon.Psychology}" />
