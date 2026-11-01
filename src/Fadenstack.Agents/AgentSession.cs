@@ -1137,6 +1137,8 @@ public sealed class AgentSession
                 call_id = request.CallId,
                 name = request.ToolName,
                 source = request.Source,
+                tool_class = request.ToolClass.ToWire(), // so a reopened chat's card says what the tool does
+                server = request.Server, // a local MCP server's name, for the card's source line
                 approved = scope is not null,
                 for_session = asked && scope == ApprovalScopes.Chat, // for older readers
                 scope,

@@ -56,6 +56,7 @@ public class ApprovalTests
         Assert.Empty(session.ApprovedForSession);
         Assert.Empty(await store.ListAsync(Gateway.Slug));
         Assert.All(Decisions(session), d => Assert.Equal(("once", true, false), (Str(d, "scope"), d.GetProperty("asked").GetBoolean(), d.GetProperty("for_session").GetBoolean())));
+        Assert.All(Decisions(session), d => Assert.Equal(toolClass.ToWire(), Str(d, "tool_class"))); // a reopened chat's card keeps it
         Assert.Equal((false, false), (decided.Single().Decision.ForSession, decided.Single().Decision.Always));
         Assert.All(Decided(gateway), e => Assert.Equal("once", Str(e, "scope")));
     }

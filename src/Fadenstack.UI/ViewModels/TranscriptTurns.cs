@@ -47,6 +47,10 @@ internal static class TranscriptTurns
         var state = TurnState.Stopped; // a turn without an end was interrupted
         ChatOutcome? outcome = null;
         long? usage = null;
+        // A card's class: from its own entry, or (written before entries kept it) from the call's start, which follows it.
+        var startedClass = entries.Where(e => e.Type == EntryTypes.ToolStart && Json.Str(e.Data, "call_id") is { Length: > 0 })
+            .GroupBy(e => Json.Str(e.Data, "call_id")!)
+            .ToDictionary(g => g.Key, g => ToolModes.ParseClass(Json.Str(g.First().Data, "tool_class")));
         foreach (var entry in entries)
         {
             var d = entry.Data;
@@ -81,11 +85,15 @@ internal static class TranscriptTurns
                     {
                         break; // let through without asking (this chat, always, bypass): no card, as it ran
                     }
+                    var approvalCall = Json.Str(d, "call_id") ?? "";
                     var request = new ApprovalRequest
                     {
-                        CallId = Json.Str(d, "call_id") ?? "",
+                        CallId = approvalCall,
                         ToolName = Json.Str(d, "name") ?? "",
                         Source = Json.Str(d, "source") ?? "host",
+                        ToolClass = Json.Str(d, "tool_class") is { } wire ? ToolModes.ParseClass(wire)
+                            : startedClass.TryGetValue(approvalCall, out var started) ? started : ToolClass.Unknown,
+                        Server = Json.Str(d, "server"),
                     };
                     var decided = Json.Bool(d, "timed_out") ? ApprovalState.Expired
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
