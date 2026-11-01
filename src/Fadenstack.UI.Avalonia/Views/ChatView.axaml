@@ -706,7 +706,8 @@
                             <c:FsIcon Data="{DynamicResource Icon.Stop}" />
                         </Button>
                     </Panel>
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <!-- Wraps: at the narrowest panel the thinking pill goes to a line of its own rather than under the send button. -->
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" VerticalAlignment="Center">
                         <Button Classes="icon large" ToolTip.Tip="{v:Text Attach}" AutomationProperties.Name="{v:Text Attach}"
                                 Command="{Binding $parent[v:ChatView].AttachCommand}"
                                 IsVisible="{Binding $parent[v:ChatView].AttachCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -766,7 +767,47 @@
                             </Border>
                             </Border>
                         </Popup>
-                    </StackPanel>
+                        <!-- How long the agent thinks: its levels, from the agent's profile; hidden when there is nothing to pick. -->
+                        <ToggleButton Name="ReasoningButton" Classes="pill" ToolTip.Tip="{Binding ReasoningHint}" AutomationProperties.Name="{v:Text ReasoningMenu}"
+                                      AutomationProperties.HelpText="{Binding ReasoningHint}" IsVisible="{Binding HasReasoningChoice}"
+                                      IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <c:FsIcon Data="{DynamicResource Icon.Psychology}" />
+                                <TextBlock Text="{Binding ReasoningPillText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                                <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsReasoningMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #ReasoningButton}" Placement="TopEdgeAlignedLeft"
+                               HorizontalOffset="-12" VerticalOffset="14" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #ReasoningButton}">
+                            <Border Classes="popup-room">
+                            <Border Classes="menu popup modes">
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text ReasoningMenu}" />
+                                    <ItemsControl ItemsSource="{Binding ReasoningOptions}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ReasoningOption">
+                                                <Button Classes="menu-item mode" AutomationProperties.Name="{Binding Label}"
+                                                        AutomationProperties.HelpText="{Binding Description}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectReasoningCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <DockPanel>
+                                                        <Panel DockPanel.Dock="Left" Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}" IsVisible="{Binding IsSelected}" />
+                                                        </Panel>
+                                                        <StackPanel Classes="mode-option">
+                                                            <TextBlock Classes="strong" Text="{Binding Label}" />
+                                                            <TextBlock Classes="caption muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            </Border>
+                        </Popup>
+                    </WrapPanel>
                 </DockPanel>
             </StackPanel>
         </Border>

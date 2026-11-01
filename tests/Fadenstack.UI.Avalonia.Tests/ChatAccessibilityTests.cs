@@ -152,6 +152,10 @@ public class ChatAccessibilityTests
         await host.PumpAsync();
         AssertNamed(host, "mode menu", failures, counted);
         host.Chat.IsModeMenuOpen = false;
+        host.Chat.IsReasoningMenuOpen = true;
+        await host.PumpAsync();
+        AssertNamed(host, "thinking menu", failures, counted);
+        host.Chat.IsReasoningMenuOpen = false;
         host.Chat.IsSettingsOpen = true;
         await host.PumpAsync();
         AssertNamed(host, "settings", failures, counted);
