@@ -172,6 +172,7 @@ public sealed class TurnViewModel : ObservableObject
     {
         if (_text is null)
         {
+            CloseReasoning(DateTimeOffset.UtcNow);
             _text = new MarkdownPart(isStreaming: true, clipboard: _chat?.Clipboard);
             Parts.Add(_text);
             OnPropertyChanged(nameof(StatusText));
@@ -333,8 +334,8 @@ public sealed class TurnViewModel : ObservableObject
 
     private void Finish(TurnState state, DateTimeOffset now)
     {
+        CloseReasoning(now);
         CloseText();
-        _reasoning?.Complete(now);
         foreach (var approval in Parts.OfType<ApprovalPart>().Where(p => p.IsPending))
         {
             approval.State = ApprovalState.Expired;
@@ -357,10 +358,20 @@ public sealed class TurnViewModel : ObservableObject
             _text.IsStreaming = false;
             _text = null;
         }
+        CloseReasoning(DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>
+    /// Thinking ends where an answer, a tool call or a part starts; thinking after it is a block of its own, below it, so
+    /// "Thought for" never counts a tool's run, an approval's wait or the answer's streaming.
+    /// </summary>
+    private void CloseReasoning(DateTimeOffset now)
+    {
         if (_reasoning is { IsStreaming: true } r)
         {
-            r.Complete(DateTimeOffset.UtcNow);
+            r.Complete(now);
         }
+        _reasoning = null;
     }
 
     private void Copy() => _chat?.Clipboard.SetText(AnswerText);
