@@ -443,12 +443,29 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 _session.Reasoning = value.Level;
             }
             OnPropertyChanged(nameof(ReasoningPillText));
+            OnPropertyChanged(nameof(ReasoningShortText));
+            OnPropertyChanged(nameof(ReasoningAutomationName));
+            OnPropertyChanged(nameof(ReasoningToolTip));
+        OnPropertyChanged(nameof(ReasoningShortText));
+        OnPropertyChanged(nameof(ReasoningAutomationName));
+        OnPropertyChanged(nameof(ReasoningToolTip));
             OnPropertyChanged(nameof(ReasoningHint));
         }
     }
 
     /// <summary>"Low" (beside the pill's brain icon), or "Thinking: Off" / "Thinking: On" for an agent that offers just those two.</summary>
     public string ReasoningPillText => _selectedReasoning is { } option ? (option.AsSwitch ? Strings.ReasoningPill(option.Label) : option.Label) : "";
+
+    /// <summary>The bare state for a compact pill: "Off", "On" or the level's name.</summary>
+    public string ReasoningShortText => _selectedReasoning?.Label ?? "";
+
+    /// <summary>The pill's name for screen readers, in full: "Thinking: Off".</summary>
+    public string ReasoningAutomationName => _selectedReasoning is { } option ? Strings.ReasoningPill(option.Label) : Strings.ReasoningMenu;
+
+    /// <summary>The pill's tooltip: what it is, its state in full, and what the state means.</summary>
+    public string ReasoningToolTip => _selectedReasoning is { } option
+        ? Strings.ReasoningMenu + Environment.NewLine + Strings.ReasoningPill(option.Label) + ". " + option.Description
+        : Strings.ReasoningMenu;
 
     /// <summary>What the pick means, in one line.</summary>
     public string ReasoningHint => _selectedReasoning?.Description ?? "";
@@ -478,6 +495,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         SetProperty(ref _selectedReasoning, option, nameof(SelectedReasoning));
         MarkReasoning();
         OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningShortText));
+        OnPropertyChanged(nameof(ReasoningAutomationName));
+        OnPropertyChanged(nameof(ReasoningToolTip));
         OnPropertyChanged(nameof(ReasoningHint));
     }
 
@@ -1040,6 +1060,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         _selectedReasoning?.Retext(strings);
         OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningShortText));
+        OnPropertyChanged(nameof(ReasoningAutomationName));
+        OnPropertyChanged(nameof(ReasoningToolTip));
         OnPropertyChanged(nameof(ReasoningHint));
         var now = _options.Clock();
         foreach (var session in Sessions)

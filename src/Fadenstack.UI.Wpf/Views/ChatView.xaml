@@ -38,8 +38,10 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border x:Name="Header" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Padding="12,8">
+        <Border x:Name="Header" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Padding="8,8">
             <DockPanel>
+                <!-- The avatar and the buttons keep their size; the title takes what is left and is trimmed (ellipsis) when short. -->
+                <local:AgentAvatar x:Name="HeaderAvatar" DockPanel.Dock="Left" Small="True" Width="24" Height="24" Margin="0,0,6,0" />
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <ToggleButton x:Name="ModeButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{Binding ToolModeHint}"
                                   IsChecked="{Binding IsModeMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
@@ -79,15 +81,14 @@
                         </Border>
                     </Popup>
                     <!-- How long the agent thinks: its levels come from the agent's profile; hidden when there is nothing to pick. -->
-                    <ToggleButton x:Name="ReasoningButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{Binding ReasoningHint}" Margin="4,0,0,0"
-                                  AutomationProperties.Name="{local:Text ReasoningMenu}" AutomationProperties.HelpText="{Binding ReasoningHint}"
+                    <ToggleButton x:Name="ReasoningButton" Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{Binding ReasoningToolTip}" Margin="2,0,0,0"
+                                  AutomationProperties.Name="{Binding ReasoningAutomationName}" AutomationProperties.HelpText="{Binding ReasoningHint}"
                                   Visibility="{Binding HasReasoningChoice, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                   IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=ReasoningMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE82F;" Margin="0,0,6,0" />
-                            <TextBlock Text="{Binding ReasoningPillText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" />
-                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE70D;" Margin="6,0,0,0" />
+                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE82F;" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding ReasoningShortText}" VerticalAlignment="Center" />
                         </StackPanel>
                     </ToggleButton>
                     <Popup x:Name="ReasoningMenu" IsOpen="{Binding IsReasoningMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding ElementName=ReasoningButton}"
@@ -123,13 +124,13 @@
                             </StackPanel>
                         </Border>
                     </Popup>
-                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostToggle}" ToolTip="{local:Text History}" Margin="4,0,0,0"
+                    <ToggleButton x:Name="HistoryButton" Style="{StaticResource Fadenstack.GhostToggle}" ToolTip="{local:Text History}" Margin="2,0,0,0"
                                   AutomationProperties.Name="{local:Text History}" IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=HistoryMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE81C;" />
                     </ToggleButton>
                     <Button Style="{StaticResource Fadenstack.GhostButton}" ToolTip="{local:Text NewChatShortcut}" AutomationProperties.Name="{local:Text NewChat}"
-                            Margin="4,0,0,0" Command="{Binding NewChatCommand}">
+                            Margin="2,0,0,0" Command="{Binding NewChatCommand}">
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE710;" />
                     </Button>
                     <!--
@@ -137,7 +138,7 @@
                         The gear looks pressed while its menu is open, and while About, which the menu opened, is.
                     -->
                     <ToggleButton x:Name="SettingsButton" ToolTip="{local:Text Settings}"
-                                  AutomationProperties.Name="{local:Text Settings}" Margin="4,0,0,0"
+                                  AutomationProperties.Name="{local:Text Settings}" Margin="2,0,0,0"
                                   IsChecked="{Binding IsSettingsOpen, Mode=TwoWay}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=SettingsMenu, Converter={StaticResource Fadenstack.InverseBool}}">
                         <ToggleButton.Style>
@@ -199,8 +200,7 @@
                         </Border>
                     </Popup>
                 </StackPanel>
-                <local:AgentAvatar Small="True" Width="24" Height="24" Margin="0,0,10,0" />
-                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="HeaderTitle" Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
         </Border>
 

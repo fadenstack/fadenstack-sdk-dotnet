@@ -102,36 +102,50 @@ public class ReasoningPillTests
     }
 
     [Theory]
-    [InlineData("Light")]
-    [InlineData("Dark")]
-    [InlineData("DarkGray")]
-    public void Five_levels_show_in_the_header_and_fit_300_px(string theme) => Sta.Run(() =>
+    [InlineData("Light", 280)]
+    [InlineData("Light", 300)]
+    [InlineData("Light", 360)]
+    [InlineData("Dark", 280)]
+    [InlineData("Dark", 300)]
+    [InlineData("Dark", 360)]
+    [InlineData("DarkGray", 300)]
+    public void Five_levels_show_in_the_header_and_keep_the_avatar_and_title(string theme, int width) => Sta.Run(() =>
     {
-        var (view, chat, agent) = Open(null, theme, 300);
+        var (view, chat, agent) = Open(null, theme, width);
         using (agent)
         {
             var pill = Named<ToggleButton>(view, "ReasoningButton");
             Assert.Equal(Visibility.Visible, pill.Visibility);
-            AssertInside(view, pill);
-            Assert.Equal(5, chat.ReasoningOptions.Count);
+            AssertHeaderFits(view, pill);
             Assert.Equal(new[] { "Auto", "Off", "Low", "Medium", "High" }, chat.ReasoningOptions.Select(o => o.Label));
-            Assert.Equal("Name", System.Windows.Automation.AutomationProperties.GetName(pill) is { Length: > 0 } ? "Name" : "");
-            RenderHeaderAndMenu(view, "wpf-five-" + theme.ToLowerInvariant());
+            Assert.Equal("Thinking: Auto", System.Windows.Automation.AutomationProperties.GetName(pill));
+            RenderHeaderAndMenu(view, $"wpf-five-{theme.ToLowerInvariant()}-{width}");
         }
     });
 
     [Theory]
-    [InlineData("Light")]
-    [InlineData("Dark")]
-    public void Off_and_on_read_thinking_off_and_on(string theme) => Sta.Run(() =>
+    [InlineData("Light", 280)]
+    [InlineData("Light", 300)]
+    [InlineData("Light", 360)]
+    [InlineData("Dark", 280)]
+    [InlineData("Dark", 300)]
+    [InlineData("Dark", 360)]
+    public void Off_and_on_show_compact_with_the_full_wording_in_name_and_tooltip(string theme, int width) => Sta.Run(() =>
     {
-        var (view, chat, agent) = Open(Switch, theme, 300);
+        var (view, chat, agent) = Open(Switch, theme, width);
         using (agent)
         {
+            var pill = Named<ToggleButton>(view, "ReasoningButton");
             Assert.Equal("Thinking: Off", chat.ReasoningPillText);
-            AssertInside(view, Named<ToggleButton>(view, "ReasoningButton"));
-            Assert.Equal(new[] { "Off", "On" }, chat.ReasoningOptions.Select(o => o.Label));
-            RenderHeaderAndMenu(view, "wpf-switch-" + theme.ToLowerInvariant());
+            Assert.Equal("Off", chat.ReasoningShortText);
+            Assert.Equal("Thinking: Off", System.Windows.Automation.AutomationProperties.GetName(pill));
+            var tip = Assert.IsType<string>(pill.ToolTip);
+            Assert.Contains("How long it thinks", tip);
+            Assert.Contains("Thinking: Off", tip);
+            AssertHeaderFits(view, pill);
+            RenderHeaderAndMenu(view, $"wpf-switch-{theme.ToLowerInvariant()}-{width}");
+            chat.SelectReasoningCommand.Execute(chat.ReasoningOptions[1]);
+            Assert.Equal("On", chat.ReasoningShortText);
         }
     });
 
@@ -159,12 +173,22 @@ public class ReasoningPillTests
         }
     });
 
-    /// <summary>The pill lies inside the header and does not push the title out of sight.</summary>
-    private static void AssertInside(ChatView view, FrameworkElement pill)
+    /// <summary>The avatar and the title show, trimmed if need be; the pill, the buttons and the avatar overlap nothing and stay inside.</summary>
+    private static void AssertHeaderFits(ChatView view, FrameworkElement pill)
     {
         var header = Named<Border>(view, "Header");
-        var box = pill.TransformToAncestor(header).TransformBounds(new Rect(pill.RenderSize));
-        Assert.True(box.Right <= header.ActualWidth + 0.5, $"the pill ends at {box.Right} of {header.ActualWidth}");
-        Assert.True(box.Left >= 0, $"the pill starts at {box.Left}");
+        Rect Box(FrameworkElement e) => e.TransformToAncestor(header).TransformBounds(new Rect(e.RenderSize));
+        var avatar = Named<FrameworkElement>(view, "HeaderAvatar");
+        var title = Named<TextBlock>(view, "HeaderTitle");
+        var a = Box(avatar);
+        var t = Box(title);
+        var p = Box(pill);
+        Assert.True(a.Width >= 24 && a.Left >= 0, $"avatar {a}");
+        Assert.True(t.Width >= 24, $"the title has {t.Width} px");
+        Assert.True(a.Right <= t.Left + 0.5, $"avatar {a} and title {t}");
+        Assert.True(t.Right <= p.Left + 12, $"title {t} and pill {p}"); // the mode pill sits before it
+        Assert.True(p.Right <= header.ActualWidth + 0.5, $"the pill ends at {p.Right} of {header.ActualWidth}");
+        var buttons = new[] { "HistoryButton", "SettingsButton" }.Select(n => Box(Named<FrameworkElement>(view, n))).ToList();
+        Assert.All(buttons, b => Assert.True(b.Right <= header.ActualWidth + 0.5 && b.Left >= p.Right - 0.5, $"button {b} pill {p}"));
     }
 }
