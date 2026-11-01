@@ -473,22 +473,26 @@ public sealed class DelegationTests : IDisposable
     [Fact]
     public async Task A_host_whose_workspaces_lack_the_tasks_document_rejects_it_and_an_empty_list_accepts()
     {
+        var other = Path.Combine(Path.GetTempPath(), "Docs", "other.docx");
+        var report = Path.Combine(Path.GetTempPath(), "Docs", "report.docx");
+        // The same file as Windows may write it: paths there ignore case.
+        var same = OperatingSystem.IsWindows() ? other.ToUpperInvariant() : other;
         var gateway = new Gateway(Contract).Says("Done.").Says("Done again.");
-        var (host, _, events) = await Embedded(gateway, new DelegationHostOptions { Name = "Word", Workspaces = new[] { @"C:\Docs\other.docx" } });
+        var (host, _, events) = await Embedded(gateway, new DelegationHostOptions { Name = "Word", Workspaces = new[] { other } });
         var presence = Assert.Single(_registry.List());
-        Assert.Equal(new[] { @"C:\Docs\other.docx" }, presence.Workspaces);
+        Assert.Equal(new[] { other }, presence.Workspaces);
 
         Task<TaskOutcome> Send(string document) => new PipeDelegationClient().RunAsync(host.Endpoint,
             new TaskRequest("t-" + document.Length, "Comment.", Array.Empty<string>(), "a", "A") { Document = document }, new Observer(), CancellationToken.None);
-        var rejected = await Send(@"C:\Docseport.docx");
-        var accepted = await Send(@"c:\docs\OTHER.docx");
+        var rejected = await Send(report);
+        var accepted = await Send(same);
         host.UpdateWorkspaces(Array.Empty<string>());
-        var open = await Send(@"C:\Docseport.docx");
+        var open = await Send(report);
 
         Assert.Equal((TaskState.Rejected, "This window works in another document."), (rejected.State, rejected.Text));
         Assert.Equal(TaskState.Completed, accepted.State);
         Assert.Equal(TaskState.Completed, open.State);
-        Assert.Equal(@"c:\docs\OTHER.docx", events.First(e => e.Change == DelegatedTaskChange.Started).Task.Document);
+        Assert.Equal(same, events.First(e => e.Change == DelegatedTaskChange.Started).Task.Document);
         Assert.Empty(Assert.Single(_registry.List()).Workspaces);
     }
 

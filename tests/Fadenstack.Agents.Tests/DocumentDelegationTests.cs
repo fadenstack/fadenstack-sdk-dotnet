@@ -85,16 +85,20 @@ public sealed class DocumentDelegationTests : IDisposable
     [Fact]
     public async Task A_task_for_a_document_goes_to_the_instance_that_works_in_it()
     {
-        var other = Register("pipe-other", @"C:\Docs\other.docx");
-        Register("pipe-report", @"C:\Docs\report.docx");
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        var other = Register("pipe-other", Path.Combine(docs, "other.docx"));
+        Register("pipe-report", Path.Combine(docs, "report.docx"));
         other.Update(AgentStatus.Idle); // the newest, but not the one
+        // The same file written another way: through ".", and on Windows in another case.
+        var written = Path.Combine(docs, ".", "report.docx");
+        written = OperatingSystem.IsWindows() ? written.ToLowerInvariant() : written;
 
-        var result = await Caller().RunAsync(Ask(@"c:\docs\.\report.docx"));
+        var result = await Caller().RunAsync(Ask(written));
 
         Assert.Equal(DelegationOutcome.Completed, result.Outcome);
         var sent = Assert.Single(_client.Sent);
         Assert.Equal("pipe-report", sent.Pipe);
-        Assert.Equal(@"c:\docs\.\report.docx", sent.Request.Document);
+        Assert.Equal(written, sent.Request.Document);
     }
 
     [Fact]
