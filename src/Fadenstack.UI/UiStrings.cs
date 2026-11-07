@@ -182,6 +182,97 @@ public sealed class UiStrings
 
     public string ResetApprovalsHint => Text();
 
+    /// <summary>The card's button that opens the times of a grant for a time: "Allow for…".</summary>
+    public string AllowFor => Text();
+
+    /// <summary>A card answered for a time: "Allowed for 30 min".</summary>
+    public string AllowedFor(string duration) => Fill(duration);
+
+    /// <summary>A call a running grant let through without asking.</summary>
+    public string AllowedByGrant => Text();
+
+    /// <summary>A time a user allows, or the time left: "15 min", "2 h", "1 h 30 min".</summary>
+    public string Period(TimeSpan span)
+    {
+        var minutes = (int)Math.Ceiling(span.TotalMinutes);
+        return minutes < 60 ? Fill(minutes, "Duration_Minutes")
+            : minutes % 60 == 0 ? Fill(minutes / 60, "Duration_Hours")
+            : Fill2(minutes / 60, minutes % 60, "Duration_HoursMinutes");
+    }
+
+    // -- grants: the card, the marker, Settings → Approvals (sdk/38 §7) ------------------------------
+
+    /// <summary>The grant card's question: "Work alongside you?".</summary>
+    public string GrantTitle => Text();
+
+    /// <summary>The card that extends a running grant: "Keep working alongside you?".</summary>
+    public string GrantExtendTitle => Text();
+
+    /// <summary>The label of the card's time picker.</summary>
+    public string GrantDuration => Text();
+
+    /// <summary>Before the places: "I'll work in:".</summary>
+    public string GrantPlaces => Text();
+
+    /// <summary>Before the places an extension adds: "Also in:".</summary>
+    public string GrantNewPlaces => Text();
+
+    /// <summary>An extension's time: "30 min longer".</summary>
+    public string GrantMoreTime(string duration) => Fill(duration);
+
+    /// <summary>What the agent may do without asking, by the classes the grant covers.</summary>
+    public string GrantMay(Parts.GrantAbility ability) => this[$"GrantMay_{ability}"];
+
+    /// <summary>What still asks inside a grant.</summary>
+    public string GrantStillAsks => Text();
+
+    public string GrantAllow => Text();
+
+    public string GrantNotNow => Text();
+
+    /// <summary>A place's button on the card: take it out of the grant.</summary>
+    public string GrantRemovePlace => Text();
+
+    /// <summary>A place's button on the card: put it back.</summary>
+    public string GrantKeepPlace => Text();
+
+    /// <summary>The card once allowed.</summary>
+    public string GrantAllowed => Text();
+
+    /// <summary>The card once declined.</summary>
+    public string GrantDeclined => Text();
+
+    /// <summary>The card when the server refused or could not be reached: no answer, no grant.</summary>
+    public string GrantFailed => Text();
+
+    /// <summary>The marker in the chat header: "Working alongside you · 23 min left".</summary>
+    public string MarkerWorking(string left) => Fill(left);
+
+    /// <summary>The marker while the grant is paused (the person away).</summary>
+    public string MarkerPaused => Text();
+
+    /// <summary>The marker's button that ends every grant and the turn.</summary>
+    public string MarkerStop => Text();
+
+    /// <summary>The marker's button near the end: "Another 30 min".</summary>
+    public string MarkerKeepGoing(string duration) => Fill(duration);
+
+    /// <summary>The Settings section with what the user allowed for longer than one call.</summary>
+    public string SettingsApprovals => Text();
+
+    public string SettingsApprovalsEmpty => Text();
+
+    /// <summary>A grant for a time in Settings: "add_comment, 23 min left".</summary>
+    public string SettingsGrantTime(string tool, string left) => Fill2(tool, left);
+
+    /// <summary>A stretch of work in Settings: "Working alongside you in report.docx, 23 min left".</summary>
+    public string SettingsGrantWork(string places, string left) => Fill2(places, left);
+
+    /// <summary>An "always" approval in Settings: "add_comment, always".</summary>
+    public string SettingsAlways(string tool) => Fill(tool);
+
+    public string Revoke => Text();
+
     // -- notices -------------------------------------------------------------------------------------
 
     /// <summary>A notice's title for the server's outcome (<c>prompt_blocked</c>, ...); null for one there is no text for.</summary>
@@ -232,6 +323,9 @@ public sealed class UiStrings
 
     /// <summary>"Asks before ... Limited to Read only by your organisation."</summary>
     public string LimitedTo(string description, string mode) => Fill2(description, mode);
+
+    /// <summary>"Asks before ... This agent goes no higher than Ask.": the agent's own highest level is the limit.</summary>
+    public string LimitedByAgent(string description, string mode) => Fill2(description, mode);
 
     public string ToolModeMenu => Text();
 

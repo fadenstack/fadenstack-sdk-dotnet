@@ -42,10 +42,13 @@ public sealed record ApprovalDecidedEvent : AgentClientEvent
     public long? WaitMs { get; init; }
 
     /// <summary>
-    /// What let an approved call through: <c>once</c> (the user, for this call), <c>chat</c>, <c>always</c> or
-    /// <c>bypass</c>. Null when it was not approved.
+    /// What let an approved call through: <c>once</c> (the user, for this call), <c>chat</c>, <c>always</c>,
+    /// <c>bypass</c>, or <c>grant</c> (<see cref="GrantId"/>). Null when it was not approved.
     /// </summary>
     public string? Scope { get; init; }
+
+    /// <summary>The grant that let it through, with <c>grant</c>; left out otherwise, so an older server never sees it.</summary>
+    public string? GrantId { get; init; }
 }
 
 /// <summary>A local MCP server was attached, and the tools it offers.</summary>

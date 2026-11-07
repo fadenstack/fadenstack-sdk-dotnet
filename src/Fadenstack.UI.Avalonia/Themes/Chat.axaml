@@ -28,6 +28,24 @@
         <Setter Property="Margin" Value="0,0,8,0" />
     </Style>
 
+    <!-- The marker under the header while the agent works alongside the person under a grant: a band, the time left, Stop. -->
+    <Style Selector="Border.grant-marker">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,6,8,6" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Border.grant-marker Button">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.grant-marker c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
     <!-- The chat's popups that look like the menu (in a Border.popup-room, Controls.axaml). -->
     <Style Selector="Border.menu.popup">
         <Setter Property="MinWidth" Value="220" />
@@ -57,6 +75,14 @@
     </Style>
     <Style Selector="StackPanel.mode-option">
         <Setter Property="Spacing" Value="2" />
+    </Style>
+    <!-- Settings → Approvals: one row per approval, its Revoke at the end. -->
+    <Style Selector="DockPanel.standing">
+        <Setter Property="Margin" Value="12,2,4,2" />
+    </Style>
+    <Style Selector="DockPanel.standing Button">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <!-- The chats: a menu under the header, as wide as the panel. -->
@@ -173,6 +199,15 @@
         <Setter Property="VerticalAlignment" Value="Top" />
     </Style>
 
+    <!-- Grant cards waiting for an answer, above the composer and as wide. -->
+    <Style Selector="ItemsControl.grant-cards">
+        <Setter Property="Margin" Value="16,8,16,0" />
+        <Setter Property="MaxWidth" Value="760" />
+    </Style>
+    <Style Selector="ItemsControl.grant-cards > ContentPresenter">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
     <!-- ===== The composer: a card; the field inside is borderless, the card shows the focus ================ -->
 
     <!-- At most the reading width, centred with the turns when the chat is wide. -->
@@ -270,6 +305,12 @@
     </Style>
     <Style Selector="Grid.chat.compact Border.composer">
         <Setter Property="Margin" Value="8,4,8,2" />
+    </Style>
+    <Style Selector="Grid.chat.compact ItemsControl.grant-cards">
+        <Setter Property="Margin" Value="8,4,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.grant-marker">
+        <Setter Property="Padding" Value="8,4" />
     </Style>
     <Style Selector="Grid.chat.compact StackPanel.notice-line">
         <Setter Property="Margin" Value="8,0,8,4" />

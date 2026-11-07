@@ -304,9 +304,31 @@
                 <ControlTemplate TargetType="MenuItem">
                     <Border x:Name="Root" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
                             CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
-                        <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+                        <DockPanel>
+                            <!-- An item with items of its own ("Allow for…"): a chevron, and its items in a card of the same look beside it. -->
+                            <TextBlock x:Name="Chevron" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Icon}" FontSize="9" Text="&#xE76C;"
+                                       Foreground="{TemplateBinding Foreground}" Margin="16,0,0,0" Visibility="Collapsed" />
+                            <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="-2" VerticalOffset="-7" AllowsTransparency="True"
+                                   Focusable="False" PopupAnimation="Fade" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}"
+                                        BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="4" Margin="6,2,10,12"
+                                        SnapsToDevicePixels="True">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                                    </Border.Effect>
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" KeyboardNavigation.TabNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+                        </DockPanel>
                     </Border>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Chevron" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsSubmenuOpen" Value="True">
+                            <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Root" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
                         </Trigger>
@@ -732,6 +754,17 @@
                                               Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
                                               Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                    <!-- "Allow for…": the times the agent allows, a grant the server holds; each answers with its DurationOption. -->
+                                    <MenuItem Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}"
+                                              Visibility="{Binding CanAllowForTime, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                        <MenuItem.ItemContainerStyle>
+                                            <Style TargetType="MenuItem" BasedOn="{StaticResource Fadenstack.AllowMenuItem}">
+                                                <Setter Property="Header" Value="{Binding Label}" />
+                                                <Setter Property="Command" Value="{Binding DataContext.AllowForTimeCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                <Setter Property="CommandParameter" Value="{Binding}" />
+                                            </Style>
+                                        </MenuItem.ItemContainerStyle>
+                                    </MenuItem>
                                 </ContextMenu>
                             </ToggleButton.ContextMenu>
                         </ToggleButton>
@@ -749,6 +782,85 @@
                 <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Fadenstack.Warning}" />
             </DataTrigger>
             <!-- Answered: the grey border and the state line say so. Not faded: at 85 % its muted text fell under 4.5:1. -->
+            <DataTrigger Binding="{Binding IsPending}" Value="False">
+                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- The grant card: may the agent work alongside the person for a while, in these places, without asking each time. -->
+    <DataTemplate DataType="{x:Type parts:GrantPart}">
+        <Border x:Name="Card" Margin="0,6,0,8" Padding="14,12" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
+                BorderBrush="{DynamicResource Fadenstack.AccentIcon}" Background="{DynamicResource Fadenstack.Surface}" MaxWidth="640"
+                HorizontalAlignment="Left">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Fadenstack.Icon}" Text="&#xE946;"
+                               Foreground="{DynamicResource Fadenstack.AccentIcon}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+                <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                           Visibility="{Binding Reason, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                <StackPanel Margin="0,8,0,0" Visibility="{Binding HasPlaces, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <TextBlock Text="{Binding PlacesHeading}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Places}" Focusable="False" Margin="0,4,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,2">
+                                    <Button x:Name="Toggle" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Padding="8,2" FontSize="12"
+                                            Margin="12,0,0,0" Content="{v:Text GrantRemovePlace}" Command="{Binding ToggleCommand}" />
+                                    <TextBlock x:Name="Place" Text="{Binding Label}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Kept}" Value="False">
+                                        <Setter TargetName="Place" Property="TextDecorations" Value="Strikethrough" />
+                                        <Setter TargetName="Place" Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+                                        <Setter TargetName="Toggle" Property="Content" Value="{v:Text GrantKeepPlace}" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <!-- The time: a menu like "Allow for ...", in the panel's own styles; a pick closes it. -->
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <Grid HorizontalAlignment="Left">
+                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryButton}" MinWidth="96"
+                                      Content="{Binding SelectedDuration.Label}" IsEnabled="{Binding IsPending}"
+                                      IsChecked="{Binding IsDurationMenuOpen, Mode=TwoWay}"
+                                      IsHitTestVisible="{Binding IsOpen, ElementName=DurationMenu, Converter={StaticResource Fadenstack.InverseBool}}" />
+                        <Popup x:Name="DurationMenu" PlacementTarget="{Binding ElementName=DurationButton}" Placement="Bottom" StaysOpen="False"
+                               IsOpen="{Binding IsDurationMenuOpen, Mode=TwoWay}" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                                    CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="8,4,8,12">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                                </Border.Effect>
+                                <ItemsControl ItemsSource="{Binding Durations}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                                    Command="{Binding DataContext.PickDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" Content="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </DockPanel>
+                <TextBlock Text="{Binding MayText}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding StillAsksText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <v:ButtonRow Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Content="{v:Text GrantAllow}" Command="{Binding AllowCommand}" />
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text GrantNotNow}" Command="{Binding NotNowCommand}" />
+                </v:ButtonRow>
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"
+                           Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsPending}" Value="False">
                 <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
             </DataTrigger>

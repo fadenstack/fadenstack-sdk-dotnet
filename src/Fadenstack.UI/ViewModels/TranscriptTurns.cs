@@ -95,11 +95,13 @@ internal static class TranscriptTurns
                             : startedClass.TryGetValue(approvalCall, out var started) ? started : ToolClass.Unknown,
                         Server = Json.Str(d, "server"),
                     };
+                    var minutes = d.TryGetProperty("grant_minutes", out var m) && m.ValueKind == JsonValueKind.Number ? m.GetInt32() : (int?)null;
                     var decided = Json.Bool(d, "timed_out") ? ApprovalState.Expired
                         : !Json.Bool(d, "approved") ? ApprovalState.Denied
+                        : Json.Str(d, "scope") == ApprovalScopes.Grant ? (minutes is null ? ApprovalState.ApprovedByGrant : ApprovalState.ApprovedForTime)
                         : Json.Str(d, "scope") == ApprovalScopes.Always ? ApprovalState.ApprovedAlways
                         : Json.Bool(d, "for_session") ? ApprovalState.ApprovedForSession : ApprovalState.Approved;
-                    turn.AddApprovalPart(new ApprovalPart(request, decided, previewLength, chat.Strings));
+                    turn.AddApprovalPart(new ApprovalPart(request, decided, minutes is { } t ? TimeSpan.FromMinutes(t) : null, previewLength, chat.Strings));
                     break;
                 case EntryTypes.GovernanceNotice:
                     turn.AddRestoredNotice(new GovernanceNotice

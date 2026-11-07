@@ -630,4 +630,144 @@
     <value>Sign in to continue</value>
     <comment>Title of the chat when the agent needs a sign-in first</comment>
   </data>
+  <data name="AllowFor" xml:space="preserve">
+    <value>Allow for…</value>
+    <comment>A card's button: opens the times for a longer approval</comment>
+  </data>
+  <data name="AllowedFor" xml:space="preserve">
+    <value>Allowed for {0}</value>
+    <comment>A card once answered for a time; {0}: the time, e.g. 30 min</comment>
+  </data>
+  <data name="AllowedByGrant" xml:space="preserve">
+    <value>Allowed by your longer approval</value>
+    <comment>A call let through by a running approval, without asking</comment>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0} min</value>
+    <comment>A duration in minutes</comment>
+  </data>
+  <data name="Duration_Hours" xml:space="preserve">
+    <value>{0} h</value>
+    <comment>A duration in whole hours</comment>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0} h {1} min</value>
+    <comment>A duration in hours and minutes</comment>
+  </data>
+  <data name="GrantTitle" xml:space="preserve">
+    <value>Work alongside you?</value>
+    <comment>The question of the card that lets the agent work for a while without asking</comment>
+  </data>
+  <data name="GrantExtendTitle" xml:space="preserve">
+    <value>Keep working alongside you?</value>
+    <comment>The card that extends a running approval</comment>
+  </data>
+  <data name="GrantDuration" xml:space="preserve">
+    <value>For how long</value>
+    <comment>The label of the card's time picker</comment>
+  </data>
+  <data name="GrantPlaces" xml:space="preserve">
+    <value>I'll work in:</value>
+    <comment>Before the list of places on the card</comment>
+  </data>
+  <data name="GrantNewPlaces" xml:space="preserve">
+    <value>Also in:</value>
+    <comment>Before the places an extension adds</comment>
+  </data>
+  <data name="GrantMoreTime" xml:space="preserve">
+    <value>{0} longer</value>
+    <comment>An extension's time; {0}: e.g. 30 min</comment>
+  </data>
+  <data name="GrantMay_Read" xml:space="preserve">
+    <value>Without asking I may read there.</value>
+    <comment>What the agent may do without asking</comment>
+  </data>
+  <data name="GrantMay_Write" xml:space="preserve">
+    <value>Without asking I may write and change things there.</value>
+    <comment>What the agent may do without asking</comment>
+  </data>
+  <data name="GrantMay_ReadWrite" xml:space="preserve">
+    <value>Without asking I may read, write and change things there.</value>
+    <comment>What the agent may do without asking</comment>
+  </data>
+  <data name="GrantStillAsks" xml:space="preserve">
+    <value>I'll still ask before deleting, sending, paying or publishing anything, and before anything else.</value>
+    <comment>What still asks inside the approval</comment>
+  </data>
+  <data name="GrantAllow" xml:space="preserve">
+    <value>Allow</value>
+    <comment>The card's button</comment>
+  </data>
+  <data name="GrantNotNow" xml:space="preserve">
+    <value>Not now</value>
+    <comment>The card's button</comment>
+  </data>
+  <data name="GrantRemovePlace" xml:space="preserve">
+    <value>Remove</value>
+    <comment>A place's button: take it out</comment>
+  </data>
+  <data name="GrantKeepPlace" xml:space="preserve">
+    <value>Add back</value>
+    <comment>A place's button: put it back</comment>
+  </data>
+  <data name="GrantAllowed" xml:space="preserve">
+    <value>Working alongside you</value>
+    <comment>The card once allowed</comment>
+  </data>
+  <data name="GrantDeclined" xml:space="preserve">
+    <value>Not now</value>
+    <comment>The card once declined</comment>
+  </data>
+  <data name="GrantFailed" xml:space="preserve">
+    <value>Not allowed: the server did not confirm it</value>
+    <comment>The card when the server refused or could not be reached</comment>
+  </data>
+  <data name="MarkerWorking" xml:space="preserve">
+    <value>Working alongside you · {0} left</value>
+    <comment>The marker in the chat header; {0}: the time left</comment>
+  </data>
+  <data name="MarkerPaused" xml:space="preserve">
+    <value>Working alongside you · paused</value>
+    <comment>The marker while the person is away</comment>
+  </data>
+  <data name="MarkerStop" xml:space="preserve">
+    <value>Stop</value>
+    <comment>The marker's button: ends the approval and what the agent is doing</comment>
+  </data>
+  <data name="MarkerKeepGoing" xml:space="preserve">
+    <value>Another {0}</value>
+    <comment>The marker's button near the end; {0}: e.g. 30 min</comment>
+  </data>
+  <data name="SettingsApprovals" xml:space="preserve">
+    <value>Approvals</value>
+    <comment>A Settings section: what was allowed for longer than one call</comment>
+  </data>
+  <data name="SettingsApprovalsEmpty" xml:space="preserve">
+    <value>Nothing is allowed for longer than one call.</value>
+    <comment>The Settings section when it is empty</comment>
+  </data>
+  <data name="SettingsGrantTime" xml:space="preserve">
+    <value>{0}, {1} left</value>
+    <comment>{0}: the tool; {1}: the time left</comment>
+  </data>
+  <data name="SettingsGrantWork" xml:space="preserve">
+    <value>Working alongside you in {0}, {1} left</value>
+    <comment>{0}: the places; {1}: the time left</comment>
+  </data>
+  <data name="SettingsAlways" xml:space="preserve">
+    <value>{0}, always</value>
+    <comment>{0}: the tool allowed always on this device</comment>
+  </data>
+  <data name="Revoke" xml:space="preserve">
+    <value>Revoke</value>
+    <comment>A button in Settings: end an approval</comment>
+  </data>
+  <data name="LimitedByAgent" xml:space="preserve">
+    <value>{0} This agent goes no higher than {1}.</value>
+    <comment>{0}: the mode's description; {1}: the agent's highest mode</comment>
+  </data>
+  <data name="Notice_grant_failed" xml:space="preserve">
+    <value>Allowed this time only: the server did not confirm the longer approval</value>
+    <comment>A notice's title</comment>
+  </data>
 </root>

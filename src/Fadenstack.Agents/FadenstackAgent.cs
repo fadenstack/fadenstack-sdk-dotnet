@@ -19,6 +19,7 @@ public sealed class FadenstackAgent : IDisposable
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
+    private DateTimeOffset _profileRead;
     private volatile IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
     private IReadOnlyList<AgentTool> _hostTools = Array.Empty<AgentTool>();
     private readonly List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)> _sourceTools = new();
@@ -37,7 +38,14 @@ public sealed class FadenstackAgent : IDisposable
     {
         _settings = settings;
         Reporter = new EventReporter(settings.Client, settings.Report);
+        Grants = new AgentGrants(this);
     }
+
+    /// <summary>
+    /// What the person let the agent run for a while on this device, held by the server (<see cref="AgentGrants.Available"/>
+    /// when it holds grants): grants for a time, stretches of work, and the marker's Stop.
+    /// </summary>
+    public AgentGrants Grants { get; }
 
     public static AgentBuilder CreateBuilder() => new();
 
@@ -51,21 +59,36 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>The agent's profile, once <see cref="StartAsync"/> ran.</summary>
     public AgentProfile Profile => _profile ?? throw new InvalidOperationException("Call StartAsync first.");
 
+    internal AgentProfile? ProfileOrNull => _profile;
+
     /// <summary>The tools the agent runs, with their effective classes, once started.</summary>
     public IReadOnlyList<AgentTool> Tools => _tools;
 
     /// <summary>
-    /// The most any session may use: the profile's ceiling, if the server sets one, or Auto. A ceiling this SDK does
-    /// not know narrows to read-only: it cannot be taken for none.
+    /// The most any session may use: the narrowest of the profile's ceiling and the agent's highest level, where the server
+    /// sets them, else Auto. A level this SDK does not know narrows to read-only: it cannot be taken for none (39 F8).
     /// </summary>
-    public ToolMode Ceiling => _profile?.ToolModes.Ceiling is { } ceiling && !string.IsNullOrWhiteSpace(ceiling)
-        ? ToolModes.ParseMode(ceiling) ?? ToolMode.ReadOnly
-        : ToolMode.Auto;
+    public ToolMode Ceiling => ToolModes.Narrowest(Level(_profile?.ToolModes.Ceiling), Level(_profile?.ToolModes.Max));
 
     /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
     public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;
 
-    public ToolMode DefaultToolMode => ToolModes.Narrowest(_settings.DefaultMode, ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask);
+    /// <summary>
+    /// The mode new sessions start in: the agent's default level from the server (Ask from an older one, or one this SDK
+    /// does not know), no higher than the app's own default (<see cref="AgentBuilder.UseDefaultToolMode"/>).
+    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>.
+    /// </summary>
+    public ToolMode DefaultToolMode => ToolModes.Narrowest(
+        ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask, _settings.DefaultMode);
+
+    /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
+    internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
+
+    /// <summary>The time, for the profile's age and the grants' remaining time (<see cref="AgentGrants.ServerNow"/>); tests set it.</summary>
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+
+    private static ToolMode Level(string? level) =>
+        string.IsNullOrWhiteSpace(level) ? ToolMode.Auto : ToolModes.ParseMode(level) ?? ToolMode.ReadOnly;
 
     /// <summary><see cref="PermissionMode.Ask"/>, or <see cref="PermissionMode.Bypass"/> when the app set it.</summary>
     public PermissionMode PermissionMode => _settings.PermissionMode;
@@ -100,30 +123,12 @@ public sealed class FadenstackAgent : IDisposable
             {
                 return;
             }
-            var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
-            var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
-            if (missing.Count > 0)
+            var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            var dropped = new List<string>();
+            var tools = HostTools(profile, dropped);
+            foreach (var name in dropped)
             {
-                throw new FadenstackException(
-                    $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
-            }
-            var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
-            var tools = new List<AgentTool>();
-            var dropped = 0;
-            foreach (var tool in _settings.Tools)
-            {
-                ToolContractEntry? entry = null;
-                if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
-                {
-                    dropped++;
-                    Log.ToolDropped(Logger, tool.Name);
-                    continue; // the gateway refuses it anyway; not offering it keeps the model from trying
-                }
-                var risk = ToolModes.ParseClass(entry?.Risk);
-                tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) {
-                    Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope, ReadOnlyHint = tool.ReadOnlyHint, DestructiveHint = tool.DestructiveHint,
-                });
+                Log.ToolDropped(Logger, name);
             }
             var hostTools = tools.Count;
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
@@ -151,16 +156,108 @@ public sealed class FadenstackAgent : IDisposable
             _reasoningChoices = ReasoningChoices.FromUi(profile.Ui);
             _reasoningPick = _reasoningStore?.Get(Slug);
             Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
-            Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped);
+            Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped.Count);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
             {
                 _warned = true;
-                Log.BypassMode(Logger, Slug);
+                Log.BypassMode(Logger, Slug); // set to bypass, which no server allows yet: every call still asks
             }
             if (_settings.Report)
             {
                 _ = ReportManifestAsync();
             }
+        }
+        finally
+        {
+            _starting.Release();
+        }
+    }
+
+    private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
+    {
+        var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
+        if (missing.Count > 0)
+        {
+            throw new FadenstackException(
+                $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
+        }
+        _profileRead = Clock();
+        return profile;
+    }
+
+    /// <summary>
+    /// The host tools <paramref name="profile"/>'s contract allows, with its class and approval; the names of those it
+    /// leaves out go to <paramref name="dropped"/>.
+    /// </summary>
+    private List<AgentTool> HostTools(AgentProfile profile, List<string>? dropped = null)
+    {
+        var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
+        var tools = new List<AgentTool>();
+        foreach (var tool in _settings.Tools)
+        {
+            ToolContractEntry? entry = null;
+            if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
+            {
+                dropped?.Add(tool.Name);
+                continue; // the gateway refuses it anyway; not offering it keeps the model from trying
+            }
+            var risk = ToolModes.ParseClass(entry?.Risk);
+            tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
+                tool.Source, tool.Server, tool.OpenWorld) {
+                Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope, ReadOnlyHint = tool.ReadOnlyHint, DestructiveHint = tool.DestructiveHint,
+                Approval = entry?.Approval,
+            });
+        }
+        return tools;
+    }
+
+    /// <summary>
+    /// Reads the profile again when a session starts or opens and it is older than <see cref="ProfileMaxAge"/> (39 F8): a
+    /// ceiling an administrator lowered, a highest level, or a tool's class or approval reach the next session without a
+    /// restart. The tools of the agent's sources (local MCP) stay as they were. When the server cannot be reached the
+    /// profile held stays: every model call goes through the server anyway, and a session on this device still opens.
+    /// </summary>
+    private async Task RefreshProfileAsync(CancellationToken cancellationToken)
+    {
+        await _starting.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_profile is null || Clock() - _profileRead < ProfileMaxAge)
+            {
+                return;
+            }
+            AgentProfile profile;
+            try
+            {
+                profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Log.ProfileRereadFailed(Logger, Slug, e.GetType().Name);
+                return;
+            }
+            var hosts = HostTools(profile);
+            // Settled as a changed tool source is (RefreshToolsAsync): one at a time, and a host tool that went away is refused by name.
+            await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var before = _tools;
+                List<AgentTool> after;
+                lock (_changed)
+                {
+                    _hostTools = hosts;
+                    after = Compose();
+                }
+                MarkGone(before, after);
+                _tools = after;
+            }
+            finally
+            {
+                _refreshing.Release();
+            }
+            _profile = profile;
+            _reasoningChoices = ReasoningChoices.FromUi(profile.Ui); // a maximum the server lowered counts from the next message
         }
         finally
         {
@@ -329,10 +426,11 @@ public sealed class FadenstackAgent : IDisposable
         }
     }
 
-    /// <summary>A new session, in the agent's default mode (Ask) unless <paramref name="toolMode"/> says otherwise.</summary>
+    /// <summary>A new session, in the agent's default mode (<see cref="DefaultToolMode"/>) unless <paramref name="toolMode"/> says otherwise.</summary>
     public async Task<AgentSession> StartSessionAsync(ToolMode? toolMode = null, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var session = new AgentSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
         await session.WriteStartAsync(cancellationToken).ConfigureAwait(false);
         return session;
@@ -342,6 +440,7 @@ public sealed class FadenstackAgent : IDisposable
     public async Task<AgentSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var entries = await SessionStore.ReadAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
         if (entries.Count == 0)
         {
@@ -350,6 +449,7 @@ public sealed class FadenstackAgent : IDisposable
         return new AgentSession(this, sessionId, entries.ToList(), AgentSession.LastMode(entries) ?? DefaultToolMode);
     }
 
+    /// <summary>This device's sessions of the agent: the signed-in user's, so the agent starts first unless the host keeps them.</summary>
     public async Task<IReadOnlyList<SessionInfo>> ListSessionsAsync(CancellationToken cancellationToken = default)
     {
         await StartUnless(_settings.Sessions, cancellationToken).ConfigureAwait(false);
@@ -370,6 +470,16 @@ public sealed class FadenstackAgent : IDisposable
     {
         await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
         await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// What the user allowed always on this device for this agent, for Settings → Approvals (38 §7); each is ended with
+    /// <see cref="ResetApprovalsAsync"/>. The grants the server holds are in <see cref="Grants"/>.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredApproval>> ListApprovalsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
+        return await ApprovalStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -517,24 +627,30 @@ public sealed class FadenstackAgent : IDisposable
             {
                 after = Compose();
             }
-            var now = new HashSet<string>(after.Select(t => t.Name), StringComparer.Ordinal);
-            lock (_gone)
-            {
-                foreach (var tool in before)
-                {
-                    if (!now.Contains(tool.Name))
-                    {
-                        _gone.Add(tool.Name);
-                    }
-                }
-                _gone.RemoveWhere(now.Contains);
-            }
+            MarkGone(before, after);
             _tools = after;
             Log.ToolsRefreshed(Logger, Slug, changed.Count, after.Count);
         }
         finally
         {
             _refreshing.Release();
+        }
+    }
+
+    /// <summary>Keeps the names of the tools that were offered and are no more; a name offered again is taken off.</summary>
+    private void MarkGone(IReadOnlyList<AgentTool> before, IReadOnlyList<AgentTool> after)
+    {
+        var now = new HashSet<string>(after.Select(t => t.Name), StringComparer.Ordinal);
+        lock (_gone)
+        {
+            foreach (var tool in before)
+            {
+                if (!now.Contains(tool.Name))
+                {
+                    _gone.Add(tool.Name);
+                }
+            }
+            _gone.RemoveWhere(now.Contains);
         }
     }
 

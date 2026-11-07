@@ -16,6 +16,7 @@
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
     <Compile Include="..\Fadenstack.Client.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
+    <Compile Include="..\Fadenstack.Agents.Tests\FakeGrants.cs" Link="FakeGrants.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- The vectors both SDKs test against: the TypeScript SDK has the same file. -->

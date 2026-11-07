@@ -94,9 +94,9 @@ public sealed class MemorySessionStore : ISessionStore
 
 /// <summary>
 /// One append-only JSONL file per session, per agent, in the signed-in user's own folder
-/// (<c>%LOCALAPPDATA%\Fadenstack\users\&lt;user&gt;\sessions\&lt;agent&gt;\</c>; <c>...\Fadenstack\sessions\</c> when the
-/// server names no user). Each line is encrypted for the current user
-/// (DPAPI on Windows); elsewhere the files are readable by their owner only.
+/// (<c>%LOCALAPPDATA%\Fadenstack\users\&lt;user&gt;\sessions\&lt;agent&gt;\</c>; <c>...\Fadenstack\sessions\&lt;agent&gt;\</c>
+/// when the server names no user). Each line is encrypted for the current user (DPAPI on Windows); elsewhere the files
+/// are readable by their owner only.
 /// </summary>
 public sealed class FileSessionStore : ISessionStore, IListsAgents
 {

@@ -481,4 +481,109 @@
   <data name="SignInTitle" xml:space="preserve">
     <value>请登录以继续</value>
   </data>
+  <data name="AllowFor" xml:space="preserve">
+    <value>允许一段时间…</value>
+  </data>
+  <data name="AllowedFor" xml:space="preserve">
+    <value>已允许 {0}</value>
+  </data>
+  <data name="AllowedByGrant" xml:space="preserve">
+    <value>由您的长时间批准放行</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0} 分钟</value>
+  </data>
+  <data name="Duration_Hours" xml:space="preserve">
+    <value>{0} 小时</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0} 小时 {1} 分钟</value>
+  </data>
+  <data name="GrantTitle" xml:space="preserve">
+    <value>与您协作？</value>
+  </data>
+  <data name="GrantExtendTitle" xml:space="preserve">
+    <value>继续与您协作？</value>
+  </data>
+  <data name="GrantDuration" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="GrantPlaces" xml:space="preserve">
+    <value>我将在以下位置工作：</value>
+  </data>
+  <data name="GrantNewPlaces" xml:space="preserve">
+    <value>另外还有：</value>
+  </data>
+  <data name="GrantMoreTime" xml:space="preserve">
+    <value>再延长 {0}</value>
+  </data>
+  <data name="GrantMay_Read" xml:space="preserve">
+    <value>无需询问，我可以在那里读取内容。</value>
+  </data>
+  <data name="GrantMay_Write" xml:space="preserve">
+    <value>无需询问，我可以在那里写入和修改内容。</value>
+  </data>
+  <data name="GrantMay_ReadWrite" xml:space="preserve">
+    <value>无需询问，我可以在那里读取、写入和修改内容。</value>
+  </data>
+  <data name="GrantStillAsks" xml:space="preserve">
+    <value>在删除、发送、付款或发布任何内容之前，以及其他任何操作之前，我仍会询问。</value>
+  </data>
+  <data name="GrantAllow" xml:space="preserve">
+    <value>允许</value>
+  </data>
+  <data name="GrantNotNow" xml:space="preserve">
+    <value>暂不</value>
+  </data>
+  <data name="GrantRemovePlace" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="GrantKeepPlace" xml:space="preserve">
+    <value>重新添加</value>
+  </data>
+  <data name="GrantAllowed" xml:space="preserve">
+    <value>与您协作</value>
+  </data>
+  <data name="GrantDeclined" xml:space="preserve">
+    <value>暂不</value>
+  </data>
+  <data name="GrantFailed" xml:space="preserve">
+    <value>未允许：服务器未确认</value>
+  </data>
+  <data name="MarkerWorking" xml:space="preserve">
+    <value>与您协作 · 剩余 {0}</value>
+  </data>
+  <data name="MarkerPaused" xml:space="preserve">
+    <value>与您协作 · 已暂停</value>
+  </data>
+  <data name="MarkerStop" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="MarkerKeepGoing" xml:space="preserve">
+    <value>再 {0}</value>
+  </data>
+  <data name="SettingsApprovals" xml:space="preserve">
+    <value>审批</value>
+  </data>
+  <data name="SettingsApprovalsEmpty" xml:space="preserve">
+    <value>没有任何内容被允许超过一次调用。</value>
+  </data>
+  <data name="SettingsGrantTime" xml:space="preserve">
+    <value>{0}，剩余 {1}</value>
+  </data>
+  <data name="SettingsGrantWork" xml:space="preserve">
+    <value>在 {0} 与您协作，剩余 {1}</value>
+  </data>
+  <data name="SettingsAlways" xml:space="preserve">
+    <value>{0}，始终</value>
+  </data>
+  <data name="Revoke" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="LimitedByAgent" xml:space="preserve">
+    <value>{0} 此智能体最高只能到“{1}”。</value>
+  </data>
+  <data name="Notice_grant_failed" xml:space="preserve">
+    <value>仅本次允许：服务器未确认长时间批准</value>
+  </data>
 </root>

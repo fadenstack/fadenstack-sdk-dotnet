@@ -144,10 +144,72 @@
                                 <MenuFlyout Placement="BottomEdgeAlignedLeft" HorizontalOffset="-12" VerticalOffset="-2">
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
+                                    <!-- "Allow for…": the times the agent allows, a grant the server holds; each answers with its DurationOption. -->
+                                    <MenuItem Classes="durations" Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}" IsVisible="{Binding CanAllowForTime}">
+                                        <MenuItem.Styles>
+                                            <Style Selector="MenuItem.durations > MenuItem" x:DataType="parts:DurationOption">
+                                                <Setter Property="Header" Value="{Binding Label}" />
+                                                <Setter Property="Command" Value="{Binding $parent[MenuItem].((parts:ApprovalPart)DataContext).AllowForTimeCommand}" />
+                                                <Setter Property="CommandParameter" Value="{Binding}" />
+                                            </Style>
+                                        </MenuItem.Styles>
+                                    </MenuItem>
                                 </MenuFlyout>
                             </SplitButton.Flyout>
                         </SplitButton>
                         <Button Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}" IsVisible="{Binding !HasAllowChoices}" />
+                    </WrapPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- The grant card, above the composer: may the agent work alongside the person for a while, in these places, without
+             asking each time. The places can be taken out, the time picked; Not now, then Allow. -->
+        <DataTemplate DataType="parts:GrantPart">
+            <Border Classes="card grant" Classes.answered="{Binding !IsPending}">
+                <StackPanel Spacing="8">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
+                               IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Spacing="4" IsVisible="{Binding HasPlaces}">
+                        <TextBlock Classes="strong" Text="{Binding PlacesHeading}" TextWrapping="Wrap" />
+                        <ItemsControl Classes="places" ItemsSource="{Binding Places}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="parts:GrantPlaceItem">
+                                    <DockPanel>
+                                        <Panel DockPanel.Dock="Right" Margin="12,0,0,0">
+                                            <Button Classes="quiet small" Content="{v:Text GrantRemovePlace}" Command="{Binding ToggleCommand}"
+                                                    AutomationProperties.HelpText="{Binding Label}" IsVisible="{Binding Kept}" />
+                                            <Button Classes="quiet small" Content="{v:Text GrantKeepPlace}" Command="{Binding ToggleCommand}"
+                                                    AutomationProperties.HelpText="{Binding Label}" IsVisible="{Binding !Kept}" />
+                                        </Panel>
+                                        <TextBlock Classes="place" Classes.dropped="{Binding !Kept}" Text="{Binding Label}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding Durations}" SelectedItem="{Binding SelectedDuration, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding DurationLabel}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="parts:DurationOption">
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <TextBlock Text="{Binding MayText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption muted" Text="{Binding StillAsksText}" TextWrapping="Wrap" />
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{v:Text GrantNotNow}" Command="{Binding NotNowCommand}" />
+                        <Button Classes="primary" Content="{v:Text GrantAllow}" Command="{Binding AllowCommand}" />
                     </WrapPanel>
                     <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
                 </StackPanel>
@@ -373,6 +435,8 @@
     <ThemeVariantScope Name="Scope">
     <Grid Name="Root" Classes="chat" RowDefinitions="Auto,*,Auto,Auto,Auto">
         <!-- ===== Header: the chat's title, then history, new chat, the host's items, more ===================== -->
+        <!-- Below it, while the agent works alongside the person under a grant, the marker with its Stop (also in compact mode). -->
+        <StackPanel>
         <Border Classes="header">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -417,6 +481,24 @@
                                     <TextBlock Classes="menu-caption" Text="{v:Text LanguageLocked}" IsVisible="{Binding IsLanguageLocked}" />
                                     <Separator />
                                 </StackPanel>
+                                <!-- Approvals: what was allowed for longer than one call (the grants the server holds, "always" on this
+                                     device), each with Revoke; read again each time the settings open. -->
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text SettingsApprovals}" />
+                                    <ItemsControl ItemsSource="{Binding Grants.Standing}" Focusable="False" IsVisible="{Binding Grants.HasStanding}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:StandingApprovalItem">
+                                                <DockPanel Classes="standing">
+                                                    <Button DockPanel.Dock="Right" Classes="quiet small" Content="{v:Text Revoke}" Command="{Binding RevokeCommand}"
+                                                            AutomationProperties.HelpText="{Binding Title}" />
+                                                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text SettingsApprovalsEmpty}" IsVisible="{Binding !Grants.HasStanding}" />
+                                    <Separator />
+                                </StackPanel>
                                 <ContentPresenter Content="{Binding $parent[v:ChatView].SettingsContent}" />
                                 <Button Classes="menu-item" Command="{Binding OpenAboutCommand}" AutomationProperties.Name="{v:Text About}">
                                     <StackPanel Orientation="Horizontal">
@@ -434,6 +516,16 @@
                 <TextBlock Classes="subtitle header-title" Text="{Binding SessionTitle}" />
             </DockPanel>
         </Border>
+        <Border Classes="grant-marker" IsVisible="{Binding Grants.HasMarker}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="{v:Text MarkerStop}" Command="{Binding Grants.StopCommand}" />
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="{Binding Grants.KeepGoingText}" Command="{Binding Grants.KeepGoingCommand}"
+                        IsVisible="{Binding Grants.IsEnding}" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.People}" />
+                <TextBlock Text="{Binding Grants.MarkerText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        </StackPanel>
 
         <!-- ===== The conversation ============================================================================ -->
         <Grid Grid.Row="1">
@@ -628,8 +720,17 @@
             </DockPanel>
         </Border>
 
-        <!-- ===== The composer: chips, the field, then attach, the host's items, the tool mode, send / stop ===== -->
-        <Border Name="ComposerBox" Grid.Row="3" Classes="composer">
+        <!-- ===== Grant cards waiting for an answer, then the composer: chips, the field, then attach, the host's items, the
+             tool mode, send / stop ===== -->
+        <StackPanel Grid.Row="3">
+        <ItemsControl Classes="grant-cards" ItemsSource="{Binding Grants.Cards}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="parts:GrantPart">
+                    <ContentControl Content="{Binding}" IsVisible="{Binding IsPending}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Name="ComposerBox" Classes="composer">
             <StackPanel>
                 <!-- The skills picked for the next message -->
                 <ItemsControl Classes="chips" ItemsSource="{Binding PickedSkills}" Focusable="False" IsVisible="{Binding PickedSkills.Count, Converter={x:Static v:Counts.Any}}">
@@ -810,6 +911,7 @@
                 </DockPanel>
             </StackPanel>
         </Border>
+        </StackPanel>
 
         <!-- Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides it. -->
         <StackPanel Grid.Row="4" Classes="notice-line">

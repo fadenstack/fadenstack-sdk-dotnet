@@ -250,6 +250,27 @@
     <Style Selector="WrapPanel.actions > Button, WrapPanel.actions > SplitButton">
         <Setter Property="Margin" Value="8,0,0,0" />
     </Style>
+    <!-- The grant card ("Work alongside you?"): the approval card's frame, above the composer. -->
+    <Style Selector="Border.card.grant">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="Border.card.grant.answered">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Border.grant c|FsIcon.glyph">
+        <Setter Property="Data" Value="{DynamicResource Icon.People}" />
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Large}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ItemsControl.places > ContentPresenter">
+        <Setter Property="Margin" Value="0,2" />
+    </Style>
+    <!-- A place taken out of the grant: struck through and muted, until it is added back. -->
+    <Style Selector="TextBlock.place.dropped">
+        <Setter Property="TextDecorations" Value="Strikethrough" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
     <Style Selector="Border.card.part">
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="MinWidth" Value="240" />

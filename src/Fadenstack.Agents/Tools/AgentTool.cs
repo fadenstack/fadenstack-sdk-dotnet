@@ -159,6 +159,13 @@ public sealed class AgentTool
     public bool? DestructiveHint { get; init; }
 
     /// <summary>
+    /// What the agent's contract says about asking, from the server: <c>always</c> asks every time, and nothing the user
+    /// allowed before answers it; <c>ask</c> asks even where the tool mode would run the call, though "for this chat" or
+    /// "always" may answer it; <c>never</c> runs a read or write tool the mode would ask about. Null: the mode decides.
+    /// </summary>
+    public string? Approval { get; init; }
+
+    /// <summary>
     /// What a call acts on, in the user's words (<c>button "Send" on mail.example.com</c>), for the approval card
     /// (<see cref="ApprovalRequest.Target"/>): called only when the user is asked, so they see what the call will touch,
     /// not only its arguments. Null, empty, a failure or no answer within 3 seconds shows the arguments alone.

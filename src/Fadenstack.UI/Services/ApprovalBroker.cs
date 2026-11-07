@@ -27,14 +27,56 @@ public sealed class PendingApproval
     internal void Cancel() => _decision.TrySetCanceled();
 }
 
+/// <summary>A grant card waiting for the user; resolved by its buttons.</summary>
+public sealed class PendingGrant
+{
+    private readonly TaskCompletionSource<GrantAnswer> _answer = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    internal PendingGrant(GrantOffer offer, CancellationToken cancellationToken)
+    {
+        Offer = offer;
+        CancellationToken = cancellationToken;
+    }
+
+    public GrantOffer Offer { get; }
+
+    public CancellationToken CancellationToken { get; }
+
+    internal Task<GrantAnswer> Answer => _answer.Task;
+
+    public bool IsResolved => _answer.Task.IsCompleted;
+
+    public bool Resolve(GrantAnswer answer) => _answer.TrySetResult(answer);
+
+    internal void Cancel() => _answer.TrySetCanceled();
+}
+
 /// <summary>
-/// The agent's <see cref="IApprovalHandler"/> for a UI: each request becomes an approval card in the chat, and
-/// the user's click is the decision. Give the same broker to the builder and to the chat view model.
-/// Without a chat listening, requests are declined.
+/// The agent's <see cref="IApprovalHandler"/> and <see cref="IGrantHandler"/> for a UI: each request becomes a card in
+/// the chat -- an approval, or a grant to work alongside the user -- and the user's click is the answer. Give the same
+/// broker to the builder and to the chat view model. Without a chat listening, requests are declined.
 /// </summary>
-public sealed class ApprovalBroker : IApprovalHandler
+public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler
 {
     public event Action<PendingApproval>? Requested;
+
+    /// <summary>A grant card to show (<see cref="AgentSession.OfferWorkAsync"/>, an extension).</summary>
+    public event Action<PendingGrant>? GrantRequested;
+
+    public async Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
+    {
+        var handlers = GrantRequested;
+        if (handlers is null)
+        {
+            return GrantAnswer.NotNow;
+        }
+        var pending = new PendingGrant(offer, cancellationToken);
+        using (cancellationToken.Register(pending.Cancel))
+        {
+            handlers(pending);
+            return await pending.Answer.ConfigureAwait(false);
+        }
+    }
 
     public async Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken)
     {

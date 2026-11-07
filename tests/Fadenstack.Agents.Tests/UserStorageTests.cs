@@ -67,6 +67,20 @@ public class UserStorageTests : IDisposable
     }
 
     [Fact]
+    public async Task Two_users_on_one_device_never_share_what_they_allowed_always()
+    {
+        // 39 F10: "always" was keyed by the agent's slug alone, for every Fadenstack user of the OS account.
+        using (var first = Plain(new Gateway { Principal = Principal }).Build())
+        {
+            await Use(first);
+        }
+        using var second = Plain(new Gateway { Principal = Principal.Replace("u-1", "u-2") }).Build();
+        await second.StartAsync();
+        Assert.Empty(await second.ApprovalStore.ListAsync(Gateway.Slug));
+        Assert.Empty(await second.ListSessionsAsync());
+    }
+
+    [Fact]
     public async Task Without_a_principal_they_stay_in_the_shared_folders_of_an_older_sdk()
     {
         using var agent = Plain(new Gateway()).Build();
@@ -117,5 +131,15 @@ public class UserStorageTests : IDisposable
     {
         UserDataMigration.Adopt("u-1", NullLogger.Instance);
         Assert.False(Directory.Exists(Data("users")));
+    }
+
+    [Fact]
+    public void A_principal_counts_only_with_a_tenant_a_user_and_an_agent()
+    {
+        static Models.AgentPrincipal? Read(string json) => System.Text.Json.JsonSerializer
+            .Deserialize<Models.AgentProfile>($$"""{"principal":{{json}}}""", Http.FadenstackJson.Options)!.Principal;
+        Assert.Equal("u-1", Read(Principal)!.UserId);
+        Assert.Null(Read("""{"tenant_id":"t-1","user_id":"","agent_id":"a-1"}"""));
+        Assert.Null(Read("null"));
     }
 }

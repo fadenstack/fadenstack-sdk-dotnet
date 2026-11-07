@@ -28,7 +28,7 @@ public sealed class AgentBuilder
     private IApprovalStore? _approvalStore;
     private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
-    private ToolMode _defaultMode = ToolMode.Ask;
+    private ToolMode? _defaultMode;
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
     private bool _report = true;
@@ -137,9 +137,11 @@ public sealed class AgentBuilder
 
     /// <summary>
     /// <see cref="PermissionMode.Ask"/> (the default): calls the tool mode asks about wait for the user.
-    /// <see cref="PermissionMode.Bypass"/>: they are approved without asking, destructive ones too -- for development
-    /// and trusted automation, never a user's choice. An admin's "Ask first" rule still asks, and the transcript and
-    /// the server's record say <c>bypass</c> for each call it let through. The agent warns once when it starts in bypass.
+    /// <see cref="PermissionMode.Bypass"/>: calls of the app's own tools are approved without asking, destructive ones
+    /// too, where the server allows it for the agent -- for development and trusted automation, never a user's choice.
+    /// No Fadenstack server allows it yet, so every call still asks. An admin's "Ask first" rule always asks, the
+    /// gateway's own tools always ask, and the transcript and the server's record say <c>bypass</c> for each call it let
+    /// through. The agent warns once when it starts in bypass.
     /// </summary>
     public AgentBuilder UsePermissionMode(PermissionMode mode)
     {
@@ -148,12 +150,12 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
-    /// The mode new sessions start in. It can only be stricter than Ask: every session starts asking unless the
-    /// user widens that session.
+    /// The highest mode new sessions start in. Sessions start in the agent's default level from the server (Ask unless its
+    /// author set another); this can only narrow it, never widen it -- for an app that never starts in Auto, say.
     /// </summary>
     public AgentBuilder UseDefaultToolMode(ToolMode mode)
     {
-        _defaultMode = ToolModes.Narrowest(ToolMode.Ask, mode);
+        _defaultMode = mode;
         return this;
     }
 
@@ -361,11 +363,15 @@ internal sealed class AgentSettings
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
+
+    /// <summary>Who draws the grant card: the approval handler, when it draws those too.</summary>
+    public IGrantHandler? Grants => Approvals as IGrantHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
-    public ToolMode DefaultMode { get; init; } = ToolMode.Ask;
+    /// <summary>The app's cap on the server's default level; null: none.</summary>
+    public ToolMode? DefaultMode { get; init; }
     public int MaxRounds { get; init; }
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }

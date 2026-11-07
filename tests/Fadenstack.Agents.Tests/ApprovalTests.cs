@@ -62,6 +62,56 @@ public class ApprovalTests
     }
 
     [Fact]
+    public async Task A_contracts_always_asks_every_time_whatever_the_user_allowed_before()
+    {
+        // 39 G2: approval "always" on a write tool did not stop an "always" approval the user had kept.
+        var gateway = new Gateway(contract: """[{"name":"add_comment","risk":"write","approval":"always"}]""")
+            .Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Commented.");
+        var store = new MemoryApprovalStore();
+        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow));
+        var tools = new PageTools();
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder(approvals: store).AddTools(tools)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.ApproveAlways()); }).Build();
+
+        await (await agent.StartSessionAsync(ToolMode.Auto)).SendAsync("Comment.");
+
+        var request = Assert.Single(requests);
+        Assert.Equal((true, false, false), (request.RequiredByRule, request.CanAllowForSession, request.CanAllowAlways));
+        Assert.Contains("every time", request.Reason);
+        Assert.Single(tools.Ran);
+        Assert.Equal("once", Str(Assert.Single(Decided(gateway)), "scope"));
+    }
+
+    [Theory]
+    [InlineData("add_comment", "write", "never", ToolMode.Ask, false, 0)] // the author pre-approved it
+    [InlineData("delete_page", "destructive", "never", ToolMode.Ask, false, 1)] // never for a destructive tool
+    [InlineData("read_page", "read", "ask", ToolMode.Auto, false, 1)] // asks where the mode would run it
+    [InlineData("add_comment", "write", "ask", ToolMode.Auto, true, 0)] // but an "always" the user kept answers it
+    public async Task The_contracts_never_and_ask_go_on_top_of_the_tool_mode(
+        string tool, string risk, string approval, ToolMode mode, bool keptAlways, int asked)
+    {
+        var arguments = tool == "add_comment" ? """{"page":1,"text":"a"}""" : """{"page":1}""";
+        var gateway = new Gateway(contract: $$"""[{"name":"{{tool}}","risk":"{{risk}}","approval":"{{approval}}"}]""")
+            .Calls(("call-1", tool, arguments)).Says("Done.");
+        var store = new MemoryApprovalStore();
+        if (keptAlways)
+        {
+            await store.AddAsync(Gateway.Slug, new StoredApproval(tool, ToolModes.ParseClass(risk), DateTimeOffset.UtcNow));
+        }
+        var tools = new PageTools();
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder(approvals: store).AddTools(tools)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+
+        await (await agent.StartSessionAsync(mode)).SendAsync("Go.");
+
+        Assert.Equal(asked, requests.Count);
+        Assert.Single(tools.Ran);
+        Assert.All(requests, r => Assert.False(r.RequiredByRule));
+    }
+
+    [Fact]
     public async Task A_request_for_a_tool_that_reaches_outside_says_so()
     {
         var gateway = new Gateway(contract: WebTools.Contract)
@@ -391,7 +441,12 @@ public class ApprovalTests
         Assert.Equal((ToolClass.Write, true, true, false), (request.ToolClass, request.CanAllowForSession, request.CanAllowAlways, request.RequiredByRule));
         Assert.True(gateway.Server.Requests.Single(r => r.Path.EndsWith("/approvals/ap-2")).Json.GetProperty("approved").GetBoolean());
         Assert.Equal(new[] { "chat", "chat" }, Decided(gateway).Select(e => Str(e, "scope")));
+        Assert.Equal(new[] { "chat", "chat" }, AnswerScopes(gateway));
     }
+
+    /// <summary>What each answer to a gateway wait said it covers, in order.</summary>
+    internal static IEnumerable<string?> AnswerScopes(Gateway gateway) =>
+        gateway.Server.Requests.Where(r => r.Path.Contains("/approvals/")).Select(r => Str(r.Json, "scope"));
 
     [Fact]
     public async Task A_gateway_tool_without_a_rule_field_is_taken_as_a_rule_and_offered_once_only()
@@ -406,6 +461,7 @@ public class ApprovalTests
         await session.SendAsync("Merge it.");
         Assert.Equal((ToolClass.Unknown, true, false, false), (asked!.ToolClass, asked.RequiredByRule, asked.CanAllowForSession, asked.CanAllowAlways));
         Assert.Equal("once", Str(Assert.Single(Decided(gateway)), "scope"));
+        Assert.Equal(new[] { "once" }, AnswerScopes(gateway));
     }
 
     [Fact]
@@ -457,29 +513,43 @@ public class ApprovalTests
 public class PermissionModeTests
 {
     [Fact]
-    public async Task Bypass_approves_a_destructive_call_without_asking_and_records_it()
+    public async Task Bypass_asks_about_the_apps_own_tools_while_the_server_does_not_allow_it()
     {
-        var gateway = new Gateway().Calls(("call-1", "delete_page", """{"page":1}""")).Says("Deleted.");
+        var gateway = new Gateway().Calls(("call-1", "delete_page", """{"page":1}""")).Says("Not deleted.");
         var tools = new PageTools();
         var asked = 0;
         using var agent = gateway.Builder().AddTools(tools).UsePermissionMode(PermissionMode.Bypass)
             .UseApprovals((_, _) => { asked++; return Task.FromResult(ApprovalDecision.Deny()); }).Build();
         Assert.Equal(PermissionMode.Bypass, agent.PermissionMode);
         var session = await agent.StartSessionAsync();
-        var events = new List<AgentEvent>();
 
-        await foreach (var e in session.StreamAsync("Delete page 1."))
-        {
-            events.Add(e);
-        }
+        var result = await session.SendAsync("Delete page 1.");
 
-        Assert.Equal(0, asked);
-        Assert.Equal(new[] { "delete_page 1" }, tools.Ran);
-        Assert.DoesNotContain(events, e => e is ApprovalRequested or ApprovalDecided);
+        Assert.Equal(1, asked);
+        Assert.Empty(tools.Ran);
+        Assert.Equal(ChatOutcome.ToolDenied, result.Outcome);
         var entry = Assert.Single(ApprovalTests.Decisions(session));
-        Assert.Equal(("bypass", false, true), (ApprovalTests.Str(entry, "scope"), entry.GetProperty("asked").GetBoolean(), entry.GetProperty("approved").GetBoolean()));
-        var reported = Assert.Single(ApprovalTests.Decided(gateway));
-        Assert.Equal(("approved", "bypass"), (ApprovalTests.Str(reported, "decision"), ApprovalTests.Str(reported, "scope")));
+        Assert.Equal(((string?)null, true, false), (ApprovalTests.Str(entry, "scope"), entry.GetProperty("asked").GetBoolean(), entry.GetProperty("approved").GetBoolean()));
+    }
+
+    [Fact]
+    public async Task Bypass_never_answers_a_gateway_wait_the_person_is_asked_and_approves_once()
+    {
+        // 39 G1a: before, bypass answered "yes" to a destructive gateway tool with nobody asked.
+        var gateway = new Gateway()
+            .Then(Gateway.Custom("faden.approval_required", new { approvalId = "ap-1", toolCallId = "gw-1", toolCallName = "mcp.github.delete_repo", message = "The tool mode asks.", timeoutS = 300, toolClass = "destructive", rule = false }),
+                Gateway.Text("Deleted."), Gateway.Finish("stop"), FakeServer.Done);
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder().UsePermissionMode(PermissionMode.Bypass)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.ApproveAlways()); }).Build();
+
+        await (await agent.StartSessionAsync()).SendAsync("Delete the repository.");
+
+        var request = Assert.Single(requests);
+        Assert.Equal((ToolClass.Destructive, false, false), (request.ToolClass, request.CanAllowForSession, request.CanAllowAlways));
+        var answer = gateway.Server.Requests.Single(r => r.Path.EndsWith("/approvals/ap-1")).Json;
+        Assert.Equal((true, "once"), (answer.GetProperty("approved").GetBoolean(), ApprovalTests.Str(answer, "scope")));
+        Assert.Equal("once", ApprovalTests.Str(Assert.Single(ApprovalTests.Decided(gateway)), "scope"));
     }
 
     [Fact]
@@ -518,10 +588,10 @@ public class PermissionModeTests
         await bypass.StartAsync();
         await bypass.StartAsync();
         await bypass.StartSessionAsync();
-        var warning = Assert.Single(logs.Entries, e => e.Message.Contains("runs in bypass mode"));
+        var warning = Assert.Single(logs.Entries, e => e.Message.Contains("is set to bypass mode"));
         Assert.Equal(LogLevel.Warning, warning.Level);
-        Assert.Equal("Agent docs-assistant runs in bypass mode: tool calls that would ask are approved without asking, destructive ones too; " +
-            "an admin's \"Ask first\" rule still asks", warning.Message);
+        Assert.Equal("Agent docs-assistant is set to bypass mode, which this server does not allow: every tool call that would ask " +
+            "still asks; bypass mode never answers the gateway's own tools", warning.Message);
     }
 }
 

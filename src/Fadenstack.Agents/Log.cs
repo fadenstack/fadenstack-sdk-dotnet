@@ -38,8 +38,12 @@ internal static partial class Log
     internal static partial void ToolDropped(ILogger logger, string tool);
 
     [LoggerMessage(EventId = 2003, Level = LogLevel.Warning,
-        Message = "Agent {Agent} runs in bypass mode: tool calls that would ask are approved without asking, destructive ones too; an admin's \"Ask first\" rule still asks")]
+        Message = "Agent {Agent} is set to bypass mode, which this server does not allow: every tool call that would ask still asks; bypass mode never answers the gateway's own tools")]
     internal static partial void BypassMode(ILogger logger, string agent);
+
+    [LoggerMessage(EventId = 2009, Level = LogLevel.Warning,
+        Message = "Agent {Agent} could not read its profile again ({ErrorType}); the one held stays")]
+    internal static partial void ProfileRereadFailed(ILogger logger, string agent, string errorType);
 
     [LoggerMessage(EventId = 2004, Level = LogLevel.Information,
         Message = "The earlier sessions and approvals ({Folders} folders) moved into the user's own folder")]

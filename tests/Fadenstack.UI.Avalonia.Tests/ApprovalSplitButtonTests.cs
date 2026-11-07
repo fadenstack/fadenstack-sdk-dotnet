@@ -30,16 +30,18 @@ public class ApprovalSplitButtonTests
         return (window, card, part, strings);
     }
 
-    private static ApprovalRequest Request(bool chat, bool always) => new()
+    private static readonly TimeSpan[] Times = { TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60) };
+
+    private static ApprovalRequest Request(bool chat, bool always, bool time = false) => new()
     {
         CallId = "call-1", ToolName = "add_comment", ToolClass = ToolClass.Write,
-        CanAllowForSession = chat, CanAllowAlways = always,
+        CanAllowForSession = chat, CanAllowAlways = always, GrantDurations = time ? Times : Array.Empty<TimeSpan>(),
     };
 
     [AvaloniaFact]
     public void The_choices_are_one_split_button_whose_main_part_allows_once_and_whose_drop_down_lists_only_the_offered_ones()
     {
-        var (window, card, part, strings) = Show(Request(chat: true, always: true));
+        var (window, card, part, strings) = Show(Request(chat: true, always: true, time: true));
 
         var split = card.GetVisualDescendants().OfType<SplitButton>().Single();
         Assert.True(split.IsEffectivelyVisible);
@@ -49,10 +51,30 @@ public class ApprovalSplitButtonTests
         flyout.ShowAt(split); // the items take their bindings when the menu is shown
         Dispatcher.UIThread.RunJobs();
         var items = flyout.Items.OfType<MenuItem>().ToList();
-        Assert.Equal(new[] { strings.AllowForChat, strings.AllowAlways }, items.Select(i => i.Header));
-        Assert.Equal(new object[] { part.AllowForSessionCommand, part.AllowAlwaysCommand }, items.Select(i => (object)i.Command!).ToArray());
+        Assert.Equal(new[] { strings.AllowForChat, strings.AllowAlways, strings.AllowFor }, items.Select(i => i.Header));
+        Assert.All(items, i => Assert.True(i.IsVisible));
+        Assert.Equal(new object?[] { part.AllowForSessionCommand, part.AllowAlwaysCommand, null }, items.Select(i => (object?)i.Command).ToArray());
         Assert.DoesNotContain(card.GetVisualDescendants().OfType<Button>().Where(b => b.GetVisualAncestors().OfType<SplitButton>().Count() == 0),
             b => b.Content as string == strings.Allow && b.IsEffectivelyVisible); // no second "Allow"
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Allow_for_is_a_sub_menu_of_the_cards_times_each_answering_with_its_own()
+    {
+        var (window, card, part, strings) = Show(Request(chat: true, always: true, time: true));
+
+        var split = card.GetVisualDescendants().OfType<SplitButton>().Single();
+        split.Flyout!.ShowAt(split);
+        Dispatcher.UIThread.RunJobs();
+        var allowFor = ((MenuFlyout)split.Flyout!).Items.OfType<MenuItem>().Single(i => Equals(i.Header, strings.AllowFor));
+        allowFor.Open();
+        Dispatcher.UIThread.RunJobs();
+        var times = Enumerable.Range(0, Times.Length).Select(i => Assert.IsType<MenuItem>(allowFor.ContainerFromIndex(i))).ToList();
+        Assert.Equal(new[] { "15 min", "30 min", "1 h" }, times.Select(t => t.Header));
+        Assert.All(times, t => Assert.Same(part.AllowForTimeCommand, t.Command));
+        Assert.Equal(part.Durations, times.Select(t => Assert.IsType<DurationOption>(t.CommandParameter)));
+        Assert.All(times, t => Assert.True(t.Command!.CanExecute(t.CommandParameter)));
         window.Close();
     }
 
@@ -65,8 +87,23 @@ public class ApprovalSplitButtonTests
         split.Flyout!.ShowAt(split);
         Dispatcher.UIThread.RunJobs();
         var items = ((MenuFlyout)split.Flyout!).Items.OfType<MenuItem>().ToList();
-        Assert.Equal(new[] { true, false }, items.Select(i => i.IsVisible));
+        Assert.Equal(new[] { true, false, false }, items.Select(i => i.IsVisible));
         Assert.False(part.AllowAlwaysCommand.CanExecute(null));
+        Assert.False(part.CanAllowForTime);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void A_time_alone_makes_the_split_button()
+    {
+        var (window, card, _, strings) = Show(Request(chat: false, always: false, time: true));
+
+        var split = card.GetVisualDescendants().OfType<SplitButton>().Single();
+        Assert.True(split.IsEffectivelyVisible);
+        split.Flyout!.ShowAt(split);
+        Dispatcher.UIThread.RunJobs();
+        var visible = ((MenuFlyout)split.Flyout!).Items.OfType<MenuItem>().Where(i => i.IsVisible).ToList();
+        Assert.Equal(strings.AllowFor, Assert.Single(visible).Header);
         window.Close();
     }
 

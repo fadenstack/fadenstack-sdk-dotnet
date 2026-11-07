@@ -317,12 +317,21 @@ public enum ApprovalState
     Denied,
     Expired,
     ApprovedAlways,
+
+    /// <summary>Allowed for a time the user picked: a grant the server holds.</summary>
+    ApprovedForTime,
+
+    /// <summary>Let through by a grant that was running (no question asked).</summary>
+    ApprovedByGrant,
 }
 
+/// <summary>A duration a card or the marker offers, with its label ("30 min", "1 h").</summary>
+public sealed record DurationOption(TimeSpan Value, string Label);
+
 /// <summary>
-/// "Run delete_page?" with Allow, Allow for this chat, Allow always, and Deny -- answered in place, like Copilot.
-/// "Allow for this chat" and "Allow always" are offered only where the request allows them: never for a destructive
-/// or unclassified tool, nor for a call an admin's rule covers.
+/// "Run delete_page?" with Allow, Allow for this chat, Allow always, Allow for… (a time), and Deny -- answered in place,
+/// like Copilot. "Allow for this chat", "Allow always" and "Allow for…" are offered only where the request allows them:
+/// never for a destructive or unclassified tool, nor for a call an admin's rule covers.
 /// </summary>
 public sealed class ApprovalPart : ResponsePart
 {
@@ -351,13 +360,47 @@ public sealed class ApprovalPart : ResponsePart
         AllowAlwaysCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveAlways(), ApprovalState.ApprovedAlways),
             () => IsPending && CanAllowAlways);
         DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(), ApprovalState.Denied), () => IsPending);
+        AllowForTimeCommand = new RelayCommand<DurationOption>(d =>
+        {
+            if (d is not null)
+            {
+                _allowedFor = d.Value;
+                Decide(ApprovalDecision.ApproveFor(d.Value), ApprovalState.ApprovedForTime);
+            }
+        }, d => IsPending && d is not null && Request.GrantDurations.Contains(d.Value));
+    }
+
+    private TimeSpan? _allowedFor;
+
+    /// <summary>A card rebuilt from the transcript, answered for a time.</summary>
+    internal ApprovalPart(ApprovalRequest request, ApprovalState state, TimeSpan? allowedFor, int previewLength, UiStrings strings)
+        : this(request, state, previewLength, strings) => _allowedFor = allowedFor;
+
+    /// <summary>Whether the card offers "Allow for…": a grant for a time the server holds (<see cref="Durations"/>).</summary>
+    public bool CanAllowForTime => Request.CanAllowForTime;
+
+    /// <summary>The times "Allow for…" offers, within the agent's longest grant.</summary>
+    public IReadOnlyList<DurationOption> Durations => Request.GrantDurations.Select(d => new DurationOption(d, _strings.Period(d))).ToList();
+
+    /// <summary>Allows the call and the tool for the picked time, if the server confirms it (else this call alone).</summary>
+    public IRelayCommand<DurationOption> AllowForTimeCommand { get; }
+
+    /// <summary>The time the card was answered for, once it was.</summary>
+    internal TimeSpan? AllowedFor
+    {
+        get => _allowedFor;
+        set
+        {
+            _allowedFor = value;
+            OnPropertyChanged(nameof(StateText));
+        }
     }
 
     /// <summary>Whether the card offers "Allow for this chat".</summary>
     public bool CanAllowForSession => Request.CanAllowForSession;
 
-    /// <summary>Whether the card offers any choice beyond "Allow" (the drop-down of the split button).</summary>
-    public bool HasAllowChoices => CanAllowForSession || CanAllowAlways;
+    /// <summary>Whether the card offers any choice beyond "Allow" (the drop-down of the split button, with "Allow for…" in it).</summary>
+    public bool HasAllowChoices => CanAllowForSession || CanAllowAlways || CanAllowForTime;
 
     /// <summary>Whether the card offers "Allow always".</summary>
     public bool CanAllowAlways => Request.CanAllowAlways;
@@ -423,6 +466,7 @@ public sealed class ApprovalPart : ResponsePart
                 AllowCommand.NotifyCanExecuteChanged();
                 AllowForSessionCommand.NotifyCanExecuteChanged();
                 AllowAlwaysCommand.NotifyCanExecuteChanged();
+                AllowForTimeCommand.NotifyCanExecuteChanged();
                 DenyCommand.NotifyCanExecuteChanged();
             }
         }
@@ -435,6 +479,8 @@ public sealed class ApprovalPart : ResponsePart
         ApprovalState.Approved => _strings.Allowed,
         ApprovalState.ApprovedForSession => _strings.AllowedForChat,
         ApprovalState.ApprovedAlways => _strings.AllowedAlways,
+        ApprovalState.ApprovedForTime => _allowedFor is { } d ? _strings.AllowedFor(_strings.Period(d)) : _strings.Allowed,
+        ApprovalState.ApprovedByGrant => _strings.AllowedByGrant,
         ApprovalState.Denied => _strings.Denied,
         ApprovalState.Expired => _strings.NoAnswer,
         _ => "",

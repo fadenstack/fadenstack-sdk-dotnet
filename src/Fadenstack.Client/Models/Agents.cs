@@ -36,6 +36,13 @@ public sealed record AgentProfile
     public List<string>? ServerTools { get; init; }
     public LocalMcpSettings LocalMcp { get; init; } = new();
     public ToolModeSettings ToolModes { get; init; } = new();
+
+    /// <summary>
+    /// What the agent's approval card may offer: its standing approvals, the longest grant, the classes a grant may
+    /// cover. Null from a server without grants (no <c>approval_scopes.grant</c> in <see cref="Features"/>).
+    /// </summary>
+    public ApprovalSettings? Approvals { get; init; }
+
     public Dictionary<string, JsonElement>? Ui { get; init; }
     public Dictionary<string, JsonElement>? Extensions { get; init; }
 
@@ -171,6 +178,34 @@ public sealed record ToolContractEntry
     public string? SchemaSha256 { get; init; }
 
     public string? Approval { get; init; }
+
+    /// <summary>
+    /// The JSON pointer (RFC 6901, e.g. <c>/path</c>) to the argument that names where a call acts; with
+    /// <see cref="TargetType"/>. A grant for a stretch of work covers a tool's calls only in the places it names.
+    /// </summary>
+    public string? TargetArgument { get; init; }
+
+    /// <summary><c>document</c>, <c>folder</c>, <c>site</c>, <c>app</c> or <c>desk</c>: what kind of place it names.</summary>
+    public string? TargetType { get; init; }
+}
+
+/// <summary>What the agent's approval card may offer (the profile's <c>approvals</c>).</summary>
+public sealed record ApprovalSettings
+{
+    /// <summary>
+    /// The standing approvals the agent allows -- <c>chat</c>, <c>time</c>, <c>grant</c>, <c>always</c> -- or null:
+    /// any of them.
+    /// </summary>
+    public List<string>? Standing { get; init; }
+
+    /// <summary>The longest grant the agent allows, in minutes.</summary>
+    public int LongestGrantMinutes { get; init; } = 120;
+
+    /// <summary>The classes a grant may cover: <c>read</c>, <c>write</c>, or both.</summary>
+    public List<string> GrantClasses { get; init; } = new() { "read", "write" };
+
+    /// <summary>Whether the agent allows the standing approval <paramref name="kind"/> (<c>chat</c>, <c>time</c>...).</summary>
+    public bool Allows(string kind) => Standing is null || Standing.Contains(kind);
 }
 
 public sealed record LocalMcpSettings
@@ -184,11 +219,17 @@ public sealed record LocalMcpSettings
 
 public sealed record ToolModeSettings
 {
-    /// <summary>What a session starts in: <c>ask</c>.</summary>
+    /// <summary>What a session starts in: the agent's default level (<c>ask</c> unless its author set another).</summary>
     public string Default { get; init; } = "ask";
 
-    /// <summary>The most this user may pick for this agent, if the server sets a limit.</summary>
+    /// <summary>
+    /// The most this user may pick for this agent, if the server sets a limit: the narrowest of the agent's highest level
+    /// and the organisation's ceilings.
+    /// </summary>
     public string? Ceiling { get; init; }
+
+    /// <summary>The agent's highest level, as its author set it (<c>auto</c> unless set); null from an older server.</summary>
+    public string? Max { get; init; }
 
     public bool OpenWorldEnforced { get; init; }
 }

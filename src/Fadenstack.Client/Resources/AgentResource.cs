@@ -122,6 +122,59 @@ public sealed class AgentResource
 
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
-        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },
+        AnswerApprovalAsync(approvalId, approved, null, cancellationToken);
+
+    /// <summary>
+    /// The same, saying what an approval covers: <c>once</c> (this call), <c>chat</c> or <c>always</c>. A destructive or
+    /// unclassified call, or one an administrator's rule asks about, takes <c>once</c> only: the gateway refuses another
+    /// scope with HTTP 409, and the call goes on waiting. A server may also refuse an approval that names no scope.
+    /// </summary>
+    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved, scope },
             cancellationToken);
+
+    /// <summary>
+    /// Asks the server for a grant the person allowed on this device: what it answers is what holds, perhaps less than
+    /// asked (<see cref="AgentGrant.Narrowed"/>). A refusal is a <see cref="FadenstackApiException"/> (403
+    /// <c>grant_not_offered</c> or <c>grant_needs_device</c>, 422 for a request it cannot grant). Needs the server's
+    /// <c>approval_scopes.grant</c>; a grant for a stretch of work needs the conversation's id on the client.
+    /// </summary>
+    public Task<AgentGrant> CreateGrantAsync(GrantRequest request, CancellationToken cancellationToken = default) =>
+        CreateGrantAsync(request, null, cancellationToken);
+
+    /// <summary>
+    /// The same, for the conversation <paramref name="conversationId"/> (sent as <c>X-Faden-Conversation-Id</c>, as the
+    /// chat's requests are): a stretch of work belongs to one, a grant for a time only with
+    /// <see cref="GrantRequest.Conversation"/>.
+    /// </summary>
+    public Task<AgentGrant> CreateGrantAsync(GrantRequest request, string? conversationId, CancellationToken cancellationToken = default) =>
+        conversationId is null
+            ? _transport.PostAsync<AgentGrant>(Route("grants"), request, cancellationToken)
+            : _transport.PostAsync<AgentGrant>(Route("grants"), request,
+                new Dictionary<string, string> { ["X-Faden-Conversation-Id"] = conversationId }, cancellationToken);
+
+    /// <summary>
+    /// Extends a running grant of this device in place: more time, more places. The server keeps its whole span within
+    /// the agent's longest grant from when it was made (<see cref="AgentGrant.Narrowed"/>: <c>minutes</c> when it cut
+    /// the time); past that it refuses with 422 <c>grant_at_longest</c>, and a new grant needs the full card.
+    /// </summary>
+    public Task<AgentGrant> ExtendGrantAsync(string grantId, GrantExtension extension, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}/extend"), extension, cancellationToken);
+
+    /// <summary>This device's live grants for the agent: active or paused, not expired, not spent.</summary>
+    public Task<GrantList> ListGrantsAsync(CancellationToken cancellationToken = default) =>
+        _transport.GetAsync<GrantList>(Route("grants"), cancellationToken);
+
+    /// <summary>Ends one of the person's grants for this agent, from the next call on; it answers with the grant.</summary>
+    public Task<AgentGrant> RevokeGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
+        _transport.SendJsonAsync<AgentGrant>(System.Net.Http.HttpMethod.Delete, Route($"grants/{Uri.EscapeDataString(grantId)}"),
+            null, cancellationToken);
+
+    /// <summary>Pauses a grant of this device (its screen locked, the person away); its time runs on.</summary>
+    public Task<AgentGrant> PauseGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}/pause"), null, cancellationToken);
+
+    /// <summary>Resumes a paused grant of this device, unless it ended meanwhile (then 404).</summary>
+    public Task<AgentGrant> ResumeGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}/resume"), null, cancellationToken);
 }
