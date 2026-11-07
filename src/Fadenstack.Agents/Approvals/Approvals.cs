@@ -85,8 +85,10 @@ public enum PermissionMode
     Ask = 0,
 
     /// <summary>
-    /// Calls the tool mode asks about are approved without asking, destructive and unclassified ones too; an admin's
-    /// "Ask first" rule still asks. For development and trusted automation.
+    /// Calls of the app's own tools that the tool mode asks about are approved without asking, destructive and
+    /// unclassified ones too, where the server allows it for the agent; an admin's "Ask first" rule still asks, and
+    /// the gateway's own tools always ask. No Fadenstack server allows it yet, so for now every call still asks.
+    /// For development and trusted automation.
     /// </summary>
     Bypass,
 }

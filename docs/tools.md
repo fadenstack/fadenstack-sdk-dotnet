@@ -196,13 +196,15 @@ The stream reports both sides: `ApprovalRequested` just before your handler is c
 For a call that needs approval, the first of these that applies decides:
 
 1. An administrator's "Ask first" rule covers the call: the user is asked, and may allow this call only.
-2. The agent runs in bypass mode: the call runs without asking.
+2. The agent runs in bypass mode, the call is of the app's own tool, and the server allows bypass for the agent: the call runs without asking. No Fadenstack server allows it yet (see [Bypass mode](#bypass-mode)).
 3. The tool is `Destructive` or `Unknown`: the user is asked, and may allow this call only.
 4. The user allowed the tool always, with the class it has now: the call runs without asking.
 5. The user allowed the tool for this chat: the call runs without asking.
 6. The user is asked, and may allow this call, allow for this chat, allow always, or deny.
 
 A tool the mode hides is refused before any of this, also in bypass mode.
+
+For a tool the gateway runs, the gateway waits while your app asks, and the agent answers it with what the approval covers: `once`, `chat` or `always`. The gateway takes `once` only for a `Destructive` or `Unknown` tool, or one an administrator's rule asks about, which is what the agent sends for those. Bypass mode never answers the gateway: only the server can skip its own question.
 
 ### Rules from the server
 
@@ -228,13 +230,13 @@ session.ResetApprovals();                       // what the user allowed for thi
 
 ### Bypass mode
 
-For development and trusted automation, the app can approve every call the agent would ask about:
+For development and trusted automation, the app can ask to approve the calls of its own tools that the agent would ask about:
 
 ```csharp
 builder.UsePermissionMode(PermissionMode.Bypass);
 ```
 
-In bypass mode, calls that would ask run without asking, destructive and unclassified ones too. An administrator's "Ask first" rule still asks, and the tool mode still hides what it hides. It is a setting in the app's code, never a choice for the user. The agent writes a warning to `System.Diagnostics.Trace` once when it starts in bypass mode, and the transcript and the server's record say `bypass` for every call it let through. `agent.PermissionMode` tells which mode the agent runs in; the default is `PermissionMode.Ask`.
+Bypass mode holds only where the server allows it for the agent, and no Fadenstack server allows it yet: until one does, every call that would ask still asks. Where it holds, calls of the app's own tools that would ask run without asking, destructive and unclassified ones too. It never covers the gateway's own tools, an administrator's "Ask first" rule still asks, and the tool mode still hides what it hides. It is a setting in the app's code, never a choice for the user. The agent writes a warning to `System.Diagnostics.Trace` once when it starts in bypass mode, and the transcript and the server's record say `bypass` for every call it let through. `agent.PermissionMode` tells which mode the agent runs in; the default is `PermissionMode.Ask`.
 
 ### What is recorded
 

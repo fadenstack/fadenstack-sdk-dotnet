@@ -115,9 +115,11 @@ public sealed class AgentBuilder
 
     /// <summary>
     /// <see cref="PermissionMode.Ask"/> (the default): calls the tool mode asks about wait for the user.
-    /// <see cref="PermissionMode.Bypass"/>: they are approved without asking, destructive ones too -- for development
-    /// and trusted automation, never a user's choice. An admin's "Ask first" rule still asks, and the transcript and
-    /// the server's record say <c>bypass</c> for each call it let through. The agent warns once when it starts in bypass.
+    /// <see cref="PermissionMode.Bypass"/>: calls of the app's own tools are approved without asking, destructive ones
+    /// too, where the server allows it for the agent -- for development and trusted automation, never a user's choice.
+    /// No Fadenstack server allows it yet, so every call still asks. An admin's "Ask first" rule always asks, the
+    /// gateway's own tools always ask, and the transcript and the server's record say <c>bypass</c> for each call it let
+    /// through. The agent warns once when it starts in bypass.
     /// </summary>
     public AgentBuilder UsePermissionMode(PermissionMode mode)
     {

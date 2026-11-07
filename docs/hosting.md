@@ -71,4 +71,4 @@ builder.Services.AddFadenstackAgent((agent, services) => agent
     .UseAgent("my-assistant"));
 ```
 
-For an application without a user at the keyboard, also register an approval handler that fits your case, or keep the default, which declines every call that needs approval. For trusted automation, `UsePermissionMode(PermissionMode.Bypass)` approves those calls instead, destructive ones too; an administrator's "Ask first" rule still goes to the handler. See [Host tools](tools.md#bypass-mode).
+For an application without a user at the keyboard, also register an approval handler that fits your case, or keep the default, which declines every call that needs approval. `UsePermissionMode(PermissionMode.Bypass)` is meant to approve calls of the app's own tools instead, where the server allows it for the agent; no Fadenstack server allows it yet, so for now those calls still go to the handler. See [Host tools](tools.md#bypass-mode).

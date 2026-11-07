@@ -259,8 +259,17 @@ public sealed class AgentSession
     /// </summary>
     private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
 
-    /// <summary>How a call that needed approval was settled; the user's reason when they declined.</summary>
-    private sealed record Settled(bool Approved, bool TimedOut, string? Reason);
+    /// <summary>
+    /// How a call that needed approval was settled; the user's reason when they declined, and what let an approved
+    /// call through (<see cref="ApprovalScopes"/>).
+    /// </summary>
+    private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null);
+
+    /// <summary>
+    /// Whether the server lets this agent's app approve its own tools' calls in bypass mode. No Fadenstack server
+    /// says so yet, so bypass mode never approves anything; when the profile carries the tenant's word, it is read here.
+    /// </summary>
+    private static bool BypassAllowedByServer => false;
 
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
@@ -572,7 +581,10 @@ public sealed class AgentSession
             }
         }
 
-        /// <summary>A gateway tool held for the user: ask, and answer the gateway while it waits.</summary>
+        /// <summary>
+        /// A gateway tool held for the user: ask, and answer the gateway while it waits, saying what the approval covers.
+        /// Bypass mode never answers here: the gateway runs the tool, and only the server may skip its question.
+        /// </summary>
         private async Task AnswerGatewayApprovalAsync(JsonElement value, CancellationToken cancellationToken)
         {
             var approvalId = ChatWire.Str(value, "approvalId")!;
@@ -586,12 +598,12 @@ public sealed class AgentSession
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
-            var settled = await ApproveAsync(request, Rule(value), timeout, cancellationToken).ConfigureAwait(false);
+            var settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
             if (settled.TimedOut)
             {
                 return; // the gateway expires it on its own
             }
-            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, cancellationToken).ConfigureAwait(false);
+            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, settled.Scope, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
@@ -707,7 +719,7 @@ public sealed class AgentSession
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = tool.OpenWorld == true,
-                }, rule, null, cancellationToken,
+                }, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
                 if (!settled.Approved)
                 {
@@ -822,18 +834,20 @@ public sealed class AgentSession
 
         /// <summary>
         /// Settles a call that needs approval, first that applies: an admin's rule asks (once only, even in bypass);
-        /// bypass mode approves; a destructive or unclassified tool asks (once only); what the user allowed always,
-        /// then what they allowed for this chat, approves; else the user is asked, and may allow once, for this chat or
-        /// always. Every outcome goes in the transcript and the server's record, with what let the call through.
-        /// <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
+        /// bypass mode approves, for the app's own tools and only where the server allows it (<see cref="BypassAllowedByServer"/>),
+        /// never a gateway wait (<paramref name="gatewayWait"/>); a destructive or unclassified tool asks (once only); what
+        /// the user allowed always, then what they allowed for this chat, approves; else the user is asked, and may allow
+        /// once, for this chat or always. Every outcome goes in the transcript and the server's record, with what let the
+        /// call through. <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
         /// </summary>
-        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken,
-            Func<Task<string?>>? target = null)
+        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, bool gatewayWait, TimeSpan? timeout,
+            CancellationToken cancellationToken, Func<Task<string?>>? target = null)
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
+            var bypass = Agent.PermissionMode == PermissionMode.Bypass && !gatewayWait && BypassAllowedByServer;
             var standing = rule ? null
-                : Agent.PermissionMode == PermissionMode.Bypass ? ApprovalScopes.Bypass
+                : bypass ? ApprovalScopes.Bypass
                 : !open ? null
                 : await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
                 : _session.ApprovedForChat(name) ? ApprovalScopes.Chat
@@ -841,7 +855,7 @@ public sealed class AgentSession
             if (standing is not null)
             {
                 await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
-                return new Settled(true, false, null);
+                return new Settled(true, false, null, standing);
             }
             var described = target is null ? null : await target().ConfigureAwait(false);
             request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule, Target = described };
@@ -881,7 +895,7 @@ public sealed class AgentSession
                 : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
                 : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
                 : decision));
-            return new Settled(scope is not null, decision is null, decision?.Reason);
+            return new Settled(scope is not null, decision is null, decision?.Reason, scope);
         }
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>

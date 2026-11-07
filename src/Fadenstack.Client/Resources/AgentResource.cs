@@ -105,6 +105,14 @@ public sealed class AgentResource
 
     /// <summary>Approves or declines a gateway tool call waiting for the user (<c>faden.approval_required</c>).</summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, CancellationToken cancellationToken = default) =>
-        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved },
+        AnswerApprovalAsync(approvalId, approved, null, cancellationToken);
+
+    /// <summary>
+    /// The same, saying what an approval covers: <c>once</c> (this call), <c>chat</c> or <c>always</c>. A destructive or
+    /// unclassified call, or one an administrator's rule asks about, takes <c>once</c> only: the gateway refuses another
+    /// scope with HTTP 409, and the call goes on waiting. A server may also refuse an approval that names no scope.
+    /// </summary>
+    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved, scope },
             cancellationToken);
 }

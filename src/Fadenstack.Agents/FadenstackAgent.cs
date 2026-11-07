@@ -112,8 +112,8 @@ public sealed class FadenstackAgent : IDisposable
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
             {
                 _warned = true;
-                Trace.TraceWarning($"The agent '{Slug}' runs in bypass mode: tool calls that would ask are approved without asking, " +
-                    "destructive ones too; an admin's \"Ask first\" rule still asks. Use it only for development and trusted automation.");
+                Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, which this server does not allow: every tool call " +
+                    "that would ask still asks. Bypass mode never answers the gateway's own tools.");
             }
             if (_settings.Report)
             {
