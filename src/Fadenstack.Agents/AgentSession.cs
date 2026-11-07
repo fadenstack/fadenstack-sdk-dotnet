@@ -460,6 +460,10 @@ public sealed class AgentSession
         /// <summary>One model call; returns the calls of the agent's own tools to run.</summary>
         private async Task<List<FunctionCallContent>> RequestAsync(CancellationToken cancellationToken)
         {
+            // What the gateway said about calls holds for this round's calls only: a model may give a later round's
+            // call an id it used before, and an earlier "a grant covers it" must never let that one run unasked.
+            _marks.Clear();
+            _covered.Clear();
             var options = new ChatOptions { Tools = Agent.Offer(_mode) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);

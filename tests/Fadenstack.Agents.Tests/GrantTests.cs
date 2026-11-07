@@ -134,6 +134,28 @@ public class GrantTests
         Assert.Equal(("grant", id), (Str(Decided(gateway).Single(), "scope"), Str(Decided(gateway).Single(), "grant_id")));
     }
 
+    [Fact]
+    public async Task The_gateways_word_on_a_call_holds_for_its_round_only_a_reused_id_later_asks()
+    {
+        // The gateway's words are kept per round (a model may reuse "call-1" in the next round): a grant the gateway
+        // counted for the first call never lets the later one through.
+        var gateway = new Gateway();
+        var grants = gateway.UseGrants();
+        var id = grants.Hold("time", new { tools = new[] { "add_comment" } });
+        CoveredCall(gateway, "call-1", "add_comment", Comment, id).Calls(("call-1", "add_comment", Comment)).Says("Done.");
+        var asked = 0;
+        var tools = new PageTools();
+        using var agent = gateway.Builder().AddTools(tools)
+            .UseApprovals((_, _) => { asked++; return Task.FromResult(ApprovalDecision.Deny()); }).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+
+        await session.SendAsync("Comment twice.");
+
+        Assert.Equal(1, asked);
+        Assert.Single(tools.Ran);
+        Assert.Equal(new[] { "grant", null }, Decisions(session).Select(d => Str(d, "scope")));
+    }
+
     [Theory]
     [InlineData("revoked", "add_comment")] // ended elsewhere: the copy, read again, does not hold it
     [InlineData("paused", "add_comment")]
