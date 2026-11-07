@@ -61,6 +61,56 @@ public class ApprovalTests
     }
 
     [Fact]
+    public async Task A_contracts_always_asks_every_time_whatever_the_user_allowed_before()
+    {
+        // 39 G2: approval "always" on a write tool did not stop an "always" approval the user had kept.
+        var gateway = new Gateway(contract: """[{"name":"add_comment","risk":"write","approval":"always"}]""")
+            .Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Commented.");
+        var store = new MemoryApprovalStore();
+        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow));
+        var tools = new PageTools();
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder(approvals: store).AddTools(tools)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.ApproveAlways()); }).Build();
+
+        await (await agent.StartSessionAsync(ToolMode.Auto)).SendAsync("Comment.");
+
+        var request = Assert.Single(requests);
+        Assert.Equal((true, false, false), (request.RequiredByRule, request.CanAllowForSession, request.CanAllowAlways));
+        Assert.Contains("every time", request.Reason);
+        Assert.Single(tools.Ran);
+        Assert.Equal("once", Str(Assert.Single(Decided(gateway)), "scope"));
+    }
+
+    [Theory]
+    [InlineData("add_comment", "write", "never", ToolMode.Ask, false, 0)] // the author pre-approved it
+    [InlineData("delete_page", "destructive", "never", ToolMode.Ask, false, 1)] // never for a destructive tool
+    [InlineData("read_page", "read", "ask", ToolMode.Auto, false, 1)] // asks where the mode would run it
+    [InlineData("add_comment", "write", "ask", ToolMode.Auto, true, 0)] // but an "always" the user kept answers it
+    public async Task The_contracts_never_and_ask_go_on_top_of_the_tool_mode(
+        string tool, string risk, string approval, ToolMode mode, bool keptAlways, int asked)
+    {
+        var arguments = tool == "add_comment" ? """{"page":1,"text":"a"}""" : """{"page":1}""";
+        var gateway = new Gateway(contract: $$"""[{"name":"{{tool}}","risk":"{{risk}}","approval":"{{approval}}"}]""")
+            .Calls(("call-1", tool, arguments)).Says("Done.");
+        var store = new MemoryApprovalStore();
+        if (keptAlways)
+        {
+            await store.AddAsync(Gateway.Slug, new StoredApproval(tool, ToolModes.ParseClass(risk), DateTimeOffset.UtcNow));
+        }
+        var tools = new PageTools();
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder(approvals: store).AddTools(tools)
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+
+        await (await agent.StartSessionAsync(mode)).SendAsync("Go.");
+
+        Assert.Equal(asked, requests.Count);
+        Assert.Single(tools.Ran);
+        Assert.All(requests, r => Assert.False(r.RequiredByRule));
+    }
+
+    [Fact]
     public async Task A_request_for_a_tool_that_reaches_outside_says_so()
     {
         var gateway = new Gateway(contract: WebTools.Contract)

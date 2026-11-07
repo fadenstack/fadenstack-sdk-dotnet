@@ -29,7 +29,10 @@ public sealed record ApprovalRequest
     /// <summary>Whether "Allow always" may be offered: where "Allow for this chat" may.</summary>
     public bool CanAllowAlways { get; init; }
 
-    /// <summary>An admin's "Ask first" rule covers the call: <see cref="Reason"/> is the admin's message. It asks every time.</summary>
+    /// <summary>
+    /// The call asks every time, whatever the user allowed before: an admin's "Ask first" rule covers it (<see cref="Reason"/>
+    /// is the admin's message), or the agent's contract says <c>always</c> for the tool.
+    /// </summary>
     public bool RequiredByRule { get; init; }
 
     /// <summary>

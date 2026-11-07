@@ -193,6 +193,8 @@ The stream reports both sides: `ApprovalRequested` just before your handler is c
 
 ### What decides a call
 
+The agent's contract on the server may set each tool's approval (`AgentTool.Approval`), on top of the tool mode: `always` asks every time, like an administrator's rule (1 below); `ask` makes the call need approval even where the mode would run it; `never` runs a `Read` or `Write` tool the mode would ask about, unless a rule asks. None of them shows a tool the mode hides.
+
 For a call that needs approval, the first of these that applies decides:
 
 1. An administrator's "Ask first" rule covers the call: the user is asked, and may allow this call only.

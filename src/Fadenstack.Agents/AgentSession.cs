@@ -690,8 +690,11 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// Asks if the mode or an admin's rule says so, then runs the tool; also returns how long the asking took.
-        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's.
+        /// Asks if the mode, an admin's rule or the agent's contract says so, then runs the tool; also returns how long the
+        /// asking took. <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's. The contract's
+        /// <see cref="AgentTool.Approval"/> goes on top of the mode, as the gateway puts it: <c>always</c> asks every time,
+        /// like a rule; <c>ask</c> asks where the mode would run; <c>never</c> runs a read or write tool the mode would ask
+        /// about, unless a rule asks. None of them shows a tool the mode hides.
         /// </summary>
         private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool,
             ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
@@ -705,7 +708,16 @@ public sealed class AgentSession
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
                 return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
             }
-            var rule = mark is { Rule: true };
+            var always = tool.Approval == "always";
+            var rule = mark is { Rule: true } || always;
+            if (tool.Approval == "ask")
+            {
+                decided = ToolModeDecision.Ask;
+            }
+            else if (tool.Approval == "never" && toolClass is ToolClass.Read or ToolClass.Write)
+            {
+                decided = ToolModeDecision.Run;
+            }
             if (rule || decided == ToolModeDecision.Ask)
             {
                 var settled = await ApproveAsync(new ApprovalRequest
@@ -714,7 +726,9 @@ public sealed class AgentSession
                     ToolName = tool.Name,
                     ToolClass = toolClass,
                     Source = tool.Source,
-                    Reason = rule ? mark!.Message
+                    Reason = mark is { Rule: true } ? mark.Message
+                        : always ? $"This agent asks every time before it uses '{tool.Name}'."
+                        : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
