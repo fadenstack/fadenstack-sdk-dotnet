@@ -84,11 +84,17 @@ public sealed record LocalMcpSettings
 
 public sealed record ToolModeSettings
 {
-    /// <summary>What a session starts in: <c>ask</c>.</summary>
+    /// <summary>What a session starts in: the agent's default level (<c>ask</c> unless its author set another).</summary>
     public string Default { get; init; } = "ask";
 
-    /// <summary>The most this user may pick for this agent, if the server sets a limit.</summary>
+    /// <summary>
+    /// The most this user may pick for this agent, if the server sets a limit: the narrowest of the agent's highest level
+    /// and the organisation's ceilings.
+    /// </summary>
     public string? Ceiling { get; init; }
+
+    /// <summary>The agent's highest level, as its author set it (<c>auto</c> unless set); null from an older server.</summary>
+    public string? Max { get; init; }
 
     public bool OpenWorldEnforced { get; init; }
 }

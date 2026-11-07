@@ -25,7 +25,7 @@ public sealed class AgentBuilder
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private PermissionMode _permissionMode = PermissionMode.Ask;
-    private ToolMode _defaultMode = ToolMode.Ask;
+    private ToolMode? _defaultMode;
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
     private bool _report = true;
@@ -128,12 +128,12 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
-    /// The mode new sessions start in. It can only be stricter than Ask: every session starts asking unless the
-    /// user widens that session.
+    /// The highest mode new sessions start in. Sessions start in the agent's default level from the server (Ask unless its
+    /// author set another); this can only narrow it, never widen it -- for an app that never starts in Auto, say.
     /// </summary>
     public AgentBuilder UseDefaultToolMode(ToolMode mode)
     {
-        _defaultMode = ToolModes.Narrowest(ToolMode.Ask, mode);
+        _defaultMode = mode;
         return this;
     }
 
@@ -324,7 +324,8 @@ internal sealed class AgentSettings
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public PermissionMode PermissionMode { get; init; }
-    public ToolMode DefaultMode { get; init; } = ToolMode.Ask;
+    /// <summary>The app's cap on the server's default level; null: none.</summary>
+    public ToolMode? DefaultMode { get; init; }
     public int MaxRounds { get; init; }
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }

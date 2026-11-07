@@ -17,6 +17,7 @@ public sealed class FadenstackAgent : IDisposable
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
+    private DateTimeOffset _profileRead;
     private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
     private bool _warned;
 
@@ -41,13 +42,31 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>The tools the agent runs, with their effective classes, once started.</summary>
     public IReadOnlyList<AgentTool> Tools => _tools;
 
-    /// <summary>The most any session may use: the profile's ceiling, if the server sets one, or Auto.</summary>
-    public ToolMode Ceiling => ToolModes.ParseMode(_profile?.ToolModes.Ceiling) ?? ToolMode.Auto;
+    /// <summary>
+    /// The most any session may use: the narrowest of the profile's ceiling and the agent's highest level, where the server
+    /// sets them, else Auto. A level this SDK does not know narrows to read-only: it cannot be taken for none (39 F8).
+    /// </summary>
+    public ToolMode Ceiling => ToolModes.Narrowest(Level(_profile?.ToolModes.Ceiling), Level(_profile?.ToolModes.Max));
 
     /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
     public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;
 
-    public ToolMode DefaultToolMode => ToolModes.Narrowest(_settings.DefaultMode, ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask);
+    /// <summary>
+    /// The mode new sessions start in: the agent's default level from the server (Ask from an older one, or one this SDK
+    /// does not know), no higher than the app's own default (<see cref="AgentBuilder.UseDefaultToolMode"/>).
+    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>.
+    /// </summary>
+    public ToolMode DefaultToolMode => ToolModes.Narrowest(
+        ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask, _settings.DefaultMode);
+
+    /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
+    internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
+
+    /// <summary>The time, for the profile's age; tests set it.</summary>
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+
+    private static ToolMode Level(string? level) =>
+        string.IsNullOrWhiteSpace(level) ? ToolMode.Auto : ToolModes.ParseMode(level) ?? ToolMode.ReadOnly;
 
     /// <summary><see cref="PermissionMode.Ask"/>, or <see cref="PermissionMode.Bypass"/> when the app set it.</summary>
     public PermissionMode PermissionMode => _settings.PermissionMode;
@@ -75,26 +94,8 @@ public sealed class FadenstackAgent : IDisposable
             {
                 return;
             }
-            var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
-            var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
-            if (missing.Count > 0)
-            {
-                throw new FadenstackException(
-                    $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
-            }
-            var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
-            var tools = new List<AgentTool>();
-            foreach (var tool in _settings.Tools)
-            {
-                ToolContractEntry? entry = null;
-                if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
-                {
-                    continue; // the gateway refuses it anyway; not offering it keeps the model from trying
-                }
-                var risk = ToolModes.ParseClass(entry?.Risk);
-                tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Approval = entry?.Approval });
-            }
+            var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            var tools = HostTools(profile);
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
             foreach (var source in _settings.Sources)
             {
@@ -119,6 +120,74 @@ public sealed class FadenstackAgent : IDisposable
             {
                 _ = ReportManifestAsync();
             }
+        }
+        finally
+        {
+            _starting.Release();
+        }
+    }
+
+    private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
+    {
+        var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
+        if (missing.Count > 0)
+        {
+            throw new FadenstackException(
+                $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
+        }
+        _profileRead = Clock();
+        return profile;
+    }
+
+    /// <summary>The host tools <paramref name="profile"/>'s contract allows, with its class and approval.</summary>
+    private List<AgentTool> HostTools(AgentProfile profile)
+    {
+        var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
+        var tools = new List<AgentTool>();
+        foreach (var tool in _settings.Tools)
+        {
+            ToolContractEntry? entry = null;
+            if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
+            {
+                continue; // the gateway refuses it anyway; not offering it keeps the model from trying
+            }
+            var risk = ToolModes.ParseClass(entry?.Risk);
+            tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
+                tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Approval = entry?.Approval });
+        }
+        return tools;
+    }
+
+    /// <summary>
+    /// Reads the profile again when a session starts or opens and it is older than <see cref="ProfileMaxAge"/> (39 F8): a
+    /// ceiling an administrator lowered, a highest level, or a tool's class or approval reach the next session without a
+    /// restart. The tools of the agent's sources (local MCP) stay as they were. When the server cannot be reached the
+    /// profile held stays: every model call goes through the server anyway, and a session on this device still opens.
+    /// </summary>
+    private async Task RefreshProfileAsync(CancellationToken cancellationToken)
+    {
+        await _starting.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_profile is null || Clock() - _profileRead < ProfileMaxAge)
+            {
+                return;
+            }
+            AgentProfile profile;
+            try
+            {
+                profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Trace.TraceWarning($"The profile of the agent '{Slug}' could not be read again ({e.GetType().Name}); the one held stays.");
+                return;
+            }
+            var hosts = HostTools(profile);
+            var own = new HashSet<string>(_settings.Tools.Select(t => t.Name));
+            _tools = hosts.Concat(_tools.Where(t => !own.Contains(t.Name))).ToList();
+            _profile = profile;
         }
         finally
         {
@@ -193,10 +262,11 @@ public sealed class FadenstackAgent : IDisposable
         }
     }
 
-    /// <summary>A new session, in the agent's default mode (Ask) unless <paramref name="toolMode"/> says otherwise.</summary>
+    /// <summary>A new session, in the agent's default mode (<see cref="DefaultToolMode"/>) unless <paramref name="toolMode"/> says otherwise.</summary>
     public async Task<AgentSession> StartSessionAsync(ToolMode? toolMode = null, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var session = new AgentSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
         await session.WriteStartAsync(cancellationToken).ConfigureAwait(false);
         return session;
@@ -206,6 +276,7 @@ public sealed class FadenstackAgent : IDisposable
     public async Task<AgentSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var entries = await SessionStore.ReadAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
         if (entries.Count == 0)
         {
