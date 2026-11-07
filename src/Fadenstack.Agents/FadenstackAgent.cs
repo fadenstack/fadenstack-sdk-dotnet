@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Models;
+using Fadenstack.Storage;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
 
@@ -75,9 +76,10 @@ public sealed class FadenstackAgent : IDisposable
 
     internal EventReporter Reporter { get; }
 
-    internal ISessionStore SessionStore => _sessions ??= _settings.Sessions ?? new FileSessionStore();
+    /// <summary>The host's store, or the default one once <see cref="StartAsync"/> knows whose it is.</summary>
+    internal ISessionStore SessionStore => _settings.Sessions ?? _sessions ?? throw new InvalidOperationException("Call StartAsync first.");
 
-    internal IApprovalStore ApprovalStore => _approvalStore ??= _settings.ApprovalStore ?? new FileApprovalStore();
+    internal IApprovalStore ApprovalStore => _settings.ApprovalStore ?? _approvalStore ?? throw new InvalidOperationException("Call StartAsync first.");
 
     /// <summary>
     /// Loads the profile, checks the modules the agent requires, and settles the tools: host tools outside the
@@ -95,6 +97,7 @@ public sealed class FadenstackAgent : IDisposable
                 return;
             }
             var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            UseDefaultStores(profile.Principal);
             var tools = HostTools(profile);
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
             foreach (var source in _settings.Sources)
@@ -138,6 +141,23 @@ public sealed class FadenstackAgent : IDisposable
         }
         _profileRead = Clock();
         return profile;
+    }
+
+    /// <summary>
+    /// The stores the host did not pass: in the signed-in user's own folder (<c>users/&lt;user&gt;/sessions</c>,
+    /// <c>.../approvals</c>) when the profile names the user, so two Fadenstack users -- or one on two servers -- on one OS
+    /// account never share sessions or "Allow always" (39 F10); in the shared folders of an older SDK otherwise. The first
+    /// user also adopts what an older SDK kept (<see cref="UserDataMigration"/>).
+    /// </summary>
+    private void UseDefaultStores(AgentPrincipal? principal)
+    {
+        if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
+        {
+            UserDataMigration.Adopt(principal.UserId);
+        }
+        string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
+        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions")) : null;
+        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
     }
 
     /// <summary>The host tools <paramref name="profile"/>'s contract allows, with its class and approval.</summary>
@@ -285,18 +305,32 @@ public sealed class FadenstackAgent : IDisposable
         return new AgentSession(this, sessionId, entries.ToList(), AgentSession.LastMode(entries) ?? DefaultToolMode);
     }
 
-    public Task<IReadOnlyList<SessionInfo>> ListSessionsAsync(CancellationToken cancellationToken = default) =>
-        SessionStore.ListAsync(Slug, cancellationToken);
+    /// <summary>This device's sessions of the agent: the signed-in user's, so the agent starts first unless the host keeps them.</summary>
+    public async Task<IReadOnlyList<SessionInfo>> ListSessionsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.Sessions, cancellationToken).ConfigureAwait(false);
+        return await SessionStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
+    }
 
-    public Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default) =>
-        SessionStore.DeleteAsync(Slug, sessionId, cancellationToken);
+    public async Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.Sessions, cancellationToken).ConfigureAwait(false);
+        await SessionStore.DeleteAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Forgets what the user allowed always on this device for this agent: every tool, or <paramref name="tool"/> only.
     /// (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
     /// </summary>
-    public Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default) =>
-        ApprovalStore.RemoveAsync(Slug, tool, cancellationToken);
+    public async Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
+        await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Starts the agent unless the host passed <paramref name="store"/>: the default one is the signed-in user's.</summary>
+    private Task StartUnless(object? store, CancellationToken cancellationToken) =>
+        store is null ? StartAsync(cancellationToken) : Task.CompletedTask;
 
     /// <summary>Sends what is left to report.</summary>
     public Task FlushAsync(CancellationToken cancellationToken = default) => Reporter.FlushAsync(cancellationToken);

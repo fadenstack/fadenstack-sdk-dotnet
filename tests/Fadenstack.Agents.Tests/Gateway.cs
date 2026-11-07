@@ -91,6 +91,9 @@ public sealed class Gateway
     /// <summary>The agent's highest level; <c>null</c> as from an older server.</summary>
     public string MaxLevel { get; set; } = "null";
 
+    /// <summary>Who the token is for (<c>principal</c>), as JSON; null as from an older server.</summary>
+    public string? Principal { get; set; }
+
     /// <summary>How often the agent read its profile.</summary>
     public int ProfileReads => Server.Requests.Count(r => r.Path == "/v1/agents/docs-assistant/profile");
 
@@ -208,7 +211,7 @@ public sealed class Gateway
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
                  "required_client_modules":{{modules}},"edition":"community","features":["agents"],
-                 "user":{"language":{{language}} } }
+                 "user":{"language":{{language}} },"principal":{{Principal ?? "null"}} }
                 """;
     }
 

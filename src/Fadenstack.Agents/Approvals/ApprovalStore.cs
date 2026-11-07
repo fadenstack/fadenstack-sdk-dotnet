@@ -72,8 +72,9 @@ public sealed class MemoryApprovalStore : IApprovalStore
 }
 
 /// <summary>
-/// One file per agent under the user's data folder (<c>%LOCALAPPDATA%\Fadenstack\approvals\</c>), encrypted for the
-/// current user like the sessions (DPAPI on Windows); elsewhere the files are readable by their owner only.
+/// One file per agent in the signed-in user's own folder (<c>%LOCALAPPDATA%\Fadenstack\users\&lt;user&gt;\approvals\</c>;
+/// <c>...\Fadenstack\approvals\</c> when the server names no user), encrypted for the current user like the sessions
+/// (DPAPI on Windows); elsewhere the files are readable by their owner only.
 /// </summary>
 public sealed class FileApprovalStore : IApprovalStore
 {

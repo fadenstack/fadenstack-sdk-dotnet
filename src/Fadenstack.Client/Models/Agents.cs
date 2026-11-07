@@ -47,6 +47,57 @@ public sealed record AgentProfile
 
     /// <summary>The signed-in user's own settings, shared by all their clients and the console.</summary>
     public UserSettings User { get; init; } = new();
+
+    /// <summary>
+    /// Who the agent's token is for. Null from an older gateway, or when it names no tenant, user and agent: the user is
+    /// never inferred from the token.
+    /// </summary>
+    [JsonConverter(typeof(AgentPrincipalConverter))]
+    public AgentPrincipal? Principal { get; init; }
+}
+
+/// <summary>The tenant, user and agent a token stands for (<c>principal</c> in the profile), and the device it was issued to.</summary>
+public sealed record AgentPrincipal
+{
+    public string TenantId { get; init; } = "";
+    public string UserId { get; init; } = "";
+    public string AgentId { get; init; } = "";
+    public string? DeviceId { get; init; }
+}
+
+/// <summary>Reads <c>principal</c>: null unless tenant, user and agent are all non-empty strings.</summary>
+internal sealed class AgentPrincipalConverter : JsonConverter<AgentPrincipal?>
+{
+    public override AgentPrincipal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+        string? Text(string name) =>
+            root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } text ? text : null;
+        var (tenant, user, agent) = (Text("tenant_id"), Text("user_id"), Text("agent_id"));
+        return tenant is null || user is null || agent is null
+            ? null
+            : new AgentPrincipal { TenantId = tenant, UserId = user, AgentId = agent, DeviceId = Text("device_id") };
+    }
+
+    public override void Write(Utf8JsonWriter writer, AgentPrincipal? value, JsonSerializerOptions options)
+    {
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
+        writer.WriteStartObject();
+        writer.WriteString("tenant_id", value.TenantId);
+        writer.WriteString("user_id", value.UserId);
+        writer.WriteString("agent_id", value.AgentId);
+        writer.WriteString("device_id", value.DeviceId);
+        writer.WriteEndObject();
+    }
 }
 
 /// <summary>
