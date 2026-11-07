@@ -170,20 +170,22 @@ The request tells you what to show:
 | `CallId` | The call's id. |
 | `CanAllowForSession` | Whether you may offer "Allow for this chat". |
 | `CanAllowAlways` | Whether you may offer "Allow always". |
+| `GrantDurations` | The times you may offer for "Allow for…" (`CanAllowForTime`): a grant the server holds, for a `Read` or `Write` tool, up to the agent's longest grant. Empty where it is not offered. |
 | `RequiredByRule` | An administrator's "Ask first" rule covers the call. `Reason` is the administrator's message. |
 | `OpenWorld` | The tool reaches outside the organisation: what it is given goes to another site. |
 | `Target` | What the call acts on, as the tool's `Describe` says it, one line of at most 300 characters; null when the tool does not say. Show it. |
 
-The decision is one of four:
+The decision is one of five:
 
 | Decision | Effect |
 |---|---|
 | `ApprovalDecision.Approve()` | Runs this call. |
 | `ApprovalDecision.ApproveForSession()` | Runs this call, and the tool runs without asking for the rest of this session. This is kept in memory only: when the session is opened again with `OpenSessionAsync`, the tool asks again. |
 | `ApprovalDecision.ApproveAlways()` | Runs this call, and the tool runs without asking on this device, in this and later sessions, until the approvals are reset. |
+| `ApprovalDecision.ApproveFor(duration)` | Runs this call, and asks the server for a grant: the tool runs without asking on this device for that long (see [Grants](#grants-for-a-time-and-working-alongside)). Only for a duration in `GrantDurations`. If the server does not confirm the grant, this call alone runs and the turn gets a `grant_failed` notice. |
 | `ApprovalDecision.Deny(reason)` | Does not run the call. The model is told the user declined, with your reason if you gave one. |
 
-"For this chat" and "always" are taken only where the request offers them (`CanAllowForSession`, `CanAllowAlways`). Elsewhere `ApproveForSession()` and `ApproveAlways()` approve this call only, so a handler cannot widen what the request allows. They are never offered for a `Destructive` or `Unknown` tool, nor for a call an administrator's rule covers: those ask every time.
+"For this chat", "always" and "for a time" are taken only where the request offers them (`CanAllowForSession`, `CanAllowAlways`, `GrantDurations`). Elsewhere they approve this call only, so a handler cannot widen what the request allows. They are never offered for a `Destructive` or `Unknown` tool, nor for a call an administrator's rule covers: those ask every time. The agent's author may also allow fewer of them: the profile's `approvals.standing` lists which (`chat`, `time`, `grant`, `always`), and the agent offers only those.
 
 Without a handler, every call that needs approval is declined. A declined call makes the turn's outcome `ToolDenied`; the model may still complete its answer.
 
@@ -200,9 +202,10 @@ For a call that needs approval, the first of these that applies decides:
 1. An administrator's "Ask first" rule covers the call: the user is asked, and may allow this call only.
 2. The agent runs in bypass mode, the call is of the app's own tool, and the server allows bypass for the agent: the call runs without asking. No Fadenstack server allows it yet (see [Bypass mode](#bypass-mode)).
 3. The tool is `Destructive` or `Unknown`: the user is asked, and may allow this call only.
-4. The user allowed the tool always, with the class it has now: the call runs without asking.
-5. The user allowed the tool for this chat: the call runs without asking.
-6. The user is asked, and may allow this call, allow for this chat, allow always, or deny.
+4. The gateway says a grant covers the call, and the agent's copy holds that grant, running, for this tool or class: the call runs without asking (see [Grants](#grants-for-a-time-and-working-alongside)).
+5. The user allowed the tool always, with the class it has now: the call runs without asking.
+6. The user allowed the tool for this chat: the call runs without asking.
+7. The user is asked, and may allow this call, allow for this chat, allow always, allow for a time, or deny.
 
 A tool the mode hides is refused before any of this, also in bypass mode.
 
@@ -248,17 +251,74 @@ Every call that needed approval leaves an `approval.decision` entry in the trans
 |---|---|
 | `call_id`, `name`, `source` | The call. |
 | `approved`, `timed_out` | The outcome. |
-| `scope` | What let the call through: `once`, `chat`, `always` or `bypass`. Missing when it was declined. |
+| `scope` | What let the call through: `once`, `chat`, `always`, `bypass` or `grant`. Missing when it was declined. |
+| `grant_id`, `grant_minutes` | With `grant`: the grant, and the time the user picked when they made it with this call. |
 | `asked` | Whether the user was asked. |
 | `rule` | Whether an administrator's rule required approval. |
 | `for_session` | True when the user picked "Allow for this chat" for this call, for older readers. |
 | `wait_ms` | How long the user took; 0 when nobody was asked. |
 
-With event reporting on, the server gets an `approval.decided` event for the same calls: the tool's name, the decision, how long the user took (not sent when nobody was asked), and the `scope`.
+With event reporting on, the server gets an `approval.decided` event for the same calls: the tool's name, the decision, how long the user took (not sent when nobody was asked), the `scope`, and with `grant` the `grant_id`.
 
 ### Approvals for gateway tools
 
 The server's own tools run on the gateway, and a tool rule or the tool mode can make one of them wait for the user. The agent then decides as above, with `Source` set to `gateway` and the class the gateway sends, asks the same handler where it has to, and sends the answer to the gateway, also when an earlier approval lets the call through. The gateway sets the time limit: when the handler does not answer in time, the approval expires, the call is not run, and `ApprovalDecided` reports it declined.
+
+### Grants: for a time, and working alongside
+
+A grant lets the agent run, for a while, what would ask. Unlike "Allow always", the server holds it: the gateway checks
+every call against it, counts it, and ends it when the time is up, when the user or an administrator revokes it, or
+when the agent gets a new version. The device keeps a copy, `agent.Grants`, as the second line: a call runs under a
+grant only when the gateway says the grant covers it and the copy holds that grant, running. A copy that does not know
+the grant reads the server's list once; if it still lacks it, the user is asked. Grants need a server that holds them:
+`agent.Grants.Available` says so (the profile's feature `approval_scopes.grant`).
+
+There are two kinds:
+
+- **For a time:** one tool, chosen on the approval card with `ApprovalDecision.ApproveFor(duration)`.
+- **A stretch of work:** `Read` and `Write` calls in named places, in this chat. The app offers it with the places it
+  knows, and the user may take places out and picks the time:
+
+```csharp
+var grant = await session.OfferWorkAsync(new[]
+{
+    GrantPlace.Document(@"C:\Docs\report.docx"),
+    GrantPlace.Site("https://purchase.example.de"),
+}, reason: "To fill in the order form.");
+```
+
+The card is drawn by your grant handler (`IGrantHandler`); the chat panel's `ApprovalBroker` is one. It gets a
+`GrantOffer` (places, classes, durations, the time to start at, your reason) and returns a `GrantAnswer` (the places
+kept, the time, and the card's text, whose SHA-256 goes to the server as evidence). `OfferWorkAsync` returns the grant
+the server confirmed, or null when the user said "Not now" or the agent does not offer it. A call covers a place only
+when its tool names it: in the agent's contract on the server, `target_argument` points at the argument (a JSON
+pointer such as `/path`) and `target_type` says what it is (`document`, `folder`, `site`, `app` or `desk`).
+
+A grant never covers a `Destructive` or `Unknown` call, a tool the agent's contract marks `always`, or a call an
+administrator's rule asks about: those still ask.
+
+To extend a running grant (more time, another place), show the card again with only the difference:
+
+```csharp
+var longer = await session.OfferExtensionAsync(grant, TimeSpan.FromMinutes(30), new[] { GrantPlace.Document(@"C:\Docs\budget.xlsx") });
+```
+
+The server keeps a grant within the agent's longest grant (two hours unless the agent's author set less), counted from
+when it was made: `Narrowed` contains `minutes` when it cut the time, and past that it refuses (`grant_at_longest`), so
+a new grant needs the full card.
+
+`agent.Grants` also holds what you need for a marker and for Settings:
+
+| Member | Use |
+|---|---|
+| `Live` | The grants that may still cover a call, the one ending first first. |
+| `Remaining(grant)` | Its time left, by the server's clock (`ServerNow`); count down this, not the device's clock. |
+| `RevokeAsync(id)`, `RevokeAllAsync()` | End a grant, or all of them: the marker's Stop. A call already running finishes. |
+| `PauseAsync(id)`, `ResumeAsync(id)` | While the user is away (the screen locked); the time runs on. |
+| `ExtendAsync(id, more, places)` | Extend without a card, where your own UI already asked (the marker's "Another 30 min"). |
+| `Changed` | Raised when the copy changed: made, extended, ended, or a new list from the server at the start of a stream. |
+
+`agent.ListApprovalsAsync()` lists what the user allowed always, for the same Settings list.
 
 ## Where tools run
 

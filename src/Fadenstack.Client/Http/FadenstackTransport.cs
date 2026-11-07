@@ -128,6 +128,27 @@ public sealed class FadenstackTransport : IDisposable
     public Task<T> PostAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Post, url, body, cancellationToken);
 
+    /// <summary>A POST with request headers of its own (e.g. <c>X-Faden-Conversation-Id</c>).</summary>
+    public async Task<T> PostAsync<T>(Uri url, object? body, IReadOnlyDictionary<string, string> headers,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await SendAsync(() =>
+        {
+            var request = JsonRequest(HttpMethod.Post, url, body);
+            foreach (var header in headers)
+            {
+                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+            return request;
+        }, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ErrorReader.ToException(response, text);
+        }
+        return string.IsNullOrWhiteSpace(text) ? default! : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!;
+    }
+
     public Task<T> PutAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Put, url, body, cancellationToken);
 

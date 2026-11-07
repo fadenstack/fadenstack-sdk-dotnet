@@ -400,4 +400,109 @@
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Nicht geschrieben: Es konnte nicht als KI-generiert gekennzeichnet werden</value>
   </data>
+  <data name="AllowFor" xml:space="preserve">
+    <value>Zulassen für …</value>
+  </data>
+  <data name="AllowedFor" xml:space="preserve">
+    <value>Zugelassen für {0}</value>
+  </data>
+  <data name="AllowedByGrant" xml:space="preserve">
+    <value>Durch Ihre längere Freigabe zugelassen</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0} Min.</value>
+  </data>
+  <data name="Duration_Hours" xml:space="preserve">
+    <value>{0} Std.</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0} Std. {1} Min.</value>
+  </data>
+  <data name="GrantTitle" xml:space="preserve">
+    <value>Mit Ihnen zusammenarbeiten?</value>
+  </data>
+  <data name="GrantExtendTitle" xml:space="preserve">
+    <value>Weiter mit Ihnen zusammenarbeiten?</value>
+  </data>
+  <data name="GrantDuration" xml:space="preserve">
+    <value>Wie lange</value>
+  </data>
+  <data name="GrantPlaces" xml:space="preserve">
+    <value>Ich arbeite in:</value>
+  </data>
+  <data name="GrantNewPlaces" xml:space="preserve">
+    <value>Außerdem in:</value>
+  </data>
+  <data name="GrantMoreTime" xml:space="preserve">
+    <value>{0} länger</value>
+  </data>
+  <data name="GrantMay_Read" xml:space="preserve">
+    <value>Ohne Nachfrage darf ich dort lesen.</value>
+  </data>
+  <data name="GrantMay_Write" xml:space="preserve">
+    <value>Ohne Nachfrage darf ich dort schreiben und Dinge ändern.</value>
+  </data>
+  <data name="GrantMay_ReadWrite" xml:space="preserve">
+    <value>Ohne Nachfrage darf ich dort lesen, schreiben und Dinge ändern.</value>
+  </data>
+  <data name="GrantStillAsks" xml:space="preserve">
+    <value>Ich frage weiterhin nach, bevor ich etwas lösche, sende, bezahle oder veröffentliche, und vor allem anderen.</value>
+  </data>
+  <data name="GrantAllow" xml:space="preserve">
+    <value>Zulassen</value>
+  </data>
+  <data name="GrantNotNow" xml:space="preserve">
+    <value>Nicht jetzt</value>
+  </data>
+  <data name="GrantRemovePlace" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="GrantKeepPlace" xml:space="preserve">
+    <value>Wieder hinzufügen</value>
+  </data>
+  <data name="GrantAllowed" xml:space="preserve">
+    <value>Arbeitet mit Ihnen</value>
+  </data>
+  <data name="GrantDeclined" xml:space="preserve">
+    <value>Nicht jetzt</value>
+  </data>
+  <data name="GrantFailed" xml:space="preserve">
+    <value>Nicht zugelassen: Der Server hat es nicht bestätigt</value>
+  </data>
+  <data name="MarkerWorking" xml:space="preserve">
+    <value>Arbeitet mit Ihnen · noch {0}</value>
+  </data>
+  <data name="MarkerPaused" xml:space="preserve">
+    <value>Arbeitet mit Ihnen · pausiert</value>
+  </data>
+  <data name="MarkerStop" xml:space="preserve">
+    <value>Stoppen</value>
+  </data>
+  <data name="MarkerKeepGoing" xml:space="preserve">
+    <value>Weitere {0}</value>
+  </data>
+  <data name="SettingsApprovals" xml:space="preserve">
+    <value>Freigaben</value>
+  </data>
+  <data name="SettingsApprovalsEmpty" xml:space="preserve">
+    <value>Nichts ist länger als für einen Aufruf freigegeben.</value>
+  </data>
+  <data name="SettingsGrantTime" xml:space="preserve">
+    <value>{0}, noch {1}</value>
+  </data>
+  <data name="SettingsGrantWork" xml:space="preserve">
+    <value>Arbeitet mit Ihnen in {0}, noch {1}</value>
+  </data>
+  <data name="SettingsAlways" xml:space="preserve">
+    <value>{0}, immer</value>
+  </data>
+  <data name="Revoke" xml:space="preserve">
+    <value>Widerrufen</value>
+  </data>
+  <data name="LimitedByAgent" xml:space="preserve">
+    <value>{0} Dieser Agent geht nicht über „{1}“ hinaus.</value>
+  </data>
+  <data name="Notice_grant_failed" xml:space="preserve">
+    <value>Nur dieses Mal zugelassen: Der Server hat die längere Freigabe nicht bestätigt</value>
+  </data>
 </root>

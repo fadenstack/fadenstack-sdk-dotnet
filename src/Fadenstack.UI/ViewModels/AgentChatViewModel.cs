@@ -80,6 +80,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             .Select(m => new ToolModeOption(m, Strings)));
         _selectedMode = ToolModes[2];
         _approvals.Requested += OnApprovalRequested;
+        Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop);
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
@@ -158,7 +159,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public bool IsSettingsOpen
     {
         get => _isSettingsOpen;
-        set => SetProperty(ref _isSettingsOpen, value);
+        set
+        {
+            if (SetProperty(ref _isSettingsOpen, value) && value && _isReady)
+            {
+                _ = Grants.LoadCommand.ExecuteAsync(null); // Settings → Approvals as it is now
+            }
+        }
     }
 
     /// <summary>Picks a language (its id: <see cref="Automatic"/> or a tag).</summary>
@@ -360,17 +367,30 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
-    /// <summary>What the pick means here, including a ceiling the server sets.</summary>
+    /// <summary>
+    /// What the pick means here, including a limit the server sets: the agent's own highest level (its author's word)
+    /// or the organisation's ceiling, each said as what it is (38 §7).
+    /// </summary>
     public string ToolModeHint
     {
         get
         {
             var ceiling = _agent.Ceiling;
             var effective = Fadenstack.Tools.ToolModes.Narrowest(_selectedMode.Mode, ceiling);
-            return effective == _selectedMode.Mode ? _selectedMode.Description
-                : Strings.LimitedTo(_selectedMode.Description, ToolModes.First(o => o.Mode == effective).Label);
+            if (effective == _selectedMode.Mode)
+            {
+                return _selectedMode.Description;
+            }
+            var label = ToolModes.First(o => o.Mode == effective).Label;
+            var agentMax = _isReady ? Fadenstack.Tools.ToolModes.ParseMode(_agent.Profile.ToolModes.Max) : null;
+            return agentMax == ceiling
+                ? Strings.LimitedByAgent(_selectedMode.Description, label)
+                : Strings.LimitedTo(_selectedMode.Description, label);
         }
     }
+
+    /// <summary>The grant cards, the marker while a stretch of work runs, and Settings → Approvals.</summary>
+    public GrantsViewModel Grants { get; }
 
     internal IClipboard Clipboard => _options.Clipboard;
 
@@ -420,6 +440,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         try
         {
             await _agent.StartAsync();
+            await RefreshGrantsAsync();
             var profile = _agent.Profile;
             _profile = profile;
             OnPropertyChanged(nameof(CanPickSkills));
@@ -736,10 +757,25 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _approvals.Requested -= OnApprovalRequested;
+        Grants.Dispose();
         _stop?.Cancel();
     }
 
     private void Stop() => _stop?.Cancel();
+
+    /// <summary>The device's grants at start, for the marker; a server that cannot say leaves it off.</summary>
+    private async Task RefreshGrantsAsync()
+    {
+        try
+        {
+            await _agent.Grants.RefreshAsync();
+        }
+        catch (FadenstackException)
+        {
+            // the marker shows once a stream or a grant says more
+        }
+        Grants.Tick();
+    }
 
     private void OpenAbout()
     {
@@ -896,6 +932,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             turn.Retext(strings);
         }
         SkillPicker.Retext();
+        Grants.Retext(strings);
         RefreshAbout();
         _languageOptions = BuildLanguageOptions();
         OnPropertyChanged(nameof(Language));

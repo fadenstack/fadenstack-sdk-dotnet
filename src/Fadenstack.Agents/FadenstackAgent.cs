@@ -26,7 +26,14 @@ public sealed class FadenstackAgent : IDisposable
     {
         _settings = settings;
         Reporter = new EventReporter(settings.Client, settings.Report);
+        Grants = new AgentGrants(this);
     }
+
+    /// <summary>
+    /// What the person let the agent run for a while on this device, held by the server (<see cref="AgentGrants.Available"/>
+    /// when it holds grants): grants for a time, stretches of work, and the marker's Stop.
+    /// </summary>
+    public AgentGrants Grants { get; }
 
     public static AgentBuilder CreateBuilder() => new();
 
@@ -39,6 +46,8 @@ public sealed class FadenstackAgent : IDisposable
 
     /// <summary>The agent's profile, once <see cref="StartAsync"/> ran.</summary>
     public AgentProfile Profile => _profile ?? throw new InvalidOperationException("Call StartAsync first.");
+
+    internal AgentProfile? ProfileOrNull => _profile;
 
     /// <summary>The tools the agent runs, with their effective classes, once started.</summary>
     public IReadOnlyList<AgentTool> Tools => _tools;
@@ -326,6 +335,16 @@ public sealed class FadenstackAgent : IDisposable
     {
         await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
         await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// What the user allowed always on this device for this agent, for Settings → Approvals (38 §7); each is ended with
+    /// <see cref="ResetApprovalsAsync"/>. The grants the server holds are in <see cref="Grants"/>.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredApproval>> ListApprovalsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
+        return await ApprovalStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Starts the agent unless the host passed <paramref name="store"/>: the default one is the signed-in user's.</summary>

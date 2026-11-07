@@ -321,6 +321,9 @@ internal sealed class AgentSettings
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
+
+    /// <summary>Who draws the grant card: the approval handler, when it draws those too.</summary>
+    public IGrantHandler? Grants => Approvals as IGrantHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public PermissionMode PermissionMode { get; init; }

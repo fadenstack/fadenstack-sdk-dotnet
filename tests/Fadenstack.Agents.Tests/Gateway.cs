@@ -91,6 +91,23 @@ public sealed class Gateway
     /// <summary>The agent's highest level; <c>null</c> as from an older server.</summary>
     public string MaxLevel { get; set; } = "null";
 
+    /// <summary>The profile's <c>features</c>, as JSON.</summary>
+    public string Features { get; set; } = """["agents"]""";
+
+    /// <summary>The profile's <c>approvals</c>, as JSON; <c>null</c> as from a server without grants.</summary>
+    public string Approvals { get; set; } = "null";
+
+    /// <summary>
+    /// Grants held as the gateway holds them (<c>.../grants</c>), with <see cref="Features"/> and <see cref="Approvals"/>
+    /// set for them: the agent allows chat, time, grant and always, up to 120 minutes, reads and writes.
+    /// </summary>
+    public FakeGrants UseGrants(string approvals = """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"]}""")
+    {
+        Features = """["agents","approval_scopes.grant"]""";
+        Approvals = approvals;
+        return new FakeGrants(Server);
+    }
+
     /// <summary>Who the token is for (<c>principal</c>), as JSON; null as from an older server.</summary>
     public string? Principal { get; set; }
 
@@ -210,7 +227,8 @@ public sealed class Gateway
                  "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
-                 "required_client_modules":{{modules}},"edition":"community","features":["agents"],
+                 "approvals":{{Approvals}},
+                 "required_client_modules":{{modules}},"edition":"community","features":{{Features}},
                  "user":{"language":{{language}} },"principal":{{Principal ?? "null"}} }
                 """;
     }

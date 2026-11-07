@@ -30,6 +30,15 @@ public sealed record ApprovalRequest
     public bool CanAllowAlways { get; init; }
 
     /// <summary>
+    /// The durations "Allow for…" may offer: a grant for a time, held by the server, for a read or write tool the agent
+    /// allows it for (its <c>standing</c> has <c>time</c>), at most its longest grant. Empty: not offered.
+    /// </summary>
+    public IReadOnlyList<TimeSpan> GrantDurations { get; init; } = Array.Empty<TimeSpan>();
+
+    /// <summary>Whether the card offers "Allow for…" (<see cref="GrantDurations"/>).</summary>
+    public bool CanAllowForTime => GrantDurations.Count > 0;
+
+    /// <summary>
     /// The call asks every time, whatever the user allowed before: an admin's "Ask first" rule covers it (<see cref="Reason"/>
     /// is the admin's message), or the agent's contract says <c>always</c> for the tool.
     /// </summary>
@@ -67,6 +76,13 @@ public sealed record ApprovalDecision
     /// </summary>
     public bool Always { get; init; }
 
+    /// <summary>
+    /// Approve this call, and the tool for this long on this device, held by the server (a grant for a time). Taken only
+    /// for a duration the request offers (<see cref="ApprovalRequest.GrantDurations"/>); when the server does not
+    /// confirm the grant, this call alone is approved.
+    /// </summary>
+    public TimeSpan? ForTime { get; init; }
+
     public string? Reason { get; init; }
 
     public static ApprovalDecision Approve() => new() { Approved = true };
@@ -74,6 +90,8 @@ public sealed record ApprovalDecision
     public static ApprovalDecision ApproveForSession() => new() { Approved = true, ForSession = true };
 
     public static ApprovalDecision ApproveAlways() => new() { Approved = true, Always = true };
+
+    public static ApprovalDecision ApproveFor(TimeSpan duration) => new() { Approved = true, ForTime = duration };
 
     public static ApprovalDecision Deny(string? reason = null) => new() { Approved = false, Reason = reason };
 }
@@ -110,6 +128,9 @@ public static class ApprovalScopes
 
     /// <summary>The agent runs in <see cref="PermissionMode.Bypass"/>.</summary>
     public const string Bypass = "bypass";
+
+    /// <summary>A grant the server holds let it through: for a time, or a stretch of work.</summary>
+    public const string Grant = "grant";
 }
 
 /// <summary>Shows the prompt (a dialog, a card in the chat) and returns what the user decided.</summary>
