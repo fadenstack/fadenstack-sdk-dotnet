@@ -70,7 +70,6 @@ public class AllowMenuRenderTests
         var menu = new ContextMenu { Style = (Style)resources["Fadenstack.AllowMenu"], UseLayoutRounding = true };
         menu.Resources.MergedDictionaries.Add(resources);
         menu.Items.Add(new MenuItem { Header = "Allow for this chat" });
-        menu.Items.Add(new MenuItem { Header = "Allow for 1 hour" });
         menu.Items.Add(new MenuItem { Header = "Allow always", IsEnabled = false });
         menu.Measure(new Size(400, 400));
         menu.Arrange(new Rect(menu.DesiredSize));

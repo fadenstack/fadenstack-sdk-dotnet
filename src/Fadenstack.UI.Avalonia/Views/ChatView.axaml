@@ -143,7 +143,6 @@
                             <SplitButton.Flyout>
                                 <MenuFlyout Placement="BottomEdgeAlignedLeft" HorizontalOffset="-12" VerticalOffset="-2">
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
-                                    <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}" IsVisible="{Binding CanAllowForTime}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
                                 </MenuFlyout>
                             </SplitButton.Flyout>

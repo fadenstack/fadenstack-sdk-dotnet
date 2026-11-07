@@ -730,8 +730,6 @@
                                 <ContextMenu Style="{StaticResource Fadenstack.AllowMenu}" Placement="Bottom">
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}"
                                               Visibility="{Binding CanAllowForSession, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                                    <MenuItem Header="{v:Text AllowForTime}" Command="{Binding AllowForTimeCommand}"
-                                              Visibility="{Binding CanAllowForTime, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
                                               Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                 </ContextMenu>

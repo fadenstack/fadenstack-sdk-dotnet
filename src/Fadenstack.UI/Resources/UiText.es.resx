@@ -154,9 +154,6 @@
   <data name="AllowForChat" xml:space="preserve">
     <value>Permitir en este chat</value>
   </data>
-  <data name="AllowForTime" xml:space="preserve">
-    <value>Permitir durante 1 hora</value>
-  </data>
   <data name="AllowMore" xml:space="preserve">
     <value>Más formas de permitir</value>
   </data>
@@ -171,9 +168,6 @@
   </data>
   <data name="AllowedForChat" xml:space="preserve">
     <value>Permitido en este chat</value>
-  </data>
-  <data name="AllowedForTime" xml:space="preserve">
-    <value>Permitido durante 1 hora</value>
   </data>
   <data name="AllowedAlways" xml:space="preserve">
     <value>Permitido siempre</value>

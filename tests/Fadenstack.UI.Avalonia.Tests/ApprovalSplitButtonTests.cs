@@ -30,16 +30,16 @@ public class ApprovalSplitButtonTests
         return (window, card, part, strings);
     }
 
-    private static ApprovalRequest Request(bool chat, bool time, bool always) => new()
+    private static ApprovalRequest Request(bool chat, bool always) => new()
     {
         CallId = "call-1", ToolName = "add_comment", ToolClass = ToolClass.Write,
-        CanAllowForSession = chat, CanAllowForTime = time, CanAllowAlways = always,
+        CanAllowForSession = chat, CanAllowAlways = always,
     };
 
     [AvaloniaFact]
     public void The_choices_are_one_split_button_whose_main_part_allows_once_and_whose_drop_down_lists_only_the_offered_ones()
     {
-        var (window, card, part, strings) = Show(Request(chat: true, time: true, always: true));
+        var (window, card, part, strings) = Show(Request(chat: true, always: true));
 
         var split = card.GetVisualDescendants().OfType<SplitButton>().Single();
         Assert.True(split.IsEffectivelyVisible);
@@ -49,8 +49,8 @@ public class ApprovalSplitButtonTests
         flyout.ShowAt(split); // the items take their bindings when the menu is shown
         Dispatcher.UIThread.RunJobs();
         var items = flyout.Items.OfType<MenuItem>().ToList();
-        Assert.Equal(new[] { strings.AllowForChat, strings.AllowForTime, strings.AllowAlways }, items.Select(i => i.Header));
-        Assert.Equal(new object[] { part.AllowForSessionCommand, part.AllowForTimeCommand, part.AllowAlwaysCommand }, items.Select(i => (object)i.Command!).ToArray());
+        Assert.Equal(new[] { strings.AllowForChat, strings.AllowAlways }, items.Select(i => i.Header));
+        Assert.Equal(new object[] { part.AllowForSessionCommand, part.AllowAlwaysCommand }, items.Select(i => (object)i.Command!).ToArray());
         Assert.DoesNotContain(card.GetVisualDescendants().OfType<Button>().Where(b => b.GetVisualAncestors().OfType<SplitButton>().Count() == 0),
             b => b.Content as string == strings.Allow && b.IsEffectivelyVisible); // no second "Allow"
         window.Close();
@@ -59,21 +59,21 @@ public class ApprovalSplitButtonTests
     [AvaloniaFact]
     public void A_choice_the_request_does_not_offer_is_not_in_the_drop_down()
     {
-        var (window, card, part, _) = Show(Request(chat: true, time: false, always: true));
+        var (window, card, part, _) = Show(Request(chat: true, always: false));
 
         var split = card.GetVisualDescendants().OfType<SplitButton>().Single();
         split.Flyout!.ShowAt(split);
         Dispatcher.UIThread.RunJobs();
         var items = ((MenuFlyout)split.Flyout!).Items.OfType<MenuItem>().ToList();
-        Assert.Equal(new[] { true, false, true }, items.Select(i => i.IsVisible));
-        Assert.False(part.AllowForTimeCommand.CanExecute(null));
+        Assert.Equal(new[] { true, false }, items.Select(i => i.IsVisible));
+        Assert.False(part.AllowAlwaysCommand.CanExecute(null));
         window.Close();
     }
 
     [AvaloniaFact]
     public void With_nothing_to_choose_from_the_card_has_a_plain_allow_button_and_no_split_button()
     {
-        var (window, card, part, strings) = Show(Request(chat: false, time: false, always: false));
+        var (window, card, part, strings) = Show(Request(chat: false, always: false));
 
         Assert.DoesNotContain(card.GetVisualDescendants().OfType<SplitButton>(), s => s.IsEffectivelyVisible);
         var allow = card.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == strings.Allow && b.IsEffectivelyVisible);
