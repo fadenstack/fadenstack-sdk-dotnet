@@ -153,22 +153,54 @@ public sealed class AgentGrants
 
     /// <summary>
     /// The second line (38 §6): whether the copy holds <paramref name="grantId"/>, active and unexpired, for this call --
-    /// a grant for a time for this very tool, a stretch of work for its class and a tool that names its place. Never a
-    /// destructive or unclassified call.
+    /// a grant for a time for this very tool, a stretch of work for its class and the <paramref name="place"/> its tool
+    /// names, which must lie in one of the grant's places where it really leads on this device (<see cref="GrantPaths"/>).
+    /// Never a destructive or unclassified call. <paramref name="leadsOutside"/> is the real place when a link, a junction
+    /// or a mount point took it out of the grant.
     /// </summary>
-    internal bool Covers(string grantId, string tool, ToolClass toolClass, bool namesPlace)
+    internal bool Covers(string grantId, string tool, ToolClass toolClass, GrantPlace? place, out string? leadsOutside)
     {
+        leadsOutside = null;
         if (toolClass is not (ToolClass.Read or ToolClass.Write))
         {
             return false;
         }
         var grant = Live.FirstOrDefault(g => g.Id == grantId && g.Status == "active");
-        return grant?.Kind switch
+        switch (grant?.Kind)
         {
-            GrantKinds.Time => grant.Scope.Tools is { Count: 1 } tools && tools[0] == tool,
-            GrantKinds.Work => namesPlace && grant.Scope.Classes?.Contains(toolClass.ToWire()) == true,
-            _ => false,
-        };
+            case GrantKinds.Time:
+                return grant.Scope.Tools is { Count: 1 } tools && tools[0] == tool;
+            case GrantKinds.Work:
+                return place is not null && grant.Scope.Classes?.Contains(toolClass.ToWire()) == true
+                    && InPlaces(grant, place, toolClass.ToWire(), out leadsOutside);
+            default:
+                return false;
+        }
+    }
+
+    // In one of the grant's places of its type whose actions hold the class, as the gateway checks it; a path on this device
+    // by where it really leads, the place's and the targets' (ASVS 5.0 5.3.2: the gateway sees only the text).
+    private static bool InPlaces(AgentGrant grant, GrantPlace place, string toolClass, out string? leadsOutside)
+    {
+        leadsOutside = null;
+        var targets = (grant.Scope.Targets ?? new List<GrantTarget>())
+            .Where(t => t.Type == place.Type && (t.Actions is null || t.Actions.Contains(toolClass)))
+            .SelectMany(t => t.Identifiers)
+            .ToList();
+        if (!GrantPaths.NamesPath(place.Type) || !GrantPaths.IsLocal(place.Identifier))
+        {
+            return targets.Any(t => GrantPaths.Named(place.Type, t, place.Identifier));
+        }
+        if (GrantPaths.Real(place.Identifier) is not { } real)
+        {
+            return false; // where it leads cannot be told: ask
+        }
+        if (targets.Any(t => GrantPaths.IsLocal(t) && GrantPaths.Real(t) is { } target && GrantPaths.Lies(place.Type, target, real)))
+        {
+            return true;
+        }
+        leadsOutside = real;
+        return false;
     }
 
     /// <summary>Whether the copy knows <paramref name="grantId"/> at all.</summary>

@@ -525,6 +525,8 @@ public sealed class AgentSession
         private async Task<List<PlannedCall>> RequestAsync(int round, CancellationToken cancellationToken)
         {
             _denials.Clear();
+            // What the gateway said about calls holds for this round's calls only: a model may give a later round's
+            // call an id it used before, and an earlier "a grant covers it" must never let that one run unasked.
             _marks.Clear();
             _covered.Clear();
             _rounds++;
@@ -1158,7 +1160,7 @@ public sealed class AgentSession
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
             var bypass = Agent.PermissionMode == PermissionMode.Bypass && !gatewayWait && BypassAllowedByServer;
-            var granted = !open || bypass ? null : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
+            var (granted, leadsOutside) = !open || bypass ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
             var standing = rule ? null
                 : bypass ? ApprovalScopes.Bypass
                 : !open ? null
@@ -1178,7 +1180,7 @@ public sealed class AgentSession
             request = request with
             {
                 CanAllowForSession = open && Offers(ApprovalScopes.Chat), CanAllowAlways = open && Offers(ApprovalScopes.Always),
-                GrantDurations = durations, RequiredByRule = rule, Target = described,
+                GrantDurations = durations, RequiredByRule = rule, Target = described, LeadsOutside = leadsOutside,
             };
             Emit(new ApprovalRequested(request));
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -1233,14 +1235,16 @@ public sealed class AgentSession
 
         /// <summary>
         /// The grant that covers a call of the agent's own tool, or null (38 §6): the gateway said so (the first line), and
-        /// the device's copy holds that grant, active and unexpired, for this tool or class (the second). A grant the copy
-        /// does not know is read from the server once; a copy that still lacks it covers nothing, and the user is asked.
+        /// the device's copy holds that grant, active and unexpired, for this tool or class, and for a stretch of work the
+        /// place the call names, where it really leads (the second). A grant the copy does not know is read from the server
+        /// once; a copy that still lacks it covers nothing, and the user is asked. <c>LeadsOutside</c>: the real place, when a
+        /// link took the call out of the grant.
         /// </summary>
-        private async Task<string?> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
+        private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
             if (!_covered.TryGetValue(request.CallId, out var grantId) || !Agent.Grants.Available)
             {
-                return null;
+                return (null, null);
             }
             if (!Agent.Grants.Knows(grantId))
             {
@@ -1250,18 +1254,20 @@ public sealed class AgentSession
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
                 {
-                    return null; // no copy to check against: ask
+                    return (null, null); // no copy to check against: ask
                 }
             }
-            return Agent.Grants.Covers(grantId, request.ToolName, request.ToolClass, NamesPlace(request)) ? grantId : null;
+            var covered = Agent.Grants.Covers(grantId, request.ToolName, request.ToolClass, PlaceOf(request), out var leadsOutside);
+            return (covered ? grantId : null, leadsOutside);
         }
 
-        /// <summary>Whether the call names its place: the agent's contract points at an argument the call carries.</summary>
-        private bool NamesPlace(ApprovalRequest request)
+        /// <summary>Where the call acts, as its tool names it (the agent's contract points at an argument the call carries); null when it names none.</summary>
+        private GrantPlace? PlaceOf(ApprovalRequest request)
         {
             var entry = Agent.ProfileOrNull?.HostToolContract.FirstOrDefault(e => e.Name == request.ToolName);
-            return entry is { TargetArgument: { Length: > 1 } pointer, TargetType: { Length: > 0 } }
-                && GrantPointer.Resolve(request.Arguments, pointer) is { Length: > 0 };
+            return entry is { TargetArgument: { Length: > 1 } pointer, TargetType: { Length: > 0 } type }
+                && GrantPointer.Resolve(request.Arguments, pointer) is { Length: > 0 } value
+                ? new GrantPlace(type, value, value) : null;
         }
 
         /// <summary>
@@ -1306,6 +1312,7 @@ public sealed class AgentSession
                 grant_minutes = minutes,
                 asked,
                 rule,
+                outside_grant = request.LeadsOutside is not null, // a link led out of the grant's places: asked
                 timed_out = timedOut,
                 wait_ms = waitedMs ?? 0,
             }).ConfigureAwait(false);

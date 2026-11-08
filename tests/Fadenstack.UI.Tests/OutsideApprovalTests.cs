@@ -70,4 +70,20 @@ public class OutsideApprovalTests
 
         Assert.Equal("button \"Publish\" on example.com (e5)", chat.Turns[0].Parts.OfType<ApprovalPart>().Single().Target);
     }
+
+    [Fact]
+    public void A_card_for_a_call_a_link_takes_out_of_the_granted_places_says_where_it_leads()
+    {
+        var request = new Fadenstack.Agents.ApprovalRequest
+        {
+            ToolName = "add_comment", ToolClass = Fadenstack.Tools.ToolClass.Write, LeadsOutside = @"D:\Payroll\salaries.xlsx",
+        };
+
+        var english = new ApprovalPart(request, ApprovalState.Pending, 200, new UiStrings(CultureInfo.GetCultureInfo("en-GB")));
+        var german = new ApprovalPart(request, ApprovalState.Pending, 200, new UiStrings(CultureInfo.GetCultureInfo("de")));
+
+        Assert.Equal(@"This path leads through a link outside the places you let it work in: to D:\Payroll\salaries.xlsx.", english.Reason);
+        Assert.Equal(@"Dieser Pfad führt über eine Verknüpfung aus den Orten hinaus, in denen Sie es arbeiten lassen: zu D:\Payroll\salaries.xlsx.",
+            german.Reason);
+    }
 }

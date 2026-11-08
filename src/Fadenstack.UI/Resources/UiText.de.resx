@@ -148,6 +148,9 @@
   <data name="ApprovalOutsideWhy" xml:space="preserve">
     <value>Was es bekommt, verlässt Ihre Organisation: Es geht an eine andere Website.</value>
   </data>
+  <data name="ApprovalLeadsOutside" xml:space="preserve">
+    <value>Dieser Pfad führt über eine Verknüpfung aus den Orten hinaus, in denen Sie es arbeiten lassen: zu {0}.</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>Zulassen</value>
   </data>

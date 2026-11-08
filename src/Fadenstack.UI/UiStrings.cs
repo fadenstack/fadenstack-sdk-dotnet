@@ -158,6 +158,9 @@ public sealed class UiStrings
     /// <summary>Why a card asks about a tool that reaches outside the organisation.</summary>
     public string ApprovalOutsideWhy => Text();
 
+    /// <summary>Why a card asks although the user let the agent work in a place: a link leads out of it, to <c>{0}</c>.</summary>
+    public string ApprovalLeadsOutside(string realPlace) => Fill(realPlace);
+
     public string Allow => Text();
 
     public string AllowForChat => Text();

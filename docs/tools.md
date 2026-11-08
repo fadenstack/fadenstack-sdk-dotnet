@@ -294,6 +294,13 @@ the server confirmed, or null when the user said "Not now" or the agent does not
 when its tool names it: in the agent's contract on the server, `target_argument` points at the argument (a JSON
 pointer such as `/path`) and `target_type` says what it is (`document`, `folder`, `site`, `app` or `desk`).
 
+The gateway matches a place by its text. A path on the device may lead elsewhere through a symbolic link, a junction
+or a mount point, so before a covered call runs, the device resolves the call's path and the grant's paths as the
+operating system does (on Windows `GetFinalPathNameByHandleW`, on macOS and Linux `realpath`). The call runs under the
+grant only when the real path lies in a granted place; otherwise the user is asked, and `ApprovalRequest.LeadsOutside`
+holds where it really leads, which the chat panel's card shows. A path that cannot be resolved also asks. A hard
+link, and a link changed between this check and the tool's own opening of the path, are not caught.
+
 A grant never covers a `Destructive` or `Unknown` call, a tool the agent's contract marks `always`, or a call an
 administrator's rule asks about: those still ask.
 
