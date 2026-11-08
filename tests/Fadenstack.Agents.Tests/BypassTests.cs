@@ -32,8 +32,11 @@ public class BypassTests
     private sealed class Card : IApprovalHandler, IGrantHandler
     {
         private readonly bool _allow;
+        private readonly bool _approve;
 
-        public Card(bool allow = true) => _allow = allow;
+        /// <param name="allow">The answer to an offer (the Bypass confirmation).</param>
+        /// <param name="approve">The answer to a question about one call: allow once, or deny.</param>
+        public Card(bool allow = true, bool approve = false) => (_allow, _approve) = (allow, approve);
 
         public List<GrantOffer> Offers { get; } = new();
 
@@ -42,7 +45,7 @@ public class BypassTests
         public Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
             Asked.Add(request);
-            return Task.FromResult(ApprovalDecision.Deny());
+            return Task.FromResult(_approve ? ApprovalDecision.Approve() : ApprovalDecision.Deny());
         }
 
         public Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
@@ -157,6 +160,35 @@ public class BypassTests
     }
 
     [Fact]
+    public async Task Under_bypass_the_report_names_only_what_ran_unanswered_not_the_calls_the_person_allowed()
+    {
+        var (gateway, grants) = Server();
+        var tools = new PageTools();
+        var card = new Card(approve: true);
+        using var agent = gateway.Builder().AddTools(tools).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        // One turn: a destructive call the grant covers, a comment an admin's rule asks about, a read the mode runs, and a
+        // destructive call the gateway did not cover.
+        gateway.Then(
+            Gateway.Custom("faden.grant_used", new { toolCallId = "call-1", toolCallName = "delete_page", grantId = grant.Id }),
+            Gateway.Custom("faden.approval_required",
+                new { toolCallId = "call-2", toolCallName = "add_comment", message = "Comments need approval.", rule = true }),
+            Gateway.ToolCalls(("call-1", "delete_page", """{"page":1}"""), ("call-2", "add_comment", """{"page":1,"text":"a"}"""),
+                ("call-3", "read_page", """{"page":1}"""), ("call-4", "delete_page", """{"page":2}""")),
+            Gateway.Finish("tool_calls"), FakeServer.Done).Says("Done.");
+
+        await session.SendAsync("Tidy page 1.");
+
+        Assert.Equal(new[] { "delete_page 1", "add_comment 1 a", "read_page 1", "delete_page 2" }, tools.Ran);
+        Assert.Equal(new[] { "add_comment", "delete_page" }, card.Asked.Select(a => a.ToolName));
+        Assert.True(card.Asked[0].RequiredByRule);
+        var report = grants.Reports.Single();
+        Assert.Equal(grant.Id, report.Grant);
+        Assert.Equal(new[] { "call-1", "call-3" }, report.Calls);
+    }
+
+    [Fact]
     public async Task Another_conversations_bypass_covers_nothing()
     {
         var (gateway, grants) = Server();
@@ -214,6 +246,25 @@ public class BypassTests
         Assert.Equal(("bypass", 60, "PermissionMode.Bypass"), (made.Json.GetProperty("kind").GetString(),
             made.Json.GetProperty("minutes").GetInt32(), made.Json.GetProperty("reason").GetString()));
         Assert.Equal(ToolMode.Bypass, session.EffectiveToolMode);
+    }
+
+    [Fact]
+    public async Task A_bypass_grant_is_never_extended_not_even_one_an_app_made_without_a_card()
+    {
+        var (gateway, grants) = Server();
+        var card = new Card();
+        using var agent = gateway.Builder().UsePermissionMode(PermissionMode.Bypass).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        gateway.Says("Hello.");
+        await session.SendAsync("Hi.");
+        var grant = session.Bypass!;
+
+        Assert.Null(await session.OfferExtensionAsync(grant, TimeSpan.FromMinutes(30)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => agent.Grants.ExtendAsync(grant.Id, TimeSpan.FromMinutes(30)));
+
+        Assert.Empty(card.Offers);
+        Assert.Empty(grants.Extensions);
+        Assert.Equal("active", grants.Status(grant.Id));
     }
 
     [Fact]

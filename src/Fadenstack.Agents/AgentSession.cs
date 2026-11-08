@@ -126,13 +126,14 @@ public sealed class AgentSession
     /// Asks the person to extend a running grant -- <paramref name="more"/> time, and for a stretch of work the new
     /// <paramref name="places"/> -- on the same card, showing only the difference (desktop 37 §5.3). The server keeps the
     /// grant within the agent's longest grant from when it was made; past that it refuses, and a new grant needs the full
-    /// card. Returns the extended grant, or null when the person said no or nothing is offered.
+    /// card. A Bypass grant is never extended: it runs for the time its confirmation said, and more time is a new Bypass
+    /// with the confirmation again (L-58). Returns the extended grant, or null when the person said no or nothing is offered.
     /// </summary>
     public async Task<AgentGrant?> OfferExtensionAsync(AgentGrant grant, TimeSpan more, IReadOnlyList<GrantPlace>? places = null,
         string? reason = null, CancellationToken cancellationToken = default)
     {
         var grants = _agent.Grants;
-        if (_agent.Settings.Grants is not { } handler || !grants.Available)
+        if (_agent.Settings.Grants is not { } handler || !grants.Available || grant.Kind == GrantKinds.Bypass)
         {
             return null;
         }
@@ -485,7 +486,7 @@ public sealed class AgentSession
         /// <summary>The Bypass grant the turn ran under; null when it did not run in Bypass.</summary>
         public string? BypassGrant { get; private set; }
 
-        /// <summary>The calls of the app's own tools the turn ran in Bypass.</summary>
+        /// <summary>The calls of the app's own tools the turn ran in Bypass without the person's answer.</summary>
         public IReadOnlyList<string> BypassRan => _bypassRan;
 
         // Pictures the turn's tools returned, by call; only the newest goes back to the model.
@@ -936,6 +937,10 @@ public sealed class AgentSession
             {
                 decided = ToolModeDecision.Run;
             }
+            // In Bypass the device reports what ran without the person's answer, as the gateway records it (L-61): what the
+            // mode ran, and what the turn's own Bypass grant settled. A call the person answered is recorded as an answer
+            // (L-60); one a time or work grant settled belongs to that grant.
+            var unanswered = true;
             if (rule || decided == ToolModeDecision.Ask)
             {
                 var settled = await ApproveAsync(new ApprovalRequest
@@ -959,6 +964,7 @@ public sealed class AgentSession
                     var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
                     return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
                 }
+                unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
             }
             var askedFor = asking.Elapsed;
             using var services = new ToolServices(Agent.Settings.ToolServices);
@@ -967,7 +973,7 @@ public sealed class AgentSession
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
                     Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
                 services.Bind(invocation);
-                if (BypassGrant is not null)
+                if (BypassGrant is not null && unanswered)
                 {
                     _bypassRan.Add(call.CallId); // it runs: the device reports it, whatever it returns
                 }

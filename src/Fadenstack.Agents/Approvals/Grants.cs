@@ -152,11 +152,17 @@ public sealed class AgentGrants
     /// <summary>
     /// Extends a running grant in place: <paramref name="more"/> time and/or <paramref name="places"/>. The server never
     /// lets a grant run past the agent's longest grant from when it was made (<see cref="AgentGrant.Narrowed"/> says it
-    /// cut the time); past that it refuses, and a new grant needs the full card.
+    /// cut the time); past that it refuses, and a new grant needs the full card. A Bypass grant is not extended (L-58): the
+    /// copy's own is refused here, unsent, and the server refuses one the copy does not know (<c>bypass_not_extendable</c>).
     /// </summary>
+    /// <exception cref="InvalidOperationException"><paramref name="grantId"/> is a Bypass grant.</exception>
     public async Task<AgentGrant> ExtendAsync(string grantId, TimeSpan more, IReadOnlyList<GrantPlace>? places = null,
         string? shownText = null, CancellationToken cancellationToken = default)
     {
+        if (Find(grantId) is { Kind: GrantKinds.Bypass })
+        {
+            throw new InvalidOperationException("A Bypass grant is not extended: more time is a new Bypass, confirmed again.");
+        }
         var grant = await _agent.Client.Agent!.ExtendGrantAsync(grantId, new GrantExtension
         {
             Minutes = more <= TimeSpan.Zero ? 0 : Minutes(more), Targets = Targets(places ?? Array.Empty<GrantPlace>()),

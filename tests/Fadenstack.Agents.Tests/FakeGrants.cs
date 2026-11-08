@@ -111,15 +111,26 @@ public sealed class FakeGrants
         return FakeServer.Respond(HttpStatusCode.OK, Shown(grant));
     }
 
-    private HttpResponseMessage Extend(string id, Recorded r) => Change(id, grant =>
+    /// <summary>More time within the longest grant from its start; a Bypass grant is refused, as the gateway does.</summary>
+    private HttpResponseMessage Extend(string id, Recorded r)
     {
-        var minutes = r.Json.TryGetProperty("minutes", out var m) ? m.GetInt32() : 0;
-        var issued = (DateTimeOffset)grant["issued_at"]!;
-        var wanted = ((DateTimeOffset)grant["expires_at"]!).AddMinutes(minutes);
-        var cap = issued.AddMinutes(LongestMinutes);
-        grant["expires_at"] = wanted > cap ? cap : wanted;
-        grant["narrowed"] = wanted > cap ? new[] { "minutes" } : Array.Empty<string>();
-    });
+        if (_grants.FirstOrDefault(g => (string)g["id"]! == id) is { } found && (string)found["kind"]! == "bypass")
+        {
+            return FakeServer.Respond(HttpStatusCode.Conflict, new
+            {
+                error = new { message = "A Bypass grant is not extended.", type = "invalid_request_error", code = "bypass_not_extendable" },
+            });
+        }
+        return Change(id, grant =>
+        {
+            var minutes = r.Json.TryGetProperty("minutes", out var m) ? m.GetInt32() : 0;
+            var issued = (DateTimeOffset)grant["issued_at"]!;
+            var wanted = ((DateTimeOffset)grant["expires_at"]!).AddMinutes(minutes);
+            var cap = issued.AddMinutes(LongestMinutes);
+            grant["expires_at"] = wanted > cap ? cap : wanted;
+            grant["narrowed"] = wanted > cap ? new[] { "minutes" } : Array.Empty<string>();
+        });
+    }
 
     private HttpResponseMessage Report(string id, Recorded r)
     {

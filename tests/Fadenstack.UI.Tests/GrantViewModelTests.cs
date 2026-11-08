@@ -2,6 +2,7 @@ using System.Globalization;
 using Fadenstack.Agents;
 using Fadenstack.Agents.Tests;
 using Fadenstack.Client.Tests;
+using Fadenstack.Models;
 using Fadenstack.Tools;
 using Fadenstack.UI.Parts;
 using Fadenstack.UI.Services;
@@ -135,6 +136,31 @@ public class GrantViewModelTests
         Assert.Equal("revoked", grants.Status("g-1"));
         Assert.False(chat.Grants.HasMarker);
         Assert.Empty(agent.Grants.Live);
+    }
+
+    [Fact]
+    public async Task The_marker_never_offers_more_time_for_a_bypass_grant_not_even_one_an_app_made_without_a_card()
+    {
+        var gateway = new Gateway { MaxLevel = "\"bypass\"" }.Says("Hi.");
+        var grants = gateway.UseGrants(
+            """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"],"bypass":{"allowed":true,"longest_minutes":60,"evidence":"calls"}}""");
+        grants.LongestMinutes = 1; // it ends within the marker's "ending soon"
+        var broker = new ApprovalBroker();
+        using var agent = gateway.Builder().AddTools(new PageTools()).UsePermissionMode(PermissionMode.Bypass).UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions
+        {
+            RenderInterval = TimeSpan.Zero, Preferences = new MemoryPreferenceStore(), AutomaticLanguage = CultureInfo.GetCultureInfo("en-GB"),
+        });
+        await chat.InitializeAsync();
+
+        await chat.SendAsync("Hi.");
+
+        Assert.Equal(GrantKinds.Bypass, agent.Grants.Live.Single().Kind);
+        Assert.False(chat.Grants.HasMarker);
+        Assert.False(chat.Grants.KeepGoingCommand.CanExecute(null));
+        await chat.Grants.KeepGoingCommand.ExecuteAsync(null);
+        Assert.Empty(grants.Extensions);
+        Assert.Empty(chat.Grants.Cards);
     }
 
     [Fact]
