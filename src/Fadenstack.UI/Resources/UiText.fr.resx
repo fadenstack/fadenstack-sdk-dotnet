@@ -133,6 +133,9 @@
   <data name="ApprovalOutsideWhy" xml:space="preserve">
     <value>Ce qu'il reçoit quitte votre organisation : il part vers un autre site.</value>
   </data>
+  <data name="ApprovalLeadsOutside" xml:space="preserve">
+    <value>Ce chemin mène, par un lien, hors des emplacements où vous le laissez travailler : vers {0}.</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>Autoriser</value>
   </data>

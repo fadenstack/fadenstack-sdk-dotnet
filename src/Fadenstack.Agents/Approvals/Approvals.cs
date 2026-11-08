@@ -56,6 +56,13 @@ public sealed record ApprovalRequest
     /// not only the arguments. Null for a tool that does not say.
     /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>
+    /// Where the call really acts, when the gateway said a stretch of work covers it but a link, a junction or a mount point
+    /// on this device leads out of the grant's places (the second line resolves paths, sdk/38 §6): the card says where it
+    /// leads, so the user sees why it asks. Null otherwise.
+    /// </summary>
+    public string? LeadsOutside { get; init; }
 }
 
 /// <summary>What the user decided.</summary>

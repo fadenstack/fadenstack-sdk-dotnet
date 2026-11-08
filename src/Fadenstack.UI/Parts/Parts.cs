@@ -416,10 +416,12 @@ public sealed class ApprovalPart : ResponsePart
         : _strings.ApprovalClassLabel(Request.ToolClass);
 
     /// <summary>
-    /// Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, that what it is given
-    /// leaves the organisation (a web search) or what its class means.
+    /// Why it asks: the admin's message for a rule or a gateway tool; for the agent's own tools, that a link leads out of
+    /// the places the user let it work in (and where to), that what it is given leaves the organisation (a web search), or
+    /// what its class means.
     /// </summary>
     public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason
+        : Request.LeadsOutside is { } real ? _strings.ApprovalLeadsOutside(real)
         : GoesOutside ? _strings.ApprovalOutsideWhy
         : _strings.ApprovalWhy(Request.ToolClass);
 

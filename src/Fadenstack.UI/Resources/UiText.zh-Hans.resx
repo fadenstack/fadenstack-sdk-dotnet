@@ -133,6 +133,9 @@
   <data name="ApprovalOutsideWhy" xml:space="preserve">
     <value>它收到的内容会离开您的组织，发送到其他网站。</value>
   </data>
+  <data name="ApprovalLeadsOutside" xml:space="preserve">
+    <value>此路径通过链接指向您允许它工作的位置之外：{0}。</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>允许</value>
   </data>
