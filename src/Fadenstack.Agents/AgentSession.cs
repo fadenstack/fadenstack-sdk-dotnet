@@ -41,8 +41,25 @@ public sealed class AgentSession
     /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
 
-    /// <summary>The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any.</summary>
-    public ToolMode EffectiveToolMode => ToolModes.Narrowest(ToolMode, _agent.Ceiling);
+    /// <summary>
+    /// The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any. Bypass only while the
+    /// server holds the conversation's Bypass grant (<see cref="StartBypassAsync"/>): no grant, no Bypass -- it is Auto
+    /// (sdk/09 L-59).
+    /// </summary>
+    public ToolMode EffectiveToolMode
+    {
+        get
+        {
+            var mode = ToolModes.Narrowest(ToolMode, _agent.Ceiling);
+            return mode == ToolMode.Bypass && Bypass is null ? ToolMode.Auto : mode;
+        }
+    }
+
+    /// <summary>The conversation's live Bypass grant (the marker shows its time left); null when it is not in Bypass.</summary>
+    public AgentGrant? Bypass => _agent.Grants.BypassFor(Id);
+
+    // The mode before Bypass, to go back to when it ends.
+    private ToolMode? _beforeBypass;
 
     /// <summary>The transcript, as kept on this device.</summary>
     public IReadOnlyList<TranscriptEntry> Transcript => _entries;
@@ -136,6 +153,109 @@ public sealed class AgentSession
             return null;
         }
         return await grants.ExtendAsync(grant.Id, time, kept, answer.ShownText, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks the person to switch approvals off in this conversation for a while (sdk/09 §3.12, L-58): the app's grant
+    /// handler draws the confirmation (<see cref="GrantOffer.Bypass"/>), which says what will no longer be asked, and the
+    /// person picks the time. Only once the server confirmed the grant does the conversation run in Bypass
+    /// (<see cref="ToolMode.Bypass"/>, L-59); a refusal is thrown (<see cref="FadenstackApiException"/>). An app set to
+    /// <see cref="PermissionMode.Bypass"/> chose it in its own code: no card, the longest time, recorded the same way.
+    /// Returns the grant, or null: not offered (the organisation or the agent does not allow it), no handler, or declined.
+    /// Never on the model's word: no tool and no other agent can call this (L-58).
+    /// </summary>
+    public async Task<AgentGrant?> StartBypassAsync(string? reason = null, CancellationToken cancellationToken = default)
+    {
+        var grants = _agent.Grants;
+        var choices = grants.BypassChoices;
+        if (!_agent.BypassOffered || choices.Count == 0)
+        {
+            return null;
+        }
+        var duration = choices[choices.Count - 1];
+        string? shown = null;
+        if (_agent.PermissionMode != PermissionMode.Bypass)
+        {
+            if (_agent.Settings.Grants is not { } handler)
+            {
+                return null;
+            }
+            var answer = await handler.RequestGrantAsync(new GrantOffer
+            {
+                Bypass = true, Durations = choices, Reason = reason,
+                Preselected = choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : choices[choices.Count - 1],
+            }, cancellationToken).ConfigureAwait(false);
+            if (!answer.Allowed)
+            {
+                return null;
+            }
+            (duration, shown) = (Within(answer.Duration, choices), answer.ShownText);
+        }
+        var grant = await grants.GrantBypassAsync(duration, Id, reason, shown, cancellationToken).ConfigureAwait(false);
+        if (ToolMode != ToolMode.Bypass)
+        {
+            (_beforeBypass, ToolMode) = (ToolMode, ToolMode.Bypass);
+        }
+        return grant;
+    }
+
+    /// <summary>
+    /// Ends Bypass in this conversation: its grant ends from the next call on (a call already running finishes), and the
+    /// conversation goes back to the mode it had before. The marker's Stop.
+    /// </summary>
+    public async Task StopBypassAsync(CancellationToken cancellationToken = default)
+    {
+        await EndBypassGrantsAsync(cancellationToken).ConfigureAwait(false);
+        if (ToolMode == ToolMode.Bypass)
+        {
+            ToolMode = _beforeBypass ?? ToolMode.Auto;
+        }
+        _beforeBypass = null;
+    }
+
+    private async Task EndBypassGrantsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var grant in _agent.Grants.Live.Where(g => g.Kind == GrantKinds.Bypass && g.ConversationId == Id).ToList())
+        {
+            await _agent.Grants.RevokeAsync(grant.Id, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Before a turn: a conversation that left Bypass ends its grant (leaving Bypass ends it, L-63); an app set to
+    /// <see cref="PermissionMode.Bypass"/> starts it where the server offers it, never from Read only or Off -- Bypass
+    /// skips questions, it does not show what the mode hides.
+    /// </summary>
+    private async Task SettleBypassAsync(CancellationToken cancellationToken)
+    {
+        if (ToolMode != ToolMode.Bypass && Bypass is not null)
+        {
+            await EndBypassGrantsAsync(cancellationToken).ConfigureAwait(false);
+        }
+        if (_agent.PermissionMode == PermissionMode.Bypass && ToolMode >= ToolMode.Ask && Bypass is null && _agent.BypassOffered)
+        {
+            await StartBypassAsync("PermissionMode.Bypass", cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// After a turn in Bypass: the calls the device ran under its grant go to the gateway, which compares them with its
+    /// own records (L-61). A report that does not arrive is logged; the gateway's record stands on its own.
+    /// </summary>
+    private async Task ReportBypassAsync(Turn turn)
+    {
+        if (turn.BypassGrant is not { } grantId)
+        {
+            return;
+        }
+        try
+        {
+            await _agent.Grants.ReportAsync(grantId, turn.BypassRan, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Trace.TraceWarning($"The calls of a turn in Bypass could not be reported to the server: {e.Message}");
+        }
     }
 
     /// <summary>The longest of <paramref name="choices"/> not above <paramref name="picked"/>: a card cannot widen the offer.</summary>
@@ -250,10 +370,12 @@ public sealed class AgentSession
     private async Task RunAsync(string message, SendOptions options, ChannelWriter<AgentEvent> writer,
         CancellationToken cancellationToken)
     {
+        Turn? turn = null;
         try
         {
             await Task.Yield(); // the caller gets the stream before the first request goes out
-            var turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
+            await SettleBypassAsync(cancellationToken).ConfigureAwait(false);
+            turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
             await turn.RunAsync(message, options.Attachments ?? Array.Empty<MessageAttachment>(), options.Skills ?? Array.Empty<PickedSkill>(),
                 cancellationToken).ConfigureAwait(false);
             writer.TryComplete();
@@ -265,6 +387,10 @@ public sealed class AgentSession
         }
         finally
         {
+            if (turn is not null)
+            {
+                await ReportBypassAsync(turn).ConfigureAwait(false);
+            }
             await _agent.Reporter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }
@@ -333,12 +459,6 @@ public sealed class AgentSession
     /// </summary>
     private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null, string? GrantId = null);
 
-    /// <summary>
-    /// Whether the server lets this agent's app approve its own tools' calls in bypass mode. No Fadenstack server
-    /// says so yet, so bypass mode never approves anything; when the profile carries the tenant's word, it is read here.
-    /// </summary>
-    private static bool BypassAllowedByServer => false;
-
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
     {
@@ -359,6 +479,15 @@ public sealed class AgentSession
         private ToolMode _mode;
         private IReadOnlyList<string> _skills = Array.Empty<string>();
 
+        // In Bypass: the conversation's grant as the turn began, and the calls of the app's tools it ran (L-61).
+        private readonly List<string> _bypassRan = new();
+
+        /// <summary>The Bypass grant the turn ran under; null when it did not run in Bypass.</summary>
+        public string? BypassGrant { get; private set; }
+
+        /// <summary>The calls of the app's own tools the turn ran in Bypass.</summary>
+        public IReadOnlyList<string> BypassRan => _bypassRan;
+
         // Pictures the turn's tools returned, by call; only the newest goes back to the model.
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
         private string? _newestPicture;
@@ -376,6 +505,7 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
+            BypassGrant = _mode == ToolMode.Bypass ? _session.Bypass?.Id : null;
             var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
             _skills = picked.Select(s => s.Slug).ToList();
             var user = new Dictionary<string, object?> { ["text"] = message };
@@ -837,6 +967,10 @@ public sealed class AgentSession
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
                     Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
                 services.Bind(invocation);
+                if (BypassGrant is not null)
+                {
+                    _bypassRan.Add(call.CallId); // it runs: the device reports it, whatever it returns
+                }
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
                 return (text, "ok", askedFor, pictures);
@@ -935,11 +1069,11 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// Settles a call that needs approval, first that applies: an admin's rule asks (once only, even in bypass);
-        /// bypass mode approves, for the app's own tools and only where the server allows it (<see cref="BypassAllowedByServer"/>),
-        /// never a gateway wait (<paramref name="gatewayWait"/>); a destructive or unclassified tool asks (once only); a grant
-        /// the gateway said covers the call (<c>faden.grant_used</c>) and the device's copy holds approves (38 §6, the second
-        /// line); what the user allowed always, then what they allowed for this chat, approves; else the user is asked, and
+        /// Settles a call that needs approval, first that applies: an admin's rule or a tool that asks every time asks (once
+        /// only, even in Bypass); a grant the gateway said covers the call (<c>faden.grant_used</c>) and the device's copy
+        /// holds approves (38 §6, the second line) -- in Bypass a destructive or unclassified call too, under the
+        /// conversation's Bypass grant while the turn runs in Bypass; a destructive or unclassified tool asks (once only);
+        /// what the user allowed always, then what they allowed for this chat, approves; else the user is asked, and
         /// may allow once, for this chat, always, or for a time (a grant the server holds) -- as far as the agent allows those
         /// (its <c>standing</c>). Every outcome goes in the transcript and the server's record, with what let the call
         /// through. <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
@@ -949,12 +1083,10 @@ public sealed class AgentSession
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
-            var bypass = Agent.PermissionMode == PermissionMode.Bypass && !gatewayWait && BypassAllowedByServer;
-            var (granted, leadsOutside) = !open || bypass ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
+            var (granted, leadsOutside) = rule ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
             var standing = rule ? null
-                : bypass ? ApprovalScopes.Bypass
-                : !open ? null
                 : granted is not null ? ApprovalScopes.Grant
+                : !open ? null
                 : Offers(ApprovalScopes.Always) && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
                 : Offers(ApprovalScopes.Chat) && _session.ApprovedForChat(name) ? ApprovalScopes.Chat
                 : null;
@@ -1048,6 +1180,11 @@ public sealed class AgentSession
                 }
             }
             var covered = Agent.Grants.Covers(grantId, request.ToolName, request.ToolClass, PlaceOf(request), out var leadsOutside);
+            if (covered && Agent.Grants.Find(grantId) is { Kind: GrantKinds.Bypass } bypass
+                && (bypass.ConversationId != _session.Id || _mode != ToolMode.Bypass))
+            {
+                covered = false; // another conversation's Bypass, or a turn that does not run in Bypass
+            }
             return (covered ? grantId : null, leadsOutside);
         }
 

@@ -104,7 +104,7 @@ public sealed record ApprovalDecision
 }
 
 /// <summary>
-/// Whether the agent asks (<see cref="Ask"/>, the default) or approves every call it would ask about
+/// Whether the agent asks (<see cref="Ask"/>, the default) or runs its sessions in Bypass where the server offers it
 /// (<see cref="Bypass"/>). Set in the app's code (<see cref="AgentBuilder.UsePermissionMode"/>), never by a user.
 /// </summary>
 public enum PermissionMode
@@ -113,10 +113,11 @@ public enum PermissionMode
     Ask = 0,
 
     /// <summary>
-    /// Calls of the app's own tools that the tool mode asks about are approved without asking, destructive and
-    /// unclassified ones too, where the server allows it for the agent; an admin's "Ask first" rule still asks, and
-    /// the gateway's own tools always ask. No Fadenstack server allows it yet, so for now every call still asks.
-    /// For development and trusted automation.
+    /// Before each turn of a session in Ask or above, the SDK makes the conversation's Bypass grant without a card, where
+    /// the server offers Bypass (<see cref="FadenstackAgent.BypassOffered"/>; sdk/40 A3): what the mode would ask about
+    /// then runs, destructive and unclassified calls too, and the server records every call as it does for a person's
+    /// Bypass (L-58). An admin's "Ask first" rule and a tool that asks every time still ask; Read only and Off stay as
+    /// they are. Where the server does not offer it, every call still asks. For development and trusted automation.
     /// </summary>
     Bypass,
 }

@@ -265,6 +265,12 @@
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>运行会做更改的工具；对无法撤销的操作仍会先询问。</value>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>绕过</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>在组织允许的情况下，于一段时间内在此聊天中不经询问运行所有工具；规则和始终询问的工具仍会询问，每次调用都会被记录。</value>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} 您的组织将其限制为“{1}”。</value>
   </data>

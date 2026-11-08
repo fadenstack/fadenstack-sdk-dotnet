@@ -164,10 +164,20 @@ public sealed class FadenstackTransport : IDisposable
     /// <summary>A backend route: <c>Api("api/agent-tokens")</c>.</summary>
     public Uri Api(string relative) => new(ApiUrl, relative.TrimStart('/'));
 
+    /// <summary>
+    /// What this SDK announces it can do beyond the agent API it was written for (sdk/40 §3 rule 5): the server offers
+    /// new levels and fields only to clients that name them.
+    /// </summary>
+    public const string SupportsHeader = "X-Faden-Client-Supports";
+
+    /// <summary>Bypass: its confirmation, its grant, its marker and the report at the end of each turn (sdk/40 A3).</summary>
+    public const string Supports = "tool_mode.bypass";
+
     internal static HttpRequestMessage JsonRequest(HttpMethod method, Uri url, object? body)
     {
         var request = new HttpRequestMessage(method, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.TryAddWithoutValidation(SupportsHeader, Supports);
         if (body is not null)
         {
             var json = body is JsonElement element ? element.GetRawText() : JsonSerializer.Serialize(body, FadenstackJson.Options);

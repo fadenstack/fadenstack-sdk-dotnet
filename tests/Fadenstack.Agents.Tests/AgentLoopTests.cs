@@ -315,7 +315,8 @@ public class AgentLoopTests
     [InlineData("\"auto\"", null, ToolMode.Auto)] // the agent's default level, from the server (sdk/38 D2)
     [InlineData("\"auto\"", ToolMode.Ask, ToolMode.Ask)] // the app may narrow it
     [InlineData("\"ask\"", ToolMode.Auto, ToolMode.Ask)] // never widen it
-    [InlineData("\"bypass\"", null, ToolMode.Ask)] // a level this SDK does not know: Ask
+    [InlineData("\"bypass\"", null, ToolMode.Ask)] // never a default (sdk/38 D2): Ask
+    [InlineData("\"planet\"", null, ToolMode.Ask)] // a level this SDK does not know: Ask
     public async Task New_sessions_start_in_the_agents_default_level_which_the_app_may_only_narrow(
         string serverDefault, ToolMode? appDefault, ToolMode expected)
     {
@@ -332,8 +333,10 @@ public class AgentLoopTests
     [Theory]
     [InlineData("null", "\"ask\"", ToolMode.Ask)] // the agent's highest level
     [InlineData("\"read_only\"", "\"auto\"", ToolMode.ReadOnly)] // the narrowest applies
-    [InlineData("\"bypass\"", "null", ToolMode.ReadOnly)] // a ceiling this SDK does not know narrows (39 F8)
-    [InlineData("null", "\"bypass\"", ToolMode.ReadOnly)]
+    [InlineData("\"planet\"", "null", ToolMode.ReadOnly)] // a ceiling this SDK does not know narrows (39 F8)
+    [InlineData("null", "\"planet\"", ToolMode.ReadOnly)]
+    [InlineData("\"bypass\"", "null", ToolMode.Auto)] // Bypass not offered by the profile: Auto (sdk/40 A3)
+    [InlineData("null", "\"bypass\"", ToolMode.Auto)]
     [InlineData("null", "null", ToolMode.Auto)] // an older server: no limit
     public async Task The_ceiling_is_the_narrowest_of_the_servers_and_the_agents_highest_level(string ceiling, string max, ToolMode expected)
     {

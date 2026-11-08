@@ -55,8 +55,22 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>
     /// The most any session may use: the narrowest of the profile's ceiling and the agent's highest level, where the server
     /// sets them, else Auto. A level this SDK does not know narrows to read-only: it cannot be taken for none (39 F8).
+    /// Bypass only where the server offers it (<see cref="BypassOffered"/>); otherwise Auto.
     /// </summary>
-    public ToolMode Ceiling => ToolModes.Narrowest(Level(_profile?.ToolModes.Ceiling), Level(_profile?.ToolModes.Max));
+    public ToolMode Ceiling
+    {
+        get
+        {
+            var top = ToolModes.Narrowest(Level(_profile?.ToolModes.Ceiling), Level(_profile?.ToolModes.Max));
+            return top == ToolMode.Bypass && !BypassOffered ? ToolMode.Auto : top;
+        }
+    }
+
+    /// <summary>
+    /// Whether a person may switch approvals off in a conversation with this agent now (sdk/09 L-57): the organisation
+    /// allows it, the agent's version goes up to it, and no ceiling is lower -- as the server says in the profile.
+    /// </summary>
+    public bool BypassOffered => Grants.Settings?.Bypass is { Allowed: true };
 
     /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
     public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;
@@ -64,10 +78,12 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>
     /// The mode new sessions start in: the agent's default level from the server (Ask from an older one, or one this SDK
     /// does not know), no higher than the app's own default (<see cref="AgentBuilder.UseDefaultToolMode"/>).
-    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>.
+    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>. Never Bypass (sdk/38 D2): a
+    /// default the server names as Bypass is Ask.
     /// </summary>
     public ToolMode DefaultToolMode => ToolModes.Narrowest(
-        ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask, _settings.DefaultMode);
+        ToolModes.ParseMode(_profile?.ToolModes.Default) is { } level && level != ToolMode.Bypass ? level : ToolMode.Ask,
+        _settings.DefaultMode);
 
     /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
     internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
@@ -75,8 +91,9 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>The time, for the profile's age; tests set it.</summary>
     internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
 
+    // No level: no limit (Bypass, cut to Auto in Ceiling unless offered); one this SDK does not know: read-only.
     private static ToolMode Level(string? level) =>
-        string.IsNullOrWhiteSpace(level) ? ToolMode.Auto : ToolModes.ParseMode(level) ?? ToolMode.ReadOnly;
+        string.IsNullOrWhiteSpace(level) ? ToolMode.Bypass : ToolModes.ParseMode(level) ?? ToolMode.ReadOnly;
 
     /// <summary><see cref="PermissionMode.Ask"/>, or <see cref="PermissionMode.Bypass"/> when the app set it.</summary>
     public PermissionMode PermissionMode => _settings.PermissionMode;
@@ -122,7 +139,7 @@ public sealed class FadenstackAgent : IDisposable
             }
             _tools = tools;
             _profile = profile;
-            if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
+            if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && !BypassOffered)
             {
                 _warned = true;
                 Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, which this server does not allow: every tool call " +

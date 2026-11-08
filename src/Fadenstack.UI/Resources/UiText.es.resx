@@ -265,6 +265,12 @@
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>Ejecuta herramientas que cambian cosas; sigue preguntando antes de lo que no se puede deshacer.</value>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Ejecuta todas las herramientas sin preguntar en este chat durante un tiempo, donde su organización lo permite; las reglas y las herramientas que siempre preguntan siguen preguntando, y cada llamada queda registrada.</value>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Su organización lo limita a «{1}».</value>
   </data>

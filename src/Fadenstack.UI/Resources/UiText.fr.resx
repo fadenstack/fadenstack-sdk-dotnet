@@ -265,6 +265,12 @@
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>Exécute les outils qui modifient des choses ; demande toujours avant ce qui est irréversible.</value>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Exécute tous les outils sans demander dans cette conversation, pendant un temps, là où votre organisation l'autorise ; les règles et les outils qui demandent toujours continuent de demander, et chaque appel est enregistré.</value>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Limité à « {1} » par votre organisation.</value>
   </data>

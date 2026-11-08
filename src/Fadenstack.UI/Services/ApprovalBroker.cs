@@ -66,7 +66,8 @@ public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler
     public async Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
     {
         var handlers = GrantRequested;
-        if (handlers is null)
+        // The chat panel's card cannot say yet what Bypass stops asking (sdk/09 L-58): no Bypass from here (sdk/40 A3).
+        if (handlers is null || offer.Bypass)
         {
             return GrantAnswer.NotNow;
         }

@@ -28,7 +28,8 @@ public sealed class FakeGrants
             server.On("DELETE", $"{Route}/{id}", _ => Change(id, g => { g["status"] = "revoked"; g["revoked_by"] = "person"; }))
                 .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => g["status"] = "paused"))
                 .On("POST", $"{Route}/{id}/resume", _ => Change(id, g => g["status"] = "active"))
-                .On("POST", $"{Route}/{id}/extend", r => Extend(id, r));
+                .On("POST", $"{Route}/{id}/extend", r => Extend(id, r))
+                .On("POST", $"{Route}/{id}/report", r => Report(id, r));
         }
     }
 
@@ -46,6 +47,9 @@ public sealed class FakeGrants
     public List<Recorded> Made => Server.Requests.Where(r => r.Method == "POST" && r.Path == Route).ToList();
 
     public List<Recorded> Extensions => Server.Requests.Where(r => r.Path.EndsWith("/extend")).ToList();
+
+    /// <summary>The reports of turns in Bypass (L-61): the grant, and the calls the device said it ran.</summary>
+    public List<(string Grant, List<string> Calls)> Reports { get; } = new();
 
     public string Status(string id) => (string)_grants.Single(g => (string)g["id"]! == id)["status"]!;
 
@@ -75,9 +79,10 @@ public sealed class FakeGrants
         var minutes = body.GetProperty("minutes").GetInt32();
         object scope = kind == "time"
             ? new { tools = body.GetProperty("tools").EnumerateArray().Select(t => t.GetString()).ToList() }
+            : kind == "bypass" ? new { classes = new[] { "read", "write", "destructive", "unknown" } }
             : new { classes = body.GetProperty("classes").EnumerateArray().Select(t => t.GetString()).ToList(), targets = body.GetProperty("targets") };
         var grant = New(kind, scope, Math.Min(minutes, LongestMinutes));
-        grant["conversation_id"] = kind == "work" || body.TryGetProperty("conversation", out var c) && c.ValueKind == JsonValueKind.True
+        grant["conversation_id"] = kind is "work" or "bypass" || body.TryGetProperty("conversation", out var c) && c.ValueKind == JsonValueKind.True
             ? r.Header("x-faden-conversation-id") : null;
         grant["narrowed"] = minutes > LongestMinutes ? new[] { "minutes" } : Array.Empty<string>();
         return FakeServer.Respond(HttpStatusCode.Created, Shown(grant));
@@ -115,6 +120,13 @@ public sealed class FakeGrants
         grant["expires_at"] = wanted > cap ? cap : wanted;
         grant["narrowed"] = wanted > cap ? new[] { "minutes" } : Array.Empty<string>();
     });
+
+    private HttpResponseMessage Report(string id, Recorded r)
+    {
+        var calls = r.Json.GetProperty("calls").EnumerateArray().Select(c => c.GetString()!).ToList();
+        Reports.Add((id, calls));
+        return FakeServer.Respond(HttpStatusCode.OK, new { @object = "agent.grant_report", matched = calls.Count, device_only = 0, gateway_only = 0 });
+    }
 
     private Dictionary<string, object?> Shown(Dictionary<string, object?> grant) => new(grant)
     {

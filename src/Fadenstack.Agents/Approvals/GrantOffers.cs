@@ -24,6 +24,13 @@ public sealed record GrantOffer
 
     /// <summary>The running grant this card extends; null for a new grant.</summary>
     public Fadenstack.Models.AgentGrant? Extending { get; init; }
+
+    /// <summary>
+    /// A Bypass card (sdk/09 L-58): it says what will no longer be asked -- destructive and unclassified tools, in this
+    /// conversation -- what still asks (an admin's rules, tools that ask every time), that every call is recorded on the
+    /// server, and for how long. No places, no classes. A card that cannot say this answers <see cref="GrantAnswer.NotNow"/>.
+    /// </summary>
+    public bool Bypass { get; init; }
 }
 
 /// <summary>What the person answered on the grant card.</summary>

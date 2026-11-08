@@ -265,6 +265,12 @@
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>Führt Tools aus, die etwas ändern; fragt weiterhin vor allem, was sich nicht rückgängig machen lässt.</value>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Führt in diesem Chat für eine Weile jedes Tool ohne Nachfrage aus, wo Ihre Organisation es erlaubt; Regeln und Tools, die immer nachfragen, fragen weiterhin, und jeder Aufruf wird aufgezeichnet.</value>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Von Ihrer Organisation auf „{1}“ beschränkt.</value>
   </data>

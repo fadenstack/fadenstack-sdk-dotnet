@@ -157,6 +157,25 @@ public sealed record ApprovalSettings
 
     /// <summary>Whether the agent allows the standing approval <paramref name="kind"/> (<c>chat</c>, <c>time</c>...).</summary>
     public bool Allows(string kind) => Standing is null || Standing.Contains(kind);
+
+    /// <summary>
+    /// Bypass, as the server offers it to this client (sdk/40 A3): only to a client that announced it
+    /// (<c>X-Faden-Client-Supports</c>); null from a server without Bypass.
+    /// </summary>
+    public BypassSettings? Bypass { get; init; }
+}
+
+/// <summary>Whether a person may choose Bypass with the agent now, and what its confirmation says (sdk/09 L-57, L-58).</summary>
+public sealed record BypassSettings
+{
+    /// <summary>The organisation allows it, the agent's version goes up to it, and no ceiling is lower.</summary>
+    public bool Allowed { get; init; }
+
+    /// <summary>The longest a Bypass may run, in minutes.</summary>
+    public int LongestMinutes { get; init; } = 120;
+
+    /// <summary>What the server records of every call under it: <c>calls</c> (with their arguments, after the PII masking).</summary>
+    public string Evidence { get; init; } = "calls";
 }
 
 public sealed record LocalMcpSettings

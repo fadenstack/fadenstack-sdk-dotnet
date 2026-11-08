@@ -350,6 +350,14 @@
     <value>Runs tools that change things; still asks before anything that cannot be undone.</value>
     <comment>What the tool mode means</comment>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Runs every tool without asking in this chat, for a while, where your organisation allows it; rules and tools that always ask still ask, and every call is recorded.</value>
+    <comment>What the tool mode means</comment>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Limited to {1} by your organisation.</value>
     <comment>{0}: the mode's description; {1}: the mode the organisation allows</comment>
