@@ -68,6 +68,45 @@ public sealed class DelegationTests : IDisposable
     private static DelegationRequest Ask(string text = "Comment on page 2.") => new("docs-assistant", text);
 
     [Fact]
+    public async Task A_receiving_agent_never_runs_a_delegated_task_in_bypass_not_by_its_apps_mode_nor_by_its_hosts()
+    {
+        // The receiving agent's server offers Bypass, its app is set to PermissionMode.Bypass, and its host asks for Bypass
+        // sessions: a task another agent hands over still never gets the grant, the mode or the header (sdk/09 L-58).
+        var gateway = new Gateway(Contract) { MaxLevel = "\"bypass\"" }.Says("Done.");
+        var grants = gateway.UseGrants(
+            """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"],"bypass":{"allowed":true,"longest_minutes":60,"evidence":"calls"}}""");
+        var agent = gateway.Builder().AddTools(new PageTools()).UsePermissionMode(PermissionMode.Bypass).Build();
+        _disposables.Add(agent);
+        await agent.StartAsync();
+        Assert.True(agent.BypassOffered);
+        var host = new DelegationHost(agent, _registry, new DelegationHostOptions
+        {
+            Name = "Word", Description = "Edits the open document.", ToolMode = ToolMode.Bypass,
+        });
+        var events = new List<DelegatedTaskEventArgs>();
+        host.TaskChanged += (_, e) =>
+        {
+            lock (events)
+            {
+                events.Add(e);
+            }
+        };
+        host.Start();
+        _disposables.Add(host);
+
+        var result = await Caller().RunAsync(Ask(), new DelegationCallbacks());
+
+        Assert.True(DelegationOutcome.Completed == result.Outcome, result.Outcome + ": " + result.Text);
+        Assert.Empty(grants.Made);
+        Assert.NotEqual("bypass", gateway.ChatRequests.Single().Header("x-faden-tool-mode"));
+        var session = events[0].Task.Session!;
+        Assert.NotEqual(ToolMode.Bypass, session.ToolMode);
+        Assert.NotEqual(ToolMode.Bypass, session.EffectiveToolMode);
+        Assert.Null(await session.StartBypassAsync()); // nobody switches it on for a handed-over task
+        Assert.Empty(grants.Made);
+    }
+
+    [Fact]
     public async Task A_task_runs_as_a_new_session_of_the_embedded_agent_and_its_answer_comes_back()
     {
         var gateway = new Gateway(Contract).Says("Page 2 has 3 terminals.");

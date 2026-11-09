@@ -283,6 +283,12 @@
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>运行会做更改的工具；对无法撤销的操作仍会先询问。</value>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>绕过</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>在组织允许的情况下，于一段时间内在此聊天中不经询问运行所有工具；规则和始终询问的工具仍会询问，每次调用都会被记录。</value>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} 您的组织将其限制为“{1}”。</value>
   </data>
@@ -582,6 +588,122 @@
   </data>
   <data name="Revoke" xml:space="preserve">
     <value>撤销</value>
+  </data>
+  <data name="BypassTitle" xml:space="preserve">
+    <value>在此聊天中关闭审批？</value>
+    <comment>The question of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassNoLongerAsks" xml:space="preserve">
+    <value>在您选择的时间内，此代理在此聊天中运行其工具前不再询问您，包括会删除、发送或无法撤销的工具，以及无人分类的工具。您的其他聊天仍照常询问。</value>
+    <comment>What Bypass stops asking</comment>
+  </data>
+  <data name="BypassStillAsks" xml:space="preserve">
+    <value>仍会询问：管理员的“先询问”规则，以及标记为始终询问的工具。被阻止的仍被阻止。</value>
+    <comment>What still asks under Bypass</comment>
+  </data>
+  <data name="BypassRecords_decisions" xml:space="preserve">
+    <value>您组织的服务器会记录每个未经询问运行的工具：哪个工具、何时、何处，但不记录它收到的内容。</value>
+    <comment>What the server records under Bypass, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecords_calls" xml:space="preserve">
+    <value>您组织的服务器会记录每个未经询问运行的工具及其收到的内容（个人数据已遮盖）。</value>
+    <comment>What the server records under Bypass, at the level "calls" (the arguments)</comment>
+  </data>
+  <data name="BypassRecords_results" xml:space="preserve">
+    <value>您组织的服务器会记录每个未经询问运行的工具、其收到的内容及其结果的简短摘要（个人数据已遮盖）。</value>
+    <comment>What the server records under Bypass, at the level "results"</comment>
+  </data>
+  <data name="BypassNoExtension" xml:space="preserve">
+    <value>时间到后，绕过即结束。它不能延长：更多时间需要新的绕过，并再次确认。</value>
+    <comment>Under the time picker of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReason" xml:space="preserve">
+    <value>原因（可选）</value>
+    <comment>The label of the reason box on the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReasonSeen" xml:space="preserve">
+    <value>您的管理员可以看到您的原因。</value>
+    <comment>Under the reason box</comment>
+  </data>
+  <data name="BypassAllow" xml:space="preserve">
+    <value>开启绕过</value>
+    <comment>The Bypass confirmation's button that switches it on</comment>
+  </data>
+  <data name="BypassConfirming" xml:space="preserve">
+    <value>正在等待服务器确认…</value>
+    <comment>The confirmation after the click, before the server answered</comment>
+  </data>
+  <data name="BypassOn" xml:space="preserve">
+    <value>绕过已开启</value>
+    <comment>The confirmation once the server confirmed it</comment>
+  </data>
+  <data name="BypassNotConfirmed" xml:space="preserve">
+    <value>绕过未开启：服务器未确认。审批照常询问。</value>
+    <comment>The server gave no acknowledgement</comment>
+  </data>
+  <data name="BypassNotConfirmed_refused" xml:space="preserve">
+    <value>绕过未开启：您的组织目前不允许此代理使用。审批照常询问。</value>
+    <comment>The server refused it (switched off, or not for this agent)</comment>
+  </data>
+  <data name="BypassNotConfirmed_offline" xml:space="preserve">
+    <value>绕过未开启：无法连接服务器。审批照常询问。</value>
+    <comment>No connection to the server</comment>
+  </data>
+  <data name="BypassNotConfirmed_unavailable" xml:space="preserve">
+    <value>绕过未开启：服务器目前无法检查其限制。审批照常询问。</value>
+    <comment>The server's limits could not be read</comment>
+  </data>
+  <data name="BypassMarker" xml:space="preserve">
+    <value>绕过已开启 · 剩余 {0}</value>
+    <comment>The Bypass marker; {0}: the time left</comment>
+  </data>
+  <data name="BypassRecorded_decisions" xml:space="preserve">
+    <value>每个运行的工具都会被记录。</value>
+    <comment>The marker's second line, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecorded_calls" xml:space="preserve">
+    <value>每个运行的工具都会连同其收到的内容一起被记录。</value>
+    <comment>The marker's second line, at the level "calls"</comment>
+  </data>
+  <data name="BypassRecorded_results" xml:space="preserve">
+    <value>每个运行的工具都会连同其收到的内容和结果一起被记录。</value>
+    <comment>The marker's second line, at the level "results"</comment>
+  </data>
+  <data name="BypassStopName" xml:space="preserve">
+    <value>停止绕过</value>
+    <comment>The marker's Stop button, for screen readers</comment>
+  </data>
+  <data name="BypassEnded" xml:space="preserve">
+    <value>绕过已结束：服务器已结束它。审批将重新询问。</value>
+    <comment>Bypass ended and the server did not say why</comment>
+  </data>
+  <data name="BypassEnded_person" xml:space="preserve">
+    <value>绕过已结束：您已结束它。审批将重新询问。</value>
+    <comment>The person stopped it (here, in Settings or on another sign-in)</comment>
+  </data>
+  <data name="BypassEnded_expired" xml:space="preserve">
+    <value>绕过已结束：时间已到。审批将重新询问。</value>
+    <comment>Bypass ended at its time</comment>
+  </data>
+  <data name="BypassEnded_admin" xml:space="preserve">
+    <value>绕过已结束：管理员已结束它。审批将重新询问。</value>
+    <comment>An administrator revoked it</comment>
+  </data>
+  <data name="BypassEnded_kill_switch" xml:space="preserve">
+    <value>绕过已结束：您的组织已关闭绕过。审批将重新询问。</value>
+    <comment>The organisation switched Bypass off for everyone</comment>
+  </data>
+  <data name="BypassEnded_limit" xml:space="preserve">
+    <value>绕过已结束：您的组织已限制可使用它的人员。审批将重新询问。</value>
+    <comment>A narrower list or limit of the organisation's ended it</comment>
+  </data>
+  <data name="BypassEnded_spent" xml:space="preserve">
+    <value>绕过已结束：调用次数已用完。审批将重新询问。</value>
+    <comment>Its budget of calls was used up</comment>
+  </data>
+  <data name="SettingsGrantBypass" xml:space="preserve">
+    <value>某个聊天中的绕过，剩余 {0} · {1}</value>
+    <comment>A running Bypass in Settings; {0}: the time left; {1}: what is recorded</comment>
   </data>
   <data name="LimitedByAgent" xml:space="preserve">
     <value>{0} 此智能体最高只能到“{1}”。</value>

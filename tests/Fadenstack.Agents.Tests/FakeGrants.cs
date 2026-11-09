@@ -25,10 +25,18 @@ public sealed class FakeGrants
         for (var i = 1; i <= 5; i++)
         {
             var id = $"g-{i}";
-            server.On("DELETE", $"{Route}/{id}", _ => Change(id, g => { g["status"] = "revoked"; g["revoked_by"] = "person"; }))
+            server.On("GET", $"{Route}/{id}", _ => CanSayWhy
+                    ? Change(id, _ => { })
+                    : FakeServer.Respond(HttpStatusCode.NotFound, new { detail = "Not Found" }))
+                .On("DELETE", $"{Route}/{id}", _ => Change(id, g =>
+                {
+                    g["status"] = "revoked";
+                    g["revoked_by"] = g.TryGetValue("revoked_by", out var by) && by is not null ? by : "person";
+                }))
                 .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => g["status"] = "paused"))
                 .On("POST", $"{Route}/{id}/resume", _ => Change(id, g => g["status"] = "active"))
-                .On("POST", $"{Route}/{id}/extend", r => Extend(id, r));
+                .On("POST", $"{Route}/{id}/extend", r => Extend(id, r))
+                .On("POST", $"{Route}/{id}/report", r => Report(id, r));
         }
     }
 
@@ -40,12 +48,21 @@ public sealed class FakeGrants
     /// <summary>The server's refusal of the next grants, as its error code (e.g. <c>grant_not_offered</c>); null: it grants.</summary>
     public string? Refuse { get; set; }
 
+    /// <summary>The status of that refusal: 403, or 503 for <c>grant_limits_unavailable</c>.</summary>
+    public HttpStatusCode RefuseStatus { get; set; } = HttpStatusCode.Forbidden;
+
     public int LongestMinutes { get; set; } = 120;
+
+    /// <summary>What new grants record of their calls (an administrator's level); null: core's default for the kind.</summary>
+    public string? EvidenceLevel { get; set; }
 
     /// <summary>The requests that made grants.</summary>
     public List<Recorded> Made => Server.Requests.Where(r => r.Method == "POST" && r.Path == Route).ToList();
 
     public List<Recorded> Extensions => Server.Requests.Where(r => r.Path.EndsWith("/extend")).ToList();
+
+    /// <summary>The reports of turns in Bypass (L-61): the grant, and the calls the device said it ran.</summary>
+    public List<(string Grant, List<string> Calls)> Reports { get; } = new();
 
     public string Status(string id) => (string)_grants.Single(g => (string)g["id"]! == id)["status"]!;
 
@@ -57,6 +74,20 @@ public sealed class FakeGrants
         return (string)grant["id"]!;
     }
 
+    /// <summary>
+    /// The server ends a grant on its own: <c>admin</c> (Active grants), <c>kill_switch</c> (Bypass turned off), <c>limit</c>
+    /// (a narrower list), <c>person</c> (another sign-in). The device learns it from the next list.
+    /// </summary>
+    public void End(string id, string by)
+    {
+        var grant = _grants.Single(g => (string)g["id"]! == id);
+        grant["status"] = "revoked";
+        grant["revoked_by"] = by;
+    }
+
+    /// <summary>What the next <c>.../grants/{id}</c> reads answer: 404 as from an older server, when false.</summary>
+    public bool CanSayWhy { get; set; } = true;
+
     /// <summary>The value of a stream's <c>faden.grants</c>: the live grants, as the gateway sends them.</summary>
     public object Snapshot() => new
     {
@@ -64,20 +95,28 @@ public sealed class FakeGrants
         grants = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList(),
     };
 
+    /// <summary>The server cannot be reached when a grant is made (the device is offline).</summary>
+    public bool Offline { get; set; }
+
     private HttpResponseMessage Create(Recorded r)
     {
+        if (Offline)
+        {
+            throw new HttpRequestException("No route to host.");
+        }
         if (Refuse is { } code)
         {
-            return FakeServer.Respond(HttpStatusCode.Forbidden, new { error = new { message = "Not offered.", type = "permission_error", code } });
+            return FakeServer.Respond(RefuseStatus, new { error = new { message = "Not offered.", type = "permission_error", code } });
         }
         var body = r.Json;
         var kind = body.GetProperty("kind").GetString()!;
         var minutes = body.GetProperty("minutes").GetInt32();
         object scope = kind == "time"
             ? new { tools = body.GetProperty("tools").EnumerateArray().Select(t => t.GetString()).ToList() }
+            : kind == "bypass" ? new { classes = new[] { "read", "write", "destructive", "unknown" } }
             : new { classes = body.GetProperty("classes").EnumerateArray().Select(t => t.GetString()).ToList(), targets = body.GetProperty("targets") };
         var grant = New(kind, scope, Math.Min(minutes, LongestMinutes));
-        grant["conversation_id"] = kind == "work" || body.TryGetProperty("conversation", out var c) && c.ValueKind == JsonValueKind.True
+        grant["conversation_id"] = kind is "work" or "bypass" || body.TryGetProperty("conversation", out var c) && c.ValueKind == JsonValueKind.True
             ? r.Header("x-faden-conversation-id") : null;
         grant["narrowed"] = minutes > LongestMinutes ? new[] { "minutes" } : Array.Empty<string>();
         return FakeServer.Respond(HttpStatusCode.Created, Shown(grant));
@@ -90,6 +129,7 @@ public sealed class FakeGrants
             ["object"] = "agent.grant", ["id"] = $"g-{_grants.Count + 1}", ["kind"] = kind, ["status"] = "active",
             ["scope"] = scope, ["issued_at"] = ServerNow, ["expires_at"] = ServerNow.AddMinutes(minutes),
             ["max_calls"] = null, ["calls_used"] = 0, ["device_id"] = "device-7", ["narrowed"] = Array.Empty<string>(),
+            ["evidence_level"] = EvidenceLevel ?? (kind == "time" ? "decisions" : "calls"),
         };
         _grants.Add(grant);
         return grant;
@@ -106,15 +146,33 @@ public sealed class FakeGrants
         return FakeServer.Respond(HttpStatusCode.OK, Shown(grant));
     }
 
-    private HttpResponseMessage Extend(string id, Recorded r) => Change(id, grant =>
+    /// <summary>More time within the longest grant from its start; a Bypass grant is refused, as the gateway does.</summary>
+    private HttpResponseMessage Extend(string id, Recorded r)
     {
-        var minutes = r.Json.TryGetProperty("minutes", out var m) ? m.GetInt32() : 0;
-        var issued = (DateTimeOffset)grant["issued_at"]!;
-        var wanted = ((DateTimeOffset)grant["expires_at"]!).AddMinutes(minutes);
-        var cap = issued.AddMinutes(LongestMinutes);
-        grant["expires_at"] = wanted > cap ? cap : wanted;
-        grant["narrowed"] = wanted > cap ? new[] { "minutes" } : Array.Empty<string>();
-    });
+        if (_grants.FirstOrDefault(g => (string)g["id"]! == id) is { } found && (string)found["kind"]! == "bypass")
+        {
+            return FakeServer.Respond(HttpStatusCode.Conflict, new
+            {
+                error = new { message = "A Bypass grant is not extended.", type = "invalid_request_error", code = "bypass_not_extendable" },
+            });
+        }
+        return Change(id, grant =>
+        {
+            var minutes = r.Json.TryGetProperty("minutes", out var m) ? m.GetInt32() : 0;
+            var issued = (DateTimeOffset)grant["issued_at"]!;
+            var wanted = ((DateTimeOffset)grant["expires_at"]!).AddMinutes(minutes);
+            var cap = issued.AddMinutes(LongestMinutes);
+            grant["expires_at"] = wanted > cap ? cap : wanted;
+            grant["narrowed"] = wanted > cap ? new[] { "minutes" } : Array.Empty<string>();
+        });
+    }
+
+    private HttpResponseMessage Report(string id, Recorded r)
+    {
+        var calls = r.Json.GetProperty("calls").EnumerateArray().Select(c => c.GetString()!).ToList();
+        Reports.Add((id, calls));
+        return FakeServer.Respond(HttpStatusCode.OK, new { @object = "agent.grant_report", matched = calls.Count, device_only = 0, gateway_only = 0 });
+    }
 
     private Dictionary<string, object?> Shown(Dictionary<string, object?> grant) => new(grant)
     {

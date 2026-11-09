@@ -383,6 +383,12 @@
         <Setter Property="Padding" Value="12,5" />
     </Style>
 
+    <!-- The same for a toggle (a card's time picker): a style is for one type, and a Button's throws on a ToggleButton. -->
+    <Style x:Key="Fadenstack.SecondaryToggle" TargetType="ToggleButton" BasedOn="{StaticResource Fadenstack.GhostButton}">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="Padding" Value="12,5" />
+    </Style>
+
     <!-- A text field for a host's own forms (sign-in, settings): rounded like the controls, accent on focus. -->
     <Style x:Key="Fadenstack.TextBox" TargetType="TextBox">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
@@ -826,7 +832,7 @@
                 <DockPanel Margin="0,10,0,0">
                     <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <Grid HorizontalAlignment="Left">
-                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryButton}" MinWidth="96"
+                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryToggle}" MinWidth="96"
                                       Content="{Binding SelectedDuration.Label}" IsEnabled="{Binding IsPending}"
                                       IsChecked="{Binding IsDurationMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=DurationMenu, Converter={StaticResource Fadenstack.InverseBool}}" />
@@ -863,6 +869,84 @@
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsPending}" Value="False">
                 <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!--
+        The Bypass confirmation (sdk/09 L-58): what no longer asks, what still asks, what the server records, the time, no
+        extension, an optional reason. Deliberate: "Not now" comes first, neither button is the default, Enter on the switch
+        does nothing (AcceptsReturn off), Esc never answers it; only a click (or Space on the focused switch) switches it on.
+    -->
+    <DataTemplate DataType="{x:Type parts:BypassPart}">
+        <Border x:Name="Card" Margin="0,6,0,8" Padding="14,12" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
+                BorderBrush="{DynamicResource Fadenstack.Warning}" Background="{DynamicResource Fadenstack.Surface}" MaxWidth="640"
+                HorizontalAlignment="Left">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource Fadenstack.Icon}" Text="&#xE7BA;"
+                               Foreground="{DynamicResource Fadenstack.Warning}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" TextWrapping="Wrap" />
+                </DockPanel>
+                <TextBlock Text="{Binding AppReason}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{DynamicResource Fadenstack.ForegroundMuted}"
+                           Visibility="{Binding AppReason, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                <TextBlock Text="{Binding NoLongerAsksText}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                <TextBlock Text="{Binding StillAsksText}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding RecordsText}" TextWrapping="Wrap" Margin="0,6,0,0" FontWeight="SemiBold" />
+                <!-- The time: the shortest is preselected; a pick closes the menu. -->
+                <DockPanel Margin="0,10,0,0">
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                    <Grid HorizontalAlignment="Left">
+                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryToggle}" MinWidth="96"
+                                      Content="{Binding SelectedDuration.Label}" IsEnabled="{Binding IsPending}"
+                                      IsChecked="{Binding IsDurationMenuOpen, Mode=TwoWay}"
+                                      IsHitTestVisible="{Binding IsOpen, ElementName=DurationMenu, Converter={StaticResource Fadenstack.InverseBool}}" />
+                        <Popup x:Name="DurationMenu" PlacementTarget="{Binding ElementName=DurationButton}" Placement="Bottom" StaysOpen="False"
+                               IsOpen="{Binding IsDurationMenuOpen, Mode=TwoWay}" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                                    CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="8,4,8,12">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                                </Border.Effect>
+                                <ItemsControl ItemsSource="{Binding Durations}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                                    Command="{Binding DataContext.PickDurationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" Content="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </DockPanel>
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding NoExtensionText}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                <TextBlock Text="{Binding ReasonLabel}" Margin="0,10,0,4" />
+                <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" MaxLength="{Binding ReasonLength, Mode=OneTime}"
+                         AcceptsReturn="False" TextWrapping="Wrap" MaxHeight="80" IsEnabled="{Binding IsPending}" Padding="6,4"
+                         Background="{DynamicResource Fadenstack.Background}" Foreground="{DynamicResource Fadenstack.Foreground}"
+                         BorderBrush="{DynamicResource Fadenstack.Border}" CaretBrush="{DynamicResource Fadenstack.Foreground}"
+                         AutomationProperties.Name="{Binding ReasonLabel}" />
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding ReasonSeenText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                <v:ButtonRow Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" />
+                    <Button x:Name="Allow" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding AllowText}" Command="{Binding AllowCommand}"
+                            IsDefault="False" IsCancel="False" KeyboardNavigation.AcceptsReturn="False"
+                            BorderBrush="{DynamicResource Fadenstack.Warning}" />
+                </v:ButtonRow>
+                <DockPanel Margin="0,8,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Padding="8,2" Margin="12,0,0,0"
+                            Content="{Binding CloseText}" Command="{Binding CloseCommand}"
+                            Visibility="{Binding IsNotConfirmed, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                    <TextBlock x:Name="StateLine" Style="{StaticResource Fadenstack.Muted}" Text="{Binding StateText}" TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsNotConfirmed}" Value="True">
+                <Setter TargetName="StateLine" Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
             </DataTrigger>
         </DataTemplate.Triggers>
     </DataTemplate>

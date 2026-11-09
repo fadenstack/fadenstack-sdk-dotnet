@@ -374,6 +374,14 @@
     <value>Runs tools that change things; still asks before anything that cannot be undone.</value>
     <comment>What the tool mode means</comment>
   </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+    <comment>A tool mode</comment>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Runs every tool without asking in this chat, for a while, where your organisation allows it; rules and tools that always ask still ask, and every call is recorded.</value>
+    <comment>What the tool mode means</comment>
+  </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Limited to {1} by your organisation.</value>
     <comment>{0}: the mode's description; {1}: the mode the organisation allows</comment>
@@ -765,6 +773,122 @@
   <data name="Revoke" xml:space="preserve">
     <value>Revoke</value>
     <comment>A button in Settings: end an approval</comment>
+  </data>
+  <data name="BypassTitle" xml:space="preserve">
+    <value>Switch approvals off in this chat?</value>
+    <comment>The question of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassNoLongerAsks" xml:space="preserve">
+    <value>For the time you pick, this agent runs its tools in this chat without asking you first, also those that delete, send or cannot be undone, and those nobody has classified. Your other chats ask as before.</value>
+    <comment>What Bypass stops asking</comment>
+  </data>
+  <data name="BypassStillAsks" xml:space="preserve">
+    <value>Still asks: your administrator's "Ask first" rules and tools marked to always ask. What is blocked stays blocked.</value>
+    <comment>What still asks under Bypass</comment>
+  </data>
+  <data name="BypassRecords_decisions" xml:space="preserve">
+    <value>Your organisation's server records each tool that runs without asking: which tool, when and where, but not what it was given.</value>
+    <comment>What the server records under Bypass, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecords_calls" xml:space="preserve">
+    <value>Your organisation's server records each tool that runs without asking, with what it was given (personal data masked).</value>
+    <comment>What the server records under Bypass, at the level "calls" (the arguments)</comment>
+  </data>
+  <data name="BypassRecords_results" xml:space="preserve">
+    <value>Your organisation's server records each tool that runs without asking, with what it was given and a short summary of its result (personal data masked).</value>
+    <comment>What the server records under Bypass, at the level "results"</comment>
+  </data>
+  <data name="BypassNoExtension" xml:space="preserve">
+    <value>When the time is up, Bypass ends. It cannot be extended: more time is a new Bypass, confirmed again.</value>
+    <comment>Under the time picker of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReason" xml:space="preserve">
+    <value>Why (optional)</value>
+    <comment>The label of the reason box on the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReasonSeen" xml:space="preserve">
+    <value>Your administrators see your reason.</value>
+    <comment>Under the reason box</comment>
+  </data>
+  <data name="BypassAllow" xml:space="preserve">
+    <value>Switch Bypass on</value>
+    <comment>The Bypass confirmation's button that switches it on</comment>
+  </data>
+  <data name="BypassConfirming" xml:space="preserve">
+    <value>Waiting for the server to confirm…</value>
+    <comment>The confirmation after the click, before the server answered</comment>
+  </data>
+  <data name="BypassOn" xml:space="preserve">
+    <value>Bypass is on</value>
+    <comment>The confirmation once the server confirmed it</comment>
+  </data>
+  <data name="BypassNotConfirmed" xml:space="preserve">
+    <value>Bypass is not on: the server did not confirm it. Approvals ask as before.</value>
+    <comment>The server gave no acknowledgement</comment>
+  </data>
+  <data name="BypassNotConfirmed_refused" xml:space="preserve">
+    <value>Bypass is not on: your organisation does not allow it for this agent now. Approvals ask as before.</value>
+    <comment>The server refused it (switched off, or not for this agent)</comment>
+  </data>
+  <data name="BypassNotConfirmed_offline" xml:space="preserve">
+    <value>Bypass is not on: the server could not be reached. Approvals ask as before.</value>
+    <comment>No connection to the server</comment>
+  </data>
+  <data name="BypassNotConfirmed_unavailable" xml:space="preserve">
+    <value>Bypass is not on: the server cannot check its limits right now. Approvals ask as before.</value>
+    <comment>The server's limits could not be read</comment>
+  </data>
+  <data name="BypassMarker" xml:space="preserve">
+    <value>Bypass on · {0} left</value>
+    <comment>The Bypass marker; {0}: the time left</comment>
+  </data>
+  <data name="BypassRecorded_decisions" xml:space="preserve">
+    <value>Each tool that runs is recorded.</value>
+    <comment>The marker's second line, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecorded_calls" xml:space="preserve">
+    <value>Each tool that runs is recorded with what it was given.</value>
+    <comment>The marker's second line, at the level "calls"</comment>
+  </data>
+  <data name="BypassRecorded_results" xml:space="preserve">
+    <value>Each tool that runs is recorded with what it was given and its result.</value>
+    <comment>The marker's second line, at the level "results"</comment>
+  </data>
+  <data name="BypassStopName" xml:space="preserve">
+    <value>Stop Bypass</value>
+    <comment>The marker's Stop button, for screen readers</comment>
+  </data>
+  <data name="BypassEnded" xml:space="preserve">
+    <value>Bypass ended: the server ended it. Approvals ask again.</value>
+    <comment>Bypass ended and the server did not say why</comment>
+  </data>
+  <data name="BypassEnded_person" xml:space="preserve">
+    <value>Bypass ended: you ended it. Approvals ask again.</value>
+    <comment>The person stopped it (here, in Settings or on another sign-in)</comment>
+  </data>
+  <data name="BypassEnded_expired" xml:space="preserve">
+    <value>Bypass ended: its time is up. Approvals ask again.</value>
+    <comment>Bypass ended at its time</comment>
+  </data>
+  <data name="BypassEnded_admin" xml:space="preserve">
+    <value>Bypass ended: an administrator ended it. Approvals ask again.</value>
+    <comment>An administrator revoked it</comment>
+  </data>
+  <data name="BypassEnded_kill_switch" xml:space="preserve">
+    <value>Bypass ended: your organisation turned Bypass off. Approvals ask again.</value>
+    <comment>The organisation switched Bypass off for everyone</comment>
+  </data>
+  <data name="BypassEnded_limit" xml:space="preserve">
+    <value>Bypass ended: your organisation narrowed who may use it. Approvals ask again.</value>
+    <comment>A narrower list or limit of the organisation's ended it</comment>
+  </data>
+  <data name="BypassEnded_spent" xml:space="preserve">
+    <value>Bypass ended: its calls were used up. Approvals ask again.</value>
+    <comment>Its budget of calls was used up</comment>
+  </data>
+  <data name="SettingsGrantBypass" xml:space="preserve">
+    <value>Bypass in a chat, {0} left · {1}</value>
+    <comment>A running Bypass in Settings; {0}: the time left; {1}: what is recorded</comment>
   </data>
   <data name="LimitedByAgent" xml:space="preserve">
     <value>{0} This agent goes no higher than {1}.</value>

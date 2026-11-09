@@ -25,6 +25,8 @@ public sealed class AgentGrants
     private readonly FadenstackAgent _agent;
     private readonly object _gate = new();
     private List<AgentGrant> _grants = new();
+    // Every grant the copy saw, as it last saw it, kept when a new list replaces the copy: why one ended (WhyEndedAsync).
+    private readonly Dictionary<string, AgentGrant> _seen = new(StringComparer.Ordinal);
     private TimeSpan _offset;
 
     internal AgentGrants(FadenstackAgent agent) => _agent = agent;
@@ -48,6 +50,18 @@ public sealed class AgentGrants
     /// <summary>The durations a card may offer for this agent: those within its longest grant.</summary>
     public IReadOnlyList<TimeSpan> Choices =>
         Settings is { } s ? Durations.Where(d => d.TotalMinutes <= s.LongestGrantMinutes).ToList() : Array.Empty<TimeSpan>();
+
+    /// <summary>
+    /// The durations a Bypass card may offer: those within its longest (the profile's <c>approvals.bypass</c>); none where
+    /// the server does not offer Bypass to this agent.
+    /// </summary>
+    public IReadOnlyList<TimeSpan> BypassChoices =>
+        Settings?.Bypass is { Allowed: true } b ? Durations.Where(d => d.TotalMinutes <= b.LongestMinutes).ToList() : Array.Empty<TimeSpan>();
+
+    /// <summary>The client this SDK names itself as in a grant's record (L-59).</summary>
+    internal static readonly string ClientVersion = "Fadenstack.Agents/" + (typeof(AgentGrants).Assembly
+        .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+        .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion.Split('+')[0] ?? "0");
 
     /// <summary>The server's clock now, from the offset its last answer showed.</summary>
     public DateTimeOffset ServerNow => _agent.Clock() + _offset;
@@ -104,13 +118,107 @@ public sealed class AgentGrants
     }
 
     /// <summary>
+    /// Switches approvals off in the conversation <paramref name="conversationId"/> for <paramref name="duration"/>
+    /// (sdk/09 §3.12): what its mode would ask about runs, destructive and unclassified calls too -- never an admin's rule
+    /// or a tool that asks every time. The server's answer is the record (L-59): Bypass holds only once it answered, and
+    /// a refusal is thrown (403 <c>bypass_not_allowed</c>). <paramref name="reason"/> is the person's own words, if any.
+    /// </summary>
+    public async Task<AgentGrant> GrantBypassAsync(TimeSpan duration, string conversationId, string? reason = null,
+        string? shownText = null, CancellationToken cancellationToken = default)
+    {
+        var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
+        {
+            Kind = GrantKinds.Bypass, Minutes = Minutes(duration), ShownTextSha256 = Hash(shownText), Reason = reason,
+            ClientVersion = ClientVersion,
+        }, conversationId, cancellationToken).ConfigureAwait(false);
+        return Keep(grant);
+    }
+
+    /// <summary>The live, active Bypass grant of the conversation <paramref name="conversationId"/>; null when it has none.</summary>
+    public AgentGrant? BypassFor(string conversationId) =>
+        Live.FirstOrDefault(g => g.Kind == GrantKinds.Bypass && g.Status == "active" && g.ConversationId == conversationId);
+
+    /// <summary>The calls the device ran under a Bypass grant in the turn that just ended, for the gateway to compare (L-61).</summary>
+    internal Task<GrantReport> ReportAsync(string grantId, IReadOnlyList<string> calls, CancellationToken cancellationToken) =>
+        _agent.Client.Agent!.ReportGrantAsync(grantId, calls, cancellationToken);
+
+    /// <summary>The copy's grant <paramref name="grantId"/>, live or not; null when it does not know it.</summary>
+    internal AgentGrant? Find(string grantId)
+    {
+        lock (_gate)
+        {
+            return _grants.FirstOrDefault(g => g.Id == grantId);
+        }
+    }
+
+    /// <summary>
+    /// Why a grant this copy held has ended, for the app to say (sdk/09 L-59, L-63): <c>person</c> (ended here, in
+    /// Settings or on another sign-in of theirs), <c>admin</c>, <c>kill_switch</c> (Bypass turned off for the
+    /// organisation), <c>limit</c> (a narrower limit or list of the organisation's), <c>agent</c>, <c>expired</c> or
+    /// <c>spent</c>; null while it runs, or when not even the server can say (an older server, offline). What the copy
+    /// recorded comes first -- a Stop here answers at once -- then its time by the server's clock, then the server.
+    /// </summary>
+    public async Task<string?> WhyEndedAsync(string grantId, CancellationToken cancellationToken = default)
+    {
+        AgentGrant? seen;
+        lock (_gate)
+        {
+            _seen.TryGetValue(grantId, out seen);
+        }
+        if (Ended(seen) is { } known)
+        {
+            return known;
+        }
+        try
+        {
+            var found = await _agent.Client.Agent!.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false);
+            lock (_gate)
+            {
+                _seen[found.Id] = found;
+            }
+            return Ended(found);
+        }
+        catch (Exception e) when (e is FadenstackException or HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return null; // the server cannot say: the app says the server ended it
+        }
+    }
+
+    // Why a grant as last seen has ended; null while it runs.
+    private string? Ended(AgentGrant? grant)
+    {
+        if (grant is null)
+        {
+            return null;
+        }
+        if (grant.RevokedBy is { Length: > 0 } by)
+        {
+            return by;
+        }
+        return grant.Status switch
+        {
+            "expired" => "expired",
+            "spent" => "spent",
+            _ when Spent(grant) => "spent",
+            _ when grant.ExpiresAt <= ServerNow => "expired",
+            _ => null,
+        };
+    }
+
+    /// <summary>
     /// Extends a running grant in place: <paramref name="more"/> time and/or <paramref name="places"/>. The server never
     /// lets a grant run past the agent's longest grant from when it was made (<see cref="AgentGrant.Narrowed"/> says it
-    /// cut the time); past that it refuses, and a new grant needs the full card.
+    /// cut the time); past that it refuses, and a new grant needs the full card. A Bypass grant is not extended (L-58): the
+    /// copy's own is refused here, unsent, and the server refuses one the copy does not know (<c>bypass_not_extendable</c>).
     /// </summary>
+    /// <exception cref="InvalidOperationException"><paramref name="grantId"/> is a Bypass grant.</exception>
     public async Task<AgentGrant> ExtendAsync(string grantId, TimeSpan more, IReadOnlyList<GrantPlace>? places = null,
         string? shownText = null, CancellationToken cancellationToken = default)
     {
+        if (Find(grantId) is { Kind: GrantKinds.Bypass })
+        {
+            throw new InvalidOperationException("A Bypass grant is not extended: more time is a new Bypass, confirmed again.");
+        }
         var grant = await _agent.Client.Agent!.ExtendGrantAsync(grantId, new GrantExtension
         {
             Minutes = more <= TimeSpan.Zero ? 0 : Minutes(more), Targets = Targets(places ?? Array.Empty<GrantPlace>()),
@@ -155,17 +263,22 @@ public sealed class AgentGrants
     /// The second line (38 §6): whether the copy holds <paramref name="grantId"/>, active and unexpired, for this call --
     /// a grant for a time for this very tool, a stretch of work for its class and the <paramref name="place"/> its tool
     /// names, which must lie in one of the grant's places where it really leads on this device (<see cref="GrantPaths"/>).
-    /// Never a destructive or unclassified call. <paramref name="leadsOutside"/> is the real place when a link, a junction
-    /// or a mount point took it out of the grant.
+    /// Never a destructive or unclassified call -- but for a Bypass grant, which covers every class (the caller checks
+    /// that it is the conversation's and the turn runs in Bypass). <paramref name="leadsOutside"/> is the real place when
+    /// a link, a junction or a mount point took it out of the grant.
     /// </summary>
     internal bool Covers(string grantId, string tool, ToolClass toolClass, GrantPlace? place, out string? leadsOutside)
     {
         leadsOutside = null;
+        var grant = Live.FirstOrDefault(g => g.Id == grantId && g.Status == "active");
+        if (grant?.Kind == GrantKinds.Bypass)
+        {
+            return true;
+        }
         if (toolClass is not (ToolClass.Read or ToolClass.Write))
         {
             return false;
         }
-        var grant = Live.FirstOrDefault(g => g.Id == grantId && g.Status == "active");
         switch (grant?.Kind)
         {
             case GrantKinds.Time:
@@ -232,6 +345,10 @@ public sealed class AgentGrants
         lock (_gate)
         {
             _grants = grants.ToList();
+            foreach (var grant in _grants)
+            {
+                _seen[grant.Id] = grant;
+            }
             Sync(serverNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);
@@ -242,6 +359,7 @@ public sealed class AgentGrants
         lock (_gate)
         {
             _grants = _grants.Where(g => g.Id != grant.Id).Append(grant).ToList();
+            _seen[grant.Id] = grant;
             Sync(grant.ServerNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);

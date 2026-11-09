@@ -263,6 +263,22 @@
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
+    <!-- The Bypass confirmation: the grant card's frame in the warning colour; its switch outlined in it, never filled. -->
+    <Style Selector="Border.card.bypass">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Border.card.bypass.answered">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Border.bypass c|FsIcon.glyph">
+        <Setter Property="Data" Value="{DynamicResource Icon.WarningAmber}" />
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Large}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.bypass Button.switch">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
     <Style Selector="ItemsControl.places > ContentPresenter">
         <Setter Property="Margin" Value="0,2" />
     </Style>

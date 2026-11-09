@@ -161,9 +161,23 @@ public sealed class AgentResource
     public Task<AgentGrant> ExtendGrantAsync(string grantId, GrantExtension extension, CancellationToken cancellationToken = default) =>
         _transport.PostAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}/extend"), extension, cancellationToken);
 
+    /// <summary>
+    /// Reports the calls this device ran under its Bypass grant in the turn that just ended (sdk/09 L-61): the gateway
+    /// compares them with its own records and flags any difference for the organisation's admins.
+    /// </summary>
+    public Task<GrantReport> ReportGrantAsync(string grantId, IReadOnlyList<string> calls, CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<GrantReport>(Route($"grants/{Uri.EscapeDataString(grantId)}/report"), new { calls }, cancellationToken);
+
     /// <summary>This device's live grants for the agent: active or paused, not expired, not spent.</summary>
     public Task<GrantList> ListGrantsAsync(CancellationToken cancellationToken = default) =>
         _transport.GetAsync<GrantList>(Route("grants"), cancellationToken);
+
+    /// <summary>
+    /// One of this device's grants in whatever state, e.g. why it ended (<see cref="AgentGrant.RevokedBy"/>) once it left
+    /// the live list. 404 for a grant of another device, and from a server that cannot say.
+    /// </summary>
+    public Task<AgentGrant> GetGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
+        _transport.GetAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}"), cancellationToken);
 
     /// <summary>Ends one of the person's grants for this agent, from the next call on; it answers with the grant.</summary>
     public Task<AgentGrant> RevokeGrantAsync(string grantId, CancellationToken cancellationToken = default) =>

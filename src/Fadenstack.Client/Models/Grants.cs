@@ -10,6 +10,12 @@ public static class GrantKinds
 
     /// <summary>A stretch of work: reads and writes in named places, for a while.</summary>
     public const string Work = "work";
+
+    /// <summary>
+    /// Bypass, in one conversation: what its mode would ask about runs, destructive and unclassified calls too -- never
+    /// an admin's rule or a tool that asks every time (sdk/09 §3.12).
+    /// </summary>
+    public const string Bypass = "bypass";
 }
 
 /// <summary>
@@ -41,6 +47,24 @@ public sealed record GrantRequest
     /// <summary>The SHA-256 (lower-case hex) of the text the card showed the person.</summary>
     [JsonPropertyName("shown_text_sha256")]
     public string? ShownTextSha256 { get; init; }
+
+    /// <summary>The person's own words on why (Bypass), kept with the grant's record (L-59).</summary>
+    public string? Reason { get; init; }
+
+    /// <summary>The client as it names itself, e.g. <c>Fadenstack.Agents/0.3.0</c> (L-59).</summary>
+    public string? ClientVersion { get; init; }
+}
+
+/// <summary>What the gateway found comparing a Bypass turn's calls with its own records (<c>.../report</c>, L-61).</summary>
+public sealed record GrantReport
+{
+    public int Matched { get; init; }
+
+    /// <summary>Calls the device ran that the gateway never counted under the grant.</summary>
+    public int DeviceOnly { get; init; }
+
+    /// <summary>Calls of the app's tools the gateway counted that the device did not report.</summary>
+    public int GatewayOnly { get; init; }
 }
 
 /// <summary>What a person added on the card that extends a running grant: only the difference.</summary>
@@ -102,8 +126,18 @@ public sealed record AgentGrant
     public DateTimeOffset? PausedAt { get; init; }
     public DateTimeOffset? RevokedAt { get; init; }
 
-    /// <summary><c>person</c>, <c>admin</c> or <c>agent</c>.</summary>
+    /// <summary>
+    /// <c>person</c>, <c>admin</c>, <c>agent</c>, <c>kill_switch</c> (Bypass turned off for the organisation) or
+    /// <c>limit</c> (a narrower limit or list of the organisation's).
+    /// </summary>
     public string? RevokedBy { get; init; }
+
+    /// <summary>
+    /// What the server keeps of each call the grant covers (sdk/09 L-60): <c>decisions</c> (which tool ran, when, where),
+    /// <c>calls</c> (also its arguments, after the server's masking of personal data) or <c>results</c> (also a short
+    /// summary of its result). Null from a server that does not say.
+    /// </summary>
+    public string? EvidenceLevel { get; init; }
 
     /// <summary>The server's clock when it answered: the marker counts down <see cref="ExpiresAt"/> against it.</summary>
     public DateTimeOffset? ServerNow { get; init; }

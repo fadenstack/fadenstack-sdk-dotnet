@@ -56,6 +56,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _signInRequired;
     private string? _error;
     private ToolModeOption _selectedMode;
+    private readonly ToolModeOption _bypassOption;
+    private CancellationTokenSource? _bypassAsk;
     private AgentProfile? _profile;
     private AboutInfo _about;
     private PanelLink? _brandingLink;
@@ -81,10 +83,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new FallbackRenderer() }).ToList();
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
             .Select(m => new ToolModeOption(m, Strings)));
+        _bypassOption = new ToolModeOption(ToolMode.Bypass, Strings) { IsAvailable = false };
         _selectedMode = ToolModes[2];
         ReasoningOptions = new ObservableCollection<ReasoningOption>();
         _approvals.Requested += OnApprovalRequested;
-        Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop);
+        Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session);
+        Grants.BypassEnded += OnBypassEnded;
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
@@ -114,7 +118,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         });
         SelectToolModeCommand = new RelayCommand<ToolModeOption>(option =>
         {
-            if (option is { IsAvailable: true })
+            if (option is { Mode: ToolMode.Bypass, IsAvailable: true })
+            {
+                _ = StartBypassAsync(); // only its confirmation and the server's grant switch it on (sdk/09 L-58, L-59)
+            }
+            else if (option is { IsAvailable: true })
             {
                 SelectedToolMode = option;
             }
@@ -380,21 +388,89 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         set => SetProperty(ref _isModeMenuOpen, value);
     }
 
-    /// <summary>The user's pick for this chat. New chats start in Ask.</summary>
+    /// <summary>
+    /// The user's pick for this chat. New chats start in the agent's default, never in Bypass. Bypass is not set here:
+    /// only its confirmation and the server's grant switch it on (<see cref="StartBypassAsync"/>); picking another mode
+    /// while in Bypass ends it at once.
+    /// </summary>
     public ToolModeOption SelectedToolMode
     {
         get => _selectedMode;
         set
         {
-            if (value is null || !value.IsAvailable || !SetProperty(ref _selectedMode, value))
+            if (value is null || !value.IsAvailable || value.Mode == ToolMode.Bypass || !SetProperty(ref _selectedMode, value))
             {
                 return;
             }
             if (_session is not null)
             {
+                var bypass = _session.Bypass;
                 _session.ToolMode = value.Mode;
+                if (bypass is not null)
+                {
+                    _ = EndBypassQuietlyAsync(bypass); // leaving Bypass ends it (L-63), not only before the next turn
+                }
             }
             OnPropertyChanged(nameof(ToolModeHint));
+        }
+    }
+
+    /// <summary>
+    /// Asks for Bypass in this chat (the mode picker's Bypass entry): the confirmation shows above the composer, and only the
+    /// person's click on it, then the server's grant, switch the chat to Bypass. A chat without a conversation yet gets
+    /// one, which goes again when nothing came of it. True once Bypass is on.
+    /// </summary>
+    public async Task<bool> StartBypassAsync()
+    {
+        IsModeMenuOpen = false;
+        if (!_isReady || !_bypassOption.IsAvailable || _session?.Bypass is not null)
+        {
+            return false;
+        }
+        _bypassAsk?.Cancel();
+        var ask = _bypassAsk = new CancellationTokenSource();
+        AgentSession? made = null;
+        try
+        {
+            if (_session is null)
+            {
+                made = _session = await _agent.StartSessionAsync(_selectedMode.Mode, ask.Token);
+                OnPropertyChanged(nameof(CurrentSessionId));
+            }
+            var session = _session;
+            var (on, unsaid) = await Grants.StartBypassAsync(session, ask.Token);
+            if (on && _session == session)
+            {
+                SetProperty(ref _selectedMode, _bypassOption, nameof(SelectedToolMode));
+                OnPropertyChanged(nameof(ToolModeHint));
+                return true;
+            }
+            if (unsaid is not null)
+            {
+                Error = unsaid.Message;
+            }
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+        catch (Exception e)
+        {
+            Error = e.Message;
+            return false;
+        }
+        finally
+        {
+            if (made is not null && _session == made && made.Bypass is null && Turns.Count == 0)
+            {
+                await ForgetAsync(made); // a declined confirmation leaves no conversation
+            }
+            if (_bypassAsk == ask)
+            {
+                _bypassAsk = null;
+            }
+            ask.Dispose();
         }
     }
 
@@ -571,13 +647,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(Greeting));
             RefreshSuggestions();
             var ceiling = _agent.Ceiling;
-            foreach (var option in ToolModes)
+            foreach (var option in ToolModes.Where(o => o.Mode != ToolMode.Bypass))
             {
                 option.IsAvailable = Fadenstack.Tools.ToolModes.Narrowest(option.Mode, ceiling) == option.Mode;
             }
-            SelectToolModeCommand.NotifyCanExecuteChanged();
-            var start = ToolModes.First(o => o.Mode == _agent.DefaultToolMode);
-            SetProperty(ref _selectedMode, start.IsAvailable ? start : ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
+            RefreshBypassOption();
+            SetProperty(ref _selectedMode, DefaultMode(), nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
             RefreshReasoning();
             await RefreshSessionsAsync();
@@ -691,6 +766,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             {
                 TouchCurrentSession(text);
             }
+            RefreshBypassOption(); // the turn read the profile again: Bypass may be offered now, or no longer
             RunAfterSend(outgoing);
         }
     }
@@ -757,6 +833,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             return;
         }
+        LeaveBypass();
         _session = null;
         _history = new List<List<TranscriptEntry>>();
         _loadedFrom = 0;
@@ -766,9 +843,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             Attachments.Remove(a);
         }
         PickedSkills.Clear();
-        SetProperty(ref _selectedMode, ToolModes.FirstOrDefault(o => o.Mode == _agent.DefaultToolMode && o.IsAvailable) ?? ToolModes.Last(o => o.IsAvailable), nameof(SelectedToolMode));
+        RefreshBypassOption();
+        SetProperty(ref _selectedMode, DefaultMode(), nameof(SelectedToolMode));
         OnPropertyChanged(nameof(ToolModeHint));
         FollowReasoning();
+        Grants.Tick();
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasEarlierTurns));
         OnPropertyChanged(nameof(CurrentSessionId));
@@ -795,6 +874,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 var built = grouped.Skip(start).Select(t => TranscriptTurns.Build(this, t, _options.PreviewLength)).ToList();
                 return (opened, grouped, start, built);
             });
+            LeaveBypass();
+            // A chat opened again is never in Bypass (sdk/09 L-58): the SDK does not restore the mode, and a Bypass of it
+            // still running at the server ends now -- it would run without its marker otherwise (L-63).
+            if (session.Bypass is { } stale)
+            {
+                await EndBypassQuietlyAsync(stale);
+            }
             _session = session;
             _history = history;
             _loadedFrom = from;
@@ -803,10 +889,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             {
                 Turns.Add(turn);
             }
-            var mode = ToolModes.First(o => o.Mode == session.ToolMode);
+            RefreshBypassOption();
+            var mode = ToolModes.FirstOrDefault(o => o.Mode == session.ToolMode && o.Mode != ToolMode.Bypass && o.IsAvailable) ?? DefaultMode();
             SetProperty(ref _selectedMode, mode, nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
             FollowReasoning();
+            Grants.Tick();
             OnPropertyChanged(nameof(IsEmpty));
             OnPropertyChanged(nameof(HasEarlierTurns));
             OnPropertyChanged(nameof(CurrentSessionId));
@@ -906,11 +994,100 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _approvals.Requested -= OnApprovalRequested;
+        _bypassAsk?.Cancel();
+        Grants.BypassEnded -= OnBypassEnded;
         Grants.Dispose();
         _stop?.Cancel();
     }
 
     private void Stop() => _stop?.Cancel();
+
+    /// <summary>The mode a chat starts in: the agent's default where it is available, never Bypass (sdk/38 D2).</summary>
+    private ToolModeOption DefaultMode() =>
+        ToolModes.FirstOrDefault(o => o.Mode == _agent.DefaultToolMode && o.Mode != ToolMode.Bypass && o.IsAvailable)
+        ?? ToolModes.LastOrDefault(o => o.IsAvailable && o.Mode != ToolMode.Bypass)
+        ?? ToolModes[0];
+
+    /// <summary>
+    /// The picker offers Bypass only where the server offers it to this agent now (<see cref="FadenstackAgent.BypassOffered"/>,
+    /// within the ceiling); a Bypass that runs keeps its entry until it ends.
+    /// </summary>
+    private void RefreshBypassOption()
+    {
+        var offered = _agent.BypassOffered && Fadenstack.Tools.ToolModes.Narrowest(ToolMode.Bypass, _agent.Ceiling) == ToolMode.Bypass;
+        _bypassOption.IsAvailable = offered;
+        var listed = ToolModes.Contains(_bypassOption);
+        if (offered && !listed)
+        {
+            ToolModes.Add(_bypassOption);
+        }
+        else if (!offered && listed && _selectedMode != _bypassOption)
+        {
+            ToolModes.Remove(_bypassOption);
+        }
+        SelectToolModeCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Leaving a chat (a new one, another one) ends its Bypass: it would run without its marker (L-63).</summary>
+    private void LeaveBypass()
+    {
+        _bypassAsk?.Cancel();
+        if (_session?.Bypass is { } bypass)
+        {
+            _ = EndBypassQuietlyAsync(bypass);
+        }
+    }
+
+    private async Task EndBypassQuietlyAsync(AgentGrant bypass)
+    {
+        try
+        {
+            await _agent.Grants.RevokeAsync(bypass.Id);
+        }
+        catch (Exception e)
+        {
+            // Not told: the grant runs on at the server until its time; the chat's next turn ends it first.
+            Error = e.Message;
+        }
+    }
+
+    /// <summary>A conversation made for a confirmation that came to nothing: gone again, as if never asked.</summary>
+    private async Task ForgetAsync(AgentSession made)
+    {
+        _session = null;
+        OnPropertyChanged(nameof(CurrentSessionId));
+        try
+        {
+            await _agent.DeleteSessionAsync(made.Id);
+        }
+        catch (Exception)
+        {
+            // an empty conversation stays in the history; nothing ran in it
+        }
+    }
+
+    /// <summary>This chat's Bypass ended (its time, a Stop, the server): the chat goes back to the mode it had before.</summary>
+    private async void OnBypassEnded(object? sender, EventArgs e)
+    {
+        if (_session is { ToolMode: ToolMode.Bypass } session)
+        {
+            try
+            {
+                await session.StopBypassAsync(); // nothing left to end: only the mode it had before
+            }
+            catch (Exception)
+            {
+                session.ToolMode = DefaultMode().Mode; // what is left ends before its next turn
+            }
+        }
+        if (_selectedMode == _bypassOption)
+        {
+            var back = _session is { } s ? ToolModes.FirstOrDefault(o => o.Mode == s.ToolMode && o.Mode != ToolMode.Bypass && o.IsAvailable) : null;
+            SetProperty(ref _selectedMode, back ?? DefaultMode(), nameof(SelectedToolMode));
+            OnPropertyChanged(nameof(ToolModeHint));
+        }
+        RefreshBypassOption();
+    }
 
     /// <summary>The device's grants at start, for the marker; a server that cannot say leaves it off.</summary>
     private async Task RefreshGrantsAsync()
@@ -1081,6 +1258,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ReasoningAutomationName));
         OnPropertyChanged(nameof(ReasoningToolTip));
         OnPropertyChanged(nameof(ReasoningHint));
+        if (!ToolModes.Contains(_bypassOption))
+        {
+            _bypassOption.Retext(strings);
+        }
         var now = _options.Clock();
         foreach (var session in Sessions)
         {

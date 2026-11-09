@@ -45,6 +45,14 @@
         <Setter Property="Margin" Value="0,0,8,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
+    <!-- The same band while the chat runs in Bypass: the warning colours, so it is never taken for the work band. -->
+    <Style Selector="Border.grant-marker.bypass">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Border.grant-marker.bypass c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+    </Style>
 
     <!-- The chat's popups that look like the menu (in a Border.popup-room, Controls.axaml). -->
     <Style Selector="Border.menu.popup">
@@ -207,6 +215,11 @@
     <Style Selector="ItemsControl.grant-cards > ContentPresenter">
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
+    <!-- The Bypass confirmation: where a grant card goes, as wide. -->
+    <Style Selector="ContentControl.bypass-card">
+        <Setter Property="Margin" Value="16,8,16,0" />
+        <Setter Property="MaxWidth" Value="760" />
+    </Style>
 
     <!-- ===== The composer: a card; the field inside is borderless, the card shows the focus ================ -->
 
@@ -311,6 +324,9 @@
     </Style>
     <Style Selector="Grid.chat.compact Border.grant-marker">
         <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Grid.chat.compact ContentControl.bypass-card">
+        <Setter Property="Margin" Value="8,4,8,0" />
     </Style>
     <Style Selector="Grid.chat.compact StackPanel.notice-line">
         <Setter Property="Margin" Value="8,0,8,4" />

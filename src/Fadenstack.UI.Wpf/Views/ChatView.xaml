@@ -233,6 +233,29 @@
                 <TextBlock Text="{Binding Grants.MarkerText}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
+        <!-- While this chat runs in Bypass (sdk/09 L-63): the time left, what is recorded, one click ends it; never more time. -->
+        <Border x:Name="BypassMarker" Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Warning}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Fadenstack.WarningBackground}"
+                Visibility="{Binding Grants.HasBypass, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                AutomationProperties.Name="{Binding Grants.BypassText}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding Grants.StopText}"
+                        AutomationProperties.Name="{Binding Grants.BypassStopName}" Command="{Binding Grants.StopBypassCommand}" Margin="8,0,0,0" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Grants.BypassText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Grants.BypassRecordedText}" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <!-- After the chat's Bypass ended: why (its time, a Stop, an administrator, the kill switch, a narrower list). -->
+        <Border Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Fadenstack.InfoBackground}"
+                Visibility="{Binding Grants.HasBypassEnded, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Content="{Binding Grants.CloseText}"
+                        Command="{Binding Grants.DismissBypassEndedCommand}" Margin="8,0,0,0" Padding="8,2" />
+                <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
         </StackPanel>
 
         <!-- Conversation -->
@@ -446,6 +469,9 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <!-- The Bypass confirmation: while it waits for the person or the server, and when the server did not confirm it. -->
+        <ContentPresenter Margin="12,0,12,0" Content="{Binding Grants.BypassCard}"
+                          Visibility="{Binding Grants.BypassCard.IsShown, Converter={StaticResource Fadenstack.BoolToVisibility}, FallbackValue=Collapsed}" />
 
         <!-- Composer: a pasted picture, or picture files dropped on it, go with the next message -->
         <Border Margin="12,4,12,12" Padding="12,8,6,6" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"

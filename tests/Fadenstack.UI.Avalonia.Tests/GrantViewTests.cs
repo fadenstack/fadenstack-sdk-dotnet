@@ -104,7 +104,7 @@ public class GrantViewTests
         var strings = host.Chat.Strings;
 
         // No grant runs: the band under the header is there, hidden.
-        var marker = host.View.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("grant-marker"));
+        var marker = host.View.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("grant-marker") && !b.Classes.Contains("bypass") && !b.Classes.Contains("ended"));
         Assert.False(marker.IsEffectivelyVisible);
         var header = host.View.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("header"));
         Assert.Same(header.GetVisualParent(), marker.GetVisualParent());

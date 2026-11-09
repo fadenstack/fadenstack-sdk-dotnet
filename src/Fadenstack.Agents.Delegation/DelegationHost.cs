@@ -42,7 +42,10 @@ public sealed class DelegationHostOptions
     /// <summary>How long the caller's person has to decide an approval before it is denied (default 5 minutes).</summary>
     public TimeSpan ApprovalTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
-    /// <summary>The tool mode of a delegated session; null: the agent's default.</summary>
+    /// <summary>
+    /// The tool mode of a delegated session; null: the agent's default. Never Bypass: a handed-over task does not inherit it
+    /// (sdk/09 L-58), so Bypass here runs as Auto.
+    /// </summary>
     public ToolMode? ToolMode { get; set; }
 
     /// <summary>The longest answer handed back in characters (default 40 000); a longer one is cut and says so.</summary>
@@ -277,7 +280,11 @@ public sealed class DelegationHost : IDisposable
             AgentSession? session = null;
             try
             {
-                session = await host._agent.StartSessionAsync(host._options.ToolMode, limit.Token).ConfigureAwait(false);
+                // A handed-over task never runs in Bypass (sdk/09 L-58): a host's Bypass is Auto here, and the session never
+                // makes the grant, whatever the app's PermissionMode.
+                var mode = host._options.ToolMode == ToolMode.Bypass ? ToolMode.Auto : host._options.ToolMode;
+                session = await host._agent.StartSessionAsync(mode, limit.Token).ConfigureAwait(false);
+                session.Delegated = true;
                 session.Approvals = new ForwardedApprovals(host, task, channel);
                 task.Session = session;
                 task.State = TaskState.Working.ToWire();

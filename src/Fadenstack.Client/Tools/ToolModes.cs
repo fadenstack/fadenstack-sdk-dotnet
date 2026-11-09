@@ -23,6 +23,12 @@ public enum ToolMode
     ReadOnly = 1,
     Ask = 2,
     Auto = 3,
+
+    /// <summary>
+    /// Auto, plus what the conversation's Bypass grant covers (sdk/38 §4.1): destructive and unclassified calls run
+    /// without asking. Only while the server holds such a grant for the conversation; without one it is Auto.
+    /// </summary>
+    Bypass = 4,
 }
 
 /// <summary>What a mode does with a tool.</summary>
@@ -56,6 +62,7 @@ public static class ToolModes
     ///     read_only   run   -       -            -
     ///     ask         run   ask     ask          ask
     ///     auto        run   run     ask          ask
+    ///     bypass      run   run     ask*         ask*      * run under the conversation's Bypass grant
     /// </summary>
     public static ToolModeDecision Decide(ToolMode mode, ToolClass toolClass, bool? openWorld = null)
     {
@@ -65,7 +72,7 @@ public static class ToolModes
             ToolMode.Off => ToolModeDecision.Hidden,
             ToolMode.ReadOnly => toolClass == ToolClass.Read ? ToolModeDecision.Run : ToolModeDecision.Hidden,
             ToolMode.Ask => toolClass == ToolClass.Read ? ToolModeDecision.Run : ToolModeDecision.Ask,
-            ToolMode.Auto => toolClass is ToolClass.Read or ToolClass.Write ? ToolModeDecision.Run : ToolModeDecision.Ask,
+            ToolMode.Auto or ToolMode.Bypass => toolClass is ToolClass.Read or ToolClass.Write ? ToolModeDecision.Run : ToolModeDecision.Ask,
             _ => ToolModeDecision.Hidden,
         };
     }
@@ -80,6 +87,7 @@ public static class ToolModes
         ToolMode.ReadOnly => "read_only",
         ToolMode.Ask => "ask",
         ToolMode.Auto => "auto",
+        ToolMode.Bypass => "bypass",
         _ => "ask",
     };
 
@@ -89,6 +97,7 @@ public static class ToolModes
         "read_only" => ToolMode.ReadOnly,
         "ask" => ToolMode.Ask,
         "auto" => ToolMode.Auto,
+        "bypass" => ToolMode.Bypass,
         _ => null,
     };
 

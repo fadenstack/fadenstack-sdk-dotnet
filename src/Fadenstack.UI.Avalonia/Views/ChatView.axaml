@@ -216,6 +216,54 @@
             </Border>
         </DataTemplate>
 
+        <!-- The Bypass confirmation (sdk/09 L-58), above the composer: what no longer asks, what still asks, what the server
+             records, the time (the shortest first), no extension, an optional reason. Deliberate: Not now first, the switch
+             never the default button, Enter on it does nothing (b:Deliberate), Esc never answers it. -->
+        <DataTemplate DataType="parts:BypassPart">
+            <Border Classes="card bypass" Classes.answered="{Binding !IsPending}">
+                <StackPanel Spacing="8">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <TextBlock Classes="muted" Text="{Binding AppReason}" TextWrapping="Wrap"
+                               IsVisible="{Binding AppReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="{Binding NoLongerAsksText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding StillAsksText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="strong" Text="{Binding RecordsText}" TextWrapping="Wrap" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding Durations}" SelectedItem="{Binding SelectedDuration, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding DurationLabel}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="parts:DurationOption">
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding NoExtensionText}" TextWrapping="Wrap" />
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding ReasonLabel}" />
+                        <TextBox Text="{Binding Reason, Mode=TwoWay}" MaxLength="{Binding ReasonLength}" AcceptsReturn="False"
+                                 TextWrapping="Wrap" MaxHeight="80" IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding ReasonLabel}" />
+                        <TextBlock Classes="caption muted" Text="{Binding ReasonSeenText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" />
+                        <Button Classes="secondary switch" Content="{Binding AllowText}" Command="{Binding AllowCommand}"
+                                IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" />
+                    </WrapPanel>
+                    <DockPanel IsVisible="{Binding !IsPending}">
+                        <Button DockPanel.Dock="Right" Classes="quiet small" Content="{Binding CloseText}" Command="{Binding CloseCommand}"
+                                IsVisible="{Binding IsNotConfirmed}" />
+                        <TextBlock Classes="caption" Classes.muted="{Binding !IsNotConfirmed}" Text="{Binding StateText}" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <!-- A notice is a banner in the flow: info, warning, blocked or error. -->
         <DataTemplate DataType="parts:NoticePart">
             <Border Classes="banner notice"
@@ -525,6 +573,27 @@
                 <TextBlock Text="{Binding Grants.MarkerText}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
+        <!-- While this chat runs in Bypass (sdk/09 L-63): the time left, what is recorded, one click ends it; never more time.
+             It stays in the compact chat too (the avatar's bubble). -->
+        <Border Classes="grant-marker bypass" IsVisible="{Binding Grants.HasBypass}" AutomationProperties.Name="{Binding Grants.BypassText}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="{v:Text MarkerStop}" Command="{Binding Grants.StopBypassCommand}"
+                        AutomationProperties.Name="{Binding Grants.BypassStopName}" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.WarningAmber}" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="strong" Text="{Binding Grants.BypassText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption" Text="{Binding Grants.BypassRecordedText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <!-- After the chat's Bypass ended: why (its time, a Stop, an administrator, the kill switch, a narrower limit). -->
+        <Border Classes="grant-marker ended" IsVisible="{Binding Grants.HasBypassEnded}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="quiet small" Content="{v:Text Close}" Command="{Binding Grants.DismissBypassEndedCommand}" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.InfoOutlined}" />
+                <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
         </StackPanel>
 
         <!-- ===== The conversation ============================================================================ -->
@@ -730,6 +799,8 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <!-- The Bypass confirmation: while it waits for the person or the server, and when the server did not confirm it. -->
+        <ContentControl Classes="bypass-card" Content="{Binding Grants.BypassCard}" IsVisible="{Binding Grants.BypassCard.IsShown, FallbackValue=False}" />
         <Border Name="ComposerBox" Classes="composer">
             <StackPanel>
                 <!-- The skills picked for the next message -->

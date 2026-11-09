@@ -24,6 +24,26 @@ public sealed record GrantOffer
 
     /// <summary>The running grant this card extends; null for a new grant.</summary>
     public Fadenstack.Models.AgentGrant? Extending { get; init; }
+
+    /// <summary>
+    /// A Bypass card (sdk/09 L-58): it says what will no longer be asked -- destructive and unclassified tools, in this
+    /// conversation -- what still asks (an admin's rules, tools that ask every time), what the server records of every
+    /// call (<see cref="Evidence"/>), and for how long, with no extension. No places, no classes. A card that cannot say
+    /// this answers <see cref="GrantAnswer.NotNow"/>.
+    /// </summary>
+    public bool Bypass { get; init; }
+
+    /// <summary>
+    /// The conversation the card is for, when it has one: an app with several chats on one handler draws it in that chat
+    /// only. Null for a card offered before its conversation exists.
+    /// </summary>
+    public string? ConversationId { get; init; }
+
+    /// <summary>
+    /// For a Bypass card: what the server records of each call under it, as the profile says
+    /// (<c>approvals.bypass.evidence</c>: <c>decisions</c>, <c>calls</c> or <c>results</c>; sdk/40 A4 decision 6).
+    /// </summary>
+    public string? Evidence { get; init; }
 }
 
 /// <summary>What the person answered on the grant card.</summary>
@@ -39,6 +59,15 @@ public sealed record GrantAnswer
 
     /// <summary>The card's text as the person saw it; its SHA-256 goes to the server as evidence.</summary>
     public string? ShownText { get; init; }
+
+    /// <summary>
+    /// For a Bypass card: the person's own words on why, if they gave any (at most <see cref="ReasonLength"/> characters).
+    /// Kept with the grant's record; administrators see it (sdk/09 L-59, L-63).
+    /// </summary>
+    public string? Reason { get; init; }
+
+    /// <summary>The longest reason the server keeps.</summary>
+    public const int ReasonLength = 500;
 
     public static GrantAnswer NotNow { get; } = new();
 }
