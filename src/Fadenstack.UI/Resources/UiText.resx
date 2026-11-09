@@ -858,6 +858,46 @@
     <value>Stop Bypass</value>
     <comment>The marker's Stop button, for screen readers</comment>
   </data>
+  <data name="BypassSignIn" xml:space="preserve">
+    <value>Sign in again in your browser to switch Bypass on. This app waits until you approve it there.</value>
+    <comment>The Bypass confirmation while the second sign-in runs in the browser</comment>
+  </data>
+  <data name="BypassSignInCode" xml:space="preserve">
+    <value>The page shows the code {0}.</value>
+    <comment>Under it; {0}: the code the page shows, to compare</comment>
+  </data>
+  <data name="BypassOpenAgain" xml:space="preserve">
+    <value>Open the page again</value>
+    <comment>Button on the Bypass confirmation: opens the sign-in page in the browser again</comment>
+  </data>
+  <data name="BypassOpenAgainName" xml:space="preserve">
+    <value>Open the Bypass sign-in page again</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassNotConfirmed_denied" xml:space="preserve">
+    <value>Bypass stays off: it was not approved in the browser.</value>
+    <comment>The second sign-in was denied or not approved</comment>
+  </data>
+  <data name="BypassNotConfirmed_timed_out" xml:space="preserve">
+    <value>Bypass stays off: the sign-in in the browser took too long.</value>
+    <comment>Nobody approved the second sign-in in time</comment>
+  </data>
+  <data name="BypassNotConfirmed_no_browser" xml:space="preserve">
+    <value>Bypass stays off: the browser could not be opened or the server not reached.</value>
+    <comment>The browser could not be opened, or the server not reached, for the second sign-in</comment>
+  </data>
+  <data name="BypassSwitchOnAgain" xml:space="preserve">
+    <value>Switch on again</value>
+    <comment>Button on the line that says Bypass ended: asks for Bypass again</comment>
+  </data>
+  <data name="BypassSwitchOnAgainName" xml:space="preserve">
+    <value>Switch Bypass on again</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassListMarker" xml:space="preserve">
+    <value>Bypass · {0} left</value>
+    <comment>In the chat list: a chat that runs in Bypass; {0}: the time left</comment>
+  </data>
   <data name="BypassEnded" xml:space="preserve">
     <value>Bypass ended: the server ended it. Approvals ask again.</value>
     <comment>Bypass ended and the server did not say why</comment>

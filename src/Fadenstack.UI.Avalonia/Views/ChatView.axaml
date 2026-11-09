@@ -260,6 +260,14 @@
                         <TextBlock Classes="caption" Classes.muted="{Binding !IsNotConfirmed}" Text="{Binding StateText}" TextWrapping="Wrap"
                                    VerticalAlignment="Center" />
                     </DockPanel>
+                    <!-- The second sign-in (sdk/41): the code the page shows, and the page again; never the default button, Enter does nothing. -->
+                    <StackPanel Spacing="8" IsVisible="{Binding IsSigningIn}">
+                        <TextBlock Classes="strong" Text="{Binding SignInCodeText}" TextWrapping="Wrap"
+                                   IsVisible="{Binding SignInCodeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="secondary" HorizontalAlignment="Left" Content="{Binding OpenAgainText}"
+                                AutomationProperties.Name="{Binding OpenAgainName}" Command="{Binding OpenAgainCommand}"
+                                IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -590,6 +598,9 @@
         <Border Classes="grant-marker ended" IsVisible="{Binding Grants.HasBypassEnded}">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Classes="quiet small" Content="{v:Text Close}" Command="{Binding Grants.DismissBypassEndedCommand}" />
+                <Button DockPanel.Dock="Right" Classes="secondary small" Content="{Binding Grants.SwitchOnAgainText}"
+                        AutomationProperties.Name="{Binding Grants.SwitchOnAgainName}" Command="{Binding Grants.SwitchOnAgainCommand}"
+                        IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" Margin="8,0,0,0" />
                 <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.InfoOutlined}" />
                 <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
@@ -758,7 +769,11 @@
                                             CommandParameter="{Binding}">
                                         <DockPanel>
                                             <TextBlock DockPanel.Dock="Right" Classes="caption muted" Text="{Binding WhenText}" Margin="8,0,0,0" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Classes="caption muted strong" Text="{Binding BypassText}" AutomationProperties.Name="{Binding BypassText}"
+                                                           TextTrimming="CharacterEllipsis" IsVisible="{Binding HasBypass}" />
+                                            </StackPanel>
                                         </DockPanel>
                                     </Button>
                                     <Button Classes="icon small delete" ToolTip.Tip="{v:Text DeleteSession}" AutomationProperties.Name="{v:Text DeleteSession}"

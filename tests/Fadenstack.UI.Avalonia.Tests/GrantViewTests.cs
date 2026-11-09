@@ -21,9 +21,12 @@ namespace Fadenstack.UI.Avalonia.Tests;
 /// </summary>
 public class GrantViewTests
 {
+    // Paths for the OS the test runs on: Path.GetFileName splits only at that OS' separators (a C:\ path is one name on Linux).
+    private static readonly string DocsRoot = Path.Combine(Path.GetTempPath(), "Docs");
+
     private static readonly GrantOffer Offer = new()
     {
-        Places = new[] { GrantPlace.Document(@"C:\Docs\Plan.docx"), GrantPlace.Folder(@"C:\Docs\Notes", "Notes") },
+        Places = new[] { GrantPlace.Document(Path.Combine(DocsRoot, "Plan.docx")), GrantPlace.Folder(Path.Combine(DocsRoot, "Notes"), "Notes") },
         Classes = new[] { "read", "write" },
         Durations = new[] { TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60) },
         Preselected = TimeSpan.FromMinutes(30),

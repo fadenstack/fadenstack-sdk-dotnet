@@ -69,6 +69,20 @@ public sealed record GrantAnswer
     /// <summary>The longest reason the server keeps.</summary>
     public const int ReasonLength = 500;
 
+    /// <summary>
+    /// <paramref name="text"/> cut to <see cref="ReasonLength"/> at a character's end: never between the two halves of a
+    /// surrogate pair (an emoji, say), which the server could not store.
+    /// </summary>
+    public static string? Cut(string? text)
+    {
+        if (text is null || text.Length <= ReasonLength)
+        {
+            return text;
+        }
+        var end = char.IsHighSurrogate(text[ReasonLength - 1]) ? ReasonLength - 1 : ReasonLength;
+        return text.Substring(0, end);
+    }
+
     public static GrantAnswer NotNow { get; } = new();
 }
 

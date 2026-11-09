@@ -207,6 +207,8 @@ public sealed class SessionItemViewModel : ObservableObject
     private DateTimeOffset _lastActivity;
     private string _whenText;
     private bool _isCurrent;
+    private TimeSpan? _bypassLeft;
+    private string _bypassText = "";
 
     internal SessionItemViewModel(string id, string? title, DateTimeOffset lastActivity, DateTimeOffset now, UiStrings strings)
     {
@@ -240,6 +242,30 @@ public sealed class SessionItemViewModel : ObservableObject
         internal set => SetProperty(ref _isCurrent, value);
     }
 
+    /// <summary>"Bypass · 12 min left" while a Bypass runs in this chat (by the server's clock); empty otherwise.</summary>
+    public string BypassText
+    {
+        get => _bypassText;
+        private set
+        {
+            if (SetProperty(ref _bypassText, value))
+            {
+                OnPropertyChanged(nameof(HasBypass));
+            }
+        }
+    }
+
+    /// <summary>Whether a Bypass runs in this chat: the list says so.</summary>
+    public bool HasBypass => _bypassLeft is not null;
+
+    /// <summary>Shows the Bypass of this chat with its time left, or none (<c>null</c>).</summary>
+    internal void SetBypass(TimeSpan? left)
+    {
+        _bypassLeft = left;
+        BypassText = left is { } l ? _strings.BypassListMarker(_strings.Period(l)) : "";
+        OnPropertyChanged(nameof(HasBypass));
+    }
+
     internal void Touch(DateTimeOffset at, DateTimeOffset now)
     {
         _lastActivity = at;
@@ -254,6 +280,7 @@ public sealed class SessionItemViewModel : ObservableObject
             Title = strings.NewChat;
         }
         WhenText = When(_lastActivity, now, strings);
+        SetBypass(_bypassLeft);
     }
 
     /// <summary>The time today, "Yesterday", the weekday this week, else the date (written in the format culture).</summary>

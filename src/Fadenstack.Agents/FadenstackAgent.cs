@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Models;
@@ -39,7 +40,11 @@ public sealed class FadenstackAgent : IDisposable
         _settings = settings;
         Reporter = new EventReporter(settings.Client, settings.Report);
         Grants = new AgentGrants(this);
+        StepUps = new StepUpProofs(this);
     }
+
+    /// <summary>The proof of a fresh sign-in for Bypass while it lasts, in memory only (sdk/41).</summary>
+    internal StepUpProofs StepUps { get; }
 
     /// <summary>
     /// What the person let the agent run for a while on this device, held by the server (<see cref="AgentGrants.Available"/>
@@ -178,6 +183,12 @@ public sealed class FadenstackAgent : IDisposable
             {
                 _warned = true;
                 Log.BypassMode(Logger, Slug); // set to bypass, which no server allows yet: every call still asks
+            }
+            else if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && _settings.StepUp is null)
+            {
+                _warned = true;
+                Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, but the app opens no second sign-in " +
+                    "(AgentBuilder.UseStepUpHandler): Bypass needs one, so its sessions run in Auto (sdk/41).");
             }
             if (_settings.Report)
             {
@@ -463,7 +474,25 @@ public sealed class FadenstackAgent : IDisposable
         {
             throw new KeyNotFoundException($"No session '{sessionId}' for '{Slug}' on this device.");
         }
-        return new AgentSession(this, sessionId, entries.ToList(), AgentSession.LastMode(entries) ?? DefaultToolMode);
+        // A conversation whose Bypass grant still lives opens in Bypass, with its marker; one without never does
+        // (owner, 2026-11-09: parallel chats never break). The copy is read first where the server holds grants.
+        if (Grants.Available)
+        {
+            try
+            {
+                await Grants.RefreshAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is FadenstackException or HttpRequestException)
+            {
+                // offline: the copy as it is; the next turn settles it
+            }
+        }
+        // The grant decides, not the transcript: Bypass switched on before the chat's first message left no turn in it.
+        var lives = Grants.Live.Any(g => g.Kind == GrantKinds.Bypass && g.ConversationId == sessionId);
+        var before = AgentSession.LastMode(entries) ?? DefaultToolMode;
+        var session = new AgentSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before);
+        session.Reopened(before);
+        return session;
     }
 
     /// <summary>This device's sessions of the agent: the signed-in user's, so the agent starts first unless the host keeps them.</summary>

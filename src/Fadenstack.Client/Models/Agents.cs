@@ -229,6 +229,25 @@ public sealed record BypassSettings
     /// <c>results</c> (also a short summary of each result). The confirmation says it in plain words.
     /// </summary>
     public string Evidence { get; init; } = "calls";
+
+    /// <summary>
+    /// Switching it on needs a fresh sign-in in the browser (sdk/41): offered only to a client that announces
+    /// <c>bypass.step_up</c>, so a server that sets <see cref="Allowed"/> sends this too.
+    /// </summary>
+    public StepUpSettings? StepUp { get; init; }
+}
+
+/// <summary>The second sign-in before Bypass (sdk/41; OWASP ASVS 5.0 7.5.3), as the server describes it.</summary>
+public sealed record StepUpSettings
+{
+    /// <summary>Always true: no setting switches it off.</summary>
+    public bool Required { get; init; } = true;
+
+    /// <summary>How old the sign-in may be when the gateway makes the grant, in seconds (300).</summary>
+    public int MaxAge { get; init; } = 300;
+
+    /// <summary>Where the app starts one (the backend's <c>/api/agent-tokens/step-ups</c>).</summary>
+    public string Start { get; init; } = "/api/agent-tokens/step-ups";
 }
 
 public sealed record LocalMcpSettings

@@ -148,10 +148,78 @@ public sealed class AgentResource
     /// <see cref="GrantRequest.Conversation"/>.
     /// </summary>
     public Task<AgentGrant> CreateGrantAsync(GrantRequest request, string? conversationId, CancellationToken cancellationToken = default) =>
-        conversationId is null
+        CreateGrantAsync(request, conversationId, null, cancellationToken);
+
+    /// <summary>
+    /// The same, with the proof of a fresh sign-in a Bypass grant needs (sdk/41), sent as <c>X-Faden-Step-Up</c>. Without a
+    /// good one the server answers 401 <c>bypass_step_up_required</c> (<see cref="FadenstackAuthenticationException"/>).
+    /// </summary>
+    public Task<AgentGrant> CreateGrantAsync(GrantRequest request, string? conversationId, string? stepUpProof,
+        CancellationToken cancellationToken = default)
+    {
+        var headers = new Dictionary<string, string>();
+        if (conversationId is not null)
+        {
+            headers["X-Faden-Conversation-Id"] = conversationId;
+        }
+        if (stepUpProof is not null)
+        {
+            headers[StepUpHeader] = stepUpProof;
+        }
+        return headers.Count == 0
             ? _transport.PostAsync<AgentGrant>(Route("grants"), request, cancellationToken)
-            : _transport.PostAsync<AgentGrant>(Route("grants"), request,
-                new Dictionary<string, string> { ["X-Faden-Conversation-Id"] = conversationId }, cancellationToken);
+            : _transport.PostAsync<AgentGrant>(Route("grants"), request, headers, cancellationToken);
+    }
+
+    /// <summary>The header the proof of a fresh sign-in goes in (sdk/41).</summary>
+    public const string StepUpHeader = "X-Faden-Step-Up";
+
+    /// <summary>
+    /// Starts the second sign-in before Bypass (sdk/41) for this app's sign-in: the person approves it in the browser
+    /// (<see cref="StepUpStarted.VerificationUriComplete"/>). <paramref name="longestMinutes"/> is what the Bypass card
+    /// offers at most; the page shows it, and the server holds the grant to it.
+    /// </summary>
+    public Task<StepUpStarted> StartStepUpAsync(int? longestMinutes, string? clientVersion,
+        CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<StepUpStarted>(_transport.Api("api/agent-tokens/step-ups"),
+            new { longest_minutes = longestMinutes, client_version = clientVersion }, cancellationToken);
+
+    /// <summary>
+    /// Asks whether the person approved the step-up: the proof once approved, else the RFC 8628 error (<c>authorization_pending</c>,
+    /// <c>slow_down</c> with a new <c>interval</c>, <c>access_denied</c>, <c>expired_token</c>, <c>invalid_grant</c>).
+    /// </summary>
+    public async Task<(StepUpProof? Proof, string? Error, int? Interval)> PollStepUpAsync(string stepUpCode,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await _transport.SendAsync(
+            () => FadenstackTransport.JsonRequest(System.Net.Http.HttpMethod.Post,
+                _transport.Api("api/agent-tokens/step-ups/token"), new { step_up_code = stepUpCode }),
+            System.Net.Http.HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (response.IsSuccessStatusCode)
+        {
+            return (JsonSerializer.Deserialize<StepUpProof>(text, FadenstackJson.Options), null, null);
+        }
+        if ((int)response.StatusCode == 400)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(text);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var error)
+                    && error.ValueKind == JsonValueKind.String)
+                {
+                    int? interval = root.TryGetProperty("interval", out var i) && i.ValueKind == JsonValueKind.Number ? i.GetInt32() : null;
+                    return (null, error.GetString(), interval);
+                }
+            }
+            catch (JsonException)
+            {
+                // not the poll's answer: below
+            }
+        }
+        throw ErrorReader.ToException(response, text);
+    }
 
     /// <summary>
     /// Extends a running grant of this device in place: more time, more places. The server keeps its whole span within

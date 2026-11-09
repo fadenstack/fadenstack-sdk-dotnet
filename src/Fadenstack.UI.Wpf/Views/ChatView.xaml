@@ -253,6 +253,9 @@
             <DockPanel>
                 <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Content="{Binding Grants.CloseText}"
                         Command="{Binding Grants.DismissBypassEndedCommand}" Margin="8,0,0,0" Padding="8,2" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding Grants.SwitchOnAgainText}"
+                        AutomationProperties.Name="{Binding Grants.SwitchOnAgainName}" Command="{Binding Grants.SwitchOnAgainCommand}"
+                        IsDefault="False" IsCancel="False" Margin="8,0,0,0" Padding="8,2" />
                 <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
@@ -675,7 +678,12 @@
                                         <DockPanel>
                                             <TextBlock DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding WhenText}"
                                                        Margin="8,0,0,0" />
-                                            <TextBlock x:Name="TitleText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TitleText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" FontWeight="SemiBold" Text="{Binding BypassText}"
+                                                           AutomationProperties.Name="{Binding BypassText}" TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding HasBypass, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                            </StackPanel>
                                         </DockPanel>
                                     </Button>
                                     <Button x:Name="Delete" Style="{StaticResource Fadenstack.GhostButton}" HorizontalAlignment="Right" Margin="0,0,4,0"

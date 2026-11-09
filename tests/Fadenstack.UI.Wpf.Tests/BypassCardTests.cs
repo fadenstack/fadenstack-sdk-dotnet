@@ -21,7 +21,7 @@ public class BypassCardTests
 {
     private static (BypassPart Part, Task<GrantAnswer> Answer) Part()
     {
-        var broker = new ApprovalBroker();
+        var broker = new ApprovalBroker { OpenBrowser = _ => true }; // never a real browser in a test
         PendingGrant? pending = null;
         broker.GrantRequested += p =>
         {
@@ -34,7 +34,8 @@ public class BypassCardTests
             Durations = new[] { TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30) },
         }, CancellationToken.None);
         var part = (BypassPart)typeof(BypassPart).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
-            new[] { typeof(PendingGrant), typeof(UiStrings) }, null)!.Invoke(new object[] { pending!, UiStrings.For(CultureInfo.GetCultureInfo("en")) });
+            new[] { typeof(PendingGrant), typeof(UiStrings), typeof(Func<Uri, bool>) }, null)!
+            .Invoke(new object[] { pending!, UiStrings.For(CultureInfo.GetCultureInfo("en")), (Func<Uri, bool>)(link => broker.OpenBrowser(link)) });
         return (part, answer);
     }
 

@@ -32,9 +32,14 @@ public class BypassViewTests
     };
 
     /// <summary>A confirmation as the chat makes it, and the answer its buttons give.</summary>
-    private static (BypassPart Part, Task<GrantAnswer> Answer) Card(UiStrings strings)
+    private static (BypassPart Part, Task<GrantAnswer> Answer) Card(UiStrings strings, List<Uri>? opened = null)
     {
         var broker = new ApprovalBroker();
+        broker.OpenBrowser = uri =>
+        {
+            opened?.Add(uri); // never a real browser in a test
+            return true;
+        };
         PendingGrant? pending = null;
         broker.GrantRequested += p =>
         {
@@ -43,7 +48,8 @@ public class BypassViewTests
         };
         var answer = broker.RequestGrantAsync(Offer, CancellationToken.None);
         var part = (BypassPart)typeof(BypassPart).GetConstructor(BindingFlags.NonPublic | BindingFlags.Instance, null,
-            new[] { typeof(PendingGrant), typeof(UiStrings) }, null)!.Invoke(new object[] { pending!, strings });
+            new[] { typeof(PendingGrant), typeof(UiStrings), typeof(Func<Uri, bool>) }, null)!
+            .Invoke(new object[] { pending!, strings, (Func<Uri, bool>)(link => broker.OpenBrowser(link)) });
         return (part, answer);
     }
 
@@ -136,5 +142,81 @@ public class BypassViewTests
         Assert.False((await answer).Allowed);
         await host.PumpAsync();
         Assert.False(shown.IsEffectivelyVisible);
+    }
+
+    [AvaloniaFact]
+    public void The_signing_in_panel_shows_the_code_and_its_button_opens_the_page_again_and_is_never_the_default()
+    {
+        var strings = UiStrings.For(CultureInfo.GetCultureInfo("en"));
+        var opened = new List<Uri>();
+        var (part, _) = Card(strings, opened);
+        var template = new ChatView().DataTemplates.OfType<DataTemplate>().First(t => t.DataType == typeof(BypassPart));
+        var card = new ContentControl { Content = part, ContentTemplate = template };
+        ChatText.SetStrings(card, strings);
+        var window = new Window { Width = 480, Height = 900, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.DoesNotContain(card.GetVisualDescendants().OfType<Button>(), b => b.Command == part.OpenAgainCommand && b.IsEffectivelyVisible);
+
+        part.AllowCommand.Execute(null);
+        var link = new Uri("https://faden.example/step-up#code=BCDF-GHJK");
+        typeof(BypassPart).GetMethod("StepUp", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(part, new object[]
+        {
+            new StepUpRequest { ConversationId = "c-1", Link = link, UserCode = "BCDF-GHJK", ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10) },
+            StepUpStage.Browser,
+        });
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(BypassCardState.SigningIn, part.State);
+
+        var texts = card.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToList();
+        Assert.Contains(part.SignInCodeText, texts);
+        Assert.Contains(part.StateText, texts); // the state line says the sign-in runs in the browser
+        Assert.Contains("BCDF-GHJK", part.SignInCodeText);
+        var again = card.GetVisualDescendants().OfType<Button>().Single(b => b.Command == part.OpenAgainCommand);
+        Assert.True(again.IsEffectivelyVisible);
+        Assert.Equal(strings.BypassOpenAgain, again.Content);
+        Assert.Equal(strings.BypassOpenAgainName, AutomationProperties.GetName(again));
+        Assert.False(again.IsDefault);
+        Assert.False(again.IsCancel);
+
+        again.Command!.Execute(null);
+        Assert.Equal(new[] { link }, opened);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public async Task The_ended_line_offers_to_switch_on_again_and_the_chat_list_shows_a_running_bypass()
+    {
+        using var host = await ChatHost.OpenAsync(0, openSession: false);
+        var strings = host.Chat.Strings;
+        var grants = host.Chat.Grants;
+
+        // The line that says why Bypass ended carries the Switch on again button, bound to the command and named for it.
+        var ended = host.View.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("grant-marker") && b.Classes.Contains("ended"));
+        var again = ended.GetVisualDescendants().OfType<Button>().Single(b => b.Command == grants.SwitchOnAgainCommand);
+        Assert.Equal(strings.BypassSwitchOnAgain, again.Content);
+        Assert.Equal(strings.BypassSwitchOnAgainName, AutomationProperties.GetName(again));
+        Assert.False(again.IsDefault);
+        Assert.False(again.IsCancel);
+        Assert.False(ended.IsEffectivelyVisible);
+        typeof(GrantsViewModel).GetMethod("SetBypassEnded", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(grants, new object?[] { true, "admin" });
+        await host.PumpAsync();
+        Assert.True(ended.IsEffectivelyVisible);
+        Assert.True(again.IsEffectivelyVisible);
+
+        // The chat list item shows the Bypass text, named for it, only while its Bypass runs.
+        host.Chat.IsHistoryOpen = true;
+        await host.PumpAsync();
+        var item = host.Chat.Sessions.First();
+        Assert.False(item.HasBypass);
+        var text = host.View.GetVisualDescendants().OfType<TextBlock>().Single(t => t.DataContext == item && t.Classes.Contains("strong") && t.Classes.Contains("caption"));
+        Assert.False(text.IsEffectivelyVisible);
+        typeof(SessionItemViewModel).GetMethod("SetBypass", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(item, new object?[] { TimeSpan.FromMinutes(30) });
+        await host.PumpAsync();
+        Assert.True(item.HasBypass);
+        Assert.True(text.IsEffectivelyVisible);
+        Assert.Equal(item.BypassText, text.Text);
+        Assert.Equal(item.BypassText, AutomationProperties.GetName(text));
+        Assert.Contains("Bypass", item.BypassText);
     }
 }

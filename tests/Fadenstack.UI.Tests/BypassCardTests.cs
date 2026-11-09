@@ -16,7 +16,7 @@ namespace Fadenstack.UI.Tests;
 /// confirmation says what no longer asks, what still asks, what the server records and for how long, and only the
 /// person's click switches it on, once the server confirmed it; the marker shows the time left and what is recorded, and
 /// Stop ends it; when the server ends it the marker goes and the chat says why; Settings → Approvals lists it; a chat
-/// never comes back in Bypass.
+/// comes back in Bypass while its grant lives (parallel chats never break).
 /// </summary>
 public class BypassCardTests
 {
@@ -30,9 +30,14 @@ public class BypassCardTests
     }
 
     private static (AgentChatViewModel Chat, FadenstackAgent Agent, Fadenstack.Agents.Sessions.MemorySessionStore Sessions) Chat(Gateway gateway,
-        ApprovalBroker? broker = null, Fadenstack.Agents.Sessions.MemorySessionStore? sessions = null)
+        ApprovalBroker? broker = null, Fadenstack.Agents.Sessions.MemorySessionStore? sessions = null, List<Uri>? opened = null)
     {
         broker ??= new ApprovalBroker();
+        broker.OpenBrowser = link =>
+        {
+            opened?.Add(link); // never a real browser in a test
+            return true;
+        };
         sessions ??= new Fadenstack.Agents.Sessions.MemorySessionStore();
         var agent = gateway.Builder(sessions).AddTools(new PageTools()).UseApprovals(broker).Build();
         var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions
@@ -95,7 +100,7 @@ public class BypassCardTests
         Assert.Equal("Still asks: your administrator's \"Ask first\" rules and tools marked to always ask. What is blocked stays blocked.",
             card.StillAsksText);
         Assert.Equal(new[] { "15 min", "30 min", "1 h" }, card.Durations.Select(d => d.Label));
-        Assert.Equal("15 min", card.SelectedDuration!.Label); // the shortest first (sdk/40 A3.3, default taken)
+        Assert.Equal("30 min", card.SelectedDuration!.Label); // 30 min first, as the work card (owner, 2026-11-09)
         Assert.StartsWith("When the time is up, Bypass ends. It cannot be extended", card.NoExtensionText);
         Assert.Equal(("Why (optional)", "Your administrators see your reason."), (card.ReasonLabel, card.ReasonSeenText));
         foreach (var line in new[] { card.Title, card.NoLongerAsksText, card.StillAsksText, records, card.NoExtensionText, card.ReasonSeenText })
@@ -123,13 +128,13 @@ public class BypassCardTests
         var (card, grant) = await SwitchOnAsync(chat, agent, reason: "Renaming 400 drawings");
 
         var made = grants.Made.Single();
-        Assert.Equal(("bypass", 15, "Renaming 400 drawings"), (made.Json.GetProperty("kind").GetString(),
+        Assert.Equal(("bypass", 30, "Renaming 400 drawings"), (made.Json.GetProperty("kind").GetString(),
             made.Json.GetProperty("minutes").GetInt32(), made.Json.GetProperty("reason").GetString()));
         Assert.Equal(64, made.Json.GetProperty("shown_text_sha256").GetString()!.Length);
         Assert.Equal((BypassCardState.On, false), (card.State, card.IsShown));
         Assert.Equal((ToolMode.Bypass, grant.Id), (chat.SelectedToolMode.Mode, chat.CurrentSessionId is { } id ? agent.Grants.BypassFor(id)?.Id : null));
         Assert.True(chat.Grants.HasBypass);
-        Assert.Matches(@"^Bypass on · 1[45] min left$", chat.Grants.BypassText);
+        Assert.Matches(@"^Bypass on · (29|30) min left$", chat.Grants.BypassText);
         Assert.Equal("Each tool that runs is recorded with what it was given.", chat.Grants.BypassRecordedText);
         Assert.Equal("Stop Bypass", chat.Grants.BypassStopName);
         Assert.False(chat.Grants.HasMarker); // the work marker and its "Another 30 min" are not Bypass's
@@ -272,7 +277,7 @@ public class BypassCardTests
         var (chat, agent, _) = Chat(gateway);
         await chat.InitializeAsync();
         await SwitchOnAsync(chat, agent);
-        grants.ServerNow = grants.ServerNow.AddMinutes(16);
+        grants.ServerNow = grants.ServerNow.AddMinutes(31);
 
         await agent.Grants.RefreshAsync();
 
@@ -293,7 +298,7 @@ public class BypassCardTests
         chat.IsSettingsOpen = true;
         var row = await Until(() => chat.Grants.Standing.FirstOrDefault(s => s.IsBypass));
 
-        Assert.Matches(@"^Bypass in a chat, 1[45] min left · Each tool that runs is recorded\.$", row.Title);
+        Assert.Matches(@"^Bypass in a chat, (29|30) min left · Each tool that runs is recorded\.$", row.Title);
         await row.RevokeCommand.ExecuteAsync(null);
         Assert.Equal("revoked", grants.Status(grant.Id));
         Assert.False(chat.Grants.HasBypass);
@@ -302,7 +307,286 @@ public class BypassCardTests
     }
 
     [Fact]
-    public async Task Bypass_is_never_remembered_a_new_chat_and_a_chat_opened_again_start_without_it()
+    public async Task Leaving_a_chat_does_not_end_its_bypass_the_chat_list_shows_it_and_the_chat_comes_back_in_bypass()
+    {
+        // Parallel chats never break (owner, 2026-11-09): a new chat and another chat leave the Bypass of this one running.
+        var (gateway, grants) = Server(Offered());
+        var sessions = new Fadenstack.Agents.Sessions.MemorySessionStore();
+        var (chat, agent, _) = Chat(gateway, sessions: sessions);
+        await chat.InitializeAsync();
+        var (_, grant) = await SwitchOnAsync(chat, agent);
+        gateway.Says("Done.");
+        await chat.SendAsync("Rename the drawings.");
+        var first = chat.CurrentSessionId!;
+
+        chat.NewChat();
+        gateway.Says("Other.");
+        await chat.SendAsync("Something else.");
+        var second = chat.CurrentSessionId!;
+
+        Assert.Equal(ToolMode.Ask, chat.SelectedToolMode.Mode);
+        Assert.False(chat.Grants.HasBypass);
+        Assert.Equal("active", grants.Status(grant.Id));
+        await chat.RefreshSessionsAsync();
+        var running = chat.Sessions.Single(s => s.Id == first);
+        var other = chat.Sessions.Single(s => s.Id == second);
+        Assert.True(running.HasBypass);
+        Assert.Matches(@"^Bypass · (29|30) min left$", running.BypassText);
+        Assert.False(other.HasBypass);
+        Assert.Equal("", other.BypassText);
+
+        await chat.OpenSessionAsync(first); // another chat opened, then this one again
+        Assert.Equal((ToolMode.Bypass, true), (chat.SelectedToolMode.Mode, chat.Grants.HasBypass));
+        Assert.Contains(chat.ToolModes, o => o.Mode == ToolMode.Bypass);
+        await chat.OpenSessionAsync(second);
+        Assert.Equal((ToolMode.Ask, false), (chat.SelectedToolMode.Mode, chat.Grants.HasBypass));
+
+        var (again, _, _) = Chat(gateway, sessions: sessions); // a fresh panel on the same device
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(first);
+        Assert.Equal((ToolMode.Bypass, true), (again.SelectedToolMode.Mode, again.Grants.HasBypass));
+        Assert.DoesNotContain(gateway.Server.Requests, r => r.Method == "DELETE"); // nothing revoked the running Bypass
+        Assert.Equal("active", grants.Status(grant.Id));
+        Assert.Single(grants.Made);
+    }
+
+    [Fact]
+    public async Task The_chat_list_counts_the_time_left_on_each_tick()
+    {
+        var (gateway, grants) = Server(Offered());
+        var (chat, agent, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        await SwitchOnAsync(chat, agent);
+        gateway.Says("Done.");
+        await chat.SendAsync("Rename the drawings.");
+        await chat.RefreshSessionsAsync();
+        var item = chat.Sessions.Single();
+        Assert.Matches(@"^Bypass · (29|30) min left$", item.BypassText);
+
+        grants.ServerNow = grants.ServerNow.AddMinutes(20);
+        await agent.Grants.RefreshAsync(); // the copy reads the server's clock; its change ticks the markers
+
+        Assert.Matches(@"^Bypass · (9|10) min left$", item.BypassText);
+        grants.ServerNow = grants.ServerNow.AddMinutes(20);
+        await agent.Grants.RefreshAsync();
+        Assert.False(item.HasBypass);
+        Assert.Equal("", item.BypassText);
+    }
+
+    [Fact]
+    public void The_card_goes_from_pending_to_confirming_to_signing_in_and_back_to_confirming_before_it_is_on()
+    {
+        var opened = new List<Uri>();
+        var (card, _) = Bare(opened);
+        Assert.False(card.OpenAgainCommand.CanExecute(null)); // nothing to open yet
+
+        card.AllowCommand.Execute(null);
+        Assert.Equal((BypassCardState.Confirming, "Waiting for the server to confirm…"), (card.State, card.StateText));
+        var request = Request();
+        card.StepUp(request, StepUpStage.Browser);
+
+        Assert.Equal((BypassCardState.SigningIn, true, true), (card.State, card.IsShown, card.IsSigningIn));
+        const string signIn = "Sign in again in your browser to switch Bypass on. This app waits until you approve it there.";
+        Assert.Equal((signIn, signIn), (card.SignInText, card.StateText));
+        Assert.Equal("The page shows the code BCDF-GHJK.", card.SignInCodeText);
+        Assert.Equal("Open the page again", card.OpenAgainText);
+        Assert.Equal("Open the Bypass sign-in page again", card.OpenAgainName);
+        Assert.False(card.AllowCommand.CanExecute(null));
+        Assert.False(card.NotNowCommand.CanExecute(null));
+        Assert.True(card.OpenAgainCommand.CanExecute(null));
+        card.OpenAgainCommand.Execute(null);
+        card.OpenAgainCommand.Execute(null);
+        Assert.Equal(new[] { request.Link, request.Link }, opened);
+
+        card.StepUp(request, StepUpStage.Approved);
+        Assert.Equal((BypassCardState.Confirming, false), (card.State, card.OpenAgainCommand.CanExecute(null)));
+        card.Confirmed();
+        Assert.Equal((BypassCardState.On, false), (card.State, card.IsShown));
+    }
+
+    [Theory]
+    [InlineData(StepUpStage.Denied, "Bypass stays off: it was not approved in the browser.")]
+    [InlineData(StepUpStage.TimedOut, "Bypass stays off: the sign-in in the browser took too long.")]
+    [InlineData(StepUpStage.Failed, "Bypass stays off: the browser could not be opened or the server not reached.")]
+    public void A_sign_in_that_comes_to_nothing_ends_the_card_with_its_own_text_whether_reported_or_thrown(StepUpStage stage, string said)
+    {
+        var (reported, _) = Bare();
+        reported.AllowCommand.Execute(null);
+        reported.StepUp(Request(), StepUpStage.Browser);
+        reported.StepUp(Request(), stage);
+        Assert.Equal((BypassCardState.NotConfirmed, true, said), (reported.State, reported.IsShown, reported.StateText));
+        Assert.False(reported.OpenAgainCommand.CanExecute(null));
+        Assert.True(reported.CloseCommand.CanExecute(null));
+
+        var (thrown, _) = Bare(); // the SDK throws it from StartBypassAsync too
+        thrown.AllowCommand.Execute(null);
+        thrown.NotConfirmed(new BypassSignInException(stage, "no"));
+        Assert.Equal((BypassCardState.NotConfirmed, said), (thrown.State, thrown.StateText));
+    }
+
+    [Fact]
+    public void A_sign_in_the_app_stopped_waiting_for_withdraws_the_card()
+    {
+        var (card, _) = Bare();
+        card.AllowCommand.Execute(null);
+        card.StepUp(Request(), StepUpStage.Browser);
+
+        card.StepUp(Request(), StepUpStage.Cancelled);
+
+        Assert.Equal((BypassCardState.Declined, false), (card.State, card.IsShown));
+    }
+
+    [Fact]
+    public void A_report_for_a_card_nobody_allowed_changes_nothing()
+    {
+        var (card, _) = Bare();
+
+        card.StepUp(Request(), StepUpStage.Browser);
+        card.StepUp(Request(), StepUpStage.Denied);
+
+        Assert.Equal(BypassCardState.Pending, card.State);
+    }
+
+    [Fact]
+    public void The_reason_is_cut_at_a_characters_end_never_between_the_halves_of_an_emoji()
+    {
+        var (card, _) = Bare();
+
+        card.Reason = new string('a', 499) + "\U0001F600" + "bbbb"; // the emoji is at UTF-16 positions 499 and 500
+
+        Assert.Equal(499, card.Reason.Length);
+        Assert.DoesNotContain(card.Reason, char.IsSurrogate);
+        card.Reason = new string('a', 498) + "\U0001F600" + "bbbb"; // it fits: both halves stay
+        Assert.Equal(500, card.Reason.Length);
+    }
+
+    [Fact]
+    public async Task Allow_opens_the_second_sign_in_the_card_shows_it_and_bypass_is_on_once_the_person_approved_it()
+    {
+        var (gateway, grants) = Server(Offered());
+        grants.PendingPolls = 1;
+        var opened = new List<Uri>();
+        var (chat, agent, _) = Chat(gateway, opened: opened);
+        await chat.InitializeAsync();
+        var starting = chat.StartBypassAsync();
+        var card = await Until(() => chat.Grants.BypassCard);
+        Assert.Empty(opened); // nothing opens before the person's click
+        Assert.Equal(0, grants.StepUpsStarted);
+
+        card.AllowCommand.Execute(null);
+        await Until(() => card.State == BypassCardState.SigningIn);
+
+        Assert.Equal("The page shows the code BCDF-GHJK.", card.SignInCodeText);
+        Assert.Single(opened);
+        card.OpenAgainCommand.Execute(null);
+        Assert.Equal(2, opened.Count);
+        Assert.Equal(opened[0], opened[1]);
+        Assert.Empty(grants.Made);
+        Assert.True(await starting);
+        Assert.Equal((BypassCardState.On, false), (card.State, card.IsShown));
+        Assert.True(chat.Grants.HasBypass);
+        Assert.Equal(ToolMode.Bypass, chat.SelectedToolMode.Mode);
+        Assert.Single(grants.Made);
+        Assert.Single(opened.Distinct());
+        Assert.NotNull(agent.Grants.Live.Single());
+    }
+
+    [Theory]
+    [InlineData("denied", "Bypass stays off: it was not approved in the browser.")]
+    [InlineData("expired", "Bypass stays off: the sign-in in the browser took too long.")]
+    public async Task When_the_person_does_not_approve_in_the_browser_the_card_says_so_and_nothing_is_granted(string outcome, string said)
+    {
+        var (gateway, grants) = Server(Offered());
+        grants.StepUpOutcome = outcome;
+        var (chat, agent, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var starting = chat.StartBypassAsync();
+        var card = await Until(() => chat.Grants.BypassCard);
+
+        card.AllowCommand.Execute(null);
+
+        Assert.False(await starting);
+        Assert.Equal((BypassCardState.NotConfirmed, true, said), (card.State, card.IsShown, card.StateText));
+        Assert.Empty(grants.Made);
+        Assert.Empty(agent.Grants.Live);
+        Assert.Equal(ToolMode.Ask, chat.SelectedToolMode.Mode);
+        Assert.Null(chat.Error); // the card says it; no second message
+    }
+
+    [Fact]
+    public async Task When_the_browser_cannot_be_opened_the_card_says_so()
+    {
+        var (gateway, grants) = Server(Offered());
+        var broker = new ApprovalBroker();
+        var (chat, _, _) = Chat(gateway, broker);
+        broker.OpenBrowser = _ => false;
+        await chat.InitializeAsync();
+        var starting = chat.StartBypassAsync();
+        var card = await Until(() => chat.Grants.BypassCard);
+
+        card.AllowCommand.Execute(null);
+
+        Assert.False(await starting);
+        Assert.Equal((BypassCardState.NotConfirmed, "Bypass stays off: the browser could not be opened or the server not reached."),
+            (card.State, card.StateText));
+        Assert.Empty(grants.Made);
+    }
+
+    [Fact]
+    public async Task Switch_on_again_is_a_button_on_the_ended_line_that_asks_once_and_only_on_its_click()
+    {
+        var (gateway, grants) = Server(Offered());
+        var broker = new ApprovalBroker();
+        var asked = 0;
+        broker.GrantRequested += _ => asked++;
+        var (chat, agent, _) = Chat(gateway, broker);
+        await chat.InitializeAsync();
+        var (_, grant) = await SwitchOnAsync(chat, agent);
+        Assert.Equal(1, asked);
+        Assert.False(chat.Grants.SwitchOnAgainCommand.CanExecute(null)); // Bypass runs: there is no ended line
+
+        grants.End(grant.Id, "admin");
+        await agent.Grants.RefreshAsync();
+        await Until(() => chat.Grants.HasBypassEnded);
+
+        Assert.Equal(("Switch on again", "Switch Bypass on again"), (chat.Grants.SwitchOnAgainText, chat.Grants.SwitchOnAgainName));
+        Assert.True(chat.Grants.SwitchOnAgainCommand.CanExecute(null));
+        await Task.Delay(100);
+        Assert.Equal(1, asked); // the line alone asks nothing
+        var clicking = chat.Grants.SwitchOnAgainCommand.ExecuteAsync(null);
+        var card = await Until(() => chat.Grants.BypassCard is { IsPending: true } pending ? pending : null);
+        Assert.Equal(2, asked); // one click, one card; Allow and the second sign-in come from the card
+        Assert.Single(grants.Made);
+        card.NotNowCommand.Execute(null);
+        await clicking;
+        Assert.Equal(2, asked);
+        Assert.Single(grants.Made);
+        Assert.False(chat.Grants.HasBypassEnded); // the line goes once Bypass is asked for
+    }
+
+    [Fact]
+    public async Task The_apps_end_pauses_bypass_and_the_chat_neither_ends_it_nor_says_it_ended()
+    {
+        var (gateway, grants) = Server(Offered());
+        var (chat, agent, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var (_, grant) = await SwitchOnAsync(chat, agent);
+
+        Assert.Single(await agent.Grants.PauseBypassAsync()); // the app's end
+        await Task.Delay(200); // the chat's handlers (the dispatcher runs them at once)
+
+        Assert.Equal("paused", grants.Status(grant.Id)); // not ended: the next start resumes it
+        Assert.False(chat.Grants.HasBypassEnded);
+        Assert.False(chat.Grants.HasBypass); // nothing runs under it while paused
+
+        Assert.Empty(await agent.Grants.ResumeBypassAsync()); // the next start
+        await Until(() => chat.Grants.HasBypass);
+        Assert.Equal(ToolMode.Bypass, chat.SelectedToolMode.Mode);
+        Assert.Equal("active", grants.Status(grant.Id));
+    }
+
+    [Fact]
+    public async Task Switch_on_again_is_off_while_the_server_does_not_offer_bypass()
     {
         var (gateway, grants) = Server(Offered());
         var sessions = new Fadenstack.Agents.Sessions.MemorySessionStore();
@@ -312,18 +596,43 @@ public class BypassCardTests
         gateway.Says("Done.");
         await chat.SendAsync("Rename the drawings.");
         var id = chat.CurrentSessionId!;
+        gateway.Approvals = Offered(allowed: false); // a panel that starts now reads a profile that no longer offers Bypass
+        var (later, laterAgent, _) = Chat(gateway, sessions: sessions);
+        await later.InitializeAsync();
+        await later.OpenSessionAsync(id);
+        Assert.True(later.Grants.HasBypass); // its grant still lives
+        Assert.False(laterAgent.BypassOffered);
 
-        chat.NewChat();
+        grants.End(grant.Id, "kill_switch");
+        await laterAgent.Grants.RefreshAsync();
+        await Until(() => later.Grants.HasBypassEnded);
 
-        Assert.Equal(ToolMode.Ask, chat.SelectedToolMode.Mode);
-        await Until(() => grants.Status(grant.Id) == "revoked"); // leaving the chat ends its Bypass
-        var (again, _, _) = Chat(gateway, sessions: sessions);
-        await again.InitializeAsync();
-        await again.OpenSessionAsync(id);
-        Assert.Equal(ToolMode.Ask, again.SelectedToolMode.Mode);
-        Assert.False(again.Grants.HasBypass);
-        Assert.Single(grants.Made);
+        Assert.False(later.Grants.SwitchOnAgainCommand.CanExecute(null));
     }
+
+    private static readonly UiStrings English = UiStrings.For(CultureInfo.GetCultureInfo("en-GB"));
+
+    /// <summary>A card on its own, with an opener that records instead of opening a browser.</summary>
+    private static (BypassPart Card, PendingGrant Pending) Bare(List<Uri>? opened = null)
+    {
+        var offer = new GrantOffer
+        {
+            Bypass = true, ConversationId = "c-1", Preselected = TimeSpan.FromMinutes(30),
+            Durations = new[] { TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(60) },
+        };
+        var pending = new PendingGrant(offer, CancellationToken.None);
+        return (new BypassPart(pending, English, link =>
+        {
+            opened?.Add(link);
+            return true;
+        }), pending);
+    }
+
+    private static StepUpRequest Request() => new()
+    {
+        ConversationId = "c-1", Link = new Uri("https://faden.example/step-up#code=BCDF-GHJK"), UserCode = "BCDF-GHJK",
+        ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(10),
+    };
 
     [Fact]
     public async Task A_confirmation_shows_only_in_the_chat_of_its_conversation_and_one_no_chat_draws_is_never_allowed()

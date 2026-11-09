@@ -942,6 +942,14 @@
                     <TextBlock x:Name="StateLine" Style="{StaticResource Fadenstack.Muted}" Text="{Binding StateText}" TextWrapping="Wrap"
                                VerticalAlignment="Center" />
                 </DockPanel>
+                <!-- The second sign-in (sdk/41): the code the page shows, and the page again; never the default button, Enter does nothing. -->
+                <StackPanel x:Name="SignIn" Margin="0,6,0,0" Visibility="{Binding IsSigningIn, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <TextBlock Text="{Binding SignInCodeText}" FontWeight="SemiBold" TextWrapping="Wrap"
+                               Visibility="{Binding SignInCodeText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                    <Button x:Name="OpenAgain" Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Content="{Binding OpenAgainText}" AutomationProperties.Name="{Binding OpenAgainName}" Command="{Binding OpenAgainCommand}"
+                            IsDefault="False" IsCancel="False" KeyboardNavigation.AcceptsReturn="False" />
+                </StackPanel>
             </StackPanel>
         </Border>
         <DataTemplate.Triggers>

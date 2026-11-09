@@ -28,6 +28,7 @@ public sealed class AgentBuilder
     private IApprovalStore? _approvalStore;
     private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
+    private IStepUpHandler? _stepUp;
     private ToolMode? _defaultMode;
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
@@ -145,6 +146,17 @@ public sealed class AgentBuilder
     public AgentBuilder UsePermissionMode(PermissionMode mode)
     {
         _permissionMode = mode is PermissionMode.Ask or PermissionMode.Bypass ? mode : throw new ArgumentOutOfRangeException(nameof(mode));
+        return this;
+    }
+
+    /// <summary>
+    /// Who opens the second sign-in before Bypass is switched on (sdk/41): the link in the system browser, and what the
+    /// person sees meanwhile. A chat's approval broker does it already; an app set to <see cref="PermissionMode.Bypass"/>
+    /// without a UI gives its own (<see cref="SystemBrowser"/> opens the page). Without one, no Bypass: the app runs in Auto.
+    /// </summary>
+    public AgentBuilder UseStepUpHandler(IStepUpHandler handler)
+    {
+        _stepUp = handler ?? throw new ArgumentNullException(nameof(handler));
         return this;
     }
 
@@ -320,6 +332,7 @@ public sealed class AgentBuilder
             ApprovalStore = _approvalStore,
             Retention = _retention,
             PermissionMode = _permissionMode,
+            StepUpHandler = _stepUp,
             DefaultMode = _defaultMode,
             MaxRounds = _maxRounds,
             HistoryTokens = _historyTokens,
@@ -365,6 +378,11 @@ internal sealed class AgentSettings
 
     /// <summary>Who draws the grant card: the approval handler, when it draws those too.</summary>
     public IGrantHandler? Grants => Approvals as IGrantHandler;
+
+    /// <summary>Who opens the second sign-in for Bypass (sdk/41): the app's own, else the approval handler when it does.</summary>
+    public IStepUpHandler? StepUpHandler { get; init; }
+
+    public IStepUpHandler? StepUp => StepUpHandler ?? Approvals as IStepUpHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public SessionRetention Retention { get; init; } = SessionRetention.Default;
