@@ -232,6 +232,12 @@
         <Setter Property="Padding" Value="12,5" />
     </Style>
 
+    <!-- The same for a toggle (a card's time picker): a style is for one type, and a Button's throws on a ToggleButton. -->
+    <Style x:Key="Fadenstack.SecondaryToggle" TargetType="ToggleButton" BasedOn="{StaticResource Fadenstack.GhostButton}">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="Padding" Value="12,5" />
+    </Style>
+
     <!-- A text field for a host's own forms (sign-in, settings): rounded like the controls, accent on focus. -->
     <Style x:Key="Fadenstack.TextBox" TargetType="TextBox">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
@@ -544,7 +550,7 @@
                             Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                     <!-- "Allow for ..." opens the times; any answer closes them (IsTimeMenuOpen). -->
                     <Grid Visibility="{Binding CanAllowForTime, Converter={StaticResource Fadenstack.BoolToVisibility}}">
-                        <ToggleButton x:Name="AllowForButton" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text AllowFor}"
+                        <ToggleButton x:Name="AllowForButton" Style="{StaticResource Fadenstack.SecondaryToggle}" Content="{v:Text AllowFor}"
                                       IsChecked="{Binding IsTimeMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=AllowForMenu, Converter={StaticResource Fadenstack.InverseBool}}" />
                         <Popup x:Name="AllowForMenu" PlacementTarget="{Binding ElementName=AllowForButton}" Placement="Bottom" StaysOpen="False"
@@ -623,7 +629,7 @@
                 <DockPanel Margin="0,10,0,0">
                     <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <Grid HorizontalAlignment="Left">
-                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryButton}" MinWidth="96"
+                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryToggle}" MinWidth="96"
                                       Content="{Binding SelectedDuration.Label}" IsEnabled="{Binding IsPending}"
                                       IsChecked="{Binding IsDurationMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=DurationMenu, Converter={StaticResource Fadenstack.InverseBool}}" />
@@ -688,7 +694,7 @@
                 <DockPanel Margin="0,10,0,0">
                     <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <Grid HorizontalAlignment="Left">
-                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryButton}" MinWidth="96"
+                        <ToggleButton x:Name="DurationButton" Style="{StaticResource Fadenstack.SecondaryToggle}" MinWidth="96"
                                       Content="{Binding SelectedDuration.Label}" IsEnabled="{Binding IsPending}"
                                       IsChecked="{Binding IsDurationMenuOpen, Mode=TwoWay}"
                                       IsHitTestVisible="{Binding IsOpen, ElementName=DurationMenu, Converter={StaticResource Fadenstack.InverseBool}}" />

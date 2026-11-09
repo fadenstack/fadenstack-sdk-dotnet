@@ -44,6 +44,25 @@ public class BypassTemplateTests
     }
 
     [Fact]
+    public void Every_button_gets_a_style_of_its_own_type_so_the_cards_load()
+    {
+        // A style is for one type: a Button's on a ToggleButton throws when the template loads (the cards' time pickers did).
+        var chat = Load(Path.Combine("Themes", "Chat.xaml"));
+        var types = chat.Descendants(Wpf + "Style").Where(s => s.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")) is not null)
+            .ToDictionary(s => (string)s.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml"))!, s => (string?)s.Attribute("TargetType"));
+        var styled = chat.Descendants().Concat(Load(Path.Combine("Views", "ChatView.xaml")).Descendants())
+            .Where(e => e.Name == Wpf + "Button" || e.Name == Wpf + "ToggleButton")
+            .Select(e => (Element: e.Name.LocalName, Style: Attr(e, "Style")))
+            .Where(e => e.Style is { } s && s.StartsWith("{StaticResource ", StringComparison.Ordinal))
+            .Select(e => (e.Element, Target: types.TryGetValue(e.Style!.Substring(16).TrimEnd('}'), out var t) ? t : null))
+            .ToList();
+
+        Assert.NotEmpty(styled);
+        Assert.DoesNotContain(styled, s => s.Element == "ToggleButton" && s.Target == "Button");
+        Assert.DoesNotContain(styled, s => s.Element == "Button" && s.Target == "ToggleButton");
+    }
+
+    [Fact]
     public void No_key_of_the_panel_answers_the_confirmation()
     {
         var bindings = Load(Path.Combine("Views", "ChatView.xaml")).Descendants(Wpf + "KeyBinding").ToList();
