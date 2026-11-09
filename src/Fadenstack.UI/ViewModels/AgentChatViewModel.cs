@@ -83,8 +83,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _bypassOption = new ToolModeOption(ToolMode.Bypass, Strings) { IsAvailable = false };
         _selectedMode = ToolModes[2];
         _approvals.Requested += OnApprovalRequested;
-        Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session);
+        Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session, async () => { await StartBypassAsync(); });
         Grants.BypassEnded += OnBypassEnded;
+        Grants.Ticked += (_, _) => ShowBypassTimes();
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
@@ -698,6 +699,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         PickedSkills.Clear();
         RefreshBypassOption();
         SetProperty(ref _selectedMode, DefaultMode(), nameof(SelectedToolMode));
+        RefreshBypassOption(); // a Bypass of the chat left is not this one's: its entry goes unless offered
         OnPropertyChanged(nameof(ToolModeHint));
         Grants.Tick();
         OnPropertyChanged(nameof(IsEmpty));
@@ -727,12 +729,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 return (opened, grouped, start, built);
             });
             LeaveBypass();
-            // A chat opened again is never in Bypass (sdk/09 L-58): the SDK does not restore the mode, and a Bypass of it
-            // still running at the server ends now -- it would run without its marker otherwise (L-63).
-            if (session.Bypass is { } stale)
-            {
-                await EndBypassQuietlyAsync(stale);
-            }
+            // Parallel chats never break (owner, 2026-11-09): a chat opened again whose Bypass still lives is in Bypass
+            // again, with its marker; leaving a chat did not end it.
             _session = session;
             _history = history;
             _loadedFrom = from;
@@ -742,8 +740,21 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 Turns.Add(turn);
             }
             RefreshBypassOption();
-            var mode = ToolModes.FirstOrDefault(o => o.Mode == session.ToolMode && o.Mode != ToolMode.Bypass && o.IsAvailable) ?? DefaultMode();
+            ToolModeOption mode;
+            if (session.ToolMode == ToolMode.Bypass && session.Bypass is not null)
+            {
+                if (!ToolModes.Contains(_bypassOption))
+                {
+                    ToolModes.Add(_bypassOption); // it runs: the picker shows it, whatever the server offers now
+                }
+                mode = _bypassOption;
+            }
+            else
+            {
+                mode = ToolModes.FirstOrDefault(o => o.Mode == session.ToolMode && o.Mode != ToolMode.Bypass && o.IsAvailable) ?? DefaultMode();
+            }
             SetProperty(ref _selectedMode, mode, nameof(SelectedToolMode));
+            RefreshBypassOption();
             OnPropertyChanged(nameof(ToolModeHint));
             Grants.Tick();
             OnPropertyChanged(nameof(IsEmpty));
@@ -768,6 +779,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             Sessions.Add(new SessionItemViewModel(s.Id, s.Title, s.LastActivity, now, Strings));
         }
+        ShowBypassTimes();
         MarkCurrent();
     }
 
@@ -879,13 +891,22 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         SelectToolModeCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>Leaving a chat (a new one, another one) ends its Bypass: it would run without its marker (L-63).</summary>
-    private void LeaveBypass()
+    /// <summary>
+    /// Leaving a chat (a new one, another one) stops a Bypass confirmation still waiting for the person. A Bypass that
+    /// runs goes on: parallel chats never break (owner, 2026-11-09), and the chat list shows it with its time left.
+    /// </summary>
+    private void LeaveBypass() => _bypassAsk?.Cancel();
+
+    /// <summary>The chat list says which chats run in Bypass, and for how long, by the server's clock.</summary>
+    private void ShowBypassTimes()
     {
-        _bypassAsk?.Cancel();
-        if (_session?.Bypass is { } bypass)
+        var live = _agent.Grants.Available
+            ? _agent.Grants.Live.Where(g => g.Kind == GrantKinds.Bypass && g.Status == "active").ToList()
+            : new List<AgentGrant>();
+        foreach (var item in Sessions)
         {
-            _ = EndBypassQuietlyAsync(bypass);
+            var grant = live.FirstOrDefault(g => g.ConversationId == item.Id);
+            item.SetBypass(grant is null ? null : _agent.Grants.Remaining(grant));
         }
     }
 
@@ -1399,6 +1420,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 Sessions.Move(index, 0);
             }
         }
+        ShowBypassTimes();
         MarkCurrent();
     }
 

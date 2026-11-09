@@ -123,16 +123,42 @@ public sealed class AgentGrants
     /// or a tool that asks every time. The server's answer is the record (L-59): Bypass holds only once it answered, and
     /// a refusal is thrown (403 <c>bypass_not_allowed</c>). <paramref name="reason"/> is the person's own words, if any.
     /// </summary>
+    /// <remarks>
+    /// The server makes the grant only with the proof of a fresh sign-in (sdk/41; ASVS 5.0 7.5.3): the one this device
+    /// holds while it lasts, else a second sign-in in the browser through the app's <see cref="IStepUpHandler"/>, which
+    /// the person approves there. Without a handler, or when the sign-in does not happen, no grant:
+    /// <see cref="BypassSignInException"/>. A held proof the server no longer takes is dropped and the sign-in asked
+    /// once more.
+    /// </remarks>
     public async Task<AgentGrant> GrantBypassAsync(TimeSpan duration, string conversationId, string? reason = null,
         string? shownText = null, CancellationToken cancellationToken = default)
     {
-        var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
+        var handler = _agent.Settings.StepUp
+            ?? throw new BypassSignInException(StepUpStage.Failed, "The app opens no second sign-in, which Bypass needs.");
+        var request = new GrantRequest
         {
-            Kind = GrantKinds.Bypass, Minutes = Minutes(duration), ShownTextSha256 = Hash(shownText), Reason = reason,
-            ClientVersion = ClientVersion,
-        }, conversationId, cancellationToken).ConfigureAwait(false);
-        return Keep(grant);
+            Kind = GrantKinds.Bypass, Minutes = Minutes(duration), ShownTextSha256 = Hash(shownText),
+            Reason = GrantAnswer.Cut(reason), ClientVersion = ClientVersion,
+        };
+        var longest = Settings?.Bypass?.LongestMinutes;
+        for (var attempt = 0; ; attempt++)
+        {
+            var proof = await _agent.StepUps.ObtainAsync(handler, conversationId, longest, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var grant = await _agent.Client.Agent!.CreateGrantAsync(request, conversationId, proof, cancellationToken)
+                    .ConfigureAwait(false);
+                return Keep(grant);
+            }
+            catch (FadenstackAuthenticationException e) when (e.Code == StepUpRequired && attempt == 0)
+            {
+                _agent.StepUps.Forget(); // too old by the server's clock, or not this device's: sign in again
+            }
+        }
     }
+
+    /// <summary>The server's word that the grant needs a fresh sign-in (RFC 9470's challenge, sdk/41).</summary>
+    internal const string StepUpRequired = "bypass_step_up_required";
 
     /// <summary>The live, active Bypass grant of the conversation <paramref name="conversationId"/>; null when it has none.</summary>
     public AgentGrant? BypassFor(string conversationId) =>
@@ -247,6 +273,63 @@ public sealed class AgentGrants
     /// <summary>Resumes a paused grant, unless it ended meanwhile.</summary>
     public async Task ResumeAsync(string grantId, CancellationToken cancellationToken = default) =>
         Keep(await _agent.Client.Agent!.ResumeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>How long a Bypass paused at the app's end may wait for the next start to resume it (D5, as a work grant).</summary>
+    public static readonly TimeSpan ResumeWithin = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// The app's end (owner, 2026-11-09): pauses this device's running Bypass grants for the agent, as a work grant pauses.
+    /// The clock runs on; the next start resumes them (<see cref="ResumeBypassAsync"/>). Offline, they run on at the server
+    /// until their time. Returns those paused.
+    /// </summary>
+    public async Task<IReadOnlyList<AgentGrant>> PauseBypassAsync(CancellationToken cancellationToken = default)
+    {
+        var paused = new List<AgentGrant>();
+        foreach (var grant in Live.Where(g => g.Kind == GrantKinds.Bypass && g.Status == "active").ToList())
+        {
+            await PauseAsync(grant.Id, cancellationToken).ConfigureAwait(false);
+            paused.Add(grant);
+        }
+        return paused;
+    }
+
+    /// <summary>
+    /// The next start: resumes each Bypass grant of this device paused less than <see cref="ResumeWithin"/> ago by the
+    /// server's clock -- no card, no second sign-in; the server checks that Bypass is still allowed -- and ends each paused
+    /// longer. Returns those that did not resume, with why (<see cref="WhyEndedAsync"/>'s words, or <c>paused_too_long</c>,
+    /// <c>ended</c> when the server ended one after the list was read and cannot say why, or <c>unavailable</c> when the
+    /// server could not check: it stays paused).
+    /// </summary>
+    public async Task<IReadOnlyList<(AgentGrant Grant, string Why)>> ResumeBypassAsync(CancellationToken cancellationToken = default)
+    {
+        await RefreshAsync(cancellationToken).ConfigureAwait(false);
+        var ended = new List<(AgentGrant, string)>();
+        foreach (var grant in Live.Where(g => g.Kind == GrantKinds.Bypass && g.Status == "paused").ToList())
+        {
+            if (grant.PausedAt is { } since && ServerNow - since >= ResumeWithin)
+            {
+                await RevokeAsync(grant.Id, cancellationToken).ConfigureAwait(false);
+                ended.Add((grant, "paused_too_long"));
+                continue;
+            }
+            try
+            {
+                await ResumeAsync(grant.Id, cancellationToken).ConfigureAwait(false);
+            }
+            catch (FadenstackApiException e) when ((int)e.Status is 403 or 404)
+            {
+                // No longer allowed (403: the server ended it now), or ended since the list was read (404: the kill switch,
+                // an administrator): the server says why.
+                ended.Add((grant, await WhyEndedAsync(grant.Id, cancellationToken).ConfigureAwait(false)
+                    ?? ((int)e.Status == 403 ? "limit" : "ended")));
+            }
+            catch (FadenstackApiException e) when ((int)e.Status == 503)
+            {
+                ended.Add((grant, "unavailable"));
+            }
+        }
+        return ended;
+    }
 
     /// <summary>Reads the device's grants from the server again; without grants on the server, does nothing.</summary>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)

@@ -55,6 +55,57 @@ public sealed record GrantRequest
     public string? ClientVersion { get; init; }
 }
 
+/// <summary>How and when the person signed in again to switch Bypass on, as the grant records it (sdk/41, L-59).</summary>
+public sealed record GrantStepUp
+{
+    /// <summary><c>password</c>, <c>oidc</c>, <c>saml</c> or <c>ldap</c>.</summary>
+    public string Method { get; init; } = "";
+
+    /// <summary>The sign-in provider's key for the last three; null for the account's password.</summary>
+    public string? Provider { get; init; }
+
+    public DateTimeOffset? At { get; init; }
+}
+
+/// <summary>
+/// A second sign-in started (<c>POST /api/agent-tokens/step-ups</c>, sdk/41), shaped as a device authorization (RFC 8628
+/// §3.2): the app keeps <see cref="StepUpCode"/> to poll with and opens <see cref="VerificationUriComplete"/> in the
+/// system browser, where the person signs in again and approves.
+/// </summary>
+public sealed record StepUpStarted
+{
+    /// <summary>The app's own code: only it collects the proof. Never shown, logged or stored.</summary>
+    public string StepUpCode { get; init; } = "";
+
+    /// <summary>The code in the link (<c>XXXX-XXXX</c>), shown so the person can compare it.</summary>
+    public string UserCode { get; init; } = "";
+
+    public string VerificationUri { get; init; } = "";
+
+    /// <summary>The page with the code in its fragment, which no server sees.</summary>
+    public string VerificationUriComplete { get; init; } = "";
+
+    public int ExpiresIn { get; init; } = 600;
+
+    /// <summary>How long to wait between polls, in seconds (RFC 8628 §3.5).</summary>
+    public int Interval { get; init; } = 5;
+}
+
+/// <summary>
+/// What the app collects once the person approved (sdk/41): the proof of their fresh sign-in, good for
+/// <see cref="ExpiresIn"/> more seconds by the server's clock. Kept in memory only, sent with the Bypass grant request.
+/// </summary>
+public sealed record StepUpProof
+{
+    public string Proof { get; init; } = "";
+
+    public int ExpiresIn { get; init; }
+
+    public DateTimeOffset? SignedInAt { get; init; }
+
+    public string Method { get; init; } = "";
+}
+
 /// <summary>What the gateway found comparing a Bypass turn's calls with its own records (<c>.../report</c>, L-61).</summary>
 public sealed record GrantReport
 {
@@ -138,6 +189,9 @@ public sealed record AgentGrant
     /// summary of its result). Null from a server that does not say.
     /// </summary>
     public string? EvidenceLevel { get; init; }
+
+    /// <summary>For Bypass: how and when the person signed in again to switch it on (sdk/41); null for other grants.</summary>
+    public GrantStepUp? StepUp { get; init; }
 
     /// <summary>The server's clock when it answered: the marker counts down <see cref="ExpiresAt"/> against it.</summary>
     public DateTimeOffset? ServerNow { get; init; }

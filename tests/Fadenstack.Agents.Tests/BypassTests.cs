@@ -29,7 +29,7 @@ public class BypassTests
         gateway.Then(Gateway.Custom("faden.grant_used", new { toolCallId = callId, toolCallName = tool, grantId }),
             Gateway.ToolCalls((callId, tool, arguments)), Gateway.Finish("tool_calls"), FakeServer.Done);
 
-    private sealed class Card : IApprovalHandler, IGrantHandler
+    internal sealed class Card : IApprovalHandler, IGrantHandler, IStepUpHandler
     {
         private readonly bool _allow;
         private readonly bool _approve;
@@ -39,6 +39,22 @@ public class BypassTests
         public Card(bool allow = true, bool approve = false) => (_allow, _approve) = (allow, approve);
 
         public List<GrantOffer> Offers { get; } = new();
+
+        /// <summary>The links of second sign-ins it opened (never in a real browser), and what it was told.</summary>
+        public List<StepUpRequest> Opened { get; } = new();
+
+        public List<StepUpStage> Stages { get; } = new();
+
+        /// <summary>Whether it can open the browser.</summary>
+        public bool CanOpen { get; set; } = true;
+
+        public Task<bool> OpenAsync(StepUpRequest request, CancellationToken cancellationToken)
+        {
+            Opened.Add(request);
+            return Task.FromResult(CanOpen);
+        }
+
+        public void Report(StepUpRequest request, StepUpStage stage) => Stages.Add(stage);
 
         public List<ApprovalRequest> Asked { get; } = new();
 
@@ -98,8 +114,8 @@ public class BypassTests
         Assert.Null(await session.StartBypassAsync());
         var offer = declining.Offers.Single();
         Assert.True(offer.Bypass);
-        // The shortest time first (sdk/40 A3.3); what is recorded and the conversation come from the server and the session.
-        Assert.Equal((TimeSpan.FromMinutes(15), 3, 0), (offer.Preselected, offer.Durations.Count, offer.Places.Count));
+        // 30 min first, as the work card (owner, 2026-11-09); what is recorded and the conversation come from the server and the session.
+        Assert.Equal((TimeSpan.FromMinutes(30), 3, 0), (offer.Preselected, offer.Durations.Count, offer.Places.Count));
         Assert.Equal(("calls", session.Id), (offer.Evidence, offer.ConversationId));
         Assert.Empty(grants.Made);
         Assert.Equal(ToolMode.Ask, session.ToolMode);
@@ -109,7 +125,7 @@ public class BypassTests
         var grant = await other.StartBypassAsync("Renaming 400 drawings");
 
         var made = grants.Made.Single();
-        Assert.Equal(("bypass", 15, other.Id), (made.Json.GetProperty("kind").GetString(), made.Json.GetProperty("minutes").GetInt32(),
+        Assert.Equal(("bypass", 30, other.Id), (made.Json.GetProperty("kind").GetString(), made.Json.GetProperty("minutes").GetInt32(),
             made.Header("x-faden-conversation-id")));
         Assert.Equal("Renaming 400 drawings", made.Json.GetProperty("reason").GetString());
         Assert.StartsWith("Fadenstack.Agents/", made.Json.GetProperty("client_version").GetString());
@@ -283,8 +299,14 @@ public class BypassTests
         Assert.Equal("Renaming 400 drawings, as agreed with Anna.", grants.Made.Single().Json.GetProperty("reason").GetString());
     }
 
-    private sealed class Reasoned : IApprovalHandler, IGrantHandler
+    private sealed class Reasoned : IApprovalHandler, IGrantHandler, IStepUpHandler
     {
+        public Task<bool> OpenAsync(StepUpRequest request, CancellationToken cancellationToken) => Task.FromResult(true);
+
+        public void Report(StepUpRequest request, StepUpStage stage)
+        {
+        }
+
         private readonly string _reason;
 
         public Reasoned(string reason) => _reason = reason;
@@ -302,7 +324,7 @@ public class BypassTests
     }
 
     [Fact]
-    public async Task A_session_opened_again_is_never_in_bypass_but_in_the_mode_it_had_before()
+    public async Task A_session_opened_again_is_in_bypass_only_while_its_grant_lives_else_in_the_mode_it_had_before()
     {
         var (gateway, _) = Server();
         var store = new Sessions.MemorySessionStore();
@@ -317,9 +339,14 @@ public class BypassTests
         Assert.Equal(ToolMode.Bypass, session.ToolMode);
 
         var again = await agent.OpenSessionAsync(session.Id);
+        // Owner, 2026-11-09: parallel chats never break -- its grant lives, so it opens in Bypass, with its marker.
+        Assert.Equal((ToolMode.Bypass, ToolMode.Bypass), (again.ToolMode, again.EffectiveToolMode));
 
-        Assert.Equal(ToolMode.ReadOnly, again.ToolMode); // its last turn before Bypass (sdk/09 L-58)
-        Assert.Equal(ToolMode.ReadOnly, again.EffectiveToolMode);
+        await again.StopBypassAsync();
+        Assert.Equal(ToolMode.ReadOnly, again.ToolMode); // the mode it had before Bypass
+        var later = await agent.OpenSessionAsync(session.Id);
+        Assert.Equal(ToolMode.ReadOnly, later.ToolMode); // no live grant: never Bypass (sdk/09 L-58)
+        Assert.Equal(ToolMode.ReadOnly, later.EffectiveToolMode);
     }
 
     [Theory]
@@ -353,7 +380,7 @@ public class BypassTests
         grants.CanSayWhy = false;
 
         Assert.Equal("person", await agent.Grants.WhyEndedAsync(stopped.Id));
-        grants.ServerNow = grants.ServerNow.AddMinutes(16);
+        grants.ServerNow = grants.ServerNow.AddMinutes(31);
         await agent.Grants.RefreshAsync();
         Assert.Equal("expired", await agent.Grants.WhyEndedAsync(timed.Id));
         Assert.Null(await agent.Grants.WhyEndedAsync("g-9"));
@@ -368,6 +395,6 @@ public class BypassTests
         await agent.StartAsync();
 
         var profile = gateway.Server.Requests.First(r => r.Path == "/v1/agents/docs-assistant/profile");
-        Assert.Equal("tool_mode.bypass", profile.Header("x-faden-client-supports"));
+        Assert.Equal("tool_mode.bypass, bypass.step_up", profile.Header("x-faden-client-supports"));
     }
 }

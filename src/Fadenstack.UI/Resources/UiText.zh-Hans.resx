@@ -592,6 +592,46 @@
     <value>停止绕过</value>
     <comment>The marker's Stop button, for screen readers</comment>
   </data>
+  <data name="BypassSignIn" xml:space="preserve">
+    <value>请在浏览器中重新登录以开启绕过。本应用会等待您在那里批准。</value>
+    <comment>The Bypass confirmation while the second sign-in runs in the browser</comment>
+  </data>
+  <data name="BypassSignInCode" xml:space="preserve">
+    <value>页面显示的代码为 {0}。</value>
+    <comment>Under it; {0}: the code the page shows, to compare</comment>
+  </data>
+  <data name="BypassOpenAgain" xml:space="preserve">
+    <value>再次打开页面</value>
+    <comment>Button on the Bypass confirmation: opens the sign-in page in the browser again</comment>
+  </data>
+  <data name="BypassOpenAgainName" xml:space="preserve">
+    <value>再次打开绕过登录页面</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassNotConfirmed_denied" xml:space="preserve">
+    <value>绕过保持关闭：未在浏览器中获得批准。</value>
+    <comment>The second sign-in was denied or not approved</comment>
+  </data>
+  <data name="BypassNotConfirmed_timed_out" xml:space="preserve">
+    <value>绕过保持关闭：在浏览器中登录耗时过长。</value>
+    <comment>Nobody approved the second sign-in in time</comment>
+  </data>
+  <data name="BypassNotConfirmed_no_browser" xml:space="preserve">
+    <value>绕过保持关闭：无法打开浏览器或无法连接服务器。</value>
+    <comment>The browser could not be opened, or the server not reached, for the second sign-in</comment>
+  </data>
+  <data name="BypassSwitchOnAgain" xml:space="preserve">
+    <value>重新开启</value>
+    <comment>Button on the line that says Bypass ended: asks for Bypass again</comment>
+  </data>
+  <data name="BypassSwitchOnAgainName" xml:space="preserve">
+    <value>重新开启绕过</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassListMarker" xml:space="preserve">
+    <value>绕过 · 剩余 {0}</value>
+    <comment>In the chat list: a chat that runs in Bypass; {0}: the time left</comment>
+  </data>
   <data name="BypassEnded" xml:space="preserve">
     <value>绕过已结束：服务器已结束它。审批将重新询问。</value>
     <comment>Bypass ended and the server did not say why</comment>

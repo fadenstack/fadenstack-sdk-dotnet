@@ -185,7 +185,9 @@ public sealed class AgentSession
             }
             var answer = await handler.RequestGrantAsync(new GrantOffer
             {
-                Bypass = true, Durations = choices, Reason = reason, Preselected = choices[0],
+                // 30 min first, as the work card (owner, 2026-11-09); where it is not offered, the longest that is.
+                Bypass = true, Durations = choices, Reason = reason,
+                Preselected = choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : choices[choices.Count - 1],
                 Evidence = grants.Settings?.Bypass?.Evidence, ConversationId = Id,
             }, cancellationToken).ConfigureAwait(false);
             if (!answer.Allowed)
@@ -195,9 +197,17 @@ public sealed class AgentSession
             (duration, shown) = (Within(answer.Duration, choices), answer.ShownText);
             if (answer.Reason?.Trim() is { Length: > 0 } own)
             {
-                reason = own.Length > GrantAnswer.ReasonLength ? own.Substring(0, GrantAnswer.ReasonLength) : own;
+                reason = GrantAnswer.Cut(own);
             }
         }
+        else if (_agent.Settings.StepUp is null)
+        {
+            // Set in the app's code, but nobody can sign in again for it: no Bypass, the session runs in Auto (sdk/41).
+            Trace.TraceWarning("Bypass was not switched on: the app opens no second sign-in (AgentBuilder.UseStepUpHandler).");
+            RunInAutoInstead();
+            return null;
+        }
+        // The second sign-in comes after the card's Allow, never before and never on the model's word (sdk/41).
         var grant = await grants.GrantBypassAsync(duration, Id, reason, shown, cancellationToken).ConfigureAwait(false);
         if (ToolMode != ToolMode.Bypass)
         {
@@ -241,7 +251,28 @@ public sealed class AgentSession
         }
         if (_agent.PermissionMode == PermissionMode.Bypass && ToolMode >= ToolMode.Ask && Bypass is null && _agent.BypassOffered)
         {
-            await StartBypassAsync("PermissionMode.Bypass", cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await StartBypassAsync("PermissionMode.Bypass", cancellationToken).ConfigureAwait(false);
+            }
+            catch (BypassSignInException e)
+            {
+                // No second sign-in, no Bypass (sdk/41): the turn runs in Auto.
+                Trace.TraceWarning($"Bypass was not switched on, the turn runs in Auto: {e.Message}");
+                RunInAutoInstead();
+            }
+        }
+    }
+
+    /// <summary>
+    /// An app set to <see cref="PermissionMode.Bypass"/> that gets no Bypass (no second sign-in): its session runs in Auto
+    /// instead (owner, 2026-11-09), never above the ceiling and never more than the app's own mode allows.
+    /// </summary>
+    private void RunInAutoInstead()
+    {
+        if (ToolMode is ToolMode.Ask)
+        {
+            ToolMode = ToolModes.Narrowest(ToolMode.Auto, _agent.Settings.DefaultMode);
         }
     }
 
@@ -362,8 +393,9 @@ public sealed class AgentSession
         });
 
     /// <summary>
-    /// The mode a session opened again starts in: its last, but never Bypass -- a Bypass is switched on through its
-    /// confirmation, for a time, and never comes back with the chat (sdk/09 L-58); the mode it had before Bypass, else none.
+    /// The mode a session's transcript last ran in, never Bypass -- a switch-on never comes back from the transcript (sdk/09
+    /// L-58): the mode it had before Bypass, else none. A conversation whose Bypass grant still lives opens in Bypass all the
+    /// same (<see cref="FadenstackAgent.OpenSessionAsync"/>; owner, 2026-11-09: parallel chats never break).
     /// </summary>
     internal static ToolMode? LastMode(IReadOnlyList<TranscriptEntry> entries)
     {
@@ -376,6 +408,36 @@ public sealed class AgentSession
             }
         }
         return null;
+    }
+
+    /// <summary>A session opened again in Bypass (its grant lives): the mode to go back to when it ends.</summary>
+    internal void Reopened(ToolMode? before)
+    {
+        if (ToolMode == ToolMode.Bypass)
+        {
+            _beforeBypass = before;
+        }
+    }
+
+    /// <summary>
+    /// What the model is told in the first request after a Bypass of its conversation ended (owner, 2026-11-09): it may say
+    /// so; it can never switch Bypass on -- only the person can, in the app (sdk/09 L-58).
+    /// </summary>
+    internal const string BypassEndedNote =
+        "Bypass has ended in this conversation: tools ask for the person's approval again, as the conversation's mode says. " +
+        "You cannot switch Bypass on, and no tool does; only the person can, in the app.";
+
+    /// <summary>Whether the last turn of the transcript ran in Bypass (its <c>effective_tool_mode</c>).</summary>
+    private bool LastTurnRanInBypass()
+    {
+        for (var i = _entries.Count - 1; i >= 0; i--)
+        {
+            if (_entries[i].Type == EntryTypes.TurnStart)
+            {
+                return ToolModes.ParseMode(ChatWire.Str(_entries[i].Data, "effective_tool_mode")) == ToolMode.Bypass;
+            }
+        }
+        return false;
     }
 
     private async Task RunAsync(string message, SendOptions options, ChannelWriter<AgentEvent> writer,
@@ -483,6 +545,9 @@ public sealed class AgentSession
         // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id.
         private readonly Dictionary<string, string> _covered = new();
         private readonly StringBuilder _text = new();
+
+        // The conversation's Bypass ended since its last turn: the model is told (BypassEndedNote).
+        private bool _bypassEnded;
         private readonly List<ProvenanceReceiptContent> _receipts = new();
         private UsageDetails? _usage;
         private GovernanceNotice? _blocked;
@@ -517,6 +582,9 @@ public sealed class AgentSession
         {
             _mode = _session.EffectiveToolMode;
             BypassGrant = _mode == ToolMode.Bypass ? _session.Bypass?.Id : null;
+            // The last turn ran in Bypass and this one does not: the model hears it ended (from the transcript, so an
+            // app started again tells it too).
+            _bypassEnded = _mode != ToolMode.Bypass && _session.LastTurnRanInBypass();
             var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
             _skills = picked.Select(s => s.Slug).ToList();
             var user = new Dictionary<string, object?> { ["text"] = message };
@@ -619,6 +687,12 @@ public sealed class AgentSession
             // On every call of the turn, not the first only: the gateway gives a request the skills it names.
             options.WithSkills(_skills);
             var history = _session._context.Build(_session._entries);
+            if (_bypassEnded)
+            {
+                // Before the person's newest message, every round of this turn: what the model may and may not do now.
+                var newest = history.Select((m, i) => (m, i)).LastOrDefault(x => x.m.Role == ChatRole.User).i;
+                history.Insert(Math.Max(0, newest), new ChatMessage(ChatRole.System, BypassEndedNote));
+            }
             AttachNewestPicture(history);
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();

@@ -592,6 +592,46 @@
     <value>Bypass beenden</value>
     <comment>The marker's Stop button, for screen readers</comment>
   </data>
+  <data name="BypassSignIn" xml:space="preserve">
+    <value>Melden Sie sich im Browser erneut an, um Bypass einzuschalten. Diese App wartet, bis Sie dort zustimmen.</value>
+    <comment>The Bypass confirmation while the second sign-in runs in the browser</comment>
+  </data>
+  <data name="BypassSignInCode" xml:space="preserve">
+    <value>Die Seite zeigt den Code {0}.</value>
+    <comment>Under it; {0}: the code the page shows, to compare</comment>
+  </data>
+  <data name="BypassOpenAgain" xml:space="preserve">
+    <value>Seite erneut öffnen</value>
+    <comment>Button on the Bypass confirmation: opens the sign-in page in the browser again</comment>
+  </data>
+  <data name="BypassOpenAgainName" xml:space="preserve">
+    <value>Bypass-Anmeldeseite erneut öffnen</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassNotConfirmed_denied" xml:space="preserve">
+    <value>Bypass bleibt aus: Im Browser wurde nicht zugestimmt.</value>
+    <comment>The second sign-in was denied or not approved</comment>
+  </data>
+  <data name="BypassNotConfirmed_timed_out" xml:space="preserve">
+    <value>Bypass bleibt aus: Die Anmeldung im Browser hat zu lange gedauert.</value>
+    <comment>Nobody approved the second sign-in in time</comment>
+  </data>
+  <data name="BypassNotConfirmed_no_browser" xml:space="preserve">
+    <value>Bypass bleibt aus: Der Browser ließ sich nicht öffnen oder der Server war nicht erreichbar.</value>
+    <comment>The browser could not be opened, or the server not reached, for the second sign-in</comment>
+  </data>
+  <data name="BypassSwitchOnAgain" xml:space="preserve">
+    <value>Wieder einschalten</value>
+    <comment>Button on the line that says Bypass ended: asks for Bypass again</comment>
+  </data>
+  <data name="BypassSwitchOnAgainName" xml:space="preserve">
+    <value>Bypass wieder einschalten</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassListMarker" xml:space="preserve">
+    <value>Bypass · noch {0}</value>
+    <comment>In the chat list: a chat that runs in Bypass; {0}: the time left</comment>
+  </data>
   <data name="BypassEnded" xml:space="preserve">
     <value>Bypass beendet: Der Server hat ihn beendet. Freigaben fragen wieder.</value>
     <comment>Bypass ended and the server did not say why</comment>

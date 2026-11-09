@@ -63,6 +63,41 @@ public class BypassTemplateTests
     }
 
     [Fact]
+    public void The_sign_in_panel_has_the_code_and_a_secondary_open_again_button_that_enter_does_not_press()
+    {
+        var template = BypassTemplate();
+        var panel = template.Descendants(Wpf + "StackPanel").Single(p => (string?)p.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == "SignIn");
+        Assert.Contains("IsSigningIn", Attr(panel, "Visibility"));
+        Assert.Contains(panel.Descendants(Wpf + "TextBlock"), t => Attr(t, "Text") == "{Binding SignInCodeText}");
+        var open = panel.Descendants(Wpf + "Button").Single();
+
+        Assert.Equal("{Binding OpenAgainCommand}", Attr(open, "Command"));
+        Assert.Equal("{StaticResource Fadenstack.SecondaryButton}", Attr(open, "Style")); // a Button's style, not the toggle's
+        Assert.Equal("{Binding OpenAgainName}", Attr(open, "AutomationProperties.Name"));
+        Assert.Equal("{Binding OpenAgainText}", Attr(open, "Content"));
+        Assert.NotEqual("True", Attr(open, "IsDefault"));
+        Assert.NotEqual("True", Attr(open, "IsCancel"));
+        Assert.Equal("False", Attr(open, "KeyboardNavigation.AcceptsReturn"));
+        Assert.Contains("{Binding StateText}", template.Descendants(Wpf + "TextBlock").Select(t => Attr(t, "Text"))); // the first line of it
+    }
+
+    [Fact]
+    public void Switch_on_again_and_the_chat_lists_bypass_text_are_bound_with_names_for_screen_readers_and_no_hard_coded_text()
+    {
+        var view = Load(Path.Combine("Views", "ChatView.xaml"));
+        var again = view.Descendants(Wpf + "Button").Single(b => Attr(b, "Command") == "{Binding Grants.SwitchOnAgainCommand}");
+
+        Assert.Equal("{Binding Grants.SwitchOnAgainText}", Attr(again, "Content"));
+        Assert.Equal("{Binding Grants.SwitchOnAgainName}", Attr(again, "AutomationProperties.Name"));
+        Assert.Equal("{StaticResource Fadenstack.SecondaryButton}", Attr(again, "Style"));
+        Assert.NotEqual("True", Attr(again, "IsDefault"));
+        Assert.NotEqual("True", Attr(again, "IsCancel"));
+        var listed = view.Descendants(Wpf + "TextBlock").Single(t => Attr(t, "Text") == "{Binding BypassText}");
+        Assert.Equal("{Binding BypassText}", Attr(listed, "AutomationProperties.Name"));
+        Assert.Contains("HasBypass", Attr(listed, "Visibility"));
+    }
+
+    [Fact]
     public void No_key_of_the_panel_answers_the_confirmation()
     {
         var bindings = Load(Path.Combine("Views", "ChatView.xaml")).Descendants(Wpf + "KeyBinding").ToList();

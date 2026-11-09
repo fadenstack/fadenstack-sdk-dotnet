@@ -592,6 +592,46 @@
     <value>Arrêter Bypass</value>
     <comment>The marker's Stop button, for screen readers</comment>
   </data>
+  <data name="BypassSignIn" xml:space="preserve">
+    <value>Reconnectez-vous dans votre navigateur pour activer Bypass. Cette application attend que vous l'approuviez là-bas.</value>
+    <comment>The Bypass confirmation while the second sign-in runs in the browser</comment>
+  </data>
+  <data name="BypassSignInCode" xml:space="preserve">
+    <value>La page affiche le code {0}.</value>
+    <comment>Under it; {0}: the code the page shows, to compare</comment>
+  </data>
+  <data name="BypassOpenAgain" xml:space="preserve">
+    <value>Rouvrir la page</value>
+    <comment>Button on the Bypass confirmation: opens the sign-in page in the browser again</comment>
+  </data>
+  <data name="BypassOpenAgainName" xml:space="preserve">
+    <value>Rouvrir la page de connexion de Bypass</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassNotConfirmed_denied" xml:space="preserve">
+    <value>Bypass reste désactivé : il n'a pas été approuvé dans le navigateur.</value>
+    <comment>The second sign-in was denied or not approved</comment>
+  </data>
+  <data name="BypassNotConfirmed_timed_out" xml:space="preserve">
+    <value>Bypass reste désactivé : la connexion dans le navigateur a pris trop de temps.</value>
+    <comment>Nobody approved the second sign-in in time</comment>
+  </data>
+  <data name="BypassNotConfirmed_no_browser" xml:space="preserve">
+    <value>Bypass reste désactivé : le navigateur n'a pas pu être ouvert ou le serveur n'a pas pu être joint.</value>
+    <comment>The browser could not be opened, or the server not reached, for the second sign-in</comment>
+  </data>
+  <data name="BypassSwitchOnAgain" xml:space="preserve">
+    <value>Réactiver</value>
+    <comment>Button on the line that says Bypass ended: asks for Bypass again</comment>
+  </data>
+  <data name="BypassSwitchOnAgainName" xml:space="preserve">
+    <value>Réactiver Bypass</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassListMarker" xml:space="preserve">
+    <value>Bypass · encore {0}</value>
+    <comment>In the chat list: a chat that runs in Bypass; {0}: the time left</comment>
+  </data>
   <data name="BypassEnded" xml:space="preserve">
     <value>Bypass terminé : le serveur l'a arrêté. Les approbations demandent à nouveau.</value>
     <comment>Bypass ended and the server did not say why</comment>

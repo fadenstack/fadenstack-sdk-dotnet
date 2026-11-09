@@ -145,7 +145,7 @@ public class GrantViewModelTests
         var grants = gateway.UseGrants(
             """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"],"bypass":{"allowed":true,"longest_minutes":60,"evidence":"calls"}}""");
         grants.LongestMinutes = 1; // it ends within the marker's "ending soon"
-        var broker = new ApprovalBroker();
+        var broker = new ApprovalBroker { OpenBrowser = _ => true }; // the second sign-in never opens a real browser
         using var agent = gateway.Builder().AddTools(new PageTools()).UsePermissionMode(PermissionMode.Bypass).UseApprovals(broker).Build();
         var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions
         {

@@ -51,6 +51,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     private readonly IUiDispatcher _dispatcher;
     private readonly Action _stopTurn;
     private readonly Func<AgentSession?> _session;
+    private readonly Func<Task>? _switchOnAgain;
     private readonly Timer _tick;
     private UiStrings _strings;
     private AgentGrant? _work;
@@ -66,7 +67,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     private DateTimeOffset _lastRefresh = DateTimeOffset.MinValue;
 
     internal GrantsViewModel(FadenstackAgent agent, ApprovalBroker broker, IUiDispatcher dispatcher, UiStrings strings, Action stopTurn,
-        Func<AgentSession?>? session = null)
+        Func<AgentSession?>? session = null, Func<Task>? switchOnAgain = null)
     {
         _agent = agent;
         _broker = broker;
@@ -74,12 +75,15 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         _strings = strings;
         _stopTurn = stopTurn;
         _session = session ?? (() => null);
+        _switchOnAgain = switchOnAgain;
         StopCommand = new AsyncRelayCommand(StopAsync, () => HasMarker);
         KeepGoingCommand = new AsyncRelayCommand(KeepGoingAsync, () => _ending && _work is not null);
         StopBypassCommand = new AsyncRelayCommand(StopBypassAsync, () => HasBypass);
         DismissBypassEndedCommand = new RelayCommand(() => SetBypassEnded(false, null));
+        SwitchOnAgainCommand = new AsyncRelayCommand(SwitchOnAgainAsync, () => _bypassEnded && _agent.BypassOffered && _switchOnAgain is not null);
         LoadCommand = new AsyncRelayCommand(LoadAsync);
         _broker.GrantRequested += OnGrantRequested;
+        _broker.StepUpChanged += OnStepUp;
         _agent.Grants.Changed += OnGrantsChanged;
         _tick = new Timer(_ => _dispatcher.Post(OnTimer), null, TickEvery, TickEvery);
     }
@@ -171,10 +175,24 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
 
     public IRelayCommand DismissBypassEndedCommand { get; }
 
+    /// <summary>"Switch on again" on the line that says Bypass ended.</summary>
+    public string SwitchOnAgainText => _strings.BypassSwitchOnAgain;
+
+    public string SwitchOnAgainName => _strings.BypassSwitchOnAgainName;
+
+    /// <summary>
+    /// Asks for Bypass again: only the chat's own call (it opens the confirmation, whose Allow starts the second sign-in).
+    /// Enabled while the line is there and the agent still offers Bypass. Nothing but this button's click calls it.
+    /// </summary>
+    public IAsyncRelayCommand SwitchOnAgainCommand { get; }
+
     public string CloseText => _strings.Close;
 
     /// <summary>Raised on the UI thread when this chat's Bypass ended, whoever ended it: the chat leaves Bypass.</summary>
     internal event EventHandler? BypassEnded;
+
+    /// <summary>Raised on the UI thread after each <see cref="Tick"/>: the chat list brings its Bypass times up to date.</summary>
+    internal event EventHandler? Ticked;
 
     // -- Settings → Approvals ---------------------------------------------------------------------------
 
@@ -216,6 +234,8 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         }
         KeepGoingCommand.NotifyCanExecuteChanged();
         TickBypass();
+        SwitchOnAgainCommand.NotifyCanExecuteChanged(); // the server may stop offering Bypass
+        Ticked?.Invoke(this, EventArgs.Empty);
     }
 
     internal void Retext(UiStrings strings)
@@ -258,7 +278,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         }
         catch (Exception e)
         {
-            if (_bypassCard is { } card && card.State == BypassCardState.Confirming)
+            if (_bypassCard is { } card && (card.Waiting || card.State == BypassCardState.NotConfirmed))
             {
                 card.NotConfirmed(e);
                 return (false, null);
@@ -271,6 +291,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     {
         _tick.Dispose();
         _broker.GrantRequested -= OnGrantRequested;
+        _broker.StepUpChanged -= OnStepUp;
         _agent.Grants.Changed -= OnGrantsChanged;
     }
 
@@ -289,7 +310,10 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
                 BypassCard = null;
             }
         }
-        var ended = bypass is null ? _bypass : null;
+        // Paused by the app's end (AgentGrants.PauseBypassAsync) is not ended: the next start resumes it, so the chat neither
+        // says it ended nor leaves Bypass, which would end the paused grant too.
+        var ended = bypass is null && _bypass is { } before
+            && !_agent.Grants.Live.Any(g => g.Id == before.Id && g.Status == "paused") ? _bypass : null;
         var started = bypass is not null && _bypass is null;
         var had = HasBypass;
         _bypass = bypass;
@@ -338,8 +362,11 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         {
             OnPropertyChanged(nameof(HasBypassEnded));
             OnPropertyChanged(nameof(BypassEndedText));
+            SwitchOnAgainCommand.NotifyCanExecuteChanged();
         }
     }
+
+    private Task SwitchOnAgainAsync() => _switchOnAgain?.Invoke() ?? Task.CompletedTask;
 
     /// <summary>The tick: the markers; while a Bypass runs, the copy from the server now and then, so its end shows.</summary>
     private void OnTimer()
@@ -442,11 +469,23 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
                 return;
             }
             pending.Claim();
-            _dispatcher.Post(() => BypassCard = new BypassPart(pending, _strings));
+            _dispatcher.Post(() => BypassCard = new BypassPart(pending, _strings, link => _broker.OpenBrowser(link)));
             return;
         }
         _dispatcher.Post(() => Cards.Add(new GrantPart(pending, _strings)));
     }
+
+    /// <summary>
+    /// The second sign-in stands differently: the Bypass card of the request's conversation shows it (a request with no
+    /// conversation, started before one existed, goes to the card that waits).
+    /// </summary>
+    private void OnStepUp(StepUpRequest request, StepUpStage stage) => _dispatcher.Post(() =>
+    {
+        if (_bypassCard is { } card && (request.ConversationId is null ? card.Waiting : request.ConversationId == card.ConversationId))
+        {
+            card.StepUp(request, stage);
+        }
+    });
 
     private void OnGrantsChanged(object? sender, EventArgs e) => _dispatcher.Post(Tick);
 }

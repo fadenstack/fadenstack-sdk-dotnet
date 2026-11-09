@@ -298,9 +298,30 @@ public sealed class UiStrings
     /// <summary>The confirmation once the server confirmed it.</summary>
     public string BypassOn => Text();
 
+    /// <summary>The confirmation while the second sign-in runs in the browser (sdk/41).</summary>
+    public string BypassSignIn => Text();
+
+    /// <summary>Under it: the code the page shows, for the person to compare.</summary>
+    public string BypassSignInCode(string code) => Fill(code);
+
+    /// <summary>The button that opens the sign-in page in the browser again.</summary>
+    public string BypassOpenAgain => Text();
+
+    /// <summary>The same button for screen readers.</summary>
+    public string BypassOpenAgainName => Text();
+
+    /// <summary>The button on the "Bypass ended" line that asks for Bypass again (the card, then the second sign-in).</summary>
+    public string BypassSwitchOnAgain => Text();
+
+    /// <summary>The same button for screen readers.</summary>
+    public string BypassSwitchOnAgainName => Text();
+
+    /// <summary>The chat list's line for a chat that runs in Bypass: "Bypass · 12 min left".</summary>
+    public string BypassListMarker(string left) => Fill(left);
+
     /// <summary>
     /// The confirmation when the server gave no acknowledgement (L-59), by why: <c>refused</c>, <c>offline</c>,
-    /// <c>unavailable</c>; null: it did not say.
+    /// <c>unavailable</c>, and for the second sign-in <c>denied</c>, <c>timed_out</c>, <c>no_browser</c>; null: it did not say.
     /// </summary>
     public string BypassNotConfirmed(string? why) => why is null ? this["BypassNotConfirmed"] : Find("BypassNotConfirmed_" + why) ?? this["BypassNotConfirmed"];
 

@@ -33,11 +33,105 @@ public sealed class FakeGrants
                     g["status"] = "revoked";
                     g["revoked_by"] = g.TryGetValue("revoked_by", out var by) && by is not null ? by : "person";
                 }))
-                .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => g["status"] = "paused"))
-                .On("POST", $"{Route}/{id}/resume", _ => Change(id, g => g["status"] = "active"))
+                .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => (g["status"], g["paused_at"]) = ("paused", ServerNow)))
+                .On("POST", $"{Route}/{id}/resume", _ => Resume(id))
                 .On("POST", $"{Route}/{id}/extend", r => Extend(id, r))
                 .On("POST", $"{Route}/{id}/report", r => Report(id, r));
         }
+        server.On("POST", StepUpRoute, StartStepUp).On("POST", StepUpRoute + "/token", PollStepUp);
+    }
+
+    // -- the second sign-in for Bypass (sdk/41) -------------------------------------------------
+
+    private const string StepUpRoute = "/api/agent-tokens/step-ups";
+    private readonly HashSet<string> _proofs = new(StringComparer.Ordinal);
+    private int _polls;
+
+    /// <summary>How the person answers in the browser: <c>approved</c>, <c>denied</c> or <c>expired</c> (nobody in time).</summary>
+    public string StepUpOutcome { get; set; } = "approved";
+
+    /// <summary>How many polls answer <c>authorization_pending</c> before the outcome.</summary>
+    public int PendingPolls { get; set; }
+
+    /// <summary>The step-ups the device started.</summary>
+    public int StepUpsStarted => Server.Requests.Count(r => r.Method == "POST" && r.Path == StepUpRoute);
+
+    /// <summary>What the device asked the page to show as the longest time.</summary>
+    public List<int?> StepUpLongest { get; } = new();
+
+    /// <summary>The server takes no proof it gave out before (they are older than 5 minutes by its clock).</summary>
+    public void ProofsGoStale() => _proofs.Clear();
+
+    /// <summary>
+    /// The resume of a paused Bypass, as the gateway may refuse it: 403 (no longer allowed: it ends), 404 (the kill switch
+    /// ended it after the device read the list) or 503.
+    /// </summary>
+    public HttpStatusCode? RefuseResume { get; set; }
+
+    private HttpResponseMessage StartStepUp(Recorded r)
+    {
+        _polls = 0;
+        StepUpLongest.Add(r.Json.TryGetProperty("longest_minutes", out var l) && l.ValueKind == JsonValueKind.Number
+            ? l.GetInt32() : null);
+        return FakeServer.Respond(HttpStatusCode.Created, new
+        {
+            step_up_code = $"device-code-{StepUpsStarted}", user_code = "BCDF-GHJK",
+            verification_uri = "https://faden.example/step-up",
+            verification_uri_complete = "https://faden.example/step-up#code=BCDF-GHJK", expires_in = 600, interval = 1,
+        });
+    }
+
+    private HttpResponseMessage PollStepUp(Recorded r)
+    {
+        if (_polls++ < PendingPolls)
+        {
+            return FakeServer.Respond(HttpStatusCode.BadRequest, new { error = "authorization_pending", error_description = "Waiting." });
+        }
+        if (StepUpOutcome != "approved")
+        {
+            var error = StepUpOutcome == "denied" ? "access_denied" : "expired_token";
+            return FakeServer.Respond(HttpStatusCode.BadRequest, new { error, error_description = "No." });
+        }
+        var proof = $"proof-{_proofs.Count + 1}-{r.Json.GetProperty("step_up_code").GetString()}";
+        _proofs.Add(proof);
+        return FakeServer.Respond(HttpStatusCode.OK, new { proof, expires_in = 290, signed_in_at = ServerNow, method = "password" });
+    }
+
+    /// <summary>A Bypass grant needs a proof this server gave out (RFC 9470's challenge otherwise), as the gateway checks.</summary>
+    private HttpResponseMessage? Challenge(Recorded r)
+    {
+        if (r.Header("x-faden-step-up") is { } proof && _proofs.Contains(proof))
+        {
+            return null;
+        }
+        var refused = FakeServer.Respond(HttpStatusCode.Unauthorized, new
+        {
+            error = new { message = "Switching Bypass on needs a fresh sign-in.", type = "authentication_error", code = "bypass_step_up_required" },
+            step_up = new { max_age = 300, reason = "missing", start = StepUpRoute },
+        });
+        refused.Headers.WwwAuthenticate.Add(new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Bearer", "error=\"insufficient_user_authentication\", max_age=\"300\""));
+        return refused;
+    }
+
+    private HttpResponseMessage Resume(string id)
+    {
+        if (RefuseResume is { } status && _grants.FirstOrDefault(g => (string)g["id"]! == id) is { } found && (string)found["kind"]! == "bypass")
+        {
+            if (status is HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+            {
+                found["status"] = "revoked";
+                found["revoked_by"] = status == HttpStatusCode.Forbidden ? "limit" : "kill_switch";
+            }
+            var code = status switch
+            {
+                HttpStatusCode.Forbidden => "bypass_not_allowed",
+                HttpStatusCode.NotFound => "grant_not_found",
+                _ => "grant_limits_unavailable",
+            };
+            return FakeServer.Respond(status, new { error = new { message = "Not now.", code } });
+        }
+        return Change(id, g => (g["status"], g["paused_at"]) = ("active", null));
     }
 
     public FakeServer Server { get; }
@@ -110,6 +204,10 @@ public sealed class FakeGrants
         }
         var body = r.Json;
         var kind = body.GetProperty("kind").GetString()!;
+        if (kind == "bypass" && Challenge(r) is { } challenge)
+        {
+            return challenge;
+        }
         var minutes = body.GetProperty("minutes").GetInt32();
         object scope = kind == "time"
             ? new { tools = body.GetProperty("tools").EnumerateArray().Select(t => t.GetString()).ToList() }

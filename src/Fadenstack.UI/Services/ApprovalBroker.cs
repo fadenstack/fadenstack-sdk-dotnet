@@ -62,9 +62,26 @@ public sealed class PendingGrant
 /// the chat -- an approval, or a grant to work alongside the user -- and the user's click is the answer. Give the same
 /// broker to the builder and to the chat view model. Without a chat listening, requests are declined.
 /// </summary>
-public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler
+public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler, IStepUpHandler
 {
     public event Action<PendingApproval>? Requested;
+
+    /// <summary>
+    /// How the second sign-in stands (sdk/41): the page is open in the browser, approved, denied, timed out, failed or
+    /// cancelled. Raised on the thread that reports it; the chat that draws the Bypass card takes it from there.
+    /// </summary>
+    public event Action<StepUpRequest, StepUpStage>? StepUpChanged;
+
+    /// <summary>
+    /// Opens a page in the person's browser; false when it could not. The system browser unless an app (the desktop) or a
+    /// test sets its own.
+    /// </summary>
+    public Func<Uri, bool> OpenBrowser { get; set; } = SystemBrowser.Open;
+
+    public Task<bool> OpenAsync(StepUpRequest request, CancellationToken cancellationToken) =>
+        Task.FromResult(OpenBrowser(request.Link));
+
+    public void Report(StepUpRequest request, StepUpStage stage) => StepUpChanged?.Invoke(request, stage);
 
     /// <summary>
     /// A grant card to show (<see cref="AgentSession.OfferWorkAsync"/>, an extension), or the Bypass confirmation
