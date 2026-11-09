@@ -126,8 +126,18 @@ public sealed record AgentGrant
     public DateTimeOffset? PausedAt { get; init; }
     public DateTimeOffset? RevokedAt { get; init; }
 
-    /// <summary><c>person</c>, <c>admin</c>, <c>agent</c> or <c>kill_switch</c> (Bypass turned off for the organisation).</summary>
+    /// <summary>
+    /// <c>person</c>, <c>admin</c>, <c>agent</c>, <c>kill_switch</c> (Bypass turned off for the organisation) or
+    /// <c>limit</c> (a narrower limit or list of the organisation's).
+    /// </summary>
     public string? RevokedBy { get; init; }
+
+    /// <summary>
+    /// What the server keeps of each call the grant covers (sdk/09 L-60): <c>decisions</c> (which tool ran, when, where),
+    /// <c>calls</c> (also its arguments, after the server's masking of personal data) or <c>results</c> (also a short
+    /// summary of its result). Null from a server that does not say.
+    /// </summary>
+    public string? EvidenceLevel { get; init; }
 
     /// <summary>The server's clock when it answered: the marker counts down <see cref="ExpiresAt"/> against it.</summary>
     public DateTimeOffset? ServerNow { get; init; }

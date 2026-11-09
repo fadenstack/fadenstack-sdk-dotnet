@@ -155,6 +155,13 @@ public sealed class AgentResource
     public Task<GrantList> ListGrantsAsync(CancellationToken cancellationToken = default) =>
         _transport.GetAsync<GrantList>(Route("grants"), cancellationToken);
 
+    /// <summary>
+    /// One of this device's grants in whatever state, e.g. why it ended (<see cref="AgentGrant.RevokedBy"/>) once it left
+    /// the live list. 404 for a grant of another device, and from a server that cannot say.
+    /// </summary>
+    public Task<AgentGrant> GetGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
+        _transport.GetAsync<AgentGrant>(Route($"grants/{Uri.EscapeDataString(grantId)}"), cancellationToken);
+
     /// <summary>Ends one of the person's grants for this agent, from the next call on; it answers with the grant.</summary>
     public Task<AgentGrant> RevokeGrantAsync(string grantId, CancellationToken cancellationToken = default) =>
         _transport.SendJsonAsync<AgentGrant>(System.Net.Http.HttpMethod.Delete, Route($"grants/{Uri.EscapeDataString(grantId)}"),

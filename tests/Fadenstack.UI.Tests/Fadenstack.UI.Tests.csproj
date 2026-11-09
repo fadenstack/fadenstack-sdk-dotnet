@@ -22,5 +22,8 @@
   <ItemGroup>
     <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->
     <None Include="..\..\src\Fadenstack.UI.Wpf\Themes\Colors.*.xaml" Link="Themes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The card templates and the panel's key bindings, for BypassTemplateTests (read as XML). -->
+    <None Include="..\..\src\Fadenstack.UI.Wpf\Themes\Chat.xaml" Link="Themes\Chat.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Fadenstack.UI.Wpf\Views\ChatView.xaml" Link="Views\ChatView.xaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

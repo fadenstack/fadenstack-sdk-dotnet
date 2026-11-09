@@ -259,6 +259,74 @@ public sealed class UiStrings
 
     public string Revoke => Text();
 
+    // -- Bypass: the confirmation, the marker, its end (sdk/09 L-58, L-59, L-63) --------------------------
+
+    /// <summary>The confirmation's question: "Switch approvals off in this chat?".</summary>
+    public string BypassTitle => Text();
+
+    /// <summary>What no longer asks: the agent's destructive and unclassified tools too, in this chat only.</summary>
+    public string BypassNoLongerAsks => Text();
+
+    /// <summary>What still asks: an administrator's "Ask first" rules and tools marked to always ask.</summary>
+    public string BypassStillAsks => Text();
+
+    /// <summary>
+    /// What the server records of each call under Bypass, in plain words, by the level the server names (<c>decisions</c>,
+    /// <c>calls</c>, <c>results</c>; sdk/09 L-60). None named: <c>calls</c>, the server's default; a level this SDK does
+    /// not know: the most it could be, <c>results</c> -- the card never says less is kept than is.
+    /// </summary>
+    public string BypassRecords(string? evidence) => this["BypassRecords_" + Level(evidence)];
+
+    /// <summary>The marker's short line on what is recorded, by the running grant's level.</summary>
+    public string BypassRecorded(string? evidence) => this["BypassRecorded_" + Level(evidence)];
+
+    /// <summary>Under the time: the time is not extended; more time is a new Bypass.</summary>
+    public string BypassNoExtension => Text();
+
+    /// <summary>The label of the optional reason.</summary>
+    public string BypassReason => Text();
+
+    /// <summary>Under the reason: administrators see it.</summary>
+    public string BypassReasonSeen => Text();
+
+    /// <summary>The button that switches Bypass on: never the default button.</summary>
+    public string BypassAllow => Text();
+
+    /// <summary>The confirmation after the click, until the server answers.</summary>
+    public string BypassConfirming => Text();
+
+    /// <summary>The confirmation once the server confirmed it.</summary>
+    public string BypassOn => Text();
+
+    /// <summary>
+    /// The confirmation when the server gave no acknowledgement (L-59), by why: <c>refused</c>, <c>offline</c>,
+    /// <c>unavailable</c>; null: it did not say.
+    /// </summary>
+    public string BypassNotConfirmed(string? why) => why is null ? this["BypassNotConfirmed"] : Find("BypassNotConfirmed_" + why) ?? this["BypassNotConfirmed"];
+
+    /// <summary>The marker: "Bypass on · 12 min left".</summary>
+    public string BypassMarker(string left) => Fill(left);
+
+    /// <summary>The marker's Stop for screen readers: "Stop Bypass".</summary>
+    public string BypassStopName => Text();
+
+    /// <summary>
+    /// Why Bypass ended, from the grant's <c>revoked_by</c> or its time (<see cref="Fadenstack.Agents.AgentGrants.WhyEndedAsync"/>):
+    /// <c>person</c>, <c>expired</c>, <c>admin</c>, <c>kill_switch</c>, <c>limit</c>, <c>spent</c>; another or none: the
+    /// server ended it.
+    /// </summary>
+    public string BypassEnded(string? why) => why is null ? this["BypassEnded"] : Find("BypassEnded_" + why) ?? this["BypassEnded"];
+
+    /// <summary>A running Bypass in Settings: "Bypass in a chat, 12 min left · Each tool that runs is recorded…".</summary>
+    public string SettingsGrantBypass(string left, string recorded) => Fill2(left, recorded);
+
+    private static string Level(string? evidence) => evidence switch
+    {
+        null or "" or "calls" => "calls",
+        "decisions" => "decisions",
+        _ => "results",
+    };
+
     // -- notices -------------------------------------------------------------------------------------
 
     /// <summary>A notice's title for the server's outcome (<c>prompt_blocked</c>, ...); null for one there is no text for.</summary>

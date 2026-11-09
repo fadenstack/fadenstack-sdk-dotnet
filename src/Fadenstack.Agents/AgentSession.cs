@@ -111,7 +111,7 @@ public sealed class AgentSession
         {
             Places = places, Classes = grants.Settings!.GrantClasses, Durations = grants.Choices,
             Preselected = grants.Choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : grants.Choices.Last(),
-            Reason = reason,
+            Reason = reason, ConversationId = Id,
         }, cancellationToken).ConfigureAwait(false);
         var kept = answer.Places.Where(p => places.Contains(p)).ToList();
         if (!answer.Allowed || kept.Count == 0)
@@ -158,12 +158,14 @@ public sealed class AgentSession
 
     /// <summary>
     /// Asks the person to switch approvals off in this conversation for a while (sdk/09 §3.12, L-58): the app's grant
-    /// handler draws the confirmation (<see cref="GrantOffer.Bypass"/>), which says what will no longer be asked, and the
-    /// person picks the time. Only once the server confirmed the grant does the conversation run in Bypass
+    /// handler draws the confirmation (<see cref="GrantOffer.Bypass"/>), which says what will no longer be asked, what
+    /// still asks and what the server records, and the person picks the time -- the shortest is preselected (sdk/40
+    /// A3.3) -- and may say why. Only once the server confirmed the grant does the conversation run in Bypass
     /// (<see cref="ToolMode.Bypass"/>, L-59); a refusal is thrown (<see cref="FadenstackApiException"/>). An app set to
     /// <see cref="PermissionMode.Bypass"/> chose it in its own code: no card, the longest time, recorded the same way.
-    /// Returns the grant, or null: not offered (the organisation or the agent does not allow it), no handler, or declined.
-    /// Never on the model's word: no tool and no other agent can call this (L-58).
+    /// <paramref name="reason"/> is recorded when the person gave none on the card. Returns the grant, or null: not
+    /// offered (the organisation or the agent does not allow it), no handler, or declined. Never on the model's word: no
+    /// tool and no other agent can call this (L-58).
     /// </summary>
     public async Task<AgentGrant?> StartBypassAsync(string? reason = null, CancellationToken cancellationToken = default)
     {
@@ -183,14 +185,18 @@ public sealed class AgentSession
             }
             var answer = await handler.RequestGrantAsync(new GrantOffer
             {
-                Bypass = true, Durations = choices, Reason = reason,
-                Preselected = choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : choices[choices.Count - 1],
+                Bypass = true, Durations = choices, Reason = reason, Preselected = choices[0],
+                Evidence = grants.Settings?.Bypass?.Evidence, ConversationId = Id,
             }, cancellationToken).ConfigureAwait(false);
             if (!answer.Allowed)
             {
                 return null;
             }
             (duration, shown) = (Within(answer.Duration, choices), answer.ShownText);
+            if (answer.Reason?.Trim() is { Length: > 0 } own)
+            {
+                reason = own.Length > GrantAnswer.ReasonLength ? own.Substring(0, GrantAnswer.ReasonLength) : own;
+            }
         }
         var grant = await grants.GrantBypassAsync(duration, Id, reason, shown, cancellationToken).ConfigureAwait(false);
         if (ToolMode != ToolMode.Bypass)
@@ -355,12 +361,16 @@ public sealed class AgentSession
             tool_mode = ToolMode.ToWire(),
         });
 
+    /// <summary>
+    /// The mode a session opened again starts in: its last, but never Bypass -- a Bypass is switched on through its
+    /// confirmation, for a time, and never comes back with the chat (sdk/09 L-58); the mode it had before Bypass, else none.
+    /// </summary>
     internal static ToolMode? LastMode(IReadOnlyList<TranscriptEntry> entries)
     {
         for (var i = entries.Count - 1; i >= 0; i--)
         {
             if (entries[i].Type is EntryTypes.TurnStart or EntryTypes.SessionStart
-                && ToolModes.ParseMode(ChatWire.Str(entries[i].Data, "tool_mode")) is { } mode)
+                && ToolModes.ParseMode(ChatWire.Str(entries[i].Data, "tool_mode")) is { } mode && mode != ToolMode.Bypass)
             {
                 return mode;
             }

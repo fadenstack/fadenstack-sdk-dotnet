@@ -200,7 +200,7 @@ The agent's contract on the server may set each tool's approval (`AgentTool.Appr
 For a call that needs approval, the first of these that applies decides:
 
 1. An administrator's "Ask first" rule covers the call: the user is asked, and may allow this call only.
-2. The agent runs in bypass mode, the call is of the app's own tool, and the server allows bypass for the agent: the call runs without asking. No Fadenstack server allows it yet (see [Bypass mode](#bypass-mode)).
+2. The conversation runs in Bypass, the gateway says the conversation's Bypass grant covers the call, and the agent's copy holds that grant: the call runs without asking, destructive and unclassified ones too (see [Bypass](#bypass-mode)).
 3. The tool is `Destructive` or `Unknown`: the user is asked, and may allow this call only.
 4. The gateway says a grant covers the call, and the agent's copy holds that grant, running, for this tool or class: the call runs without asking (see [Grants](#grants-for-a-time-and-working-alongside)).
 5. The user allowed the tool always, with the class it has now: the call runs without asking.
@@ -235,13 +235,24 @@ session.ResetApprovals();                       // what the user allowed for thi
 
 ### Bypass mode
 
-For development and trusted automation, the app can ask to approve the calls of its own tools that the agent would ask about:
+Bypass is a fifth level above Auto (`ToolMode.Bypass`), for one conversation and a time the person picks. The server holds it as a grant of kind `bypass`: the gateway checks every call against it and records each call it lets through. It is offered only where the organisation allows it, the agent's version goes up to it, and no ceiling is lower: `agent.BypassOffered`. An administrator's "Ask first" rule and a tool marked `always` still ask, the tool mode still hides what it hides, and no conversation starts in Bypass or comes back in it when it is opened again.
+
+The person switches it on, never the model, a tool or another agent:
+
+```csharp
+var grant = await session.StartBypassAsync();   // the confirmation first; null when declined or not offered
+await session.StopBypassAsync();                // ends it; the chat goes back to the mode it had before
+```
+
+`StartBypassAsync` shows the confirmation through the app's grant handler (`GrantOffer.Bypass`): what no longer asks, what still asks, what the server records of each call (`GrantOffer.Evidence`: `decisions`, `calls` or `results`), the times up to the longest the server allows (the shortest first), and an optional reason (`GrantAnswer.Reason`, at most 500 characters), which administrators see. Bypass holds only once the server answered with the grant: a refusal or no connection is thrown, and the chat stays as it was. A Bypass grant is never extended: more time is a new Bypass. Picking another mode, `StopBypassAsync`, or the end of the time ends it; so do an administrator, the organisation turning Bypass off, and a narrower limit. `agent.Grants.WhyEndedAsync(id)` says why one ended (`person`, `expired`, `admin`, `kill_switch`, `limit`). After each turn in Bypass the agent reports the calls it ran without asking, and the server flags any difference with its own records. The chat panel does all of this (see [the chat panel](chat-panel.md#what-the-panel-shows)).
+
+For development and trusted automation, the app can switch Bypass on in its own code instead:
 
 ```csharp
 builder.UsePermissionMode(PermissionMode.Bypass);
 ```
 
-Bypass mode holds only where the server allows it for the agent, and no Fadenstack server allows it yet: until one does, every call that would ask still asks. Where it holds, calls of the app's own tools that would ask run without asking, destructive and unclassified ones too. It never covers the gateway's own tools, an administrator's "Ask first" rule still asks, and the tool mode still hides what it hides. It is a setting in the app's code, never a choice for the user. The agent writes a warning to `System.Diagnostics.Trace` once when it starts in bypass mode, and the transcript and the server's record say `bypass` for every call it let through. `agent.PermissionMode` tells which mode the agent runs in; the default is `PermissionMode.Ask`.
+Before each turn of a session in Ask or above, the agent then makes the conversation's Bypass grant itself, without a card, for the longest time the server allows, where the server offers it; elsewhere every call that would ask still asks. It is a setting in the app's code, never a choice for the user. The agent writes a warning to `System.Diagnostics.Trace` once when it starts in bypass mode where the server does not offer it, and the transcript and the server's record say what let each call through. `agent.PermissionMode` tells which mode the agent runs in; the default is `PermissionMode.Ask`.
 
 ### What is recorded
 

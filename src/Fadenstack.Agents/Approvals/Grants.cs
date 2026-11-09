@@ -25,6 +25,8 @@ public sealed class AgentGrants
     private readonly FadenstackAgent _agent;
     private readonly object _gate = new();
     private List<AgentGrant> _grants = new();
+    // Every grant the copy saw, as it last saw it, kept when a new list replaces the copy: why one ended (WhyEndedAsync).
+    private readonly Dictionary<string, AgentGrant> _seen = new(StringComparer.Ordinal);
     private TimeSpan _offset;
 
     internal AgentGrants(FadenstackAgent agent) => _agent = agent;
@@ -147,6 +149,60 @@ public sealed class AgentGrants
         {
             return _grants.FirstOrDefault(g => g.Id == grantId);
         }
+    }
+
+    /// <summary>
+    /// Why a grant this copy held has ended, for the app to say (sdk/09 L-59, L-63): <c>person</c> (ended here, in
+    /// Settings or on another sign-in of theirs), <c>admin</c>, <c>kill_switch</c> (Bypass turned off for the
+    /// organisation), <c>limit</c> (a narrower limit or list of the organisation's), <c>agent</c>, <c>expired</c> or
+    /// <c>spent</c>; null while it runs, or when not even the server can say (an older server, offline). What the copy
+    /// recorded comes first -- a Stop here answers at once -- then its time by the server's clock, then the server.
+    /// </summary>
+    public async Task<string?> WhyEndedAsync(string grantId, CancellationToken cancellationToken = default)
+    {
+        AgentGrant? seen;
+        lock (_gate)
+        {
+            _seen.TryGetValue(grantId, out seen);
+        }
+        if (Ended(seen) is { } known)
+        {
+            return known;
+        }
+        try
+        {
+            var found = await _agent.Client.Agent!.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false);
+            lock (_gate)
+            {
+                _seen[found.Id] = found;
+            }
+            return Ended(found);
+        }
+        catch (Exception e) when (e is FadenstackException or HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return null; // the server cannot say: the app says the server ended it
+        }
+    }
+
+    // Why a grant as last seen has ended; null while it runs.
+    private string? Ended(AgentGrant? grant)
+    {
+        if (grant is null)
+        {
+            return null;
+        }
+        if (grant.RevokedBy is { Length: > 0 } by)
+        {
+            return by;
+        }
+        return grant.Status switch
+        {
+            "expired" => "expired",
+            "spent" => "spent",
+            _ when Spent(grant) => "spent",
+            _ when grant.ExpiresAt <= ServerNow => "expired",
+            _ => null,
+        };
     }
 
     /// <summary>
@@ -289,6 +345,10 @@ public sealed class AgentGrants
         lock (_gate)
         {
             _grants = grants.ToList();
+            foreach (var grant in _grants)
+            {
+                _seen[grant.Id] = grant;
+            }
             Sync(serverNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);
@@ -299,6 +359,7 @@ public sealed class AgentGrants
         lock (_gate)
         {
             _grants = _grants.Where(g => g.Id != grant.Id).Append(grant).ToList();
+            _seen[grant.Id] = grant;
             Sync(grant.ServerNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);

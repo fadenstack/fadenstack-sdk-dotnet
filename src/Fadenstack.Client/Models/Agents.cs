@@ -174,7 +174,11 @@ public sealed record BypassSettings
     /// <summary>The longest a Bypass may run, in minutes.</summary>
     public int LongestMinutes { get; init; } = 120;
 
-    /// <summary>What the server records of every call under it: <c>calls</c> (with their arguments, after the PII masking).</summary>
+    /// <summary>
+    /// What the server records of every call under it, as an administrator may set it (sdk/09 L-60): <c>decisions</c>
+    /// (which tool ran, when, where), <c>calls</c> (also the arguments, after the PII masking; the default) or
+    /// <c>results</c> (also a short summary of each result). The confirmation says it in plain words.
+    /// </summary>
     public string Evidence { get; init; } = "calls";
 }
 

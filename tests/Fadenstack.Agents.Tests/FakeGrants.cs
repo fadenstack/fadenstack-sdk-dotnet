@@ -25,7 +25,14 @@ public sealed class FakeGrants
         for (var i = 1; i <= 5; i++)
         {
             var id = $"g-{i}";
-            server.On("DELETE", $"{Route}/{id}", _ => Change(id, g => { g["status"] = "revoked"; g["revoked_by"] = "person"; }))
+            server.On("GET", $"{Route}/{id}", _ => CanSayWhy
+                    ? Change(id, _ => { })
+                    : FakeServer.Respond(HttpStatusCode.NotFound, new { detail = "Not Found" }))
+                .On("DELETE", $"{Route}/{id}", _ => Change(id, g =>
+                {
+                    g["status"] = "revoked";
+                    g["revoked_by"] = g.TryGetValue("revoked_by", out var by) && by is not null ? by : "person";
+                }))
                 .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => g["status"] = "paused"))
                 .On("POST", $"{Route}/{id}/resume", _ => Change(id, g => g["status"] = "active"))
                 .On("POST", $"{Route}/{id}/extend", r => Extend(id, r))
@@ -41,7 +48,13 @@ public sealed class FakeGrants
     /// <summary>The server's refusal of the next grants, as its error code (e.g. <c>grant_not_offered</c>); null: it grants.</summary>
     public string? Refuse { get; set; }
 
+    /// <summary>The status of that refusal: 403, or 503 for <c>grant_limits_unavailable</c>.</summary>
+    public HttpStatusCode RefuseStatus { get; set; } = HttpStatusCode.Forbidden;
+
     public int LongestMinutes { get; set; } = 120;
+
+    /// <summary>What new grants record of their calls (an administrator's level); null: core's default for the kind.</summary>
+    public string? EvidenceLevel { get; set; }
 
     /// <summary>The requests that made grants.</summary>
     public List<Recorded> Made => Server.Requests.Where(r => r.Method == "POST" && r.Path == Route).ToList();
@@ -61,6 +74,20 @@ public sealed class FakeGrants
         return (string)grant["id"]!;
     }
 
+    /// <summary>
+    /// The server ends a grant on its own: <c>admin</c> (Active grants), <c>kill_switch</c> (Bypass turned off), <c>limit</c>
+    /// (a narrower list), <c>person</c> (another sign-in). The device learns it from the next list.
+    /// </summary>
+    public void End(string id, string by)
+    {
+        var grant = _grants.Single(g => (string)g["id"]! == id);
+        grant["status"] = "revoked";
+        grant["revoked_by"] = by;
+    }
+
+    /// <summary>What the next <c>.../grants/{id}</c> reads answer: 404 as from an older server, when false.</summary>
+    public bool CanSayWhy { get; set; } = true;
+
     /// <summary>The value of a stream's <c>faden.grants</c>: the live grants, as the gateway sends them.</summary>
     public object Snapshot() => new
     {
@@ -68,11 +95,18 @@ public sealed class FakeGrants
         grants = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList(),
     };
 
+    /// <summary>The server cannot be reached when a grant is made (the device is offline).</summary>
+    public bool Offline { get; set; }
+
     private HttpResponseMessage Create(Recorded r)
     {
+        if (Offline)
+        {
+            throw new HttpRequestException("No route to host.");
+        }
         if (Refuse is { } code)
         {
-            return FakeServer.Respond(HttpStatusCode.Forbidden, new { error = new { message = "Not offered.", type = "permission_error", code } });
+            return FakeServer.Respond(RefuseStatus, new { error = new { message = "Not offered.", type = "permission_error", code } });
         }
         var body = r.Json;
         var kind = body.GetProperty("kind").GetString()!;
@@ -95,6 +129,7 @@ public sealed class FakeGrants
             ["object"] = "agent.grant", ["id"] = $"g-{_grants.Count + 1}", ["kind"] = kind, ["status"] = "active",
             ["scope"] = scope, ["issued_at"] = ServerNow, ["expires_at"] = ServerNow.AddMinutes(minutes),
             ["max_calls"] = null, ["calls_used"] = 0, ["device_id"] = "device-7", ["narrowed"] = Array.Empty<string>(),
+            ["evidence_level"] = EvidenceLevel ?? (kind == "time" ? "decisions" : "calls"),
         };
         _grants.Add(grant);
         return grant;

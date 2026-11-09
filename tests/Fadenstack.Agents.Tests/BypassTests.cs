@@ -98,7 +98,9 @@ public class BypassTests
         Assert.Null(await session.StartBypassAsync());
         var offer = declining.Offers.Single();
         Assert.True(offer.Bypass);
-        Assert.Equal((TimeSpan.FromMinutes(30), 3, 0), (offer.Preselected, offer.Durations.Count, offer.Places.Count));
+        // The shortest time first (sdk/40 A3.3); what is recorded and the conversation come from the server and the session.
+        Assert.Equal((TimeSpan.FromMinutes(15), 3, 0), (offer.Preselected, offer.Durations.Count, offer.Places.Count));
+        Assert.Equal(("calls", session.Id), (offer.Evidence, offer.ConversationId));
         Assert.Empty(grants.Made);
         Assert.Equal(ToolMode.Ask, session.ToolMode);
 
@@ -107,7 +109,7 @@ public class BypassTests
         var grant = await other.StartBypassAsync("Renaming 400 drawings");
 
         var made = grants.Made.Single();
-        Assert.Equal(("bypass", 30, other.Id), (made.Json.GetProperty("kind").GetString(), made.Json.GetProperty("minutes").GetInt32(),
+        Assert.Equal(("bypass", 15, other.Id), (made.Json.GetProperty("kind").GetString(), made.Json.GetProperty("minutes").GetInt32(),
             made.Header("x-faden-conversation-id")));
         Assert.Equal("Renaming 400 drawings", made.Json.GetProperty("reason").GetString());
         Assert.StartsWith("Fadenstack.Agents/", made.Json.GetProperty("client_version").GetString());
@@ -265,6 +267,97 @@ public class BypassTests
         Assert.Empty(card.Offers);
         Assert.Empty(grants.Extensions);
         Assert.Equal("active", grants.Status(grant.Id));
+    }
+
+    [Fact]
+    public async Task The_persons_own_words_on_the_card_are_recorded_and_the_card_says_what_the_server_records()
+    {
+        var (gateway, grants) = Server(Offered.Replace("\"calls\"", "\"decisions\""));
+        var card = new Reasoned("Renaming 400 drawings, as agreed with Anna.");
+        using var agent = gateway.Builder().UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+
+        await session.StartBypassAsync("The app's own words");
+
+        Assert.Equal("decisions", card.Offer!.Evidence);
+        Assert.Equal("Renaming 400 drawings, as agreed with Anna.", grants.Made.Single().Json.GetProperty("reason").GetString());
+    }
+
+    private sealed class Reasoned : IApprovalHandler, IGrantHandler
+    {
+        private readonly string _reason;
+
+        public Reasoned(string reason) => _reason = reason;
+
+        public GrantOffer? Offer { get; private set; }
+
+        public Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(ApprovalDecision.Deny());
+
+        public Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
+        {
+            Offer = offer;
+            return Task.FromResult(new GrantAnswer { Allowed = true, Duration = offer.Preselected, ShownText = "Bypass?", Reason = "  " + _reason + " " });
+        }
+    }
+
+    [Fact]
+    public async Task A_session_opened_again_is_never_in_bypass_but_in_the_mode_it_had_before()
+    {
+        var (gateway, _) = Server();
+        var store = new Sessions.MemorySessionStore();
+        using var agent = gateway.Builder(store).UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.ReadOnly);
+        gateway.Says("Read.");
+        await session.SendAsync("Look.");
+        session.ToolMode = ToolMode.Ask;
+        await session.StartBypassAsync();
+        gateway.Says("Done.");
+        await session.SendAsync("Go.");
+        Assert.Equal(ToolMode.Bypass, session.ToolMode);
+
+        var again = await agent.OpenSessionAsync(session.Id);
+
+        Assert.Equal(ToolMode.ReadOnly, again.ToolMode); // its last turn before Bypass (sdk/09 L-58)
+        Assert.Equal(ToolMode.ReadOnly, again.EffectiveToolMode);
+    }
+
+    [Theory]
+    [InlineData("admin", "admin")]
+    [InlineData("kill_switch", "kill_switch")]
+    [InlineData("limit", "limit")]
+    public async Task Why_a_grant_ended_is_read_from_the_server_once_it_left_the_list(string by, string why)
+    {
+        var (gateway, grants) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        Assert.Null(await agent.Grants.WhyEndedAsync(grant.Id)); // it runs
+
+        grants.End(grant.Id, by);
+        await agent.Grants.RefreshAsync();
+
+        Assert.Null(session.Bypass);
+        Assert.Equal(why, await agent.Grants.WhyEndedAsync(grant.Id));
+    }
+
+    [Fact]
+    public async Task Why_a_grant_ended_here_or_by_its_time_needs_no_server_and_an_older_server_says_nothing()
+    {
+        var (gateway, grants) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var stopped = (await session.StartBypassAsync())!;
+        await session.StopBypassAsync();
+        var timed = (await session.StartBypassAsync())!;
+        grants.CanSayWhy = false;
+
+        Assert.Equal("person", await agent.Grants.WhyEndedAsync(stopped.Id));
+        grants.ServerNow = grants.ServerNow.AddMinutes(16);
+        await agent.Grants.RefreshAsync();
+        Assert.Equal("expired", await agent.Grants.WhyEndedAsync(timed.Id));
+        Assert.Null(await agent.Grants.WhyEndedAsync("g-9"));
+        Assert.DoesNotContain(gateway.Server.Requests, r => r.Method == "GET" && r.Path.EndsWith("/grants/" + stopped.Id));
     }
 
     [Fact]

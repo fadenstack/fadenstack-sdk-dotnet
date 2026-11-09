@@ -508,6 +508,122 @@
   <data name="Revoke" xml:space="preserve">
     <value>Widerrufen</value>
   </data>
+  <data name="BypassTitle" xml:space="preserve">
+    <value>Freigaben in diesem Chat abschalten?</value>
+    <comment>The question of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassNoLongerAsks" xml:space="preserve">
+    <value>Für die gewählte Zeit führt dieser Agent seine Tools in diesem Chat aus, ohne Sie vorher zu fragen, auch solche, die löschen, senden oder sich nicht rückgängig machen lassen, und solche, die niemand eingestuft hat. Ihre anderen Chats fragen wie bisher.</value>
+    <comment>What Bypass stops asking</comment>
+  </data>
+  <data name="BypassStillAsks" xml:space="preserve">
+    <value>Weiterhin gefragt wird: bei den Regeln „Erst nachfragen“ Ihrer Administration und bei Tools, die immer nachfragen. Was gesperrt ist, bleibt gesperrt.</value>
+    <comment>What still asks under Bypass</comment>
+  </data>
+  <data name="BypassRecords_decisions" xml:space="preserve">
+    <value>Der Server Ihrer Organisation zeichnet jedes Tool auf, das ohne Nachfrage läuft: welches, wann und wo, aber nicht, was es bekam.</value>
+    <comment>What the server records under Bypass, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecords_calls" xml:space="preserve">
+    <value>Der Server Ihrer Organisation zeichnet jedes Tool auf, das ohne Nachfrage läuft, mit dem, was es bekam (personenbezogene Daten maskiert).</value>
+    <comment>What the server records under Bypass, at the level "calls" (the arguments)</comment>
+  </data>
+  <data name="BypassRecords_results" xml:space="preserve">
+    <value>Der Server Ihrer Organisation zeichnet jedes Tool auf, das ohne Nachfrage läuft, mit dem, was es bekam, und einer kurzen Zusammenfassung seines Ergebnisses (personenbezogene Daten maskiert).</value>
+    <comment>What the server records under Bypass, at the level "results"</comment>
+  </data>
+  <data name="BypassNoExtension" xml:space="preserve">
+    <value>Wenn die Zeit um ist, endet Bypass. Er lässt sich nicht verlängern: Mehr Zeit ist ein neuer Bypass, erneut bestätigt.</value>
+    <comment>Under the time picker of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReason" xml:space="preserve">
+    <value>Warum (optional)</value>
+    <comment>The label of the reason box on the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReasonSeen" xml:space="preserve">
+    <value>Ihre Administration sieht Ihren Grund.</value>
+    <comment>Under the reason box</comment>
+  </data>
+  <data name="BypassAllow" xml:space="preserve">
+    <value>Bypass einschalten</value>
+    <comment>The Bypass confirmation's button that switches it on</comment>
+  </data>
+  <data name="BypassConfirming" xml:space="preserve">
+    <value>Warte auf die Bestätigung des Servers…</value>
+    <comment>The confirmation after the click, before the server answered</comment>
+  </data>
+  <data name="BypassOn" xml:space="preserve">
+    <value>Bypass ist an</value>
+    <comment>The confirmation once the server confirmed it</comment>
+  </data>
+  <data name="BypassNotConfirmed" xml:space="preserve">
+    <value>Bypass ist nicht an: Der Server hat es nicht bestätigt. Freigaben fragen wie bisher.</value>
+    <comment>The server gave no acknowledgement</comment>
+  </data>
+  <data name="BypassNotConfirmed_refused" xml:space="preserve">
+    <value>Bypass ist nicht an: Ihre Organisation erlaubt es für diesen Agenten derzeit nicht. Freigaben fragen wie bisher.</value>
+    <comment>The server refused it (switched off, or not for this agent)</comment>
+  </data>
+  <data name="BypassNotConfirmed_offline" xml:space="preserve">
+    <value>Bypass ist nicht an: Der Server war nicht erreichbar. Freigaben fragen wie bisher.</value>
+    <comment>No connection to the server</comment>
+  </data>
+  <data name="BypassNotConfirmed_unavailable" xml:space="preserve">
+    <value>Bypass ist nicht an: Der Server kann seine Grenzen gerade nicht prüfen. Freigaben fragen wie bisher.</value>
+    <comment>The server's limits could not be read</comment>
+  </data>
+  <data name="BypassMarker" xml:space="preserve">
+    <value>Bypass an · noch {0}</value>
+    <comment>The Bypass marker; {0}: the time left</comment>
+  </data>
+  <data name="BypassRecorded_decisions" xml:space="preserve">
+    <value>Jedes Tool, das läuft, wird aufgezeichnet.</value>
+    <comment>The marker's second line, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecorded_calls" xml:space="preserve">
+    <value>Jedes Tool, das läuft, wird mit dem aufgezeichnet, was es bekam.</value>
+    <comment>The marker's second line, at the level "calls"</comment>
+  </data>
+  <data name="BypassRecorded_results" xml:space="preserve">
+    <value>Jedes Tool, das läuft, wird mit dem aufgezeichnet, was es bekam, und mit seinem Ergebnis.</value>
+    <comment>The marker's second line, at the level "results"</comment>
+  </data>
+  <data name="BypassStopName" xml:space="preserve">
+    <value>Bypass beenden</value>
+    <comment>The marker's Stop button, for screen readers</comment>
+  </data>
+  <data name="BypassEnded" xml:space="preserve">
+    <value>Bypass beendet: Der Server hat ihn beendet. Freigaben fragen wieder.</value>
+    <comment>Bypass ended and the server did not say why</comment>
+  </data>
+  <data name="BypassEnded_person" xml:space="preserve">
+    <value>Bypass beendet: Sie haben ihn beendet. Freigaben fragen wieder.</value>
+    <comment>The person stopped it (here, in Settings or on another sign-in)</comment>
+  </data>
+  <data name="BypassEnded_expired" xml:space="preserve">
+    <value>Bypass beendet: Seine Zeit ist um. Freigaben fragen wieder.</value>
+    <comment>Bypass ended at its time</comment>
+  </data>
+  <data name="BypassEnded_admin" xml:space="preserve">
+    <value>Bypass beendet: Eine Administratorin oder ein Administrator hat ihn beendet. Freigaben fragen wieder.</value>
+    <comment>An administrator revoked it</comment>
+  </data>
+  <data name="BypassEnded_kill_switch" xml:space="preserve">
+    <value>Bypass beendet: Ihre Organisation hat Bypass abgeschaltet. Freigaben fragen wieder.</value>
+    <comment>The organisation switched Bypass off for everyone</comment>
+  </data>
+  <data name="BypassEnded_limit" xml:space="preserve">
+    <value>Bypass beendet: Ihre Organisation hat eingeschränkt, wer ihn nutzen darf. Freigaben fragen wieder.</value>
+    <comment>A narrower list or limit of the organisation's ended it</comment>
+  </data>
+  <data name="BypassEnded_spent" xml:space="preserve">
+    <value>Bypass beendet: Seine Aufrufe sind aufgebraucht. Freigaben fragen wieder.</value>
+    <comment>Its budget of calls was used up</comment>
+  </data>
+  <data name="SettingsGrantBypass" xml:space="preserve">
+    <value>Bypass in einem Chat, noch {0} · {1}</value>
+    <comment>A running Bypass in Settings; {0}: the time left; {1}: what is recorded</comment>
+  </data>
   <data name="LimitedByAgent" xml:space="preserve">
     <value>{0} Dieser Agent geht nicht über „{1}“ hinaus.</value>
   </data>

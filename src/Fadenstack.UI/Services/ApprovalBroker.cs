@@ -48,6 +48,12 @@ public sealed class PendingGrant
 
     public bool Resolve(GrantAnswer answer) => _answer.TrySetResult(answer);
 
+    /// <summary>Whether a chat took the card to draw (a Bypass confirmation is drawn only by its conversation's chat).</summary>
+    public bool IsClaimed { get; private set; }
+
+    /// <summary>A chat draws this card: call from <see cref="ApprovalBroker.GrantRequested"/>, before it returns.</summary>
+    public void Claim() => IsClaimed = true;
+
     internal void Cancel() => _answer.TrySetCanceled();
 }
 
@@ -60,14 +66,17 @@ public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler
 {
     public event Action<PendingApproval>? Requested;
 
-    /// <summary>A grant card to show (<see cref="AgentSession.OfferWorkAsync"/>, an extension).</summary>
+    /// <summary>
+    /// A grant card to show (<see cref="AgentSession.OfferWorkAsync"/>, an extension), or the Bypass confirmation
+    /// (<see cref="GrantOffer.Bypass"/>, <see cref="AgentSession.StartBypassAsync"/>), which the chat of its conversation
+    /// draws.
+    /// </summary>
     public event Action<PendingGrant>? GrantRequested;
 
     public async Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
     {
         var handlers = GrantRequested;
-        // The chat panel's card cannot say yet what Bypass stops asking (sdk/09 L-58): no Bypass from here (sdk/40 A3).
-        if (handlers is null || offer.Bypass)
+        if (handlers is null)
         {
             return GrantAnswer.NotNow;
         }
@@ -75,6 +84,10 @@ public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler
         using (cancellationToken.Register(pending.Cancel))
         {
             handlers(pending);
+            if (offer.Bypass && !pending.IsClaimed)
+            {
+                return GrantAnswer.NotNow; // no chat of its conversation draws it: nobody can confirm it (sdk/09 L-58)
+            }
             return await pending.Answer.ConfigureAwait(false);
         }
     }
