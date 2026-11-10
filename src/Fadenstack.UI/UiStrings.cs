@@ -143,6 +143,9 @@ public sealed class UiStrings
     /// <summary>Why a card asks about a tool that reaches outside the organisation.</summary>
     public string ApprovalOutsideWhy => Text();
 
+    /// <summary>Why a card asks although the user let the agent work in a place: a link leads out of it, to <c>{0}</c>.</summary>
+    public string ApprovalLeadsOutside(string realPlace) => Fill(realPlace);
+
     public string Allow => Text();
 
     public string AllowForChat => Text();
@@ -164,6 +167,186 @@ public sealed class UiStrings
     public string ResetApprovals => Text();
 
     public string ResetApprovalsHint => Text();
+
+    /// <summary>The card's button that opens the times of a grant for a time: "Allow for…".</summary>
+    public string AllowFor => Text();
+
+    /// <summary>A card answered for a time: "Allowed for 30 min".</summary>
+    public string AllowedFor(string duration) => Fill(duration);
+
+    /// <summary>A call a running grant let through without asking.</summary>
+    public string AllowedByGrant => Text();
+
+    /// <summary>A time a user allows, or the time left: "15 min", "2 h", "1 h 30 min".</summary>
+    public string Period(TimeSpan span)
+    {
+        var minutes = (int)Math.Ceiling(span.TotalMinutes);
+        return minutes < 60 ? Fill(minutes, "Duration_Minutes")
+            : minutes % 60 == 0 ? Fill(minutes / 60, "Duration_Hours")
+            : Fill2(minutes / 60, minutes % 60, "Duration_HoursMinutes");
+    }
+
+    // -- grants: the card, the marker, Settings → Approvals (sdk/38 §7) ------------------------------
+
+    /// <summary>The grant card's question: "Work alongside you?".</summary>
+    public string GrantTitle => Text();
+
+    /// <summary>The card that extends a running grant: "Keep working alongside you?".</summary>
+    public string GrantExtendTitle => Text();
+
+    /// <summary>The label of the card's time picker.</summary>
+    public string GrantDuration => Text();
+
+    /// <summary>Before the places: "I'll work in:".</summary>
+    public string GrantPlaces => Text();
+
+    /// <summary>Before the places an extension adds: "Also in:".</summary>
+    public string GrantNewPlaces => Text();
+
+    /// <summary>An extension's time: "30 min longer".</summary>
+    public string GrantMoreTime(string duration) => Fill(duration);
+
+    /// <summary>What the agent may do without asking, by the classes the grant covers.</summary>
+    public string GrantMay(Parts.GrantAbility ability) => this[$"GrantMay_{ability}"];
+
+    /// <summary>What still asks inside a grant.</summary>
+    public string GrantStillAsks => Text();
+
+    public string GrantAllow => Text();
+
+    public string GrantNotNow => Text();
+
+    /// <summary>A place's button on the card: take it out of the grant.</summary>
+    public string GrantRemovePlace => Text();
+
+    /// <summary>A place's button on the card: put it back.</summary>
+    public string GrantKeepPlace => Text();
+
+    /// <summary>The card once allowed.</summary>
+    public string GrantAllowed => Text();
+
+    /// <summary>The card once declined.</summary>
+    public string GrantDeclined => Text();
+
+    /// <summary>The card when the server refused or could not be reached: no answer, no grant.</summary>
+    public string GrantFailed => Text();
+
+    /// <summary>The marker in the chat header: "Working alongside you · 23 min left".</summary>
+    public string MarkerWorking(string left) => Fill(left);
+
+    /// <summary>The marker while the grant is paused (the person away).</summary>
+    public string MarkerPaused => Text();
+
+    /// <summary>The marker's button that ends every grant and the turn.</summary>
+    public string MarkerStop => Text();
+
+    /// <summary>The marker's button near the end: "Another 30 min".</summary>
+    public string MarkerKeepGoing(string duration) => Fill(duration);
+
+    /// <summary>The Settings section with what the user allowed for longer than one call.</summary>
+    public string SettingsApprovals => Text();
+
+    public string SettingsApprovalsEmpty => Text();
+
+    /// <summary>A grant for a time in Settings: "add_comment, 23 min left".</summary>
+    public string SettingsGrantTime(string tool, string left) => Fill2(tool, left);
+
+    /// <summary>A stretch of work in Settings: "Working alongside you in report.docx, 23 min left".</summary>
+    public string SettingsGrantWork(string places, string left) => Fill2(places, left);
+
+    /// <summary>An "always" approval in Settings: "add_comment, always".</summary>
+    public string SettingsAlways(string tool) => Fill(tool);
+
+    public string Revoke => Text();
+
+    // -- Bypass: the confirmation, the marker, its end (sdk/09 L-58, L-59, L-63) --------------------------
+
+    /// <summary>The confirmation's question: "Switch approvals off in this chat?".</summary>
+    public string BypassTitle => Text();
+
+    /// <summary>What no longer asks: the agent's destructive and unclassified tools too, in this chat only.</summary>
+    public string BypassNoLongerAsks => Text();
+
+    /// <summary>What still asks: an administrator's "Ask first" rules and tools marked to always ask.</summary>
+    public string BypassStillAsks => Text();
+
+    /// <summary>
+    /// What the server records of each call under Bypass, in plain words, by the level the server names (<c>decisions</c>,
+    /// <c>calls</c>, <c>results</c>; sdk/09 L-60). None named: <c>calls</c>, the server's default; a level this SDK does
+    /// not know: the most it could be, <c>results</c> -- the card never says less is kept than is.
+    /// </summary>
+    public string BypassRecords(string? evidence) => this["BypassRecords_" + Level(evidence)];
+
+    /// <summary>The marker's short line on what is recorded, by the running grant's level.</summary>
+    public string BypassRecorded(string? evidence) => this["BypassRecorded_" + Level(evidence)];
+
+    /// <summary>Under the time: the time is not extended; more time is a new Bypass.</summary>
+    public string BypassNoExtension => Text();
+
+    /// <summary>The label of the optional reason.</summary>
+    public string BypassReason => Text();
+
+    /// <summary>Under the reason: administrators see it.</summary>
+    public string BypassReasonSeen => Text();
+
+    /// <summary>The button that switches Bypass on: never the default button.</summary>
+    public string BypassAllow => Text();
+
+    /// <summary>The confirmation after the click, until the server answers.</summary>
+    public string BypassConfirming => Text();
+
+    /// <summary>The confirmation once the server confirmed it.</summary>
+    public string BypassOn => Text();
+
+    /// <summary>The confirmation while the second sign-in runs in the browser (sdk/41).</summary>
+    public string BypassSignIn => Text();
+
+    /// <summary>Under it: the code the page shows, for the person to compare.</summary>
+    public string BypassSignInCode(string code) => Fill(code);
+
+    /// <summary>The button that opens the sign-in page in the browser again.</summary>
+    public string BypassOpenAgain => Text();
+
+    /// <summary>The same button for screen readers.</summary>
+    public string BypassOpenAgainName => Text();
+
+    /// <summary>The button on the "Bypass ended" line that asks for Bypass again (the card, then the second sign-in).</summary>
+    public string BypassSwitchOnAgain => Text();
+
+    /// <summary>The same button for screen readers.</summary>
+    public string BypassSwitchOnAgainName => Text();
+
+    /// <summary>The chat list's line for a chat that runs in Bypass: "Bypass · 12 min left".</summary>
+    public string BypassListMarker(string left) => Fill(left);
+
+    /// <summary>
+    /// The confirmation when the server gave no acknowledgement (L-59), by why: <c>refused</c>, <c>offline</c>,
+    /// <c>unavailable</c>, and for the second sign-in <c>denied</c>, <c>timed_out</c>, <c>no_browser</c>; null: it did not say.
+    /// </summary>
+    public string BypassNotConfirmed(string? why) => why is null ? this["BypassNotConfirmed"] : Find("BypassNotConfirmed_" + why) ?? this["BypassNotConfirmed"];
+
+    /// <summary>The marker: "Bypass on · 12 min left".</summary>
+    public string BypassMarker(string left) => Fill(left);
+
+    /// <summary>The marker's Stop for screen readers: "Stop Bypass".</summary>
+    public string BypassStopName => Text();
+
+    /// <summary>
+    /// Why Bypass ended, from the grant's <c>revoked_by</c> or its time (<see cref="Fadenstack.Agents.AgentGrants.WhyEndedAsync"/>):
+    /// <c>person</c>, <c>expired</c>, <c>admin</c>, <c>kill_switch</c>, <c>limit</c>, <c>spent</c>; another or none: the
+    /// server ended it.
+    /// </summary>
+    public string BypassEnded(string? why) => why is null ? this["BypassEnded"] : Find("BypassEnded_" + why) ?? this["BypassEnded"];
+
+    /// <summary>A running Bypass in Settings: "Bypass in a chat, 12 min left · Each tool that runs is recorded…".</summary>
+    public string SettingsGrantBypass(string left, string recorded) => Fill2(left, recorded);
+
+    private static string Level(string? evidence) => evidence switch
+    {
+        null or "" or "calls" => "calls",
+        "decisions" => "decisions",
+        _ => "results",
+    };
 
     // -- notices -------------------------------------------------------------------------------------
 
@@ -215,6 +398,9 @@ public sealed class UiStrings
 
     /// <summary>"Asks before ... Limited to Read only by your organisation."</summary>
     public string LimitedTo(string description, string mode) => Fill2(description, mode);
+
+    /// <summary>"Asks before ... This agent goes no higher than Ask.": the agent's own highest level is the limit.</summary>
+    public string LimitedByAgent(string description, string mode) => Fill2(description, mode);
 
     public string ToolModeMenu => Text();
 

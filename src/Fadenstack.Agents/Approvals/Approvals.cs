@@ -29,7 +29,19 @@ public sealed record ApprovalRequest
     /// <summary>Whether "Allow always" may be offered: where "Allow for this chat" may.</summary>
     public bool CanAllowAlways { get; init; }
 
-    /// <summary>An admin's "Ask first" rule covers the call: <see cref="Reason"/> is the admin's message. It asks every time.</summary>
+    /// <summary>
+    /// The durations "Allow for…" may offer: a grant for a time, held by the server, for a read or write tool the agent
+    /// allows it for (its <c>standing</c> has <c>time</c>), at most its longest grant. Empty: not offered.
+    /// </summary>
+    public IReadOnlyList<TimeSpan> GrantDurations { get; init; } = Array.Empty<TimeSpan>();
+
+    /// <summary>Whether the card offers "Allow for…" (<see cref="GrantDurations"/>).</summary>
+    public bool CanAllowForTime => GrantDurations.Count > 0;
+
+    /// <summary>
+    /// The call asks every time, whatever the user allowed before: an admin's "Ask first" rule covers it (<see cref="Reason"/>
+    /// is the admin's message), or the agent's contract says <c>always</c> for the tool.
+    /// </summary>
     public bool RequiredByRule { get; init; }
 
     /// <summary>
@@ -44,6 +56,13 @@ public sealed record ApprovalRequest
     /// not only the arguments. Null for a tool that does not say.
     /// </summary>
     public string? Target { get; init; }
+
+    /// <summary>
+    /// Where the call really acts, when the gateway said a stretch of work covers it but a link, a junction or a mount point
+    /// on this device leads out of the grant's places (the second line resolves paths, sdk/38 §6): the card says where it
+    /// leads, so the user sees why it asks. Null otherwise.
+    /// </summary>
+    public string? LeadsOutside { get; init; }
 }
 
 /// <summary>What the user decided.</summary>
@@ -64,6 +83,13 @@ public sealed record ApprovalDecision
     /// </summary>
     public bool Always { get; init; }
 
+    /// <summary>
+    /// Approve this call, and the tool for this long on this device, held by the server (a grant for a time). Taken only
+    /// for a duration the request offers (<see cref="ApprovalRequest.GrantDurations"/>); when the server does not
+    /// confirm the grant, this call alone is approved.
+    /// </summary>
+    public TimeSpan? ForTime { get; init; }
+
     public string? Reason { get; init; }
 
     public static ApprovalDecision Approve() => new() { Approved = true };
@@ -72,11 +98,13 @@ public sealed record ApprovalDecision
 
     public static ApprovalDecision ApproveAlways() => new() { Approved = true, Always = true };
 
+    public static ApprovalDecision ApproveFor(TimeSpan duration) => new() { Approved = true, ForTime = duration };
+
     public static ApprovalDecision Deny(string? reason = null) => new() { Approved = false, Reason = reason };
 }
 
 /// <summary>
-/// Whether the agent asks (<see cref="Ask"/>, the default) or approves every call it would ask about
+/// Whether the agent asks (<see cref="Ask"/>, the default) or runs its sessions in Bypass where the server offers it
 /// (<see cref="Bypass"/>). Set in the app's code (<see cref="AgentBuilder.UsePermissionMode"/>), never by a user.
 /// </summary>
 public enum PermissionMode
@@ -85,8 +113,11 @@ public enum PermissionMode
     Ask = 0,
 
     /// <summary>
-    /// Calls the tool mode asks about are approved without asking, destructive and unclassified ones too; an admin's
-    /// "Ask first" rule still asks. For development and trusted automation.
+    /// Before each turn of a session in Ask or above, the SDK makes the conversation's Bypass grant without a card, where
+    /// the server offers Bypass (<see cref="FadenstackAgent.BypassOffered"/>; sdk/40 A3): what the mode would ask about
+    /// then runs, destructive and unclassified calls too, and the server records every call as it does for a person's
+    /// Bypass (L-58). An admin's "Ask first" rule and a tool that asks every time still ask; Read only and Off stay as
+    /// they are. Where the server does not offer it, every call still asks. For development and trusted automation.
     /// </summary>
     Bypass,
 }
@@ -105,6 +136,9 @@ public static class ApprovalScopes
 
     /// <summary>The agent runs in <see cref="PermissionMode.Bypass"/>.</summary>
     public const string Bypass = "bypass";
+
+    /// <summary>A grant the server holds let it through: for a time, or a stretch of work.</summary>
+    public const string Grant = "grant";
 }
 
 /// <summary>Shows the prompt (a dialog, a card in the chat) and returns what the user decided.</summary>

@@ -32,6 +32,7 @@ public sealed class Gateway
         IReadOnlyList<FakeSkill>? skills = null, string ui = "null", string? provenancePolicy = """{"on_missing":"record","short_text_tokens":200}""")
     {
         UserLanguage = userLanguage;
+        Ceiling = ceiling;
         var skillsModule = skills is null ? "false" : "true";
         ProvenancePolicy = provenancePolicy;
         Server = new FakeServer()
@@ -62,7 +63,7 @@ public sealed class Gateway
                 })
                 : Verify(r))
             .On("GET", "/v1/agents/docs-assistant/profile", _ => FakeServer.Respond(HttpStatusCode.OK,
-                Profile(contract, ceiling, modules, localMcp, vision, skillsModule, ui)))
+                Profile(contract, Ceiling, modules, localMcp, vision, skillsModule, ui)))
             .Skills("/v1/agents/docs-assistant/skills", skills)
             .On("PATCH", "/v1/agents/docs-assistant/user", r =>
             {
@@ -81,6 +82,37 @@ public sealed class Gateway
     }
 
     public FakeServer Server { get; }
+
+    /// <summary>The profile's <c>tool_modes</c>, as JSON values, read at each profile request: tests change them on the way.</summary>
+    public string Ceiling { get; set; }
+
+    public string DefaultLevel { get; set; } = "\"ask\"";
+
+    /// <summary>The agent's highest level; <c>null</c> as from an older server.</summary>
+    public string MaxLevel { get; set; } = "null";
+
+    /// <summary>The profile's <c>features</c>, as JSON.</summary>
+    public string Features { get; set; } = """["agents"]""";
+
+    /// <summary>The profile's <c>approvals</c>, as JSON; <c>null</c> as from a server without grants.</summary>
+    public string Approvals { get; set; } = "null";
+
+    /// <summary>
+    /// Grants held as the gateway holds them (<c>.../grants</c>), with <see cref="Features"/> and <see cref="Approvals"/>
+    /// set for them: the agent allows chat, time, grant and always, up to 120 minutes, reads and writes.
+    /// </summary>
+    public FakeGrants UseGrants(string approvals = """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"]}""")
+    {
+        Features = """["agents","approval_scopes.grant"]""";
+        Approvals = approvals;
+        return new FakeGrants(Server);
+    }
+
+    /// <summary>Who the token is for (<c>principal</c>), as JSON; null as from an older server.</summary>
+    public string? Principal { get; set; }
+
+    /// <summary>How often the agent read its profile.</summary>
+    public int ProfileReads => Server.Requests.Count(r => r.Path == "/v1/agents/docs-assistant/profile");
 
     /// <summary>The language the user picked for all their clients, as the server keeps it (<c>PATCH .../user</c>).</summary>
     public string? UserLanguage { get; private set; }
@@ -194,9 +226,10 @@ public sealed class Gateway
                 {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
                  "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
-                 "tool_modes":{"default":"ask","ceiling":{{ceiling}},"open_world_enforced":false},
-                 "required_client_modules":{{modules}},"edition":"community","features":["agents"],
-                 "user":{"language":{{language}} } }
+                 "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
+                 "approvals":{{Approvals}},
+                 "required_client_modules":{{modules}},"edition":"community","features":{{Features}},
+                 "user":{"language":{{language}} },"principal":{{Principal ?? "null"}} }
                 """;
     }
 

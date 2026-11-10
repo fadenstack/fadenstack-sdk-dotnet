@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Models;
+using Fadenstack.Storage;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
 
@@ -17,6 +18,7 @@ public sealed class FadenstackAgent : IDisposable
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
+    private DateTimeOffset _profileRead;
     private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
     private bool _warned;
 
@@ -24,7 +26,18 @@ public sealed class FadenstackAgent : IDisposable
     {
         _settings = settings;
         Reporter = new EventReporter(settings.Client, settings.Report);
+        Grants = new AgentGrants(this);
+        StepUps = new StepUpProofs(this);
     }
+
+    /// <summary>The proof of a fresh sign-in for Bypass while it lasts, in memory only (sdk/41).</summary>
+    internal StepUpProofs StepUps { get; }
+
+    /// <summary>
+    /// What the person let the agent run for a while on this device, held by the server (<see cref="AgentGrants.Available"/>
+    /// when it holds grants): grants for a time, stretches of work, and the marker's Stop.
+    /// </summary>
+    public AgentGrants Grants { get; }
 
     public static AgentBuilder CreateBuilder() => new();
 
@@ -38,16 +51,53 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>The agent's profile, once <see cref="StartAsync"/> ran.</summary>
     public AgentProfile Profile => _profile ?? throw new InvalidOperationException("Call StartAsync first.");
 
+    internal AgentProfile? ProfileOrNull => _profile;
+
     /// <summary>The tools the agent runs, with their effective classes, once started.</summary>
     public IReadOnlyList<AgentTool> Tools => _tools;
 
-    /// <summary>The most any session may use: the profile's ceiling, if the server sets one, or Auto.</summary>
-    public ToolMode Ceiling => ToolModes.ParseMode(_profile?.ToolModes.Ceiling) ?? ToolMode.Auto;
+    /// <summary>
+    /// The most any session may use: the narrowest of the profile's ceiling and the agent's highest level, where the server
+    /// sets them, else Auto. A level this SDK does not know narrows to read-only: it cannot be taken for none (39 F8).
+    /// Bypass only where the server offers it (<see cref="BypassOffered"/>); otherwise Auto.
+    /// </summary>
+    public ToolMode Ceiling
+    {
+        get
+        {
+            var top = ToolModes.Narrowest(Level(_profile?.ToolModes.Ceiling), Level(_profile?.ToolModes.Max));
+            return top == ToolMode.Bypass && !BypassOffered ? ToolMode.Auto : top;
+        }
+    }
+
+    /// <summary>
+    /// Whether a person may switch approvals off in a conversation with this agent now (sdk/09 L-57): the organisation
+    /// allows it, the agent's version goes up to it, and no ceiling is lower -- as the server says in the profile.
+    /// </summary>
+    public bool BypassOffered => Grants.Settings?.Bypass is { Allowed: true };
 
     /// <summary>Whether pictures tools return go to the model: the app allows it and the profile says the model sees.</summary>
     public bool SeesPictures => _settings.Pictures && _profile?.Vision == true;
 
-    public ToolMode DefaultToolMode => ToolModes.Narrowest(_settings.DefaultMode, ToolModes.ParseMode(_profile?.ToolModes.Default) ?? ToolMode.Ask);
+    /// <summary>
+    /// The mode new sessions start in: the agent's default level from the server (Ask from an older one, or one this SDK
+    /// does not know), no higher than the app's own default (<see cref="AgentBuilder.UseDefaultToolMode"/>).
+    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>. Never Bypass (sdk/38 D2): a
+    /// default the server names as Bypass is Ask.
+    /// </summary>
+    public ToolMode DefaultToolMode => ToolModes.Narrowest(
+        ToolModes.ParseMode(_profile?.ToolModes.Default) is { } level && level != ToolMode.Bypass ? level : ToolMode.Ask,
+        _settings.DefaultMode);
+
+    /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
+    internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
+
+    /// <summary>The time, for the profile's age; tests set it.</summary>
+    internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
+
+    // No level: no limit (Bypass, cut to Auto in Ceiling unless offered); one this SDK does not know: read-only.
+    private static ToolMode Level(string? level) =>
+        string.IsNullOrWhiteSpace(level) ? ToolMode.Bypass : ToolModes.ParseMode(level) ?? ToolMode.ReadOnly;
 
     /// <summary><see cref="PermissionMode.Ask"/>, or <see cref="PermissionMode.Bypass"/> when the app set it.</summary>
     public PermissionMode PermissionMode => _settings.PermissionMode;
@@ -56,9 +106,10 @@ public sealed class FadenstackAgent : IDisposable
 
     internal EventReporter Reporter { get; }
 
-    internal ISessionStore SessionStore => _sessions ??= _settings.Sessions ?? new FileSessionStore();
+    /// <summary>The host's store, or the default one once <see cref="StartAsync"/> knows whose it is.</summary>
+    internal ISessionStore SessionStore => _settings.Sessions ?? _sessions ?? throw new InvalidOperationException("Call StartAsync first.");
 
-    internal IApprovalStore ApprovalStore => _approvalStore ??= _settings.ApprovalStore ?? new FileApprovalStore();
+    internal IApprovalStore ApprovalStore => _settings.ApprovalStore ?? _approvalStore ?? throw new InvalidOperationException("Call StartAsync first.");
 
     /// <summary>
     /// Loads the profile, checks the modules the agent requires, and settles the tools: host tools outside the
@@ -75,26 +126,9 @@ public sealed class FadenstackAgent : IDisposable
             {
                 return;
             }
-            var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
-            var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
-            if (missing.Count > 0)
-            {
-                throw new FadenstackException(
-                    $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
-            }
-            var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
-            var tools = new List<AgentTool>();
-            foreach (var tool in _settings.Tools)
-            {
-                ToolContractEntry? entry = null;
-                if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
-                {
-                    continue; // the gateway refuses it anyway; not offering it keeps the model from trying
-                }
-                var risk = ToolModes.ParseClass(entry?.Risk);
-                tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                    tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs });
-            }
+            var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            UseDefaultStores(profile.Principal);
+            var tools = HostTools(profile);
             var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
             foreach (var source in _settings.Sources)
             {
@@ -109,16 +143,107 @@ public sealed class FadenstackAgent : IDisposable
             }
             _tools = tools;
             _profile = profile;
-            if (_settings.PermissionMode == PermissionMode.Bypass && !_warned)
+            if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && !BypassOffered)
             {
                 _warned = true;
-                Trace.TraceWarning($"The agent '{Slug}' runs in bypass mode: tool calls that would ask are approved without asking, " +
-                    "destructive ones too; an admin's \"Ask first\" rule still asks. Use it only for development and trusted automation.");
+                Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, which this server does not allow: every tool call " +
+                    "that would ask still asks. Bypass mode never answers the gateway's own tools.");
+            }
+            else if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && _settings.StepUp is null)
+            {
+                _warned = true;
+                Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, but the app opens no second sign-in " +
+                    "(AgentBuilder.UseStepUpHandler): Bypass needs one, so its sessions run in Auto (sdk/41).");
             }
             if (_settings.Report)
             {
                 _ = ReportManifestAsync();
             }
+        }
+        finally
+        {
+            _starting.Release();
+        }
+    }
+
+    private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
+    {
+        var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
+        if (missing.Count > 0)
+        {
+            throw new FadenstackException(
+                $"The agent '{Slug}' needs the module(s) {string.Join(", ", missing)}; add them to the builder.");
+        }
+        _profileRead = Clock();
+        return profile;
+    }
+
+    /// <summary>
+    /// The stores the host did not pass: in the signed-in user's own folder (<c>users/&lt;user&gt;/sessions</c>,
+    /// <c>.../approvals</c>) when the profile names the user, so two Fadenstack users -- or one on two servers -- on one OS
+    /// account never share sessions or "Allow always" (39 F10); in the shared folders of an older SDK otherwise. The first
+    /// user also adopts what an older SDK kept (<see cref="UserDataMigration"/>).
+    /// </summary>
+    private void UseDefaultStores(AgentPrincipal? principal)
+    {
+        if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
+        {
+            UserDataMigration.Adopt(principal.UserId);
+        }
+        string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
+        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions")) : null;
+        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
+    }
+
+    /// <summary>The host tools <paramref name="profile"/>'s contract allows, with its class and approval.</summary>
+    private List<AgentTool> HostTools(AgentProfile profile)
+    {
+        var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
+        var tools = new List<AgentTool>();
+        foreach (var tool in _settings.Tools)
+        {
+            ToolContractEntry? entry = null;
+            if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
+            {
+                continue; // the gateway refuses it anyway; not offering it keeps the model from trying
+            }
+            var risk = ToolModes.ParseClass(entry?.Risk);
+            tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
+                tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Approval = entry?.Approval });
+        }
+        return tools;
+    }
+
+    /// <summary>
+    /// Reads the profile again when a session starts or opens and it is older than <see cref="ProfileMaxAge"/> (39 F8): a
+    /// ceiling an administrator lowered, a highest level, or a tool's class or approval reach the next session without a
+    /// restart. The tools of the agent's sources (local MCP) stay as they were. When the server cannot be reached the
+    /// profile held stays: every model call goes through the server anyway, and a session on this device still opens.
+    /// </summary>
+    private async Task RefreshProfileAsync(CancellationToken cancellationToken)
+    {
+        await _starting.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_profile is null || Clock() - _profileRead < ProfileMaxAge)
+            {
+                return;
+            }
+            AgentProfile profile;
+            try
+            {
+                profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Trace.TraceWarning($"The profile of the agent '{Slug}' could not be read again ({e.GetType().Name}); the one held stays.");
+                return;
+            }
+            var hosts = HostTools(profile);
+            var own = new HashSet<string>(_settings.Tools.Select(t => t.Name));
+            _tools = hosts.Concat(_tools.Where(t => !own.Contains(t.Name))).ToList();
+            _profile = profile;
         }
         finally
         {
@@ -193,10 +318,11 @@ public sealed class FadenstackAgent : IDisposable
         }
     }
 
-    /// <summary>A new session, in the agent's default mode (Ask) unless <paramref name="toolMode"/> says otherwise.</summary>
+    /// <summary>A new session, in the agent's default mode (<see cref="DefaultToolMode"/>) unless <paramref name="toolMode"/> says otherwise.</summary>
     public async Task<AgentSession> StartSessionAsync(ToolMode? toolMode = null, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var session = new AgentSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
         await session.WriteStartAsync(cancellationToken).ConfigureAwait(false);
         return session;
@@ -206,26 +332,69 @@ public sealed class FadenstackAgent : IDisposable
     public async Task<AgentSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
         var entries = await SessionStore.ReadAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
         if (entries.Count == 0)
         {
             throw new KeyNotFoundException($"No session '{sessionId}' for '{Slug}' on this device.");
         }
-        return new AgentSession(this, sessionId, entries.ToList(), AgentSession.LastMode(entries) ?? DefaultToolMode);
+        // A conversation whose Bypass grant still lives opens in Bypass, with its marker; one without never does
+        // (owner, 2026-11-09: parallel chats never break). The copy is read first where the server holds grants.
+        if (Grants.Available)
+        {
+            try
+            {
+                await Grants.RefreshAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is FadenstackException or HttpRequestException)
+            {
+                // offline: the copy as it is; the next turn settles it
+            }
+        }
+        // The grant decides, not the transcript: Bypass switched on before the chat's first message left no turn in it.
+        var lives = Grants.Live.Any(g => g.Kind == GrantKinds.Bypass && g.ConversationId == sessionId);
+        var before = AgentSession.LastMode(entries) ?? DefaultToolMode;
+        var session = new AgentSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before);
+        session.Reopened(before);
+        return session;
     }
 
-    public Task<IReadOnlyList<SessionInfo>> ListSessionsAsync(CancellationToken cancellationToken = default) =>
-        SessionStore.ListAsync(Slug, cancellationToken);
+    /// <summary>This device's sessions of the agent: the signed-in user's, so the agent starts first unless the host keeps them.</summary>
+    public async Task<IReadOnlyList<SessionInfo>> ListSessionsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.Sessions, cancellationToken).ConfigureAwait(false);
+        return await SessionStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
+    }
 
-    public Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default) =>
-        SessionStore.DeleteAsync(Slug, sessionId, cancellationToken);
+    public async Task DeleteSessionAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.Sessions, cancellationToken).ConfigureAwait(false);
+        await SessionStore.DeleteAsync(Slug, sessionId, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Forgets what the user allowed always on this device for this agent: every tool, or <paramref name="tool"/> only.
     /// (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
     /// </summary>
-    public Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default) =>
-        ApprovalStore.RemoveAsync(Slug, tool, cancellationToken);
+    public async Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
+        await ApprovalStore.RemoveAsync(Slug, tool, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// What the user allowed always on this device for this agent, for Settings → Approvals (38 §7); each is ended with
+    /// <see cref="ResetApprovalsAsync"/>. The grants the server holds are in <see cref="Grants"/>.
+    /// </summary>
+    public async Task<IReadOnlyList<StoredApproval>> ListApprovalsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartUnless(_settings.ApprovalStore, cancellationToken).ConfigureAwait(false);
+        return await ApprovalStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Starts the agent unless the host passed <paramref name="store"/>: the default one is the signed-in user's.</summary>
+    private Task StartUnless(object? store, CancellationToken cancellationToken) =>
+        store is null ? StartAsync(cancellationToken) : Task.CompletedTask;
 
     /// <summary>Sends what is left to report.</summary>
     public Task FlushAsync(CancellationToken cancellationToken = default) => Reporter.FlushAsync(cancellationToken);

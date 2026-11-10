@@ -1,0 +1,400 @@
+using Fadenstack.Client.Tests;
+using Fadenstack.Models;
+using Fadenstack.Tools;
+using Xunit;
+using static Fadenstack.Agents.Tests.ApprovalTests;
+
+namespace Fadenstack.Agents.Tests;
+
+/// <summary>
+/// Bypass held by the server (sdk/09 §3.12, sdk/40 A3): offered only where the profile says so, switched on only through
+/// the confirmation and the server's grant, covering what the gateway covers while the turn runs in Bypass, never an
+/// admin's rule; the turn's calls are reported, Stop ends it, and the app-coded <see cref="PermissionMode.Bypass"/> goes
+/// through the same grant.
+/// </summary>
+public class BypassTests
+{
+    private const string Offered =
+        """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"],"bypass":{"allowed":true,"longest_minutes":60,"evidence":"calls"}}""";
+
+    private static (Gateway Gateway, FakeGrants Grants) Server(string approvals = Offered, string max = "\"bypass\"")
+    {
+        var gateway = new Gateway { MaxLevel = max };
+        var grants = gateway.UseGrants(approvals);
+        return (gateway, grants);
+    }
+
+    /// <summary>The gateway says the conversation's Bypass grant covers the call, then the model calls the tool.</summary>
+    private static Gateway Covered(Gateway gateway, string callId, string tool, string arguments, string grantId) =>
+        gateway.Then(Gateway.Custom("faden.grant_used", new { toolCallId = callId, toolCallName = tool, grantId }),
+            Gateway.ToolCalls((callId, tool, arguments)), Gateway.Finish("tool_calls"), FakeServer.Done);
+
+    internal sealed class Card : IApprovalHandler, IGrantHandler, IStepUpHandler
+    {
+        private readonly bool _allow;
+        private readonly bool _approve;
+
+        /// <param name="allow">The answer to an offer (the Bypass confirmation).</param>
+        /// <param name="approve">The answer to a question about one call: allow once, or deny.</param>
+        public Card(bool allow = true, bool approve = false) => (_allow, _approve) = (allow, approve);
+
+        public List<GrantOffer> Offers { get; } = new();
+
+        /// <summary>The links of second sign-ins it opened (never in a real browser), and what it was told.</summary>
+        public List<StepUpRequest> Opened { get; } = new();
+
+        public List<StepUpStage> Stages { get; } = new();
+
+        /// <summary>Whether it can open the browser.</summary>
+        public bool CanOpen { get; set; } = true;
+
+        public Task<bool> OpenAsync(StepUpRequest request, CancellationToken cancellationToken)
+        {
+            Opened.Add(request);
+            return Task.FromResult(CanOpen);
+        }
+
+        public void Report(StepUpRequest request, StepUpStage stage) => Stages.Add(stage);
+
+        public List<ApprovalRequest> Asked { get; } = new();
+
+        public Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken)
+        {
+            Asked.Add(request);
+            return Task.FromResult(_approve ? ApprovalDecision.Approve() : ApprovalDecision.Deny());
+        }
+
+        public Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
+        {
+            Offers.Add(offer);
+            return Task.FromResult(_allow
+                ? new GrantAnswer { Allowed = true, Duration = offer.Preselected, ShownText = "Bypass for 30 minutes." }
+                : GrantAnswer.NotNow);
+        }
+    }
+
+    [Fact]
+    public async Task Bypass_is_reachable_only_where_the_server_offers_it()
+    {
+        var (gateway, _) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        await agent.StartAsync();
+        Assert.Equal((ToolMode.Bypass, true), (agent.Ceiling, agent.BypassOffered));
+
+        var (older, _) = Server(approvals: """{"standing":null,"longest_grant_minutes":120,"grant_classes":["read","write"]}""");
+        using var without = older.Builder().UseApprovals(new Card()).Build();
+        await without.StartAsync();
+        Assert.Equal((ToolMode.Auto, false), (without.Ceiling, without.BypassOffered));
+
+        var (upToAuto, _) = Server(max: "\"auto\"");
+        using var capped = upToAuto.Builder().UseApprovals(new Card()).Build();
+        await capped.StartAsync();
+        Assert.Equal(ToolMode.Auto, capped.Ceiling);
+    }
+
+    [Fact]
+    public async Task Without_its_grant_a_chat_set_to_bypass_runs_in_auto()
+    {
+        var (gateway, _) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Bypass);
+
+        Assert.Equal((ToolMode.Bypass, ToolMode.Auto), (session.ToolMode, session.EffectiveToolMode));
+        Assert.Null(session.Bypass);
+    }
+
+    [Fact]
+    public async Task The_confirmation_comes_first_and_bypass_holds_only_once_the_server_made_its_grant()
+    {
+        var (gateway, grants) = Server();
+        var declining = new Card(allow: false);
+        using var agent = gateway.Builder().UseApprovals(declining).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+
+        Assert.Null(await session.StartBypassAsync());
+        var offer = declining.Offers.Single();
+        Assert.True(offer.Bypass);
+        // 30 min first, as the work card (owner, 2026-11-09); what is recorded and the conversation come from the server and the session.
+        Assert.Equal((TimeSpan.FromMinutes(30), 3, 0), (offer.Preselected, offer.Durations.Count, offer.Places.Count));
+        Assert.Equal(("calls", session.Id), (offer.Evidence, offer.ConversationId));
+        Assert.Empty(grants.Made);
+        Assert.Equal(ToolMode.Ask, session.ToolMode);
+
+        using var allowing = gateway.Builder().UseApprovals(new Card()).Build();
+        var other = await allowing.StartSessionAsync(ToolMode.Ask);
+        var grant = await other.StartBypassAsync("Renaming 400 drawings");
+
+        var made = grants.Made.Single();
+        Assert.Equal(("bypass", 30, other.Id), (made.Json.GetProperty("kind").GetString(), made.Json.GetProperty("minutes").GetInt32(),
+            made.Header("x-faden-conversation-id")));
+        Assert.Equal("Renaming 400 drawings", made.Json.GetProperty("reason").GetString());
+        Assert.StartsWith("Fadenstack.Agents/", made.Json.GetProperty("client_version").GetString());
+        Assert.Equal(64, made.Json.GetProperty("shown_text_sha256").GetString()!.Length);
+        Assert.Equal((grant!.Id, ToolMode.Bypass, ToolMode.Bypass), (other.Bypass?.Id, other.ToolMode, other.EffectiveToolMode));
+    }
+
+    [Fact]
+    public async Task Under_bypass_a_destructive_call_the_gateway_covers_runs_unasked_and_the_turn_is_reported()
+    {
+        var (gateway, grants) = Server();
+        var tools = new PageTools();
+        var card = new Card();
+        using var agent = gateway.Builder().AddTools(tools).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        Covered(gateway, "call-1", "delete_page", """{"page":1}""", grant.Id).Says("Deleted.");
+
+        await session.SendAsync("Delete page 1.");
+
+        Assert.Equal(new[] { "delete_page 1" }, tools.Ran);
+        Assert.Empty(card.Asked);
+        var entry = Assert.Single(Decisions(session));
+        Assert.Equal(("grant", grant.Id), (Str(entry, "scope"), Str(entry, "grant_id")));
+        var report = grants.Reports.Single();
+        Assert.Equal((grant.Id, "call-1"), (report.Grant, Assert.Single(report.Calls)));
+        Assert.Contains(gateway.Server.Requests, r => r.Path.EndsWith("/chat/completions") && r.Header("x-faden-tool-mode") == "bypass");
+    }
+
+    [Fact]
+    public async Task Under_bypass_a_call_the_gateway_did_not_cover_still_asks_and_so_does_an_admins_rule()
+    {
+        var (gateway, _) = Server();
+        var tools = new PageTools();
+        var card = new Card();
+        using var agent = gateway.Builder().AddTools(tools).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        gateway.Calls(("call-1", "delete_page", """{"page":1}""")).Says("Not deleted.");
+        MarkedCall(gateway, "call-2", "add_comment", """{"page":1,"text":"a"}""",
+            new { toolCallId = "call-2", toolCallName = "add_comment", message = "Comments need approval.", rule = true }).Says("Ok.");
+
+        await session.SendAsync("Delete page 1.");
+        await session.SendAsync("Comment.");
+
+        Assert.Equal(2, card.Asked.Count);
+        Assert.True(card.Asked[1].RequiredByRule);
+        Assert.Empty(tools.Ran);
+        Assert.NotNull(grant);
+    }
+
+    [Fact]
+    public async Task Under_bypass_the_report_names_only_what_ran_unanswered_not_the_calls_the_person_allowed()
+    {
+        var (gateway, grants) = Server();
+        var tools = new PageTools();
+        var card = new Card(approve: true);
+        using var agent = gateway.Builder().AddTools(tools).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        // One turn: a destructive call the grant covers, a comment an admin's rule asks about, a read the mode runs, and a
+        // destructive call the gateway did not cover.
+        gateway.Then(
+            Gateway.Custom("faden.grant_used", new { toolCallId = "call-1", toolCallName = "delete_page", grantId = grant.Id }),
+            Gateway.Custom("faden.approval_required",
+                new { toolCallId = "call-2", toolCallName = "add_comment", message = "Comments need approval.", rule = true }),
+            Gateway.ToolCalls(("call-1", "delete_page", """{"page":1}"""), ("call-2", "add_comment", """{"page":1,"text":"a"}"""),
+                ("call-3", "read_page", """{"page":1}"""), ("call-4", "delete_page", """{"page":2}""")),
+            Gateway.Finish("tool_calls"), FakeServer.Done).Says("Done.");
+
+        await session.SendAsync("Tidy page 1.");
+
+        Assert.Equal(new[] { "delete_page 1", "add_comment 1 a", "read_page 1", "delete_page 2" }, tools.Ran);
+        Assert.Equal(new[] { "add_comment", "delete_page" }, card.Asked.Select(a => a.ToolName));
+        Assert.True(card.Asked[0].RequiredByRule);
+        var report = grants.Reports.Single();
+        Assert.Equal(grant.Id, report.Grant);
+        Assert.Equal(new[] { "call-1", "call-3" }, report.Calls);
+    }
+
+    [Fact]
+    public async Task Another_conversations_bypass_covers_nothing()
+    {
+        var (gateway, grants) = Server();
+        var tools = new PageTools();
+        var card = new Card();
+        using var agent = gateway.Builder().AddTools(tools).UseApprovals(card).Build();
+        var first = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await first.StartBypassAsync())!;
+        var second = await agent.StartSessionAsync(ToolMode.Bypass);
+        Covered(gateway, "call-1", "delete_page", """{"page":1}""", grant.Id).Says("No.");
+
+        await second.SendAsync("Delete page 1.");
+
+        Assert.Empty(tools.Ran);
+        Assert.Single(card.Asked);
+        Assert.Empty(grants.Reports);
+    }
+
+    [Fact]
+    public async Task Stop_ends_the_grant_and_the_chat_goes_back_to_its_mode_and_leaving_bypass_ends_it_too()
+    {
+        var (gateway, grants) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+
+        await session.StopBypassAsync();
+
+        Assert.Equal(("revoked", ToolMode.Ask, (AgentGrant?)null), (grants.Status(grant.Id), session.ToolMode, session.Bypass));
+
+        var again = (await session.StartBypassAsync())!;
+        session.ToolMode = ToolMode.Auto;
+        gateway.Says("Fine.");
+        await session.SendAsync("Go on.");
+        Assert.Equal("revoked", grants.Status(again.Id));
+    }
+
+    [Fact]
+    public async Task An_app_set_to_bypass_makes_the_same_grant_without_a_card_never_from_read_only()
+    {
+        var (gateway, grants) = Server();
+        var card = new Card();
+        using var agent = gateway.Builder().UsePermissionMode(PermissionMode.Bypass).UseApprovals(card).Build();
+        var readOnly = await agent.StartSessionAsync(ToolMode.ReadOnly);
+        gateway.Says("Hello.");
+        await readOnly.SendAsync("Hi.");
+        Assert.Empty(grants.Made);
+
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        gateway.Says("Hello.");
+        await session.SendAsync("Hi.");
+
+        Assert.Empty(card.Offers);
+        var made = grants.Made.Single();
+        Assert.Equal(("bypass", 60, "PermissionMode.Bypass"), (made.Json.GetProperty("kind").GetString(),
+            made.Json.GetProperty("minutes").GetInt32(), made.Json.GetProperty("reason").GetString()));
+        Assert.Equal(ToolMode.Bypass, session.EffectiveToolMode);
+    }
+
+    [Fact]
+    public async Task A_bypass_grant_is_never_extended_not_even_one_an_app_made_without_a_card()
+    {
+        var (gateway, grants) = Server();
+        var card = new Card();
+        using var agent = gateway.Builder().UsePermissionMode(PermissionMode.Bypass).UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        gateway.Says("Hello.");
+        await session.SendAsync("Hi.");
+        var grant = session.Bypass!;
+
+        Assert.Null(await session.OfferExtensionAsync(grant, TimeSpan.FromMinutes(30)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => agent.Grants.ExtendAsync(grant.Id, TimeSpan.FromMinutes(30)));
+
+        Assert.Empty(card.Offers);
+        Assert.Empty(grants.Extensions);
+        Assert.Equal("active", grants.Status(grant.Id));
+    }
+
+    [Fact]
+    public async Task The_persons_own_words_on_the_card_are_recorded_and_the_card_says_what_the_server_records()
+    {
+        var (gateway, grants) = Server(Offered.Replace("\"calls\"", "\"decisions\""));
+        var card = new Reasoned("Renaming 400 drawings, as agreed with Anna.");
+        using var agent = gateway.Builder().UseApprovals(card).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+
+        await session.StartBypassAsync("The app's own words");
+
+        Assert.Equal("decisions", card.Offer!.Evidence);
+        Assert.Equal("Renaming 400 drawings, as agreed with Anna.", grants.Made.Single().Json.GetProperty("reason").GetString());
+    }
+
+    private sealed class Reasoned : IApprovalHandler, IGrantHandler, IStepUpHandler
+    {
+        public Task<bool> OpenAsync(StepUpRequest request, CancellationToken cancellationToken) => Task.FromResult(true);
+
+        public void Report(StepUpRequest request, StepUpStage stage)
+        {
+        }
+
+        private readonly string _reason;
+
+        public Reasoned(string reason) => _reason = reason;
+
+        public GrantOffer? Offer { get; private set; }
+
+        public Task<ApprovalDecision> RequestAsync(ApprovalRequest request, CancellationToken cancellationToken) =>
+            Task.FromResult(ApprovalDecision.Deny());
+
+        public Task<GrantAnswer> RequestGrantAsync(GrantOffer offer, CancellationToken cancellationToken)
+        {
+            Offer = offer;
+            return Task.FromResult(new GrantAnswer { Allowed = true, Duration = offer.Preselected, ShownText = "Bypass?", Reason = "  " + _reason + " " });
+        }
+    }
+
+    [Fact]
+    public async Task A_session_opened_again_is_in_bypass_only_while_its_grant_lives_else_in_the_mode_it_had_before()
+    {
+        var (gateway, _) = Server();
+        var store = new Sessions.MemorySessionStore();
+        using var agent = gateway.Builder(store).UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.ReadOnly);
+        gateway.Says("Read.");
+        await session.SendAsync("Look.");
+        session.ToolMode = ToolMode.Ask;
+        await session.StartBypassAsync();
+        gateway.Says("Done.");
+        await session.SendAsync("Go.");
+        Assert.Equal(ToolMode.Bypass, session.ToolMode);
+
+        var again = await agent.OpenSessionAsync(session.Id);
+        // Owner, 2026-11-09: parallel chats never break -- its grant lives, so it opens in Bypass, with its marker.
+        Assert.Equal((ToolMode.Bypass, ToolMode.Bypass), (again.ToolMode, again.EffectiveToolMode));
+
+        await again.StopBypassAsync();
+        Assert.Equal(ToolMode.ReadOnly, again.ToolMode); // the mode it had before Bypass
+        var later = await agent.OpenSessionAsync(session.Id);
+        Assert.Equal(ToolMode.ReadOnly, later.ToolMode); // no live grant: never Bypass (sdk/09 L-58)
+        Assert.Equal(ToolMode.ReadOnly, later.EffectiveToolMode);
+    }
+
+    [Theory]
+    [InlineData("admin", "admin")]
+    [InlineData("kill_switch", "kill_switch")]
+    [InlineData("limit", "limit")]
+    public async Task Why_a_grant_ended_is_read_from_the_server_once_it_left_the_list(string by, string why)
+    {
+        var (gateway, grants) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var grant = (await session.StartBypassAsync())!;
+        Assert.Null(await agent.Grants.WhyEndedAsync(grant.Id)); // it runs
+
+        grants.End(grant.Id, by);
+        await agent.Grants.RefreshAsync();
+
+        Assert.Null(session.Bypass);
+        Assert.Equal(why, await agent.Grants.WhyEndedAsync(grant.Id));
+    }
+
+    [Fact]
+    public async Task Why_a_grant_ended_here_or_by_its_time_needs_no_server_and_an_older_server_says_nothing()
+    {
+        var (gateway, grants) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var stopped = (await session.StartBypassAsync())!;
+        await session.StopBypassAsync();
+        var timed = (await session.StartBypassAsync())!;
+        grants.CanSayWhy = false;
+
+        Assert.Equal("person", await agent.Grants.WhyEndedAsync(stopped.Id));
+        grants.ServerNow = grants.ServerNow.AddMinutes(31);
+        await agent.Grants.RefreshAsync();
+        Assert.Equal("expired", await agent.Grants.WhyEndedAsync(timed.Id));
+        Assert.Null(await agent.Grants.WhyEndedAsync("g-9"));
+        Assert.DoesNotContain(gateway.Server.Requests, r => r.Method == "GET" && r.Path.EndsWith("/grants/" + stopped.Id));
+    }
+
+    [Fact]
+    public async Task Every_request_says_the_sdk_supports_bypass()
+    {
+        var (gateway, _) = Server();
+        using var agent = gateway.Builder().UseApprovals(new Card()).Build();
+        await agent.StartAsync();
+
+        var profile = gateway.Server.Requests.First(r => r.Path == "/v1/agents/docs-assistant/profile");
+        Assert.Equal("tool_mode.bypass, bypass.step_up", profile.Header("x-faden-client-supports"));
+    }
+}

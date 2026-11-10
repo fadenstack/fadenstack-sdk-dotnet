@@ -25,7 +25,8 @@ public sealed class AgentBuilder
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private PermissionMode _permissionMode = PermissionMode.Ask;
-    private ToolMode _defaultMode = ToolMode.Ask;
+    private IStepUpHandler? _stepUp;
+    private ToolMode? _defaultMode;
     private int _maxRounds = 16;
     private int _historyTokens = 24_000;
     private bool _report = true;
@@ -115,9 +116,10 @@ public sealed class AgentBuilder
 
     /// <summary>
     /// <see cref="PermissionMode.Ask"/> (the default): calls the tool mode asks about wait for the user.
-    /// <see cref="PermissionMode.Bypass"/>: they are approved without asking, destructive ones too -- for development
-    /// and trusted automation, never a user's choice. An admin's "Ask first" rule still asks, and the transcript and
-    /// the server's record say <c>bypass</c> for each call it let through. The agent warns once when it starts in bypass.
+    /// <see cref="PermissionMode.Bypass"/>: sessions run in Bypass where the server offers it for the agent -- the SDK
+    /// makes the conversation's Bypass grant itself, without a card, and the server records every call (sdk/40 A3) --
+    /// for development and trusted automation, never a user's choice. Where the server does not offer it, every call
+    /// still asks, and the agent warns once when it starts. An admin's "Ask first" rule always asks.
     /// </summary>
     public AgentBuilder UsePermissionMode(PermissionMode mode)
     {
@@ -126,12 +128,23 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
-    /// The mode new sessions start in. It can only be stricter than Ask: every session starts asking unless the
-    /// user widens that session.
+    /// Who opens the second sign-in before Bypass is switched on (sdk/41): the link in the system browser, and what the
+    /// person sees meanwhile. A chat's approval broker does it already; an app set to <see cref="PermissionMode.Bypass"/>
+    /// without a UI gives its own (<see cref="SystemBrowser"/> opens the page). Without one, no Bypass: the app runs in Auto.
+    /// </summary>
+    public AgentBuilder UseStepUpHandler(IStepUpHandler handler)
+    {
+        _stepUp = handler ?? throw new ArgumentNullException(nameof(handler));
+        return this;
+    }
+
+    /// <summary>
+    /// The highest mode new sessions start in. Sessions start in the agent's default level from the server (Ask unless its
+    /// author set another); this can only narrow it, never widen it -- for an app that never starts in Auto, say.
     /// </summary>
     public AgentBuilder UseDefaultToolMode(ToolMode mode)
     {
-        _defaultMode = ToolModes.Narrowest(ToolMode.Ask, mode);
+        _defaultMode = mode;
         return this;
     }
 
@@ -280,6 +293,7 @@ public sealed class AgentBuilder
             Sessions = _sessions,
             ApprovalStore = _approvalStore,
             PermissionMode = _permissionMode,
+            StepUpHandler = _stepUp,
             DefaultMode = _defaultMode,
             MaxRounds = _maxRounds,
             HistoryTokens = _historyTokens,
@@ -319,10 +333,19 @@ internal sealed class AgentSettings
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
+
+    /// <summary>Who draws the grant card: the approval handler, when it draws those too.</summary>
+    public IGrantHandler? Grants => Approvals as IGrantHandler;
+
+    /// <summary>Who opens the second sign-in for Bypass (sdk/41): the app's own, else the approval handler when it does.</summary>
+    public IStepUpHandler? StepUpHandler { get; init; }
+
+    public IStepUpHandler? StepUp => StepUpHandler ?? Approvals as IStepUpHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public PermissionMode PermissionMode { get; init; }
-    public ToolMode DefaultMode { get; init; } = ToolMode.Ask;
+    /// <summary>The app's cap on the server's default level; null: none.</summary>
+    public ToolMode? DefaultMode { get; init; }
     public int MaxRounds { get; init; }
     public int HistoryTokens { get; init; }
     public bool Report { get; init; }

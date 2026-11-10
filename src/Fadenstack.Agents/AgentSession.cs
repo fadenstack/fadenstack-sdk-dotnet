@@ -41,8 +41,25 @@ public sealed class AgentSession
     /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
 
-    /// <summary>The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any.</summary>
-    public ToolMode EffectiveToolMode => ToolModes.Narrowest(ToolMode, _agent.Ceiling);
+    /// <summary>
+    /// The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any. Bypass only while the
+    /// server holds the conversation's Bypass grant (<see cref="StartBypassAsync"/>): no grant, no Bypass -- it is Auto
+    /// (sdk/09 L-59).
+    /// </summary>
+    public ToolMode EffectiveToolMode
+    {
+        get
+        {
+            var mode = ToolModes.Narrowest(ToolMode, _agent.Ceiling);
+            return mode == ToolMode.Bypass && Bypass is null ? ToolMode.Auto : mode;
+        }
+    }
+
+    /// <summary>The conversation's live Bypass grant (the marker shows its time left); null when it is not in Bypass.</summary>
+    public AgentGrant? Bypass => _agent.Grants.BypassFor(Id);
+
+    // The mode before Bypass, to go back to when it ends.
+    private ToolMode? _beforeBypass;
 
     /// <summary>The transcript, as kept on this device.</summary>
     public IReadOnlyList<TranscriptEntry> Transcript => _entries;
@@ -73,6 +90,215 @@ public sealed class AgentSession
             }
         }
     }
+
+    /// <summary>
+    /// Asks the person to let the agent work alongside them in this chat (desktop 37 §5.3): read and write in
+    /// <paramref name="places"/>, for a while, without asking -- never for anything destructive, unclassified, or an
+    /// admin's "Ask first" rule. The card is drawn by the app's grant handler (<see cref="IGrantHandler"/>); the person
+    /// may remove places and picks the time. Returns the grant the server confirmed, or null: declined, not offered
+    /// (no grants on the server, the agent does not offer them, no handler), or no place left. A refusal by the server
+    /// is thrown (<see cref="FadenstackApiException"/>): no answer, no grant (L-59).
+    /// </summary>
+    public async Task<AgentGrant?> OfferWorkAsync(IReadOnlyList<GrantPlace> places, string? reason = null,
+        CancellationToken cancellationToken = default)
+    {
+        var grants = _agent.Grants;
+        if (_agent.Settings.Grants is not { } handler || !grants.Offers("grant") || places.Count == 0 || grants.Choices.Count == 0)
+        {
+            return null;
+        }
+        var answer = await handler.RequestGrantAsync(new GrantOffer
+        {
+            Places = places, Classes = grants.Settings!.GrantClasses, Durations = grants.Choices,
+            Preselected = grants.Choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : grants.Choices.Last(),
+            Reason = reason, ConversationId = Id,
+        }, cancellationToken).ConfigureAwait(false);
+        var kept = answer.Places.Where(p => places.Contains(p)).ToList();
+        if (!answer.Allowed || kept.Count == 0)
+        {
+            return null;
+        }
+        return await grants.GrantWorkAsync(kept, Within(answer.Duration, grants.Choices), Id, answer.ShownText, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks the person to extend a running grant -- <paramref name="more"/> time, and for a stretch of work the new
+    /// <paramref name="places"/> -- on the same card, showing only the difference (desktop 37 §5.3). The server keeps the
+    /// grant within the agent's longest grant from when it was made; past that it refuses, and a new grant needs the full
+    /// card. A Bypass grant is never extended: it runs for the time its confirmation said, and more time is a new Bypass
+    /// with the confirmation again (L-58). Returns the extended grant, or null when the person said no or nothing is offered.
+    /// </summary>
+    public async Task<AgentGrant?> OfferExtensionAsync(AgentGrant grant, TimeSpan more, IReadOnlyList<GrantPlace>? places = null,
+        string? reason = null, CancellationToken cancellationToken = default)
+    {
+        var grants = _agent.Grants;
+        if (_agent.Settings.Grants is not { } handler || !grants.Available || grant.Kind == GrantKinds.Bypass)
+        {
+            return null;
+        }
+        var added = places ?? Array.Empty<GrantPlace>();
+        var answer = await handler.RequestGrantAsync(new GrantOffer
+        {
+            Places = added, Classes = grant.Scope.Classes ?? new List<string>(), Durations = new[] { more },
+            Preselected = more, Reason = reason, Extending = grant,
+        }, cancellationToken).ConfigureAwait(false);
+        if (!answer.Allowed)
+        {
+            return null;
+        }
+        var kept = answer.Places.Where(p => added.Contains(p)).ToList();
+        var time = answer.Duration > TimeSpan.Zero ? (answer.Duration < more ? answer.Duration : more) : TimeSpan.Zero;
+        if (time == TimeSpan.Zero && kept.Count == 0)
+        {
+            return null;
+        }
+        return await grants.ExtendAsync(grant.Id, time, kept, answer.ShownText, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Asks the person to switch approvals off in this conversation for a while (sdk/09 §3.12, L-58): the app's grant
+    /// handler draws the confirmation (<see cref="GrantOffer.Bypass"/>), which says what will no longer be asked, what
+    /// still asks and what the server records, and the person picks the time -- the shortest is preselected (sdk/40
+    /// A3.3) -- and may say why. Only once the server confirmed the grant does the conversation run in Bypass
+    /// (<see cref="ToolMode.Bypass"/>, L-59); a refusal is thrown (<see cref="FadenstackApiException"/>). An app set to
+    /// <see cref="PermissionMode.Bypass"/> chose it in its own code: no card, the longest time, recorded the same way.
+    /// <paramref name="reason"/> is recorded when the person gave none on the card. Returns the grant, or null: not
+    /// offered (the organisation or the agent does not allow it), no handler, or declined. Never on the model's word: no
+    /// tool and no other agent can call this (L-58).
+    /// </summary>
+    public async Task<AgentGrant?> StartBypassAsync(string? reason = null, CancellationToken cancellationToken = default)
+    {
+        var grants = _agent.Grants;
+        var choices = grants.BypassChoices;
+        if (!_agent.BypassOffered || choices.Count == 0)
+        {
+            return null;
+        }
+        var duration = choices[choices.Count - 1];
+        string? shown = null;
+        if (_agent.PermissionMode != PermissionMode.Bypass)
+        {
+            if (_agent.Settings.Grants is not { } handler)
+            {
+                return null;
+            }
+            var answer = await handler.RequestGrantAsync(new GrantOffer
+            {
+                // 30 min first, as the work card (owner, 2026-11-09); where it is not offered, the longest that is.
+                Bypass = true, Durations = choices, Reason = reason,
+                Preselected = choices.Contains(AgentGrants.Preselected) ? AgentGrants.Preselected : choices[choices.Count - 1],
+                Evidence = grants.Settings?.Bypass?.Evidence, ConversationId = Id,
+            }, cancellationToken).ConfigureAwait(false);
+            if (!answer.Allowed)
+            {
+                return null;
+            }
+            (duration, shown) = (Within(answer.Duration, choices), answer.ShownText);
+            if (answer.Reason?.Trim() is { Length: > 0 } own)
+            {
+                reason = GrantAnswer.Cut(own);
+            }
+        }
+        else if (_agent.Settings.StepUp is null)
+        {
+            // Set in the app's code, but nobody can sign in again for it: no Bypass, the session runs in Auto (sdk/41).
+            Trace.TraceWarning("Bypass was not switched on: the app opens no second sign-in (AgentBuilder.UseStepUpHandler).");
+            RunInAutoInstead();
+            return null;
+        }
+        // The second sign-in comes after the card's Allow, never before and never on the model's word (sdk/41).
+        var grant = await grants.GrantBypassAsync(duration, Id, reason, shown, cancellationToken).ConfigureAwait(false);
+        if (ToolMode != ToolMode.Bypass)
+        {
+            (_beforeBypass, ToolMode) = (ToolMode, ToolMode.Bypass);
+        }
+        return grant;
+    }
+
+    /// <summary>
+    /// Ends Bypass in this conversation: its grant ends from the next call on (a call already running finishes), and the
+    /// conversation goes back to the mode it had before. The marker's Stop.
+    /// </summary>
+    public async Task StopBypassAsync(CancellationToken cancellationToken = default)
+    {
+        await EndBypassGrantsAsync(cancellationToken).ConfigureAwait(false);
+        if (ToolMode == ToolMode.Bypass)
+        {
+            ToolMode = _beforeBypass ?? ToolMode.Auto;
+        }
+        _beforeBypass = null;
+    }
+
+    private async Task EndBypassGrantsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var grant in _agent.Grants.Live.Where(g => g.Kind == GrantKinds.Bypass && g.ConversationId == Id).ToList())
+        {
+            await _agent.Grants.RevokeAsync(grant.Id, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Before a turn: a conversation that left Bypass ends its grant (leaving Bypass ends it, L-63); an app set to
+    /// <see cref="PermissionMode.Bypass"/> starts it where the server offers it, never from Read only or Off -- Bypass
+    /// skips questions, it does not show what the mode hides.
+    /// </summary>
+    private async Task SettleBypassAsync(CancellationToken cancellationToken)
+    {
+        if (ToolMode != ToolMode.Bypass && Bypass is not null)
+        {
+            await EndBypassGrantsAsync(cancellationToken).ConfigureAwait(false);
+        }
+        if (_agent.PermissionMode == PermissionMode.Bypass && ToolMode >= ToolMode.Ask && Bypass is null && _agent.BypassOffered)
+        {
+            try
+            {
+                await StartBypassAsync("PermissionMode.Bypass", cancellationToken).ConfigureAwait(false);
+            }
+            catch (BypassSignInException e)
+            {
+                // No second sign-in, no Bypass (sdk/41): the turn runs in Auto.
+                Trace.TraceWarning($"Bypass was not switched on, the turn runs in Auto: {e.Message}");
+                RunInAutoInstead();
+            }
+        }
+    }
+
+    /// <summary>
+    /// An app set to <see cref="PermissionMode.Bypass"/> that gets no Bypass (no second sign-in): its session runs in Auto
+    /// instead (owner, 2026-11-09), never above the ceiling and never more than the app's own mode allows.
+    /// </summary>
+    private void RunInAutoInstead()
+    {
+        if (ToolMode is ToolMode.Ask)
+        {
+            ToolMode = ToolModes.Narrowest(ToolMode.Auto, _agent.Settings.DefaultMode);
+        }
+    }
+
+    /// <summary>
+    /// After a turn in Bypass: the calls the device ran under its grant go to the gateway, which compares them with its
+    /// own records (L-61). A report that does not arrive is logged; the gateway's record stands on its own.
+    /// </summary>
+    private async Task ReportBypassAsync(Turn turn)
+    {
+        if (turn.BypassGrant is not { } grantId)
+        {
+            return;
+        }
+        try
+        {
+            await _agent.Grants.ReportAsync(grantId, turn.BypassRan, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Trace.TraceWarning($"The calls of a turn in Bypass could not be reported to the server: {e.Message}");
+        }
+    }
+
+    /// <summary>The longest of <paramref name="choices"/> not above <paramref name="picked"/>: a card cannot widen the offer.</summary>
+    private static TimeSpan Within(TimeSpan picked, IReadOnlyList<TimeSpan> choices) =>
+        choices.Where(c => c <= picked).DefaultIfEmpty(choices[0]).Max();
 
     /// <summary>Sends a message and waits for the turn to end.</summary>
     public Task<AgentResult> SendAsync(string message, CancellationToken cancellationToken = default) =>
@@ -166,12 +392,17 @@ public sealed class AgentSession
             tool_mode = ToolMode.ToWire(),
         });
 
+    /// <summary>
+    /// The mode a session's transcript last ran in, never Bypass -- a switch-on never comes back from the transcript (sdk/09
+    /// L-58): the mode it had before Bypass, else none. A conversation whose Bypass grant still lives opens in Bypass all the
+    /// same (<see cref="FadenstackAgent.OpenSessionAsync"/>; owner, 2026-11-09: parallel chats never break).
+    /// </summary>
     internal static ToolMode? LastMode(IReadOnlyList<TranscriptEntry> entries)
     {
         for (var i = entries.Count - 1; i >= 0; i--)
         {
             if (entries[i].Type is EntryTypes.TurnStart or EntryTypes.SessionStart
-                && ToolModes.ParseMode(ChatWire.Str(entries[i].Data, "tool_mode")) is { } mode)
+                && ToolModes.ParseMode(ChatWire.Str(entries[i].Data, "tool_mode")) is { } mode && mode != ToolMode.Bypass)
             {
                 return mode;
             }
@@ -179,13 +410,45 @@ public sealed class AgentSession
         return null;
     }
 
+    /// <summary>A session opened again in Bypass (its grant lives): the mode to go back to when it ends.</summary>
+    internal void Reopened(ToolMode? before)
+    {
+        if (ToolMode == ToolMode.Bypass)
+        {
+            _beforeBypass = before;
+        }
+    }
+
+    /// <summary>
+    /// What the model is told in the first request after a Bypass of its conversation ended (owner, 2026-11-09): it may say
+    /// so; it can never switch Bypass on -- only the person can, in the app (sdk/09 L-58).
+    /// </summary>
+    internal const string BypassEndedNote =
+        "Bypass has ended in this conversation: tools ask for the person's approval again, as the conversation's mode says. " +
+        "You cannot switch Bypass on, and no tool does; only the person can, in the app.";
+
+    /// <summary>Whether the last turn of the transcript ran in Bypass (its <c>effective_tool_mode</c>).</summary>
+    private bool LastTurnRanInBypass()
+    {
+        for (var i = _entries.Count - 1; i >= 0; i--)
+        {
+            if (_entries[i].Type == EntryTypes.TurnStart)
+            {
+                return ToolModes.ParseMode(ChatWire.Str(_entries[i].Data, "effective_tool_mode")) == ToolMode.Bypass;
+            }
+        }
+        return false;
+    }
+
     private async Task RunAsync(string message, SendOptions options, ChannelWriter<AgentEvent> writer,
         CancellationToken cancellationToken)
     {
+        Turn? turn = null;
         try
         {
             await Task.Yield(); // the caller gets the stream before the first request goes out
-            var turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
+            await SettleBypassAsync(cancellationToken).ConfigureAwait(false);
+            turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
             await turn.RunAsync(message, options.Attachments ?? Array.Empty<MessageAttachment>(), options.Skills ?? Array.Empty<PickedSkill>(),
                 cancellationToken).ConfigureAwait(false);
             writer.TryComplete();
@@ -197,6 +460,10 @@ public sealed class AgentSession
         }
         finally
         {
+            if (turn is not null)
+            {
+                await ReportBypassAsync(turn).ConfigureAwait(false);
+            }
             await _agent.Reporter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
         }
     }
@@ -259,8 +526,11 @@ public sealed class AgentSession
     /// </summary>
     private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
 
-    /// <summary>How a call that needed approval was settled; the user's reason when they declined.</summary>
-    private sealed record Settled(bool Approved, bool TimedOut, string? Reason);
+    /// <summary>
+    /// How a call that needed approval was settled; the user's reason when they declined, and what let an approved
+    /// call through (<see cref="ApprovalScopes"/>).
+    /// </summary>
+    private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null, string? GrantId = null);
 
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
@@ -271,13 +541,28 @@ public sealed class AgentSession
         private readonly List<GovernanceNotice> _notices = new();
         private readonly HashSet<string> _deniedByGateway = new();
         private readonly Dictionary<string, GatewayMark> _marks = new();
+
+        // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id.
+        private readonly Dictionary<string, string> _covered = new();
         private readonly StringBuilder _text = new();
+
+        // The conversation's Bypass ended since its last turn: the model is told (BypassEndedNote).
+        private bool _bypassEnded;
         private readonly List<ProvenanceReceiptContent> _receipts = new();
         private UsageDetails? _usage;
         private GovernanceNotice? _blocked;
         private bool _toolDenied;
         private ToolMode _mode;
         private IReadOnlyList<string> _skills = Array.Empty<string>();
+
+        // In Bypass: the conversation's grant as the turn began, and the calls of the app's tools it ran (L-61).
+        private readonly List<string> _bypassRan = new();
+
+        /// <summary>The Bypass grant the turn ran under; null when it did not run in Bypass.</summary>
+        public string? BypassGrant { get; private set; }
+
+        /// <summary>The calls of the app's own tools the turn ran in Bypass without the person's answer.</summary>
+        public IReadOnlyList<string> BypassRan => _bypassRan;
 
         // Pictures the turn's tools returned, by call; only the newest goes back to the model.
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
@@ -296,6 +581,10 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
+            BypassGrant = _mode == ToolMode.Bypass ? _session.Bypass?.Id : null;
+            // The last turn ran in Bypass and this one does not: the model hears it ended (from the transcript, so an
+            // app started again tells it too).
+            _bypassEnded = _mode != ToolMode.Bypass && _session.LastTurnRanInBypass();
             var picked = skills.Where(s => !string.IsNullOrEmpty(s?.Slug)).GroupBy(s => s.Slug, StringComparer.Ordinal).Select(g => g.First()).ToList();
             _skills = picked.Select(s => s.Slug).ToList();
             var user = new Dictionary<string, object?> { ["text"] = message };
@@ -380,6 +669,10 @@ public sealed class AgentSession
         /// <summary>One model call; returns the calls of the agent's own tools to run.</summary>
         private async Task<List<FunctionCallContent>> RequestAsync(CancellationToken cancellationToken)
         {
+            // What the gateway said about calls holds for this round's calls only: a model may give a later round's
+            // call an id it used before, and an earlier "a grant covers it" must never let that one run unasked.
+            _marks.Clear();
+            _covered.Clear();
             var options = new ChatOptions { Tools = Agent.Offer(_mode) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
@@ -394,6 +687,12 @@ public sealed class AgentSession
             // On every call of the turn, not the first only: the gateway gives a request the skills it names.
             options.WithSkills(_skills);
             var history = _session._context.Build(_session._entries);
+            if (_bypassEnded)
+            {
+                // Before the person's newest message, every round of this turn: what the model may and may not do now.
+                var newest = history.Select((m, i) => (m, i)).LastOrDefault(x => x.m.Role == ChatRole.User).i;
+                history.Insert(Math.Max(0, newest), new ChatMessage(ChatRole.System, BypassEndedNote));
+            }
             AttachNewestPicture(history);
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();
@@ -496,6 +795,17 @@ public sealed class AgentSession
                         await AnswerGatewayApprovalAsync(value, cancellationToken).ConfigureAwait(false);
                     }
                     break;
+                case "faden.grant_used":
+                    // The gateway checked the call against the device's grants and counted it: the first line. The
+                    // copy is the second (ApproveAsync).
+                    if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } covered && ChatWire.Str(value, "grantId") is { Length: > 0 } grant)
+                    {
+                        _covered[covered] = grant;
+                    }
+                    break;
+                case "faden.grants":
+                    Agent.Grants.Replace(value);
+                    break;
                 case "faden.tool_denied":
                     _toolDenied = true;
                     if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } callId)
@@ -572,7 +882,10 @@ public sealed class AgentSession
             }
         }
 
-        /// <summary>A gateway tool held for the user: ask, and answer the gateway while it waits.</summary>
+        /// <summary>
+        /// A gateway tool held for the user: ask, and answer the gateway while it waits, saying what the approval covers.
+        /// Bypass mode never answers here: the gateway runs the tool, and only the server may skip its question.
+        /// </summary>
         private async Task AnswerGatewayApprovalAsync(JsonElement value, CancellationToken cancellationToken)
         {
             var approvalId = ChatWire.Str(value, "approvalId")!;
@@ -586,12 +899,14 @@ public sealed class AgentSession
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
-            var settled = await ApproveAsync(request, Rule(value), timeout, cancellationToken).ConfigureAwait(false);
+            var settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
             if (settled.TimedOut)
             {
                 return; // the gateway expires it on its own
             }
-            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, cancellationToken).ConfigureAwait(false);
+            // The gateway's own wait takes once, chat or always: an answer that also made a grant approves this call once.
+            var scope = settled.Scope == ApprovalScopes.Grant ? ApprovalScopes.Once : settled.Scope;
+            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
@@ -678,8 +993,11 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// Asks if the mode or an admin's rule says so, then runs the tool; also returns how long the asking took.
-        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's.
+        /// Asks if the mode, an admin's rule or the agent's contract says so, then runs the tool; also returns how long the
+        /// asking took. <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's. The contract's
+        /// <see cref="AgentTool.Approval"/> goes on top of the mode, as the gateway puts it: <c>always</c> asks every time,
+        /// like a rule; <c>ask</c> asks where the mode would run; <c>never</c> runs a read or write tool the mode would ask
+        /// about, unless a rule asks. None of them shows a tool the mode hides.
         /// </summary>
         private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool,
             ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
@@ -693,7 +1011,20 @@ public sealed class AgentSession
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
                 return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
             }
-            var rule = mark is { Rule: true };
+            var always = tool.Approval == "always";
+            var rule = mark is { Rule: true } || always;
+            if (tool.Approval == "ask")
+            {
+                decided = ToolModeDecision.Ask;
+            }
+            else if (tool.Approval == "never" && toolClass is ToolClass.Read or ToolClass.Write)
+            {
+                decided = ToolModeDecision.Run;
+            }
+            // In Bypass the device reports what ran without the person's answer, as the gateway records it (L-61): what the
+            // mode ran, and what the turn's own Bypass grant settled. A call the person answered is recorded as an answer
+            // (L-60); one a time or work grant settled belongs to that grant.
+            var unanswered = true;
             if (rule || decided == ToolModeDecision.Ask)
             {
                 var settled = await ApproveAsync(new ApprovalRequest
@@ -702,12 +1033,14 @@ public sealed class AgentSession
                     ToolName = tool.Name,
                     ToolClass = toolClass,
                     Source = tool.Source,
-                    Reason = rule ? mark!.Message
+                    Reason = mark is { Rule: true } ? mark.Message
+                        : always ? $"This agent asks every time before it uses '{tool.Name}'."
+                        : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = tool.OpenWorld == true,
-                }, rule, null, cancellationToken,
+                }, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
                 if (!settled.Approved)
                 {
@@ -715,6 +1048,7 @@ public sealed class AgentSession
                     var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
                     return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
                 }
+                unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
             }
             var askedFor = asking.Elapsed;
             using var services = new ToolServices(Agent.Settings.ToolServices);
@@ -723,6 +1057,10 @@ public sealed class AgentSession
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
                     Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
                 services.Bind(invocation);
+                if (BypassGrant is not null && unanswered)
+                {
+                    _bypassRan.Add(call.CallId); // it runs: the device reports it, whatever it returns
+                }
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
                 return (text, "ok", askedFor, pictures);
@@ -821,30 +1159,41 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// Settles a call that needs approval, first that applies: an admin's rule asks (once only, even in bypass);
-        /// bypass mode approves; a destructive or unclassified tool asks (once only); what the user allowed always,
-        /// then what they allowed for this chat, approves; else the user is asked, and may allow once, for this chat or
-        /// always. Every outcome goes in the transcript and the server's record, with what let the call through.
-        /// <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
+        /// Settles a call that needs approval, first that applies: an admin's rule or a tool that asks every time asks (once
+        /// only, even in Bypass); a grant the gateway said covers the call (<c>faden.grant_used</c>) and the device's copy
+        /// holds approves (38 §6, the second line) -- in Bypass a destructive or unclassified call too, under the
+        /// conversation's Bypass grant while the turn runs in Bypass; a destructive or unclassified tool asks (once only);
+        /// what the user allowed always, then what they allowed for this chat, approves; else the user is asked, and
+        /// may allow once, for this chat, always, or for a time (a grant the server holds) -- as far as the agent allows those
+        /// (its <c>standing</c>). Every outcome goes in the transcript and the server's record, with what let the call
+        /// through. <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
         /// </summary>
-        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, TimeSpan? timeout, CancellationToken cancellationToken,
-            Func<Task<string?>>? target = null)
+        private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, bool gatewayWait, TimeSpan? timeout,
+            CancellationToken cancellationToken, Func<Task<string?>>? target = null)
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             var open = !rule && !AsksEveryTime(toolClass);
+            var (granted, leadsOutside) = rule ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
             var standing = rule ? null
-                : Agent.PermissionMode == PermissionMode.Bypass ? ApprovalScopes.Bypass
+                : granted is not null ? ApprovalScopes.Grant
                 : !open ? null
-                : await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
-                : _session.ApprovedForChat(name) ? ApprovalScopes.Chat
+                : Offers(ApprovalScopes.Always) && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
+                : Offers(ApprovalScopes.Chat) && _session.ApprovedForChat(name) ? ApprovalScopes.Chat
                 : null;
             if (standing is not null)
             {
-                await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null).ConfigureAwait(false);
-                return new Settled(true, false, null);
+                await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null, granted).ConfigureAwait(false);
+                return new Settled(true, false, null, standing, granted);
             }
             var described = target is null ? null : await target().ConfigureAwait(false);
-            request = request with { CanAllowForSession = open, CanAllowAlways = open, RequiredByRule = rule, Target = described };
+            var grants = Agent.Grants;
+            var durations = open && toolClass is ToolClass.Read or ToolClass.Write && grants.Offers("time")
+                ? grants.Choices : Array.Empty<TimeSpan>();
+            request = request with
+            {
+                CanAllowForSession = open && Offers(ApprovalScopes.Chat), CanAllowAlways = open && Offers(ApprovalScopes.Always),
+                GrantDurations = durations, RequiredByRule = rule, Target = described, LeadsOutside = leadsOutside,
+            };
             Emit(new ApprovalRequested(request));
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (timeout is { } t)
@@ -864,9 +1213,16 @@ public sealed class AgentSession
             var waited = (long)watch.Elapsed.TotalMilliseconds;
             // What the request offered, and nothing more: a handler cannot widen it.
             var scope = decision is not { Approved: true } ? null
-                : decision.Always && open ? ApprovalScopes.Always
-                : decision.ForSession && open ? ApprovalScopes.Chat
+                : decision.ForTime is { } d && durations.Contains(d) ? ApprovalScopes.Grant
+                : decision.Always && request.CanAllowAlways ? ApprovalScopes.Always
+                : decision.ForSession && request.CanAllowForSession ? ApprovalScopes.Chat
                 : ApprovalScopes.Once;
+            string? grantId = null;
+            if (scope == ApprovalScopes.Grant)
+            {
+                grantId = await GrantForTimeAsync(name, decision!.ForTime!.Value, cancellationToken).ConfigureAwait(false);
+                scope = grantId is null ? ApprovalScopes.Once : scope;
+            }
             if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass).ConfigureAwait(false))
             {
                 scope = ApprovalScopes.Once;
@@ -875,17 +1231,86 @@ public sealed class AgentSession
             {
                 _session.ApproveForChat(name);
             }
-            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited).ConfigureAwait(false);
+            var minutes = scope == ApprovalScopes.Grant ? (int?)decision!.ForTime!.Value.TotalMinutes : null;
+            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes).ConfigureAwait(false);
             Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
+                : scope == ApprovalScopes.Grant ? ApprovalDecision.ApproveFor(decision.ForTime!.Value)
                 : scope == ApprovalScopes.Always ? ApprovalDecision.ApproveAlways()
                 : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
                 : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
                 : decision));
-            return new Settled(scope is not null, decision is null, decision?.Reason);
+            return new Settled(scope is not null, decision is null, decision?.Reason, scope, grantId);
+        }
+
+        /// <summary>Whether the agent allows the standing approval <paramref name="scope"/> (<c>chat</c>, <c>always</c>); any, from an older server.</summary>
+        private bool Offers(string scope) => Agent.ProfileOrNull?.Approvals?.Allows(scope) ?? true;
+
+        /// <summary>
+        /// The grant that covers a call of the agent's own tool, or null (38 §6): the gateway said so (the first line), and
+        /// the device's copy holds that grant, active and unexpired, for this tool or class, and for a stretch of work the
+        /// place the call names, where it really leads (the second). A grant the copy does not know is read from the server
+        /// once; a copy that still lacks it covers nothing, and the user is asked. <c>LeadsOutside</c>: the real place, when a
+        /// link took the call out of the grant.
+        /// </summary>
+        private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
+        {
+            if (!_covered.TryGetValue(request.CallId, out var grantId) || !Agent.Grants.Available)
+            {
+                return (null, null);
+            }
+            if (!Agent.Grants.Knows(grantId))
+            {
+                try
+                {
+                    await Agent.Grants.RefreshAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    return (null, null); // no copy to check against: ask
+                }
+            }
+            var covered = Agent.Grants.Covers(grantId, request.ToolName, request.ToolClass, PlaceOf(request), out var leadsOutside);
+            if (covered && Agent.Grants.Find(grantId) is { Kind: GrantKinds.Bypass } bypass
+                && (bypass.ConversationId != _session.Id || _mode != ToolMode.Bypass))
+            {
+                covered = false; // another conversation's Bypass, or a turn that does not run in Bypass
+            }
+            return (covered ? grantId : null, leadsOutside);
+        }
+
+        /// <summary>Where the call acts, as its tool names it (the agent's contract points at an argument the call carries); null when it names none.</summary>
+        private GrantPlace? PlaceOf(ApprovalRequest request)
+        {
+            var entry = Agent.ProfileOrNull?.HostToolContract.FirstOrDefault(e => e.Name == request.ToolName);
+            return entry is { TargetArgument: { Length: > 1 } pointer, TargetType: { Length: > 0 } type }
+                && GrantPointer.Resolve(request.Arguments, pointer) is { Length: > 0 } value
+                ? new GrantPlace(type, value, value) : null;
+        }
+
+        /// <summary>
+        /// The grant for a time the user picked on the card, as the server confirmed it; null when it did not (offline,
+        /// refused): this call is approved once, and the chat says the grant was not made (L-59: no answer, no grant).
+        /// </summary>
+        private async Task<string?> GrantForTimeAsync(string tool, TimeSpan duration, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return (await Agent.Grants.GrantForTimeAsync(tool, duration, cancellationToken: cancellationToken).ConfigureAwait(false)).Id;
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                await NoticeAsync(new GovernanceNotice
+                {
+                    Outcome = "grant_failed", Stage = "tool",
+                    Message = $"The server did not confirm the grant ({e.Message}); this call alone was allowed.",
+                }).ConfigureAwait(false);
+                return null;
+            }
         }
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
-        private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs)
+        private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs,
+            string? grantId = null, int? minutes = null)
         {
             await _session.AppendAsync(EntryTypes.ApprovalDecision, _id, new
             {
@@ -895,14 +1320,17 @@ public sealed class AgentSession
                 approved = scope is not null,
                 for_session = asked && scope == ApprovalScopes.Chat, // for older readers
                 scope,
+                grant_id = grantId,
+                grant_minutes = minutes,
                 asked,
                 rule,
+                outside_grant = request.LeadsOutside is not null, // a link led out of the grant's places: asked
                 timed_out = timedOut,
                 wait_ms = waitedMs ?? 0,
             }).ConfigureAwait(false);
             Agent.Reporter.Add(new ApprovalDecidedEvent
             {
-                ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope,
+                ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope, GrantId = grantId,
                 Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
             });
         }

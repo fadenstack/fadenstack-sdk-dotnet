@@ -37,7 +37,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- Header; below it, while the agent works alongside the person under a grant, the marker with its stop -->
+        <StackPanel>
         <Border x:Name="Header" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Padding="12,8">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -88,7 +89,7 @@
                         <TextBlock Style="{StaticResource Fadenstack.Icon}" Text="&#xE710;" />
                     </Button>
                     <!--
-                        The settings: the language, the host's own items (SettingsContent), and About last. Always shown.
+                        The settings: the language, the approvals (Settings → Approvals), the host's own items (SettingsContent), and About last. Always shown.
                         The gear looks pressed while its menu is open, and while About, which the menu opened, is.
                     -->
                     <ToggleButton x:Name="SettingsButton" ToolTip="{local:Text Settings}"
@@ -137,6 +138,25 @@
                                     <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{local:Text LanguageLocked}" Margin="8,4,8,4"
                                                Visibility="{Binding IsLanguageLocked, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                 </StackPanel>
+                                <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" />
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Grants.StandingTitle}" Margin="8,4,8,4" />
+                                    <ItemsControl ItemsSource="{Binding Grants.Standing}" Focusable="False"
+                                                  Visibility="{Binding Grants.HasStanding, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="8,2">
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Margin="12,0,0,0" Padding="8,2" FontSize="12"
+                                                            Content="{Binding DataContext.Grants.RevokeText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding RevokeCommand}" />
+                                                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" MaxWidth="260" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Grants.StandingEmpty}" TextWrapping="Wrap" MaxWidth="260" Margin="8,2,8,4"
+                                               Visibility="{Binding Grants.HasStanding, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+                                </StackPanel>
                                 <Border x:Name="SettingsSeparator" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" Visibility="Collapsed" />
                                 <ContentPresenter x:Name="SettingsHost" />
                                 <Border x:Name="AboutSeparator" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" Visibility="Collapsed" />
@@ -158,6 +178,44 @@
                 <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
         </Border>
+        <Border Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Fadenstack.InfoBackground}"
+                Visibility="{Binding Grants.HasMarker, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding Grants.StopText}"
+                        Command="{Binding Grants.StopCommand}" Margin="8,0,0,0" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Content="{Binding Grants.KeepGoingText}"
+                        Command="{Binding Grants.KeepGoingCommand}" Margin="8,0,0,0"
+                        Visibility="{Binding Grants.IsEnding, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                <TextBlock Text="{Binding Grants.MarkerText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        <!-- While this chat runs in Bypass (sdk/09 L-63): the time left, what is recorded, one click ends it; never more time. -->
+        <Border x:Name="BypassMarker" Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Warning}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Fadenstack.WarningBackground}"
+                Visibility="{Binding Grants.HasBypass, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                AutomationProperties.Name="{Binding Grants.BypassText}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding Grants.StopText}"
+                        AutomationProperties.Name="{Binding Grants.BypassStopName}" Command="{Binding Grants.StopBypassCommand}" Margin="8,0,0,0" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Grants.BypassText}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Grants.BypassRecordedText}" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <!-- After the chat's Bypass ended: why (its time, a Stop, an administrator, the kill switch, a narrower list). -->
+        <Border Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Fadenstack.InfoBackground}"
+                Visibility="{Binding Grants.HasBypassEnded, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}" Content="{Binding Grants.CloseText}"
+                        Command="{Binding Grants.DismissBypassEndedCommand}" Margin="8,0,0,0" Padding="8,2" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding Grants.SwitchOnAgainText}"
+                        AutomationProperties.Name="{Binding Grants.SwitchOnAgainName}" Command="{Binding Grants.SwitchOnAgainCommand}"
+                        IsDefault="False" IsCancel="False" Margin="8,0,0,0" Padding="8,2" />
+                <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        </StackPanel>
 
         <!-- Conversation -->
         <Grid Grid.Row="1">
@@ -361,8 +419,21 @@
             </DockPanel>
         </Border>
 
+        <!-- Grant cards waiting for an answer: above the composer, like the approval card in the conversation -->
+        <StackPanel Grid.Row="2" VerticalAlignment="Bottom">
+        <ItemsControl ItemsSource="{Binding Grants.Cards}" Focusable="False" Margin="12,0,12,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <ContentPresenter Content="{Binding}" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <!-- The Bypass confirmation: while it waits for the person or the server, and when the server did not confirm it. -->
+        <ContentPresenter Margin="12,0,12,0" Content="{Binding Grants.BypassCard}"
+                          Visibility="{Binding Grants.BypassCard.IsShown, Converter={StaticResource Fadenstack.BoolToVisibility}, FallbackValue=Collapsed}" />
+
         <!-- Composer: a pasted picture, or picture files dropped on it, go with the next message -->
-        <Border Grid.Row="2" Margin="12,4,12,12" Padding="12,8,6,6" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
+        <Border Margin="12,4,12,12" Padding="12,8,6,6" CornerRadius="{StaticResource Fadenstack.Radius.Container}" BorderThickness="1"
                 BorderBrush="{DynamicResource Fadenstack.Border}" Background="{DynamicResource Fadenstack.Surface}"
                 b:PictureInput.Chat="{Binding}">
             <Grid>
@@ -500,6 +571,7 @@
                 </DockPanel>
             </Grid>
         </Border>
+        </StackPanel>
 
         <!--
             Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides
@@ -562,7 +634,12 @@
                                         <DockPanel>
                                             <TextBlock DockPanel.Dock="Right" Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding WhenText}"
                                                        Margin="8,0,0,0" />
-                                            <TextBlock x:Name="TitleText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="TitleText" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" FontWeight="SemiBold" Text="{Binding BypassText}"
+                                                           AutomationProperties.Name="{Binding BypassText}" TextTrimming="CharacterEllipsis"
+                                                           Visibility="{Binding HasBypass, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                            </StackPanel>
                                         </DockPanel>
                                     </Button>
                                     <Button x:Name="Delete" Style="{StaticResource Fadenstack.GhostButton}" HorizontalAlignment="Right" Margin="0,0,4,0"

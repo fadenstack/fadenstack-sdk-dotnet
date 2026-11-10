@@ -311,6 +311,62 @@ public class AgentLoopTests
         Assert.Equal("read_only", gateway.ChatRequests[0].Header("X-Faden-Tool-Mode"));
     }
 
+    [Theory]
+    [InlineData("\"auto\"", null, ToolMode.Auto)] // the agent's default level, from the server (sdk/38 D2)
+    [InlineData("\"auto\"", ToolMode.Ask, ToolMode.Ask)] // the app may narrow it
+    [InlineData("\"ask\"", ToolMode.Auto, ToolMode.Ask)] // never widen it
+    [InlineData("\"bypass\"", null, ToolMode.Ask)] // never a default (sdk/38 D2): Ask
+    [InlineData("\"planet\"", null, ToolMode.Ask)] // a level this SDK does not know: Ask
+    public async Task New_sessions_start_in_the_agents_default_level_which_the_app_may_only_narrow(
+        string serverDefault, ToolMode? appDefault, ToolMode expected)
+    {
+        var gateway = new Gateway { DefaultLevel = serverDefault };
+        var builder = gateway.Builder();
+        if (appDefault is { } mode)
+        {
+            builder.UseDefaultToolMode(mode);
+        }
+        using var agent = builder.Build();
+        Assert.Equal(expected, (await agent.StartSessionAsync()).ToolMode);
+    }
+
+    [Theory]
+    [InlineData("null", "\"ask\"", ToolMode.Ask)] // the agent's highest level
+    [InlineData("\"read_only\"", "\"auto\"", ToolMode.ReadOnly)] // the narrowest applies
+    [InlineData("\"planet\"", "null", ToolMode.ReadOnly)] // a ceiling this SDK does not know narrows (39 F8)
+    [InlineData("null", "\"planet\"", ToolMode.ReadOnly)]
+    [InlineData("\"bypass\"", "null", ToolMode.Auto)] // Bypass not offered by the profile: Auto (sdk/40 A3)
+    [InlineData("null", "\"bypass\"", ToolMode.Auto)]
+    [InlineData("null", "null", ToolMode.Auto)] // an older server: no limit
+    public async Task The_ceiling_is_the_narrowest_of_the_servers_and_the_agents_highest_level(string ceiling, string max, ToolMode expected)
+    {
+        var gateway = new Gateway(ceiling: ceiling) { MaxLevel = max };
+        using var agent = gateway.Builder().Build();
+        await agent.StartAsync();
+        Assert.Equal(expected, agent.Ceiling);
+    }
+
+    [Fact]
+    public async Task A_ceiling_lowered_on_the_server_reaches_a_session_started_a_minute_later()
+    {
+        // 39 F8, probe G3: the profile was read once per agent object, so a lowered ceiling waited for a restart.
+        var gateway = new Gateway();
+        using var agent = gateway.Builder().AddTools(new PageTools()).Build();
+        var now = DateTimeOffset.UtcNow;
+        agent.Clock = () => now;
+        var first = await agent.StartSessionAsync(ToolMode.Auto);
+        gateway.Ceiling = "\"read_only\"";
+
+        var soon = await agent.StartSessionAsync(ToolMode.Auto);
+        Assert.Equal((ToolMode.Auto, 1), (soon.EffectiveToolMode, gateway.ProfileReads)); // within a minute: as held
+
+        now += TimeSpan.FromSeconds(61);
+        var later = await agent.StartSessionAsync(ToolMode.Auto);
+        Assert.Equal((ToolMode.ReadOnly, 2), (later.EffectiveToolMode, gateway.ProfileReads));
+        Assert.Equal(ToolMode.ReadOnly, first.EffectiveToolMode); // one ceiling for all the agent's sessions
+        Assert.Equal(new[] { "read_page", "add_comment", "delete_page", "stamp" }, agent.Tools.Select(t => t.Name)); // the tools stay
+    }
+
     [Fact]
     public async Task A_required_module_that_is_missing_stops_the_start()
     {

@@ -80,7 +80,10 @@ public sealed class FadenstackTransport : IDisposable
             {
                 throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
             }
-            if (response.StatusCode == HttpStatusCode.Unauthorized && token is not null && attempt == 0)
+            // A step-up challenge (RFC 9470) says the sign-in is too old for this operation, not that the token is bad:
+            // a fresh token would not change it.
+            if (response.StatusCode == HttpStatusCode.Unauthorized && token is not null && attempt == 0
+                && !IsStepUpChallenge(response))
             {
                 response.Dispose();
                 await _tokens!.InvalidateAsync(token, cancellationToken).ConfigureAwait(false);
@@ -128,6 +131,27 @@ public sealed class FadenstackTransport : IDisposable
     public Task<T> PostAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Post, url, body, cancellationToken);
 
+    /// <summary>A POST with request headers of its own (e.g. <c>X-Faden-Conversation-Id</c>).</summary>
+    public async Task<T> PostAsync<T>(Uri url, object? body, IReadOnlyDictionary<string, string> headers,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await SendAsync(() =>
+        {
+            var request = JsonRequest(HttpMethod.Post, url, body);
+            foreach (var header in headers)
+            {
+                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+            return request;
+        }, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw ErrorReader.ToException(response, text);
+        }
+        return string.IsNullOrWhiteSpace(text) ? default! : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!;
+    }
+
     public Task<T> PutAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
         SendJsonAsync<T>(HttpMethod.Put, url, body, cancellationToken);
 
@@ -143,10 +167,31 @@ public sealed class FadenstackTransport : IDisposable
     /// <summary>A backend route: <c>Api("api/agent-tokens")</c>.</summary>
     public Uri Api(string relative) => new(ApiUrl, relative.TrimStart('/'));
 
+    /// <summary>
+    /// What this SDK announces it can do beyond the agent API it was written for (sdk/40 §3 rule 5): the server offers
+    /// new levels and fields only to clients that name them.
+    /// </summary>
+    public const string SupportsHeader = "X-Faden-Client-Supports";
+
+    /// <summary>
+    /// Bypass: its confirmation, its grant, its marker and the report at the end of each turn (sdk/40 A3); and the second
+    /// sign-in in the browser before it is switched on (sdk/41), without which the server offers no Bypass.
+    /// </summary>
+    public const string Supports = "tool_mode.bypass, bypass.step_up";
+
+    /// <summary>
+    /// Whether a 401 is a step-up challenge (RFC 9470 <c>insufficient_user_authentication</c>): a fresh sign-in is needed
+    /// for this operation, which a new access token does not give.
+    /// </summary>
+    internal static bool IsStepUpChallenge(HttpResponseMessage response) =>
+        response.Headers.WwwAuthenticate.Any(h =>
+            h.Parameter?.IndexOf("insufficient_user_authentication", StringComparison.Ordinal) >= 0);
+
     internal static HttpRequestMessage JsonRequest(HttpMethod method, Uri url, object? body)
     {
         var request = new HttpRequestMessage(method, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.TryAddWithoutValidation(SupportsHeader, Supports);
         if (body is not null)
         {
             var json = body is JsonElement element ? element.GetRawText() : JsonSerializer.Serialize(body, FadenstackJson.Options);

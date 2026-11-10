@@ -133,6 +133,9 @@
   <data name="ApprovalOutsideWhy" xml:space="preserve">
     <value>Ce qu'il reçoit quitte votre organisation : il part vers un autre site.</value>
   </data>
+  <data name="ApprovalLeadsOutside" xml:space="preserve">
+    <value>Ce chemin mène, par un lien, hors des emplacements où vous le laissez travailler : vers {0}.</value>
+  </data>
   <data name="Allow" xml:space="preserve">
     <value>Autoriser</value>
   </data>
@@ -261,6 +264,12 @@
   </data>
   <data name="Mode_Auto_Description" xml:space="preserve">
     <value>Exécute les outils qui modifient des choses ; demande toujours avant ce qui est irréversible.</value>
+  </data>
+  <data name="Mode_Bypass_Label" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="Mode_Bypass_Description" xml:space="preserve">
+    <value>Exécute tous les outils sans demander dans cette conversation, pendant un temps, là où votre organisation l'autorise ; les règles et les outils qui demandent toujours continuent de demander, et chaque appel est enregistré.</value>
   </data>
   <data name="LimitedTo" xml:space="preserve">
     <value>{0} Limité à « {1} » par votre organisation.</value>
@@ -399,5 +408,266 @@
   </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Non écrit : le contenu n'a pas pu être marqué comme généré par IA</value>
+  </data>
+  <data name="AllowFor" xml:space="preserve">
+    <value>Autoriser pendant…</value>
+  </data>
+  <data name="AllowedFor" xml:space="preserve">
+    <value>Autorisé pendant {0}</value>
+  </data>
+  <data name="AllowedByGrant" xml:space="preserve">
+    <value>Autorisé par votre approbation prolongée</value>
+  </data>
+  <data name="Duration_Minutes" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Duration_Hours" xml:space="preserve">
+    <value>{0} h</value>
+  </data>
+  <data name="Duration_HoursMinutes" xml:space="preserve">
+    <value>{0} h {1} min</value>
+  </data>
+  <data name="GrantTitle" xml:space="preserve">
+    <value>Travailler avec vous ?</value>
+  </data>
+  <data name="GrantExtendTitle" xml:space="preserve">
+    <value>Continuer à travailler avec vous ?</value>
+  </data>
+  <data name="GrantDuration" xml:space="preserve">
+    <value>Pendant combien de temps</value>
+  </data>
+  <data name="GrantPlaces" xml:space="preserve">
+    <value>Je travaillerai dans :</value>
+  </data>
+  <data name="GrantNewPlaces" xml:space="preserve">
+    <value>Aussi dans :</value>
+  </data>
+  <data name="GrantMoreTime" xml:space="preserve">
+    <value>{0} de plus</value>
+  </data>
+  <data name="GrantMay_Read" xml:space="preserve">
+    <value>Sans demander, je peux y lire.</value>
+  </data>
+  <data name="GrantMay_Write" xml:space="preserve">
+    <value>Sans demander, je peux y écrire et y modifier des choses.</value>
+  </data>
+  <data name="GrantMay_ReadWrite" xml:space="preserve">
+    <value>Sans demander, je peux y lire, écrire et modifier des choses.</value>
+  </data>
+  <data name="GrantStillAsks" xml:space="preserve">
+    <value>Je demanderai toujours avant de supprimer, d'envoyer, de payer ou de publier quoi que ce soit, et avant tout le reste.</value>
+  </data>
+  <data name="GrantAllow" xml:space="preserve">
+    <value>Autoriser</value>
+  </data>
+  <data name="GrantNotNow" xml:space="preserve">
+    <value>Pas maintenant</value>
+  </data>
+  <data name="GrantRemovePlace" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="GrantKeepPlace" xml:space="preserve">
+    <value>Remettre</value>
+  </data>
+  <data name="GrantAllowed" xml:space="preserve">
+    <value>Travaille avec vous</value>
+  </data>
+  <data name="GrantDeclined" xml:space="preserve">
+    <value>Pas maintenant</value>
+  </data>
+  <data name="GrantFailed" xml:space="preserve">
+    <value>Non autorisé : le serveur ne l'a pas confirmé</value>
+  </data>
+  <data name="MarkerWorking" xml:space="preserve">
+    <value>Travaille avec vous · encore {0}</value>
+  </data>
+  <data name="MarkerPaused" xml:space="preserve">
+    <value>Travaille avec vous · en pause</value>
+  </data>
+  <data name="MarkerStop" xml:space="preserve">
+    <value>Arrêter</value>
+  </data>
+  <data name="MarkerKeepGoing" xml:space="preserve">
+    <value>Encore {0}</value>
+  </data>
+  <data name="SettingsApprovals" xml:space="preserve">
+    <value>Approbations</value>
+  </data>
+  <data name="SettingsApprovalsEmpty" xml:space="preserve">
+    <value>Rien n'est autorisé au-delà d'un seul appel.</value>
+  </data>
+  <data name="SettingsGrantTime" xml:space="preserve">
+    <value>{0}, encore {1}</value>
+  </data>
+  <data name="SettingsGrantWork" xml:space="preserve">
+    <value>Travaille avec vous dans {0}, encore {1}</value>
+  </data>
+  <data name="SettingsAlways" xml:space="preserve">
+    <value>{0}, toujours</value>
+  </data>
+  <data name="Revoke" xml:space="preserve">
+    <value>Révoquer</value>
+  </data>
+  <data name="BypassTitle" xml:space="preserve">
+    <value>Désactiver les approbations dans cette conversation ?</value>
+    <comment>The question of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassNoLongerAsks" xml:space="preserve">
+    <value>Pendant la durée que vous choisissez, cet agent exécute ses outils dans cette conversation sans vous demander d'abord, y compris ceux qui suppriment, envoient ou sont irréversibles, et ceux que personne n'a classés. Vos autres conversations demandent comme avant.</value>
+    <comment>What Bypass stops asking</comment>
+  </data>
+  <data name="BypassStillAsks" xml:space="preserve">
+    <value>Demande toujours : les règles « Demander d'abord » de votre administration et les outils marqués pour toujours demander. Ce qui est bloqué reste bloqué.</value>
+    <comment>What still asks under Bypass</comment>
+  </data>
+  <data name="BypassRecords_decisions" xml:space="preserve">
+    <value>Le serveur de votre organisation enregistre chaque outil exécuté sans demander : lequel, quand et où, mais pas ce qu'il a reçu.</value>
+    <comment>What the server records under Bypass, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecords_calls" xml:space="preserve">
+    <value>Le serveur de votre organisation enregistre chaque outil exécuté sans demander, avec ce qu'il a reçu (données personnelles masquées).</value>
+    <comment>What the server records under Bypass, at the level "calls" (the arguments)</comment>
+  </data>
+  <data name="BypassRecords_results" xml:space="preserve">
+    <value>Le serveur de votre organisation enregistre chaque outil exécuté sans demander, avec ce qu'il a reçu et un court résumé de son résultat (données personnelles masquées).</value>
+    <comment>What the server records under Bypass, at the level "results"</comment>
+  </data>
+  <data name="BypassNoExtension" xml:space="preserve">
+    <value>Une fois le temps écoulé, Bypass s'arrête. Il ne peut pas être prolongé : plus de temps est un nouveau Bypass, confirmé à nouveau.</value>
+    <comment>Under the time picker of the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReason" xml:space="preserve">
+    <value>Pourquoi (facultatif)</value>
+    <comment>The label of the reason box on the Bypass confirmation</comment>
+  </data>
+  <data name="BypassReasonSeen" xml:space="preserve">
+    <value>Votre administration voit votre motif.</value>
+    <comment>Under the reason box</comment>
+  </data>
+  <data name="BypassAllow" xml:space="preserve">
+    <value>Activer Bypass</value>
+    <comment>The Bypass confirmation's button that switches it on</comment>
+  </data>
+  <data name="BypassConfirming" xml:space="preserve">
+    <value>En attente de la confirmation du serveur…</value>
+    <comment>The confirmation after the click, before the server answered</comment>
+  </data>
+  <data name="BypassOn" xml:space="preserve">
+    <value>Bypass est activé</value>
+    <comment>The confirmation once the server confirmed it</comment>
+  </data>
+  <data name="BypassNotConfirmed" xml:space="preserve">
+    <value>Bypass n'est pas activé : le serveur ne l'a pas confirmé. Les approbations demandent comme avant.</value>
+    <comment>The server gave no acknowledgement</comment>
+  </data>
+  <data name="BypassNotConfirmed_refused" xml:space="preserve">
+    <value>Bypass n'est pas activé : votre organisation ne l'autorise pas pour cet agent pour le moment. Les approbations demandent comme avant.</value>
+    <comment>The server refused it (switched off, or not for this agent)</comment>
+  </data>
+  <data name="BypassNotConfirmed_offline" xml:space="preserve">
+    <value>Bypass n'est pas activé : le serveur n'a pas pu être joint. Les approbations demandent comme avant.</value>
+    <comment>No connection to the server</comment>
+  </data>
+  <data name="BypassNotConfirmed_unavailable" xml:space="preserve">
+    <value>Bypass n'est pas activé : le serveur ne peut pas vérifier ses limites pour le moment. Les approbations demandent comme avant.</value>
+    <comment>The server's limits could not be read</comment>
+  </data>
+  <data name="BypassMarker" xml:space="preserve">
+    <value>Bypass activé · encore {0}</value>
+    <comment>The Bypass marker; {0}: the time left</comment>
+  </data>
+  <data name="BypassRecorded_decisions" xml:space="preserve">
+    <value>Chaque outil exécuté est enregistré.</value>
+    <comment>The marker's second line, at the level "decisions"</comment>
+  </data>
+  <data name="BypassRecorded_calls" xml:space="preserve">
+    <value>Chaque outil exécuté est enregistré avec ce qu'il a reçu.</value>
+    <comment>The marker's second line, at the level "calls"</comment>
+  </data>
+  <data name="BypassRecorded_results" xml:space="preserve">
+    <value>Chaque outil exécuté est enregistré avec ce qu'il a reçu et son résultat.</value>
+    <comment>The marker's second line, at the level "results"</comment>
+  </data>
+  <data name="BypassStopName" xml:space="preserve">
+    <value>Arrêter Bypass</value>
+    <comment>The marker's Stop button, for screen readers</comment>
+  </data>
+  <data name="BypassSignIn" xml:space="preserve">
+    <value>Reconnectez-vous dans votre navigateur pour activer Bypass. Cette application attend que vous l'approuviez là-bas.</value>
+    <comment>The Bypass confirmation while the second sign-in runs in the browser</comment>
+  </data>
+  <data name="BypassSignInCode" xml:space="preserve">
+    <value>La page affiche le code {0}.</value>
+    <comment>Under it; {0}: the code the page shows, to compare</comment>
+  </data>
+  <data name="BypassOpenAgain" xml:space="preserve">
+    <value>Rouvrir la page</value>
+    <comment>Button on the Bypass confirmation: opens the sign-in page in the browser again</comment>
+  </data>
+  <data name="BypassOpenAgainName" xml:space="preserve">
+    <value>Rouvrir la page de connexion de Bypass</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassNotConfirmed_denied" xml:space="preserve">
+    <value>Bypass reste désactivé : il n'a pas été approuvé dans le navigateur.</value>
+    <comment>The second sign-in was denied or not approved</comment>
+  </data>
+  <data name="BypassNotConfirmed_timed_out" xml:space="preserve">
+    <value>Bypass reste désactivé : la connexion dans le navigateur a pris trop de temps.</value>
+    <comment>Nobody approved the second sign-in in time</comment>
+  </data>
+  <data name="BypassNotConfirmed_no_browser" xml:space="preserve">
+    <value>Bypass reste désactivé : le navigateur n'a pas pu être ouvert ou le serveur n'a pas pu être joint.</value>
+    <comment>The browser could not be opened, or the server not reached, for the second sign-in</comment>
+  </data>
+  <data name="BypassSwitchOnAgain" xml:space="preserve">
+    <value>Réactiver</value>
+    <comment>Button on the line that says Bypass ended: asks for Bypass again</comment>
+  </data>
+  <data name="BypassSwitchOnAgainName" xml:space="preserve">
+    <value>Réactiver Bypass</value>
+    <comment>The same button, for screen readers</comment>
+  </data>
+  <data name="BypassListMarker" xml:space="preserve">
+    <value>Bypass · encore {0}</value>
+    <comment>In the chat list: a chat that runs in Bypass; {0}: the time left</comment>
+  </data>
+  <data name="BypassEnded" xml:space="preserve">
+    <value>Bypass terminé : le serveur l'a arrêté. Les approbations demandent à nouveau.</value>
+    <comment>Bypass ended and the server did not say why</comment>
+  </data>
+  <data name="BypassEnded_person" xml:space="preserve">
+    <value>Bypass terminé : vous l'avez arrêté. Les approbations demandent à nouveau.</value>
+    <comment>The person stopped it (here, in Settings or on another sign-in)</comment>
+  </data>
+  <data name="BypassEnded_expired" xml:space="preserve">
+    <value>Bypass terminé : son temps est écoulé. Les approbations demandent à nouveau.</value>
+    <comment>Bypass ended at its time</comment>
+  </data>
+  <data name="BypassEnded_admin" xml:space="preserve">
+    <value>Bypass terminé : un administrateur l'a arrêté. Les approbations demandent à nouveau.</value>
+    <comment>An administrator revoked it</comment>
+  </data>
+  <data name="BypassEnded_kill_switch" xml:space="preserve">
+    <value>Bypass terminé : votre organisation a désactivé Bypass. Les approbations demandent à nouveau.</value>
+    <comment>The organisation switched Bypass off for everyone</comment>
+  </data>
+  <data name="BypassEnded_limit" xml:space="preserve">
+    <value>Bypass terminé : votre organisation a restreint qui peut l'utiliser. Les approbations demandent à nouveau.</value>
+    <comment>A narrower list or limit of the organisation's ended it</comment>
+  </data>
+  <data name="BypassEnded_spent" xml:space="preserve">
+    <value>Bypass terminé : ses appels sont épuisés. Les approbations demandent à nouveau.</value>
+    <comment>Its budget of calls was used up</comment>
+  </data>
+  <data name="SettingsGrantBypass" xml:space="preserve">
+    <value>Bypass dans une conversation, encore {0} · {1}</value>
+    <comment>A running Bypass in Settings; {0}: the time left; {1}: what is recorded</comment>
+  </data>
+  <data name="LimitedByAgent" xml:space="preserve">
+    <value>{0} Cet agent ne dépasse pas « {1} ».</value>
+  </data>
+  <data name="Notice_grant_failed" xml:space="preserve">
+    <value>Autorisé cette fois seulement : le serveur n'a pas confirmé l'approbation prolongée</value>
   </data>
 </root>
