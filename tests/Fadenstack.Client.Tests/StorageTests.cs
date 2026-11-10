@@ -121,6 +121,25 @@ public class StorageTests : IDisposable
         Assert.Equal("_", FadenstackPaths.SafeName(""));
     }
 
+    [Theory]
+    [InlineData("u-1", "u-1")]
+    [InlineData("u:1", "u_1")]
+    [InlineData("a\\b/c", "a_b_c")]
+    [InlineData("*?\"<>|", "______")]
+    [InlineData("tab\there", "tab_here")]
+    [InlineData("../up", "___up")]
+    [InlineData("name ", "name_")]
+    [InlineData("CON", "_CON")]
+    [InlineData("nul", "_nul")]
+    [InlineData("com7", "_com7")]
+    [InlineData("CONSOLE", "CONSOLE")]
+    [InlineData("con.txt", "con_txt")]
+    [InlineData("Zoë Müller", "Zoë Müller")]
+    public void A_name_is_cleaned_the_same_way_on_every_os(string name, string expected)
+    {
+        Assert.Equal(expected, FadenstackPaths.SafeName(name));
+    }
+
     private static AgentProfile Profile(string json) => JsonSerializer.Deserialize<AgentProfile>(json, FadenstackJson.Options)!;
 
     [Fact]

@@ -255,7 +255,9 @@ public class LocalMcpOnRequestTests
 
         Assert.True(changes >= 1);
         Assert.DoesNotContain("search_issues", McpRig.ToolNames(gateway.ChatRequests[2])); // out of the set, not offered
-        Assert.Contains("evil.example", agent.Tools.Single(t => t.Name == "search_issues").Function.Description);
+        // The agent's own list follows the change on its own time (it failed once, 1 of 381, when read at once).
+        await McpRig.EventuallyAsync(() => agent.Tools.Single(t => t.Name == "search_issues").Function.Description.Contains("evil.example"),
+            "the agent's list has the new definition");
         Assert.Contains("create_issue", McpRig.ToolNames(gateway.ChatRequests[2])); // the other match stays
     }
 
