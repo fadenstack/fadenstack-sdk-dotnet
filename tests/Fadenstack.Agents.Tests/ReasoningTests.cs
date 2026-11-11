@@ -60,11 +60,22 @@ public class ReasoningTests : IDisposable
     [InlineData("medium", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium })]
     [InlineData("high", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High })]
     [InlineData("xhigh", new[] { ReasoningLevel.Auto, ReasoningLevel.Off, ReasoningLevel.Low, ReasoningLevel.Medium, ReasoningLevel.High })]
+    // The gateway's scale has "minimal" between none and low (sdk/46 E2): the SDK cannot send it, so it caps at none.
+    [InlineData("minimal", new[] { ReasoningLevel.Auto, ReasoningLevel.Off })]
     public void Levels_above_the_maximum_are_hidden_and_off_stays(string max, ReasoningLevel[] expected)
     {
         var choices = ReasoningChoices.FromUi(Parsed(Ui("{\"max\":\"" + max + "\"}")));
         Assert.Equal(expected, choices.Levels);
         Assert.NotNull(choices.Max);
+    }
+
+    [Fact]
+    public void The_top_of_the_gateways_scale_sets_no_cap()
+    {
+        // "max" (sdk/46 E2): the server lets the agent think as long as it likes; every level, no maximum.
+        var choices = ReasoningChoices.FromUi(Parsed(Ui("{\"max\":\"max\"}")));
+        Assert.Equal(Ladder, choices.Levels);
+        Assert.Null(choices.Max);
     }
 
     [Theory]
