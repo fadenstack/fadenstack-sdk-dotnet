@@ -31,6 +31,9 @@
   <data name="Working" xml:space="preserve">
     <value>Arbeitet…</value>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>Wartet auf einen freien Platz</value>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>Angehalten</value>
   </data>
@@ -127,6 +130,18 @@
   <data name="ServerTool" xml:space="preserve">
     <value>Server-Tool</value>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>Von {0}, einem MCP-Server auf diesem Computer</value>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>Ihre Organisation hat dieses Tool nicht geprüft.</value>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>Der Server gibt an, dass es nur liest.</value>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>Der Server gibt an, dass es löschen oder überschreiben kann.</value>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>Geht nach außen</value>
   </data>
@@ -141,6 +156,9 @@
   </data>
   <data name="AllowForChat" xml:space="preserve">
     <value>Für diesen Chat zulassen</value>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>Weitere Möglichkeiten zum Zulassen</value>
   </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>Immer zulassen</value>
@@ -277,6 +295,42 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>Tools in diesem Chat</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>Die Einstellung des Agenten.</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Aus</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Antwortet sofort.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Niedrig</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Denkt kurz nach.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Mittel</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Denkt eine Weile nach.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>Hoch</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Denkt am längsten nach.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Nachdenken: {0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>Wie lange nachgedacht wird</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
   </data>
@@ -288,6 +342,9 @@
   </data>
   <data name="ShowEarlier" xml:space="preserve">
     <value>Frühere Nachrichten anzeigen</value>
+  </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>Zur neuesten Nachricht</value>
   </data>
   <data name="Retry" xml:space="preserve">
     <value>Erneut versuchen</value>
@@ -408,6 +465,30 @@
   </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Nicht geschrieben: Es konnte nicht als KI-generiert gekennzeichnet werden</value>
+  </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Quelltext</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagramm · Mermaid</value>
+  </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>Chatverlauf</value>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>Weitere Optionen</value>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>Dateien anhängen</value>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>Woran möchten Sie arbeiten?</value>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>Melden Sie sich an, um fortzufahren</value>
   </data>
   <data name="AllowFor" xml:space="preserve">
     <value>Zulassen für …</value>

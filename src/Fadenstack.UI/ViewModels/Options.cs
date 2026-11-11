@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Fadenstack.Agents;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
 
@@ -73,6 +74,14 @@ public sealed class AgentChatOptions
     public Action<OutgoingMessage>? AfterSend { get; set; }
 
     /// <summary>
+    /// A gate on running turns, for a host that runs several chats and limits how many work at the same time. It is awaited
+    /// when a turn is about to start (the user's message is shown, nothing is sent yet) and returns a lease that is disposed
+    /// once, when the turn ends. While it waits, <see cref="AgentChatViewModel.IsWaitingForSlot"/> is true and the turn says
+    /// so; Stop cancels the wait and nothing is sent. Null (the default) means no gate.
+    /// </summary>
+    public Func<CancellationToken, Task<IDisposable>>? TurnGate { get; set; }
+
+    /// <summary>
     /// Whether a small "Fadenstack" link to fadenstack.com shows on its own line under the AI notice (default true). False
     /// hides that line only: the notice and About, in the settings, stay.
     /// </summary>
@@ -141,6 +150,42 @@ public sealed class ToolModeOption : ObservableObject
     {
         get => _isAvailable;
         internal set => SetProperty(ref _isAvailable, value);
+    }
+
+    public override string ToString() => Label;
+
+    internal void Retext(UiStrings strings)
+    {
+        _strings = strings;
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(Description));
+    }
+}
+
+/// <summary>A level of thinking in the picker, with what it means.</summary>
+public sealed class ReasoningOption : ObservableObject
+{
+    private bool _isSelected;
+    private UiStrings _strings;
+
+    internal ReasoningOption(ReasoningLevel level, UiStrings strings)
+    {
+        Level = level;
+        _strings = strings;
+    }
+
+    public ReasoningLevel Level { get; }
+
+    /// <summary>"Low".</summary>
+    public string Label => _strings.ReasoningLabel(Level);
+
+    public string Description => _strings.ReasoningDescription(Level);
+
+    /// <summary>The level new messages think at: the menu marks it.</summary>
+    public bool IsSelected
+    {
+        get => _isSelected;
+        internal set => SetProperty(ref _isSelected, value);
     }
 
     public override string ToString() => Label;

@@ -32,6 +32,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private readonly HashSet<string> _eventsWithoutRequest = new();
     private AgentSession? _session;
     private CancellationTokenSource? _stop;
+    private bool _isWaitingForSlot;
     private TurnViewModel? _current;
     private List<List<TranscriptEntry>> _history = new();
     private int _loadedFrom;
@@ -50,6 +51,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private bool _isBusy;
     private bool _isHistoryOpen;
     private bool _isModeMenuOpen;
+    private bool _isReasoningMenuOpen;
+    private ReasoningOption? _selectedReasoning;
     private bool _signInRequired;
     private string? _error;
     private ToolModeOption _selectedMode;
@@ -82,6 +85,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             .Select(m => new ToolModeOption(m, Strings)));
         _bypassOption = new ToolModeOption(ToolMode.Bypass, Strings) { IsAvailable = false };
         _selectedMode = ToolModes[2];
+        ReasoningOptions = new ObservableCollection<ReasoningOption>();
         _approvals.Requested += OnApprovalRequested;
         Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session, async () => { await StartBypassAsync(); });
         Grants.BypassEnded += OnBypassEnded;
@@ -125,6 +129,14 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             }
             IsModeMenuOpen = false;
         }, option => option is { IsAvailable: true });
+        SelectReasoningCommand = new RelayCommand<ReasoningOption>(option =>
+        {
+            if (option is not null)
+            {
+                SelectedReasoning = option;
+            }
+            IsReasoningMenuOpen = false;
+        }, option => option is not null);
         ResetApprovalsCommand = new AsyncRelayCommand(ResetApprovalsAsync, () => _isReady);
         OpenAboutCommand = new RelayCommand(OpenAbout);
         CloseAboutCommand = new RelayCommand(() => IsAboutOpen = false);
@@ -241,8 +253,20 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public string Title
     {
         get => _title;
-        private set => SetProperty(ref _title, value);
+        private set
+        {
+            if (SetProperty(ref _title, value))
+            {
+                OnPropertyChanged(nameof(SessionTitle));
+            }
+        }
     }
+
+    /// <summary>
+    /// The open chat's name for a header: its title in the chat list ("New chat" until it has one), or the agent's name
+    /// while no chat is open yet.
+    /// </summary>
+    public string SessionTitle => _session is { } open && Sessions.FirstOrDefault(s => s.Id == open.Id) is { } item ? item.Title : _title;
 
     /// <summary>
     /// The agent's greeting for an empty chat (profile <c>ui.greeting</c>), in the panel's language when the definition
@@ -328,6 +352,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 Refresh();
             }
         }
+    }
+
+    /// <summary>The turn is held back by the host's <see cref="AgentChatOptions.TurnGate"/> until a slot is free.</summary>
+    public bool IsWaitingForSlot
+    {
+        get => _isWaitingForSlot;
+        private set => SetProperty(ref _isWaitingForSlot, value);
     }
 
     public bool IsHistoryOpen
@@ -466,6 +497,94 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    // -- how long the agent thinks ---------------------------------------------------------------------
+
+    /// <summary>The levels of thinking the agent offers (its profile's <c>ui.reasoning</c>); empty until it started.</summary>
+    public ObservableCollection<ReasoningOption> ReasoningOptions { get; }
+
+    /// <summary>The thinking menu is open (presentation state, so the skin needs no code).</summary>
+    public bool IsReasoningMenuOpen
+    {
+        get => _isReasoningMenuOpen;
+        set => SetProperty(ref _isReasoningMenuOpen, value);
+    }
+
+    /// <summary>
+    /// The level new messages think at: the person's pick, kept for them and this agent on this device, else Auto -- each
+    /// lowered to the server's maximum. Changing it applies from the next message; a running turn is not changed.
+    /// </summary>
+    public ReasoningOption? SelectedReasoning
+    {
+        get => _selectedReasoning;
+        set
+        {
+            if (value is null || !SetProperty(ref _selectedReasoning, value))
+            {
+                return;
+            }
+            MarkReasoning();
+            _agent.SetReasoning(value.Level);
+            if (_session is not null)
+            {
+                _session.Reasoning = value.Level;
+            }
+            OnPropertyChanged(nameof(ReasoningPillText));
+            OnPropertyChanged(nameof(ReasoningAutomationName));
+            OnPropertyChanged(nameof(ReasoningToolTip));
+            OnPropertyChanged(nameof(ReasoningHint));
+        }
+    }
+
+    /// <summary>The bare level beside the pill's icon: "Low". The full wording is <see cref="ReasoningAutomationName"/> and <see cref="ReasoningToolTip"/>.</summary>
+    public string ReasoningPillText => _selectedReasoning?.Label ?? "";
+
+    /// <summary>The pill's name for screen readers, in full: "Thinking: Off".</summary>
+    public string ReasoningAutomationName => _selectedReasoning is { } option ? Strings.ReasoningPill(option.Label) : Strings.ReasoningMenu;
+
+    /// <summary>The pill's tooltip: what it is, its state in full, and what the state means.</summary>
+    public string ReasoningToolTip => _selectedReasoning is { } option
+        ? Strings.ReasoningMenu + Environment.NewLine + Strings.ReasoningPill(option.Label) + ". " + option.Description
+        : Strings.ReasoningMenu;
+
+    /// <summary>What the pick means, in one line.</summary>
+    public string ReasoningHint => _selectedReasoning?.Description ?? "";
+
+    public IRelayCommand<ReasoningOption> SelectReasoningCommand { get; }
+
+    /// <summary>Builds the levels from the profile and selects the one new messages think at.</summary>
+    private void RefreshReasoning()
+    {
+        var choices = _agent.ReasoningChoices;
+        ReasoningOptions.Clear();
+        foreach (var level in choices.Levels)
+        {
+            ReasoningOptions.Add(new ReasoningOption(level, Strings));
+        }
+        FollowReasoning();
+    }
+
+    /// <summary>Selects the level new messages think at (for a new or opened chat: the person's pick), without changing the pick.</summary>
+    private void FollowReasoning()
+    {
+        var level = _session?.Reasoning ?? _agent.Reasoning;
+        // A level the agent starts at but does not list (the app set it) still shows as it is.
+        var option = ReasoningOptions.FirstOrDefault(o => o.Level == level)
+            ?? new ReasoningOption(level, Strings);
+        SetProperty(ref _selectedReasoning, option, nameof(SelectedReasoning));
+        MarkReasoning();
+        OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningAutomationName));
+        OnPropertyChanged(nameof(ReasoningToolTip));
+        OnPropertyChanged(nameof(ReasoningHint));
+    }
+
+    private void MarkReasoning()
+    {
+        foreach (var option in ReasoningOptions)
+        {
+            option.IsSelected = ReferenceEquals(option, _selectedReasoning);
+        }
+    }
     /// <summary>The grant cards, the marker while a stretch of work runs, and Settings → Approvals.</summary>
     public GrantsViewModel Grants { get; }
 
@@ -536,6 +655,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             RefreshBypassOption();
             SetProperty(ref _selectedMode, DefaultMode(), nameof(SelectedToolMode));
             OnPropertyChanged(nameof(ToolModeHint));
+            RefreshReasoning();
             await RefreshSessionsAsync();
             IsReady = true;
         }
@@ -567,6 +687,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         IsBusy = true;
         Error = null;
         TurnViewModel? turn = null;
+        IDisposable? lease = null;
         try
         {
             if (_options.BeforeSend is { } beforeSend)
@@ -607,11 +728,37 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             Turns.Add(started);
             OnPropertyChanged(nameof(IsEmpty));
             _current = started;
+            if (_options.TurnGate is { } gate)
+            {
+                IsWaitingForSlot = true;
+                started.SetWaitingForSlot(true);
+                try
+                {
+                    lease = await gate(stop.Token);
+                    stop.Token.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    started.Stop(_options.Clock());
+                    return;
+                }
+                catch (Exception e)
+                {
+                    started.Fail(e.Message, _options.Clock());
+                    return;
+                }
+                finally
+                {
+                    IsWaitingForSlot = false;
+                    started.SetWaitingForSlot(false);
+                }
+            }
             await Task.Run(() => RunTurnAsync(started, text, attached, skills, _selectedMode.Mode, stop.Token));
             await _batcher.WhenFlushedAsync();
         }
         finally
         {
+            lease?.Dispose();
             _current = null;
             _stop = null;
             stop.Dispose();
@@ -701,6 +848,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         SetProperty(ref _selectedMode, DefaultMode(), nameof(SelectedToolMode));
         RefreshBypassOption(); // a Bypass of the chat left is not this one's: its entry goes unless offered
         OnPropertyChanged(nameof(ToolModeHint));
+        FollowReasoning();
         Grants.Tick();
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(HasEarlierTurns));
@@ -756,6 +904,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             SetProperty(ref _selectedMode, mode, nameof(SelectedToolMode));
             RefreshBypassOption();
             OnPropertyChanged(nameof(ToolModeHint));
+            FollowReasoning();
             Grants.Tick();
             OnPropertyChanged(nameof(IsEmpty));
             OnPropertyChanged(nameof(HasEarlierTurns));
@@ -979,6 +1128,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     {
         IsSettingsOpen = false;
         IsModeMenuOpen = false;
+        IsReasoningMenuOpen = false;
         IsHistoryOpen = false;
         IsAboutOpen = true;
     }
@@ -1120,6 +1270,15 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             option.Retext(strings);
         }
+        foreach (var option in ReasoningOptions)
+        {
+            option.Retext(strings);
+        }
+        _selectedReasoning?.Retext(strings);
+        OnPropertyChanged(nameof(ReasoningPillText));
+        OnPropertyChanged(nameof(ReasoningAutomationName));
+        OnPropertyChanged(nameof(ReasoningToolTip));
+        OnPropertyChanged(nameof(ReasoningHint));
         if (!ToolModes.Contains(_bypassOption))
         {
             _bypassOption.Retext(strings);
@@ -1129,6 +1288,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             session.Retext(strings, now);
         }
+        OnPropertyChanged(nameof(SessionTitle));
         foreach (var turn in Turns)
         {
             turn.Retext(strings);
@@ -1378,6 +1538,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private void OnApprovalRequested(PendingApproval pending)
     {
+        // Another chat's request (several chats share one broker): not ours to show, keep, or answer.
+        if (pending.Request.SessionId.Length > 0 && pending.Request.SessionId != _session?.Id)
+        {
+            return;
+        }
         var turn = _current;
         lock (_approvalGate)
         {
@@ -1430,6 +1595,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             s.IsCurrent = s.Id == _session?.Id;
         }
+        OnPropertyChanged(nameof(SessionTitle));
     }
 
     private void Refresh()

@@ -38,6 +38,10 @@
     <value>Working...</value>
     <comment>The turn's line before anything arrives</comment>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>Waiting for a free slot</value>
+    <comment>The turn's line while the host's turn gate holds it back</comment>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>Stopped</value>
     <comment>A turn the user stopped</comment>
@@ -166,6 +170,22 @@
     <value>Server tool</value>
     <comment>A tool the server runs</comment>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>From {0}, an MCP server on this computer</value>
+    <comment>The source line of a card for a tool from a local MCP server; {0}: the server's label</comment>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>Your organisation has not checked this tool.</value>
+    <comment>Why a card asks about a local MCP server's tool nobody classified</comment>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>The server says it only reads.</value>
+    <comment>What the server's own annotations say about the tool</comment>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>The server says it may delete or overwrite.</value>
+    <comment>What the server's own annotations say about the tool</comment>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>Goes outside</value>
     <comment>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page)</comment>
@@ -185,6 +205,10 @@
   <data name="AllowForChat" xml:space="preserve">
     <value>Allow for this chat</value>
     <comment>A card's button</comment>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>More ways to allow</value>
+    <comment>A card's button, read out by screen readers</comment>
   </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>Allow always</value>
@@ -366,6 +390,46 @@
     <value>Tools in this chat</value>
     <comment>The heading of the tool-mode menu</comment>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+    <comment>A level of thinking (the pill beside the tool mode)</comment>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>The agent's own setting.</value>
+    <comment>What the level means</comment>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Answers at once.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Thinks briefly.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Thinks for a while.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Thinks longest.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Thinking: {0}</value>
+    <comment>The pill: {0} is the level, e.g. Low or Off</comment>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>How long it thinks</value>
+    <comment>The heading of the thinking menu and the pill's name for screen readers</comment>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
     <comment>The chats on this device: the button and the menu's heading</comment>
@@ -381,6 +445,10 @@
   <data name="ShowEarlier" xml:space="preserve">
     <value>Show earlier messages</value>
     <comment>Loads older turns</comment>
+  </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>Jump to newest</value>
+    <comment>A button over the conversation, shown while the user has scrolled away from its end</comment>
   </data>
   <data name="Retry" xml:space="preserve">
     <value>Try again</value>
@@ -541,6 +609,38 @@
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>Not written: it could not be marked as AI-generated</value>
     <comment>A notice's title: the agent's policy refuses to place content where it cannot be marked as AI-generated</comment>
+  </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Preview</value>
+    <comment>Switch of a Markdown block in an answer: shows it rendered</comment>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Source</value>
+    <comment>Switch of a Markdown block in an answer: shows its Markdown text</comment>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagram · Mermaid</value>
+    <comment>Header of a Mermaid diagram given as code</comment>
+  </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>Chat history</value>
+    <comment>Tooltip and screen-reader name of the header button that opens the list of chats</comment>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>More options</value>
+    <comment>Tooltip and screen-reader name of the header button that opens the panel settings (language, About)</comment>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>Attach files</value>
+    <comment>Tooltip and screen-reader name of the composer button that attaches files</comment>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>What shall we work on?</value>
+    <comment>Title of an empty chat, above the agent greeting</comment>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>Sign in to continue</value>
+    <comment>Title of the chat when the agent needs a sign-in first</comment>
   </data>
   <data name="AllowFor" xml:space="preserve">
     <value>Allow for…</value>

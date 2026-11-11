@@ -89,6 +89,31 @@ public class ChatViewModelTests
     }
 
     [Fact]
+    public async Task The_header_title_is_the_agent_before_a_chat_then_the_chat_and_again_the_agent_after_new_chat()
+    {
+        var gateway = new Gateway().Then(Stream("Seven."), Gateway.Finish("stop"), FakeServer.Done);
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var changes = new List<string>();
+        chat.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AgentChatViewModel.SessionTitle))
+            {
+                changes.Add(chat.SessionTitle);
+            }
+        };
+        Assert.Equal("Docs", chat.SessionTitle);
+
+        await chat.SendAsync("What is on page 7?");
+        Assert.Equal("What is on page 7?", chat.SessionTitle);
+        Assert.Contains("What is on page 7?", changes);
+
+        chat.NewChat();
+        Assert.Equal("Docs", chat.SessionTitle);
+        Assert.Equal("Docs", changes[^1]);
+    }
+
+    [Fact]
     public async Task A_tool_that_asks_shows_a_card_after_its_line_and_the_click_answers_it()
     {
         for (var run = 0; run < 5; run++) // the event and the broker race; the card must land in order every time
@@ -118,6 +143,55 @@ public class ChatViewModelTests
             Assert.Equal((ApprovalState.Approved, "Allowed"), (card.State, card.StateText));
             Assert.Equal(TurnState.Completed, turn.State);
         }
+    }
+
+    [Fact]
+    public async Task Two_chats_on_one_broker_each_get_only_their_own_approvals()
+    {
+        var broker = new ApprovalBroker();
+        AgentChatViewModel Make(Gateway gateway)
+        {
+            var agent = gateway.Builder().AddTools(new PageTools()).UseApprovals(broker).Build();
+            return new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
+        }
+        // Both call the same tool with the same call id: only the session tells the requests apart.
+        var chatA = Make(new Gateway().Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("A done."));
+        var chatB = Make(new Gateway().Calls(("call-1", "add_comment", """{"page":2,"text":"b"}""")).Says("B done."));
+        await chatA.InitializeAsync();
+        await chatB.InitializeAsync();
+
+        var sendingA = chatA.SendAsync("Comment page 1.");
+        var turnA = await TurnOf(chatA);
+        var cardA = await WaitFor<ApprovalPart>(turnA);
+        Assert.Empty(chatB.Turns); // B shows nothing and keeps nothing for A's request
+
+        // B now asks for the same call id and tool: it must get its own request, not A's stored one.
+        var sendingB = chatB.SendAsync("Comment page 2.");
+        var turnB = await TurnOf(chatB);
+        var cardB = await WaitFor<ApprovalPart>(turnB);
+        Assert.Contains("page: 2", cardB.ArgumentsText);
+        Assert.Contains("page: 1", cardA.ArgumentsText);
+        Assert.Single(turnA.Parts.OfType<ApprovalPart>());
+        Assert.Single(turnB.Parts.OfType<ApprovalPart>());
+
+        cardB.AllowCommand.Execute(null);
+        await sendingB;
+        Assert.Equal(ApprovalState.Approved, cardB.State);
+        Assert.Equal(ApprovalState.Pending, cardA.State); // A is still waiting for its own click
+        cardA.AllowCommand.Execute(null);
+        await sendingA;
+        Assert.Equal((TurnState.Completed, TurnState.Completed), (turnA.State, turnB.State));
+    }
+
+    [Fact]
+    public async Task A_request_of_another_session_is_left_alone_and_not_answered()
+    {
+        var (chat, broker, _) = Chat(new Gateway().Says("Hi."));
+        await chat.InitializeAsync();
+        var foreign = broker.RequestAsync(new ApprovalRequest { SessionId = "someone-else", CallId = "call-9", ToolName = "add_comment" }, CancellationToken.None);
+        await Task.Delay(50);
+        Assert.False(foreign.IsCompleted); // not denied by this chat
+        Assert.Empty(chat.Turns);
     }
 
     [Fact]

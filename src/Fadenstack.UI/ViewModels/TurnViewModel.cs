@@ -38,6 +38,7 @@ public sealed class TurnViewModel : ObservableObject
     private string? _error;
     private long? _tokens;
     private TimeSpan? _elapsed;
+    private bool _waitingForSlot;
 
     /// <summary>A model call of the turn ended with nothing (<c>empty_answer</c>): Try again is offered, as for a failed turn.</summary>
     private bool _unanswered;
@@ -106,6 +107,7 @@ public sealed class TurnViewModel : ObservableObject
     /// </summary>
     public string StatusText => _state switch
     {
+        TurnState.Running when _waitingForSlot => _strings.WaitingForSlot,
         TurnState.Running => _text is null && _tools.Count == 0 ? _strings.Working : "",
         TurnState.Stopped => _strings.Stopped,
         TurnState.Failed => _strings.Failed,
@@ -132,6 +134,30 @@ public sealed class TurnViewModel : ObservableObject
 
     public IAsyncRelayCommand RetryCommand { get; }
 
+    /// <summary>
+    /// A skin calls this for a turn far from the viewport: the answer's parsed blocks go, its text stays. A running turn
+    /// keeps them. <see cref="Load"/> brings them back, before the turn is drawn again.
+    /// </summary>
+    public void Unload()
+    {
+        if (IsRunning)
+        {
+            return;
+        }
+        foreach (var part in Parts.OfType<MarkdownPart>())
+        {
+            part.Unload();
+        }
+    }
+
+    public void Load()
+    {
+        foreach (var part in Parts.OfType<MarkdownPart>())
+        {
+            part.Load();
+        }
+    }
+
     /// <summary>Adds a part (renderers and modules use this for their primitives).</summary>
     public void AddPart(ResponsePart part)
     {
@@ -146,6 +172,7 @@ public sealed class TurnViewModel : ObservableObject
     {
         if (_text is null)
         {
+            CloseReasoning(DateTimeOffset.UtcNow);
             _text = new MarkdownPart(isStreaming: true, clipboard: _chat?.Clipboard);
             Parts.Add(_text);
             OnPropertyChanged(nameof(StatusText));
@@ -261,6 +288,16 @@ public sealed class TurnViewModel : ObservableObject
         Finish(result.Outcome == ChatOutcome.PromptBlocked ? TurnState.Blocked : TurnState.Completed, now);
     }
 
+    /// <summary>The host's turn gate holds this turn back: its line says so.</summary>
+    internal void SetWaitingForSlot(bool waiting)
+    {
+        if (_waitingForSlot != waiting)
+        {
+            _waitingForSlot = waiting;
+            OnPropertyChanged(nameof(StatusText));
+        }
+    }
+
     internal void Stop(DateTimeOffset now) => Finish(TurnState.Stopped, now);
 
     internal void Fail(string message, DateTimeOffset now)
@@ -302,8 +339,8 @@ public sealed class TurnViewModel : ObservableObject
 
     private void Finish(TurnState state, DateTimeOffset now)
     {
+        CloseReasoning(now);
         CloseText();
-        _reasoning?.Complete(now);
         foreach (var approval in Parts.OfType<ApprovalPart>().Where(p => p.IsPending))
         {
             approval.State = ApprovalState.Expired;
@@ -326,10 +363,20 @@ public sealed class TurnViewModel : ObservableObject
             _text.IsStreaming = false;
             _text = null;
         }
+        CloseReasoning(DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>
+    /// Thinking ends where an answer, a tool call or a part starts; thinking after it is a block of its own, below it, so
+    /// "Thought for" never counts a tool's run, an approval's wait or the answer's streaming.
+    /// </summary>
+    private void CloseReasoning(DateTimeOffset now)
+    {
         if (_reasoning is { IsStreaming: true } r)
         {
-            r.Complete(DateTimeOffset.UtcNow);
+            r.Complete(now);
         }
+        _reasoning = null;
     }
 
     private void Copy() => _chat?.Clipboard.SetText(AnswerText);

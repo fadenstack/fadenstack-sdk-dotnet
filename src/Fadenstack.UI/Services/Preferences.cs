@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Fadenstack.Storage;
 
 namespace Fadenstack.UI.Services;
 
@@ -46,7 +47,8 @@ public sealed class MemoryPreferenceStore : IPreferenceStore
 }
 
 /// <summary>
-/// The user's choices in a JSON file: by default <c>%APPDATA%\Fadenstack\preferences.json</c>, shared by every
+/// The user's choices in a JSON file: by default <c>preferences.json</c> in <see cref="FadenstackPaths.SettingsRoot"/>
+/// (<c>%APPDATA%\Fadenstack</c> on Windows), shared by every
 /// Fadenstack panel of the user on this computer, so a language picked in Word is Excel's too. A file that cannot be
 /// read or written keeps nothing; the panel works on.
 /// </summary>
@@ -56,9 +58,8 @@ public sealed class FilePreferenceStore : IPreferenceStore
 
     public FilePreferenceStore(string? path = null) => Path = path ?? DefaultPath;
 
-    /// <summary><c>%APPDATA%\Fadenstack\preferences.json</c>.</summary>
-    public static string DefaultPath =>
-        System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Fadenstack", "preferences.json");
+    /// <summary><c>preferences.json</c> in <see cref="FadenstackPaths.SettingsRoot"/>.</summary>
+    public static string DefaultPath => System.IO.Path.Combine(FadenstackPaths.SettingsRoot, "preferences.json");
 
     public string Path { get; }
 

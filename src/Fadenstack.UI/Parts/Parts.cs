@@ -57,6 +57,19 @@ public sealed class MarkdownPart : ResponsePart
 
     public string Text => Document.Text;
 
+    public bool IsLoaded => Document.IsLoaded;
+
+    /// <summary>Lets go of the parsed blocks (never of a streaming answer); <see cref="Load"/> brings them back.</summary>
+    public void Unload()
+    {
+        if (!_isStreaming)
+        {
+            Document.Unload();
+        }
+    }
+
+    public void Load() => Document.Load();
+
     internal void Append(string text) => Document.Append(text);
 }
 
@@ -316,9 +329,9 @@ public enum ApprovalState
 public sealed record DurationOption(TimeSpan Value, string Label);
 
 /// <summary>
-/// "Run delete_page?" with Allow, Allow for this chat, Allow always, and Deny -- answered in place, like Copilot.
-/// "Allow for this chat" and "Allow always" are offered only where the request allows them: never for a destructive
-/// or unclassified tool, nor for a call an admin's rule covers.
+/// "Run delete_page?" with Allow, Allow for this chat, Allow always, Allow for… (a time), and Deny -- answered in place,
+/// like Copilot. "Allow for this chat", "Allow always" and "Allow for…" are offered only where the request allows them:
+/// never for a destructive or unclassified tool, nor for a call an admin's rule covers.
 /// </summary>
 public sealed class ApprovalPart : ResponsePart
 {
@@ -358,14 +371,6 @@ public sealed class ApprovalPart : ResponsePart
     }
 
     private TimeSpan? _allowedFor;
-    private bool _timeMenuOpen;
-
-    /// <summary>Whether the "Allow for…" times are open; any answer closes them.</summary>
-    public bool IsTimeMenuOpen
-    {
-        get => _timeMenuOpen;
-        set => SetProperty(ref _timeMenuOpen, value && IsPending);
-    }
 
     /// <summary>A card rebuilt from the transcript, answered for a time.</summary>
     internal ApprovalPart(ApprovalRequest request, ApprovalState state, TimeSpan? allowedFor, int previewLength, UiStrings strings)
@@ -394,6 +399,9 @@ public sealed class ApprovalPart : ResponsePart
     /// <summary>Whether the card offers "Allow for this chat".</summary>
     public bool CanAllowForSession => Request.CanAllowForSession;
 
+    /// <summary>Whether the card offers any choice beyond "Allow" (the drop-down of the split button, with "Allow for…" in it).</summary>
+    public bool HasAllowChoices => CanAllowForSession || CanAllowAlways || CanAllowForTime;
+
     /// <summary>Whether the card offers "Allow always".</summary>
     public bool CanAllowAlways => Request.CanAllowAlways;
 
@@ -402,6 +410,16 @@ public sealed class ApprovalPart : ResponsePart
     public string ToolName => Request.ToolName;
 
     public string Title => _strings.ApprovalTitle(Request.ToolName);
+
+    /// <summary>The title as runs, the tool's name in code style (a skin sets it in its mono font), so it stands on its own row.</summary>
+    public IReadOnlyList<InlineRun> TitleInlines => MarkdownParser.Inlines(_strings.ApprovalTitle("`" + Request.ToolName + "`"));
+
+    /// <summary>For a tool from a local MCP server: "From Files, an MCP server on this computer"; else "".</summary>
+    public string SourceLine => IsMcpTool ? _strings.ApprovalFromMcp(Request.Server!) : "";
+
+    public bool HasSourceLine => IsMcpTool;
+
+    private bool IsMcpTool => Request.Source == "mcp" && Request.Server is { Length: > 0 };
 
     public ToolClass Class => Request.ToolClass;
 
@@ -423,7 +441,13 @@ public sealed class ApprovalPart : ResponsePart
     public string Reason => Request.Source == "gateway" || Request.RequiredByRule ? Request.Reason
         : Request.LeadsOutside is { } real ? _strings.ApprovalLeadsOutside(real)
         : GoesOutside ? _strings.ApprovalOutsideWhy
+        : IsMcpTool && Request.ToolClass == ToolClass.Unknown ? McpReason()
         : _strings.ApprovalWhy(Request.ToolClass);
+
+    /// <summary>An MCP tool nobody classified: that the organisation has not checked it, then what the server itself says.</summary>
+    private string McpReason() => Request.DestructiveHint == true ? _strings.ApprovalUnchecked + " " + _strings.ApprovalServerDestructive
+        : Request.ReadOnlyHint == true ? _strings.ApprovalUnchecked + " " + _strings.ApprovalServerReadOnly
+        : _strings.ApprovalUnchecked;
 
     private bool GoesOutside => Request.OpenWorld && Request.ToolClass != ToolClass.Destructive;
 
@@ -480,7 +504,6 @@ public sealed class ApprovalPart : ResponsePart
 
     private void Decide(ApprovalDecision decision, ApprovalState state)
     {
-        IsTimeMenuOpen = false;
         if (_pending is null || !_pending.Resolve(decision))
         {
             return;

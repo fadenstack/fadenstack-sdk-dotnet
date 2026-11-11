@@ -88,7 +88,7 @@ public class UiStringsTests
     }
 
     private static object Sample(Type type) =>
-        type == typeof(string) ? "read_page" : type == typeof(int) ? 2 : type == typeof(long) ? 1234L : type == typeof(double) ? 3.0
+        type == typeof(string) ? "read_page" : type == typeof(bool) ? true : type == typeof(int) ? 2 : type == typeof(long) ? 1234L : type == typeof(double) ? 3.0
         : type == typeof(TimeSpan) ? TimeSpan.FromSeconds(1.5) : throw new InvalidOperationException(type.Name);
 
     [Theory]

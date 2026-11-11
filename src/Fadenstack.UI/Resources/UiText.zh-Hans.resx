@@ -31,6 +31,9 @@
   <data name="Working" xml:space="preserve">
     <value>处理中…</value>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>等待空闲名额</value>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>已停止</value>
   </data>
@@ -127,6 +130,18 @@
   <data name="ServerTool" xml:space="preserve">
     <value>服务器工具</value>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>来自 {0}，此计算机上的 MCP 服务器</value>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>贵组织尚未审查此工具。</value>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>服务器表示它只读取。</value>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>服务器表示它可能删除或覆盖。</value>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>发送到外部</value>
   </data>
@@ -141,6 +156,9 @@
   </data>
   <data name="AllowForChat" xml:space="preserve">
     <value>在此聊天中允许</value>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>更多允许方式</value>
   </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>始终允许</value>
@@ -277,6 +295,42 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>此聊天中的工具</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>使用智能体自身的设置。</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>立即作答。</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>低</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>简短思考。</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>中</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>思考一段时间。</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>高</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>思考最久。</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>思考：{0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>思考时长</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>聊天</value>
   </data>
@@ -288,6 +342,9 @@
   </data>
   <data name="ShowEarlier" xml:space="preserve">
     <value>显示更早的消息</value>
+  </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>跳到最新消息</value>
   </data>
   <data name="Retry" xml:space="preserve">
     <value>重试</value>
@@ -408,6 +465,30 @@
   </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>未写入：无法将其标记为人工智能生成的内容</value>
+  </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>源码</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>图表 · Mermaid</value>
+  </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>聊天记录</value>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>更多选项</value>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>附加文件</value>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>您想处理什么工作？</value>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>请登录以继续</value>
   </data>
   <data name="AllowFor" xml:space="preserve">
     <value>允许一段时间…</value>

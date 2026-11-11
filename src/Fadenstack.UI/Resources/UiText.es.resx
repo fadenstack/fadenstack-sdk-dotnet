@@ -31,6 +31,9 @@
   <data name="Working" xml:space="preserve">
     <value>Trabajando…</value>
   </data>
+  <data name="WaitingForSlot" xml:space="preserve">
+    <value>Esperando un hueco libre</value>
+  </data>
   <data name="Stopped" xml:space="preserve">
     <value>Detenida</value>
   </data>
@@ -127,6 +130,18 @@
   <data name="ServerTool" xml:space="preserve">
     <value>Herramienta del servidor</value>
   </data>
+  <data name="ApprovalFromMcp" xml:space="preserve">
+    <value>De {0}, un servidor MCP de este equipo</value>
+  </data>
+  <data name="ApprovalUnchecked" xml:space="preserve">
+    <value>Su organización no ha revisado esta herramienta.</value>
+  </data>
+  <data name="ApprovalServerReadOnly" xml:space="preserve">
+    <value>El servidor indica que solo lee.</value>
+  </data>
+  <data name="ApprovalServerDestructive" xml:space="preserve">
+    <value>El servidor indica que puede eliminar o sobrescribir.</value>
+  </data>
   <data name="ApprovalOutside" xml:space="preserve">
     <value>Sale de la organización</value>
   </data>
@@ -141,6 +156,9 @@
   </data>
   <data name="AllowForChat" xml:space="preserve">
     <value>Permitir en este chat</value>
+  </data>
+  <data name="AllowMore" xml:space="preserve">
+    <value>Más formas de permitir</value>
   </data>
   <data name="AllowAlways" xml:space="preserve">
     <value>Permitir siempre</value>
@@ -277,6 +295,42 @@
   <data name="ToolModeMenu" xml:space="preserve">
     <value>Herramientas en este chat</value>
   </data>
+  <data name="Reasoning_Auto_Label" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Reasoning_Auto_Description" xml:space="preserve">
+    <value>El ajuste propio del agente.</value>
+  </data>
+  <data name="Reasoning_Off_Label" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="Reasoning_Off_Description" xml:space="preserve">
+    <value>Responde de inmediato.</value>
+  </data>
+  <data name="Reasoning_Low_Label" xml:space="preserve">
+    <value>Bajo</value>
+  </data>
+  <data name="Reasoning_Low_Description" xml:space="preserve">
+    <value>Piensa brevemente.</value>
+  </data>
+  <data name="Reasoning_Medium_Label" xml:space="preserve">
+    <value>Medio</value>
+  </data>
+  <data name="Reasoning_Medium_Description" xml:space="preserve">
+    <value>Piensa durante un rato.</value>
+  </data>
+  <data name="Reasoning_High_Label" xml:space="preserve">
+    <value>Alto</value>
+  </data>
+  <data name="Reasoning_High_Description" xml:space="preserve">
+    <value>Piensa durante más tiempo.</value>
+  </data>
+  <data name="ReasoningPill" xml:space="preserve">
+    <value>Razonamiento: {0}</value>
+  </data>
+  <data name="ReasoningMenu" xml:space="preserve">
+    <value>Cuánto tiempo piensa</value>
+  </data>
   <data name="History" xml:space="preserve">
     <value>Chats</value>
   </data>
@@ -288,6 +342,9 @@
   </data>
   <data name="ShowEarlier" xml:space="preserve">
     <value>Mostrar mensajes anteriores</value>
+  </data>
+  <data name="JumpToNewest" xml:space="preserve">
+    <value>Ir al mensaje más reciente</value>
   </data>
   <data name="Retry" xml:space="preserve">
     <value>Reintentar</value>
@@ -408,6 +465,30 @@
   </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>No se escribió: no se pudo marcar como generado por IA</value>
+  </data>
+  <data name="MarkdownPreview" xml:space="preserve">
+    <value>Vista previa</value>
+  </data>
+  <data name="MarkdownSource" xml:space="preserve">
+    <value>Código fuente</value>
+  </data>
+  <data name="DiagramMermaid" xml:space="preserve">
+    <value>Diagrama · Mermaid</value>
+  </data>
+  <data name="ChatHistory" xml:space="preserve">
+    <value>Historial de chats</value>
+  </data>
+  <data name="MoreOptions" xml:space="preserve">
+    <value>Más opciones</value>
+  </data>
+  <data name="Attach" xml:space="preserve">
+    <value>Adjuntar archivos</value>
+  </data>
+  <data name="EmptyTitle" xml:space="preserve">
+    <value>¿En qué desea trabajar?</value>
+  </data>
+  <data name="SignInTitle" xml:space="preserve">
+    <value>Inicie sesión para continuar</value>
   </data>
   <data name="AllowFor" xml:space="preserve">
     <value>Permitir durante…</value>

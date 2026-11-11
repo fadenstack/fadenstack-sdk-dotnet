@@ -6,6 +6,7 @@ using Fadenstack.Agents.Tests;
 using Fadenstack.Auth;
 using Fadenstack.Governance;
 using Fadenstack.Samples.Wpf;
+using Fadenstack.Tools;
 using Fadenstack.UI.Parts;
 using Fadenstack.UI.Services;
 using Fadenstack.UI.ViewModels;
@@ -56,6 +57,36 @@ public class LongSessionTests : IDisposable
         Assert.True(chat.HasEarlierTurns);
         Assert.True(watch.ElapsedMilliseconds < 3000, $"opening 2000 turns took {watch.ElapsedMilliseconds} ms");
         Console.WriteLine($"open 2000 turns (12 000 entries): {watch.ElapsedMilliseconds} ms");
+    }
+
+    [Fact]
+    public async Task A_reopened_chats_approval_cards_say_what_the_tool_does()
+    {
+        var store = new FileSessionStore(_directory, new XorProtector());
+        const string id = "s-cards";
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.SessionStart, null, new { agent = Gateway.Slug, tool_mode = "ask" }));
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.UserMessage, "t1", new { text = "Add a line" }));
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.TurnStart, "t1", new { tool_mode = "ask" }));
+        // Written today: the entry names the class and the MCP server.
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.ApprovalDecision, "t1",
+            new { call_id = "c1", name = "plan_meeting", source = "mcp", tool_class = "write", server = "demo", approved = true, scope = "once", asked = true }));
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.ToolStart, "t1", new { call_id = "c1", name = "plan_meeting", source = "mcp", tool_class = "write" }));
+        // Written before entries kept the class: it comes from the call's start.
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.ApprovalDecision, "t1",
+            new { call_id = "c2", name = "insert_text", source = "host", approved = true, scope = "once", asked = true }));
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.ToolStart, "t1", new { call_id = "c2", name = "insert_text", source = "host", tool_class = "write" }));
+        await store.AppendAsync(Gateway.Slug, id, Entry(EntryTypes.TurnEnd, "t1", new { status = "ok", outcome = "Completed" }, TurnStatus.Ok));
+        var broker = new ApprovalBroker();
+        using var agent = new Gateway().Builder(store).UseApprovals(broker).Build();
+        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
+        await chat.InitializeAsync();
+
+        await chat.OpenSessionAsync(id);
+
+        var cards = chat.Turns.Single().Parts.OfType<ApprovalPart>().ToList();
+        Assert.Equal(new[] { ToolClass.Write, ToolClass.Write }, cards.Select(c => c.Class));
+        Assert.Equal(chat.Strings.ApprovalClassLabel(ToolClass.Write), cards[1].ClassLabel);
+        Assert.Equal(chat.Strings.ApprovalFromMcp("demo"), cards[0].SourceLine);
     }
 
     [Fact]

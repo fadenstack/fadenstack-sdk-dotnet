@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Resources;
 using System.Runtime.CompilerServices;
+using Fadenstack.Agents;
 using Fadenstack.Tools;
 
 namespace Fadenstack.UI;
@@ -86,6 +87,9 @@ public sealed class UiStrings
 
     public string Working => Text();
 
+    /// <summary>The turn's line while the host's turn gate holds it back.</summary>
+    public string WaitingForSlot => Text();
+
     public string Stopped => Text();
 
     public string Failed => Text();
@@ -137,6 +141,17 @@ public sealed class UiStrings
 
     public string ServerTool => Text();
 
+    /// <summary>The source line of a card for a local MCP server's tool: "From {0}, an MCP server on this computer".</summary>
+    public string ApprovalFromMcp(string label) => Fill(label);
+
+    /// <summary>Why a card asks about a local MCP server's tool nobody classified.</summary>
+    public string ApprovalUnchecked => Text();
+
+    /// <summary>What the server's own annotations say, after <see cref="ApprovalUnchecked"/>.</summary>
+    public string ApprovalServerReadOnly => Text();
+
+    public string ApprovalServerDestructive => Text();
+
     /// <summary>The badge of a card for a tool that reaches outside the organisation (a web search, opening a page).</summary>
     public string ApprovalOutside => Text();
 
@@ -149,6 +164,8 @@ public sealed class UiStrings
     public string Allow => Text();
 
     public string AllowForChat => Text();
+
+    public string AllowMore => Text();
 
     public string AllowAlways => Text();
 
@@ -404,9 +421,36 @@ public sealed class UiStrings
 
     public string ToolModeMenu => Text();
 
+    /// <summary>A level of thinking.</summary>
+    public string ReasoningLabel(ReasoningLevel level) => this[$"Reasoning_{level}_Label"];
+
+    /// <summary>What the level means, in one line.</summary>
+    public string ReasoningDescription(ReasoningLevel level) => this[$"Reasoning_{level}_Description"];
+
+    /// <summary>The pill: "Thinking: Low".</summary>
+    public string ReasoningPill(string level) => Fill(level);
+
+    /// <summary>The heading of the thinking menu, and the pill's name for screen readers.</summary>
+    public string ReasoningMenu => Text();
+
     // -- the skin's controls --------------------------------------------------------------------------
 
     public string History => Text();
+
+    /// <summary>The header button that opens the list of chats.</summary>
+    public string ChatHistory => Text();
+
+    /// <summary>The header button that opens the panel's settings (language, About).</summary>
+    public string MoreOptions => Text();
+
+    /// <summary>The composer button that attaches files (where the host offers it).</summary>
+    public string Attach => Text();
+
+    /// <summary>The title of an empty chat, over the agent's greeting.</summary>
+    public string EmptyTitle => Text();
+
+    /// <summary>The title of the chat while the agent needs a sign-in first.</summary>
+    public string SignInTitle => Text();
 
     public string NoHistory => Text();
 
@@ -414,11 +458,19 @@ public sealed class UiStrings
 
     public string ShowEarlier => Text();
 
+    public string JumpToNewest => Text();
+
     public string Retry => Text();
 
     public string Copy => Text();
 
     public string CopyCode => Text();
+
+    public string MarkdownPreview => Text();
+
+    public string MarkdownSource => Text();
+
+    public string DiagramMermaid => Text();
 
     public string NotSent => Text();
 
