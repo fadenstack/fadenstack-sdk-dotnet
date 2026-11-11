@@ -1,0 +1,1013 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Fadenstack.UI.ViewModels;assembly=Fadenstack.UI"
+             xmlns:parts="clr-namespace:Fadenstack.UI.Parts;assembly=Fadenstack.UI"
+             xmlns:m="clr-namespace:Fadenstack.Models;assembly=Fadenstack.Client"
+             xmlns:tools="clr-namespace:Fadenstack.Tools;assembly=Fadenstack.Client"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="720"
+             x:Class="Fadenstack.UI.Avalonia.Views.ChatView"
+             x:DataType="vm:AgentChatViewModel"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
+    <!--
+        The chat panel (design 22, section 6.6): a header (the chat's title, history, new chat, more), the conversation
+        (virtualized turns: the user's bubble, the agent's bubble with its parts), a banner in the flow for a connection
+        problem, the composer (chips, a growing field, attach, the tool-mode pill, send / stop) and the AI notice. It binds to
+        an AgentChatViewModel and has no logic of its own. Every control takes its look from the skin's control styles
+        (Themes/Controls.axaml, by class) and the chat's (Chat.axaml, Parts.axaml); there is no colour, size or radius here.
+    -->
+    <!-- The theme keys, fonts, icons and control styles sit on the application (FadenstackControls.EnsureLoaded), so a
+         host's FadenstackTheme.Apply reaches the chat and its menus. -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Chat.axaml" />
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Parts.axaml" />
+    </UserControl.Styles>
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding StopCommand}" />
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewChatCommand}" />
+    </UserControl.KeyBindings>
+
+    <UserControl.DataTemplates>
+        <!-- ===== Answer parts ============================================================================== -->
+
+        <DataTemplate DataType="parts:MarkdownPart">
+            <v:MarkdownView Blocks="{Binding Blocks}" CopyCommand="{Binding CopyCodeCommand}" />
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:ReasoningPart">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding Title}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Panel Classes="mark">
+                            <Arc Classes="spinner" Classes.running="{Binding IsStreaming}" IsVisible="{Binding IsStreaming}" />
+                            <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding !IsStreaming}" />
+                        </Panel>
+                        <TextBlock Classes="caption muted" Text="{Binding Title}" VerticalAlignment="Center" />
+                        <c:FsIcon Classes="chevron" Classes.open="{Binding IsExpanded}" />
+                    </StackPanel>
+                </Button>
+                <Border Classes="reasoning" IsVisible="{Binding IsExpanded}">
+                    <SelectableTextBlock Classes="caption muted" Text="{Binding Text}" TextWrapping="Wrap" FontStyle="Italic" />
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- A tool line: status, the tool's name, its class, how long it took, a chevron when it has details. -->
+        <DataTemplate DataType="parts:ToolCallPart">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left"
+                        ToolTip.Tip="{Binding SourceLabel}" AutomationProperties.Name="{Binding Title}">
+                    <DockPanel>
+                        <Panel DockPanel.Dock="Left" Classes="mark" Margin="0,0,8,0">
+                            <Arc Classes="spinner" Classes.running="{Binding IsRunning}" IsVisible="{Binding IsRunning}" />
+                            <c:FsIcon Classes="mark" IsVisible="{Binding !IsRunning}"
+                                      Classes.failed="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Failed}}"
+                                      Classes.denied="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Denied}}"
+                                      Classes.cancelled="{Binding State, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:ToolCallState.Cancelled}}" />
+                        </Panel>
+                        <c:FsIcon DockPanel.Dock="Right" Classes="chevron" Classes.open="{Binding IsExpanded}" Margin="8,0,0,0" IsVisible="{Binding HasDetails}" />
+                        <TextBlock DockPanel.Dock="Right" Classes="caption muted" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DurationText}"
+                                   IsVisible="{Binding DurationText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Border DockPanel.Dock="Right" Classes="badge" Margin="8,0,0,0"
+                                Classes.write="{Binding Class, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static tools:ToolClass.Write}}"
+                                Classes.danger="{Binding Class, Converter={x:Static v:ToolClasses.IsRisky}}">
+                            <TextBlock Text="{Binding ClassLabel}" />
+                        </Border>
+                        <TextBlock Classes="mono caption" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </DockPanel>
+                </Button>
+                <!-- What the tool showed the agent (a rendered slide): small, under its line, decoded at that size. -->
+                <Border Classes="picture" IsVisible="{Binding HasPicture}">
+                    <Image b:PictureSource.Data="{Binding Picture}" b:PictureSource.Width="240" Stretch="Uniform" />
+                </Border>
+                <Border Classes="details" IsVisible="{Binding IsExpanded}">
+                    <StackPanel Spacing="8">
+                        <StackPanel Spacing="2" IsVisible="{Binding ArgumentsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="caption muted" Text="{v:Text Arguments}" />
+                            <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
+                        </StackPanel>
+                        <StackPanel Spacing="2" IsVisible="{Binding ResultText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Classes="caption muted" Text="{v:Text Result}" />
+                            <ScrollViewer Classes="result" VerticalScrollBarVisibility="Auto">
+                                <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ResultText}" />
+                            </ScrollViewer>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- The approval card: answered in place. Deny, then Allow (with its choices when the request offers them). -->
+        <DataTemplate DataType="parts:ApprovalPart">
+            <Border Classes="card approval" Classes.destructive="{Binding IsDestructive}" Classes.answered="{Binding !IsPending}">
+                <StackPanel Spacing="8">
+                    <!-- The title alone on its row, as wide as the card: beside the badge a narrow panel left it a word's width and
+                         broke the name mid-word. The class is on the line below. -->
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <TextBlock Classes="subtitle" b:MarkdownText.Inlines="{Binding TitleInlines}" AutomationProperties.Name="{Binding Title}"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <WrapPanel Classes="source">
+                        <Border Classes="badge"
+                                Classes.write="{Binding Class, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static tools:ToolClass.Write}}"
+                                Classes.danger="{Binding IsDestructive}">
+                            <TextBlock Text="{Binding ClassLabel}" />
+                        </Border>
+                    </WrapPanel>
+                    <!-- A tool from a local MCP server says where it comes from, on its own row so it wraps: in a horizontal
+                         panel the text never wrapped and a 300 px chat panel cut it ("…on thi", live run 2026-11-01). -->
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" IsVisible="{Binding HasSourceLine}">
+                        <c:FsIcon Classes="source" VerticalAlignment="Top" />
+                        <TextBlock Grid.Column="1" Classes="caption muted" Text="{Binding SourceLine}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
+                               IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <!-- What the call acts on, as the tool says it: button "Send" on mail.example.com -->
+                    <TextBlock Classes="strong" Text="{Binding Target}" TextWrapping="Wrap"
+                               IsVisible="{Binding Target, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <Border Classes="arguments" IsVisible="{Binding ArgumentsText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <ScrollViewer Classes="arguments" VerticalScrollBarVisibility="Auto">
+                            <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
+                        </ScrollViewer>
+                    </Border>
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
+                        <!-- One split button: the main part allows once; the drop-down lists only the choices the request offers. -->
+                        <SplitButton Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}"
+                                     AutomationProperties.Name="{v:Text Allow}" IsVisible="{Binding HasAllowChoices}">
+                            <SplitButton.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedLeft" HorizontalOffset="-12" VerticalOffset="-2">
+                                    <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
+                                    <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
+                                    <!-- "Allow for…": the times the agent allows, a grant the server holds; each answers with its DurationOption. -->
+                                    <MenuItem Classes="durations" Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}" IsVisible="{Binding CanAllowForTime}">
+                                        <MenuItem.Styles>
+                                            <Style Selector="MenuItem.durations > MenuItem" x:DataType="parts:DurationOption">
+                                                <Setter Property="Header" Value="{Binding Label}" />
+                                                <Setter Property="Command" Value="{Binding $parent[MenuItem].((parts:ApprovalPart)DataContext).AllowForTimeCommand}" />
+                                                <Setter Property="CommandParameter" Value="{Binding}" />
+                                            </Style>
+                                        </MenuItem.Styles>
+                                    </MenuItem>
+                                </MenuFlyout>
+                            </SplitButton.Flyout>
+                        </SplitButton>
+                        <Button Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}" IsVisible="{Binding !HasAllowChoices}" />
+                    </WrapPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- The grant card, above the composer: may the agent work alongside the person for a while, in these places, without
+             asking each time. The places can be taken out, the time picked; Not now, then Allow. -->
+        <DataTemplate DataType="parts:GrantPart">
+            <Border Classes="card grant" Classes.answered="{Binding !IsPending}">
+                <StackPanel Spacing="8">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <TextBlock Classes="muted" Text="{Binding Reason}" TextWrapping="Wrap"
+                               IsVisible="{Binding Reason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Spacing="4" IsVisible="{Binding HasPlaces}">
+                        <TextBlock Classes="strong" Text="{Binding PlacesHeading}" TextWrapping="Wrap" />
+                        <ItemsControl Classes="places" ItemsSource="{Binding Places}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="parts:GrantPlaceItem">
+                                    <DockPanel>
+                                        <Panel DockPanel.Dock="Right" Margin="12,0,0,0">
+                                            <Button Classes="quiet small" Content="{v:Text GrantRemovePlace}" Command="{Binding ToggleCommand}"
+                                                    AutomationProperties.HelpText="{Binding Label}" IsVisible="{Binding Kept}" />
+                                            <Button Classes="quiet small" Content="{v:Text GrantKeepPlace}" Command="{Binding ToggleCommand}"
+                                                    AutomationProperties.HelpText="{Binding Label}" IsVisible="{Binding !Kept}" />
+                                        </Panel>
+                                        <TextBlock Classes="place" Classes.dropped="{Binding !Kept}" Text="{Binding Label}" TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding Durations}" SelectedItem="{Binding SelectedDuration, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding DurationLabel}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="parts:DurationOption">
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <TextBlock Text="{Binding MayText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption muted" Text="{Binding StillAsksText}" TextWrapping="Wrap" />
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{v:Text GrantNotNow}" Command="{Binding NotNowCommand}" />
+                        <Button Classes="primary" Content="{v:Text GrantAllow}" Command="{Binding AllowCommand}" />
+                    </WrapPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- The Bypass confirmation (sdk/09 L-58), above the composer: what no longer asks, what still asks, what the server
+             records, the time (the shortest first), no extension, an optional reason. Deliberate: Not now first, the switch
+             never the default button, Enter on it does nothing (b:Deliberate), Esc never answers it. -->
+        <DataTemplate DataType="parts:BypassPart">
+            <Border Classes="card bypass" Classes.answered="{Binding !IsPending}">
+                <StackPanel Spacing="8">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="glyph" Margin="0,0,8,0" />
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <TextBlock Classes="muted" Text="{Binding AppReason}" TextWrapping="Wrap"
+                               IsVisible="{Binding AppReason, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="{Binding NoLongerAsksText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding StillAsksText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="strong" Text="{Binding RecordsText}" TextWrapping="Wrap" />
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding DurationLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        <ComboBox HorizontalAlignment="Left" ItemsSource="{Binding Durations}" SelectedItem="{Binding SelectedDuration, Mode=TwoWay}"
+                                  IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding DurationLabel}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="parts:DurationOption">
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding NoExtensionText}" TextWrapping="Wrap" />
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding ReasonLabel}" />
+                        <TextBox Text="{Binding Reason, Mode=TwoWay}" MaxLength="{Binding ReasonLength}" AcceptsReturn="False"
+                                 TextWrapping="Wrap" MaxHeight="80" IsEnabled="{Binding IsPending}" AutomationProperties.Name="{Binding ReasonLabel}" />
+                        <TextBlock Classes="caption muted" Text="{Binding ReasonSeenText}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
+                        <Button Classes="secondary" Content="{Binding NotNowText}" Command="{Binding NotNowCommand}" />
+                        <Button Classes="secondary switch" Content="{Binding AllowText}" Command="{Binding AllowCommand}"
+                                IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" />
+                    </WrapPanel>
+                    <DockPanel IsVisible="{Binding !IsPending}">
+                        <Button DockPanel.Dock="Right" Classes="quiet small" Content="{Binding CloseText}" Command="{Binding CloseCommand}"
+                                IsVisible="{Binding IsNotConfirmed}" />
+                        <TextBlock Classes="caption" Classes.muted="{Binding !IsNotConfirmed}" Text="{Binding StateText}" TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+                    </DockPanel>
+                    <!-- The second sign-in (sdk/41): the code the page shows, and the page again; never the default button, Enter does nothing. -->
+                    <StackPanel Spacing="8" IsVisible="{Binding IsSigningIn}">
+                        <TextBlock Classes="strong" Text="{Binding SignInCodeText}" TextWrapping="Wrap"
+                                   IsVisible="{Binding SignInCodeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="secondary" HorizontalAlignment="Left" Content="{Binding OpenAgainText}"
+                                AutomationProperties.Name="{Binding OpenAgainName}" Command="{Binding OpenAgainCommand}"
+                                IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- A notice is a banner in the flow: info, warning, blocked or error. -->
+        <DataTemplate DataType="parts:NoticePart">
+            <Border Classes="banner notice"
+                    Classes.warning="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:NoticeSeverity.Warning}}"
+                    Classes.blocked="{Binding Severity, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:NoticeSeverity.Blocked}}"
+                    Classes.error="{Binding Severity, Converter={x:Static v:Notices.IsError}}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Margin="0,0,12,0" />
+                    <StackPanel Spacing="2">
+                        <TextBlock Classes="strong" Text="{Binding Title}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                        <TextBlock Classes="caption muted" Text="{Binding Detail}" TextWrapping="Wrap"
+                                   IsVisible="{Binding Detail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:CitationsPart">
+            <StackPanel>
+                <Button Classes="row fold" Command="{Binding ToggleCommand}" HorizontalAlignment="Left" AutomationProperties.Name="{Binding Title}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Description}" />
+                        <TextBlock Classes="caption muted" Text="{Binding Title}" VerticalAlignment="Center" />
+                        <c:FsIcon Classes="chevron" Classes.open="{Binding IsExpanded}" />
+                    </StackPanel>
+                </Button>
+                <ItemsControl Classes="citations" ItemsSource="{Binding Citations}" Focusable="False" IsVisible="{Binding IsExpanded}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="parts:Citation">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding Title}" />
+                                <TextBlock Classes="caption muted" Text="{Binding Detail}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:CardPart">
+            <Border Classes="card part">
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="subtitle" Text="{Binding Title}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption muted" Text="{Binding Subtitle}" IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <ItemsControl ItemsSource="{Binding Fields}" Focusable="False" Classes="fields">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="parts:CardField">
+                                <Grid ColumnDefinitions="Auto,*" Classes="field">
+                                    <TextBlock Classes="muted" Text="{Binding Label}" Margin="0,0,16,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:TablePart">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{Binding Title}" IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Border Classes="table">
+                    <StackPanel>
+                        <Border Classes="table-head">
+                            <ItemsControl ItemsSource="{Binding Headers}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Classes="strong" Text="{Binding}" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:Object">
+                                    <Border Classes="table-cell">
+                                        <ItemsControl ItemsSource="{ReflectionBinding}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Rows="1" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="x:String">
+                                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:ProgressPart">
+            <StackPanel Classes="progress" Spacing="4">
+                <TextBlock Classes="caption muted" Text="{Binding Label}" />
+                <ProgressBar Minimum="0" Maximum="1" Value="{Binding Value, Mode=OneWay, TargetNullValue=0}"
+                             IsIndeterminate="{Binding IsIndeterminate, Mode=OneWay}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate DataType="parts:DiffPart">
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{Binding Title}" />
+                <Border Classes="table diff-frame">
+                    <ItemsControl ItemsSource="{Binding Lines}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="parts:DiffLine">
+                                <Border Classes="diff"
+                                        Classes.added="{Binding Kind, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:DiffLineKind.Added}}"
+                                        Classes.removed="{Binding Kind, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static parts:DiffLineKind.Removed}}">
+                                    <TextBlock Classes="mono caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- ===== A turn: the user's bubble, then the agent's ================================================ -->
+
+        <DataTemplate DataType="vm:TurnViewModel">
+            <StackPanel Classes="turn">
+                <Border Classes="bubble user" Classes.blocked="{Binding IsPromptBlocked}">
+                    <SelectableTextBlock Classes="user" Text="{Binding UserText}" TextWrapping="Wrap" />
+                </Border>
+                <!-- What went with the message: a skill (marked), a picture (small), context -->
+                <ItemsControl Classes="sent" ItemsSource="{Binding Attachments}" Focusable="False" IsVisible="{Binding HasAttachments}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:AttachmentChip">
+                            <Border Classes="chip sent" ToolTip.Tip="{Binding Subtitle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Border Classes="thumb" IsVisible="{Binding HasImage}">
+                                        <Image b:PictureSource.Data="{Binding Image}" b:PictureSource.Width="16" Stretch="UniformToFill" />
+                                    </Border>
+                                    <c:FsIcon Classes="accent" Data="{DynamicResource Icon.AutoAwesome}" IsVisible="{Binding IsSkill}" />
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Classes="blocked" IsVisible="{Binding IsPromptBlocked}">
+                    <TextBlock Classes="caption danger" Text="{v:Text NotSent}" VerticalAlignment="Center" />
+                    <Button Classes="quiet small" Command="{Binding EditCommand}" Content="{v:Text EditAndResend}" />
+                </StackPanel>
+
+                <!-- The answer: its parts, and "Working..." with the thinking icon until the first token. -->
+                <Border Classes="bubble agent">
+                    <Border.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="Parts.Count" Converter="{x:Static v:Counts.Any}" />
+                            <Binding Path="StatusText" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                        </MultiBinding>
+                    </Border.IsVisible>
+                    <StackPanel Classes="answer">
+                        <ItemsControl Classes="parts" ItemsSource="{Binding Parts}" Focusable="False" IsVisible="{Binding Parts.Count, Converter={x:Static v:Counts.Any}}" />
+                        <StackPanel Classes="status">
+                            <StackPanel.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="StatusText" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                                    <Binding Path="ErrorMessage" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                </MultiBinding>
+                            </StackPanel.IsVisible>
+                            <Panel Classes="mark">
+                                <c:FsIcon Classes="accent" Data="{DynamicResource Icon.Psychology}" IsVisible="{Binding IsRunning}" />
+                                <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Stop}" IsVisible="{Binding !IsRunning}" />
+                            </Panel>
+                            <TextBlock Classes="caption muted" Text="{Binding StatusText}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- A failed turn: a banner in the turn, with Try again. -->
+                <Border Classes="banner error turn-error" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                        <Button DockPanel.Dock="Right" Classes="quiet hidedisabled" Command="{Binding RetryCommand}" Content="{v:Text Retry}" />
+                        <StackPanel Spacing="2">
+                            <TextBlock Classes="strong" Text="{v:Text Failed}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <StackPanel Classes="turn-actions" IsVisible="{Binding !IsRunning}">
+                    <Button Classes="icon small hidedisabled" Command="{Binding CopyCommand}" ToolTip.Tip="{v:Text Copy}" AutomationProperties.Name="{v:Text Copy}">
+                        <c:FsIcon Data="{DynamicResource Icon.ContentCopy}" />
+                    </Button>
+                    <Button Classes="icon small hidedisabled" Command="{Binding RetryCommand}" ToolTip.Tip="{v:Text Retry}" AutomationProperties.Name="{v:Text Retry}">
+                        <c:FsIcon Data="{DynamicResource Icon.Replay}" />
+                    </Button>
+                    <TextBlock Classes="caption muted" Text="{Binding DurationText}" VerticalAlignment="Center" />
+                    <TextBlock Classes="caption muted" Text="{Binding UsageText}" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+
+    </UserControl.DataTemplates>
+
+    <ThemeVariantScope Name="Scope">
+    <Grid Name="Root" Classes="chat" RowDefinitions="Auto,*,Auto,Auto,Auto">
+        <!-- ===== Header: the chat's title, then history, new chat, the host's items, more ===================== -->
+        <!-- Below it, while the agent works alongside the person under a grant, the marker with its Stop (also in compact mode). -->
+        <StackPanel>
+        <Border Classes="header">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <ToggleButton Name="HistoryButton" Classes="icon" ToolTip.Tip="{v:Text ChatHistory}" AutomationProperties.Name="{v:Text ChatHistory}"
+                                  IsChecked="{Binding IsHistoryOpen, Mode=TwoWay}">
+                        <c:FsIcon Data="{DynamicResource Icon.History}" />
+                    </ToggleButton>
+                    <Button Classes="icon" ToolTip.Tip="{v:Text NewChatShortcut}" AutomationProperties.Name="{v:Text NewChat}" Command="{Binding NewChatCommand}">
+                        <c:FsIcon Data="{DynamicResource Icon.Add}" />
+                    </Button>
+                    <ToggleButton Name="SettingsButton" Classes="icon" ToolTip.Tip="{v:Text MoreOptions}" AutomationProperties.Name="{v:Text MoreOptions}"
+                                  IsChecked="{Binding IsSettingsOpen, Mode=TwoWay}">
+                        <c:FsIcon Data="{DynamicResource Icon.MoreVert}" />
+                    </ToggleButton>
+                    <!-- The host's own icon buttons (the desktop's "Close the chat panel"). -->
+                    <ContentPresenter Content="{Binding $parent[v:ChatView].HeaderToolbar}" VerticalAlignment="Center"
+                                      IsVisible="{Binding $parent[v:ChatView].HeaderToolbar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <!-- The settings: the language, the host's own items (SettingsContent), and About last. -->
+                    <Popup IsOpen="{Binding IsSettingsOpen, Mode=TwoWay}" PlacementTarget="{Binding #SettingsButton}" Placement="BottomEdgeAlignedRight"
+                           HorizontalOffset="12" VerticalOffset="-2" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #SettingsButton}">
+                        <Border Classes="popup-room">
+                        <Border Classes="menu popup settings">
+                            <StackPanel>
+                                <StackPanel IsVisible="{Binding HasLanguageSettings}">
+                                    <TextBlock Classes="menu-caption" Text="{v:Text LanguageMenu}" />
+                                    <ItemsControl ItemsSource="{Binding LanguageOptions}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:LanguageOption">
+                                                <Button Classes="menu-item" Classes.selected="{Binding IsSelected}" AutomationProperties.Name="{Binding Label}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SetLanguageCommand}"
+                                                        CommandParameter="{Binding Id}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Panel Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}" IsVisible="{Binding IsSelected}" />
+                                                        </Panel>
+                                                        <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text LanguageLocked}" IsVisible="{Binding IsLanguageLocked}" />
+                                    <Separator />
+                                </StackPanel>
+                                <!-- Approvals: what was allowed for longer than one call (the grants the server holds, "always" on this
+                                     device), each with Revoke; read again each time the settings open. -->
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text SettingsApprovals}" />
+                                    <ItemsControl ItemsSource="{Binding Grants.Standing}" Focusable="False" IsVisible="{Binding Grants.HasStanding}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:StandingApprovalItem">
+                                                <DockPanel Classes="standing">
+                                                    <Button DockPanel.Dock="Right" Classes="quiet small" Content="{v:Text Revoke}" Command="{Binding RevokeCommand}"
+                                                            AutomationProperties.HelpText="{Binding Title}" />
+                                                    <TextBlock Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text SettingsApprovalsEmpty}" IsVisible="{Binding !Grants.HasStanding}" />
+                                    <Separator />
+                                </StackPanel>
+                                <ContentPresenter Content="{Binding $parent[v:ChatView].SettingsContent}" />
+                                <Button Classes="menu-item" Command="{Binding OpenAboutCommand}" AutomationProperties.Name="{v:Text About}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Panel Classes="slot">
+                                            <c:FsIcon Classes="muted" Data="{DynamicResource Icon.InfoOutlined}" />
+                                        </Panel>
+                                        <TextBlock Text="{v:Text About}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                        </Border>
+                    </Popup>
+                </StackPanel>
+                <TextBlock Classes="subtitle header-title" Text="{Binding SessionTitle}" />
+            </DockPanel>
+        </Border>
+        <Border Classes="grant-marker" IsVisible="{Binding Grants.HasMarker}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="{v:Text MarkerStop}" Command="{Binding Grants.StopCommand}" />
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="{Binding Grants.KeepGoingText}" Command="{Binding Grants.KeepGoingCommand}"
+                        IsVisible="{Binding Grants.IsEnding}" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.People}" />
+                <TextBlock Text="{Binding Grants.MarkerText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        <!-- While this chat runs in Bypass (sdk/09 L-63): the time left, what is recorded, one click ends it; never more time.
+             It stays in the compact chat too (the avatar's bubble). -->
+        <Border Classes="grant-marker bypass" IsVisible="{Binding Grants.HasBypass}" AutomationProperties.Name="{Binding Grants.BypassText}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="secondary" Content="{v:Text MarkerStop}" Command="{Binding Grants.StopBypassCommand}"
+                        AutomationProperties.Name="{Binding Grants.BypassStopName}" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.WarningAmber}" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="strong" Text="{Binding Grants.BypassText}" TextWrapping="Wrap" />
+                    <TextBlock Classes="caption" Text="{Binding Grants.BypassRecordedText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+        <!-- After the chat's Bypass ended: why (its time, a Stop, an administrator, the kill switch, a narrower limit). -->
+        <Border Classes="grant-marker ended" IsVisible="{Binding Grants.HasBypassEnded}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="quiet small" Content="{v:Text Close}" Command="{Binding Grants.DismissBypassEndedCommand}" />
+                <Button DockPanel.Dock="Right" Classes="secondary small" Content="{Binding Grants.SwitchOnAgainText}"
+                        AutomationProperties.Name="{Binding Grants.SwitchOnAgainName}" Command="{Binding Grants.SwitchOnAgainCommand}"
+                        IsDefault="False" IsCancel="False" b:Deliberate.IsEnabled="True" Margin="8,0,0,0" />
+                <c:FsIcon DockPanel.Dock="Left" Data="{DynamicResource Icon.InfoOutlined}" />
+                <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+        </StackPanel>
+
+        <!-- ===== The conversation ============================================================================ -->
+        <Grid Grid.Row="1">
+            <!-- Empty chat: the agent's picture, "What shall we work on?", the agent's greeting and suggestions. The picture is
+                 the host's (AgentPicture) in the 96 slot, else the skin's icon; the code-behind puts the host's in the slot
+                 only while this shows. -->
+            <ScrollViewer Name="EmptyState" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding Path="IsEmpty" />
+                        <Binding Path="!SignInRequired" />
+                    </MultiBinding>
+                </ScrollViewer.IsVisible>
+                <StackPanel Classes="empty">
+                    <Panel Classes="avatar">
+                        <Border Name="DefaultAgentPicture" Classes="avatar"
+                                IsVisible="{Binding $parent[v:ChatView].AgentPicture, Converter={x:Static ObjectConverters.IsNull}}">
+                            <c:FsIcon Classes="avatar" Data="{DynamicResource Icon.SmartToy}" />
+                        </Border>
+                        <ContentPresenter Name="AgentPictureSlot" Classes="agent-picture"
+                                          IsVisible="{Binding $parent[v:ChatView].AgentPicture, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </Panel>
+                    <TextBlock Classes="title" Text="{v:Text EmptyTitle}" TextAlignment="Center" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted greeting" Text="{Binding Greeting}" TextWrapping="Wrap" TextAlignment="Center" />
+                    <ItemsControl Classes="suggestions" ItemsSource="{Binding Suggestions}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Button Classes="secondary suggestion" AutomationProperties.Name="{Binding}"
+                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SendSuggestionCommand}"
+                                        CommandParameter="{Binding}">
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Sign in required: the host's sign-in (SignInContent) in place of the turns, else the reason and Try again. -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsVisible="{Binding SignInRequired}">
+                <Panel>
+                    <ContentPresenter Content="{Binding $parent[v:ChatView].SignInContent}"
+                                      IsVisible="{Binding $parent[v:ChatView].SignInContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <StackPanel Classes="empty signin" IsVisible="{Binding $parent[v:ChatView].SignInContent, Converter={x:Static ObjectConverters.IsNull}}">
+                        <Border Classes="avatar">
+                            <c:FsIcon Classes="avatar" Data="{DynamicResource Icon.Lock}" />
+                        </Border>
+                        <TextBlock Classes="title" Text="{v:Text SignInTitle}" TextAlignment="Center" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted greeting" Text="{Binding Error}" TextWrapping="Wrap" TextAlignment="Center"
+                                   IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <Button Classes="secondary" HorizontalAlignment="Center" Content="{v:Text Retry}" Command="{Binding InitializeCommand}" />
+                    </StackPanel>
+                </Panel>
+            </ScrollViewer>
+
+            <!-- The turns: virtualized and recycled, one page of cache each way, kept at the bottom while the user is there -->
+            <ItemsControl Name="Turns" ItemsSource="{Binding Turns}" Focusable="False" IsVisible="{Binding !IsEmpty}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <v:TurnStackPanel CacheLength="0.5" EndPadding="16" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.Template>
+                    <ControlTemplate>
+                        <Grid x:DataType="vm:AgentChatViewModel">
+                            <ScrollViewer Name="Scroller" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False"
+                                          b:StickToBottom.IsEnabled="True" b:FarContent.Distance="100" b:LoadEarlier.Command="{Binding LoadEarlierCommand}">
+                                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                            </ScrollViewer>
+                            <Button Classes="secondary floating top" Command="{Binding LoadEarlierCommand}" IsVisible="{Binding HasEarlierTurns}"
+                                    AutomationProperties.Name="{v:Text ShowEarlier}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowUp}" />
+                                    <TextBlock Text="{v:Text ShowEarlier}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <!-- Not at the end any more: one press goes back and follows it again. -->
+                            <Button Classes="secondary floating bottom" Command="{x:Static b:StickToBottom.ScrollToNewestCommand}" CommandParameter="{Binding #Scroller}"
+                                    IsVisible="{Binding !#Scroller.(b:StickToBottom.IsFollowing)}" AutomationProperties.Name="{v:Text JumpToNewest}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:FsIcon Data="{DynamicResource Icon.ArrowDownward}" />
+                                    <TextBlock Text="{v:Text JumpToNewest}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                    </ControlTemplate>
+                </ItemsControl.Template>
+            </ItemsControl>
+
+            <!-- About (the settings' last item): the agent, the app it runs in, the SDK, the server, and links. -->
+            <Border Classes="menu about" IsVisible="{Binding IsAboutOpen}" AutomationProperties.Name="{v:Text About}">
+                <Border.KeyBindings>
+                    <KeyBinding Gesture="Escape" Command="{Binding CloseAboutCommand}" />
+                </Border.KeyBindings>
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Classes="about-head">
+                        <Button DockPanel.Dock="Right" Classes="icon small" Command="{Binding CloseAboutCommand}" ToolTip.Tip="{v:Text Close}"
+                                AutomationProperties.Name="{v:Text Close}">
+                            <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                        </Button>
+                        <TextBlock Classes="subtitle" Text="{v:Text About}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                        <StackPanel Spacing="4">
+                            <StackPanel Classes="about-agent" IsVisible="{Binding About.HasAgent}">
+                                <TextBlock Classes="strong" Text="{Binding About.AgentName}" TextWrapping="Wrap" />
+                                <TextBlock Classes="caption muted" Text="{Binding About.AgentDetail}" TextWrapping="Wrap"
+                                           IsVisible="{Binding About.AgentDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            </StackPanel>
+                            <TextBlock Classes="caption muted" Text="{Binding About.AppText}" TextWrapping="Wrap"
+                                       IsVisible="{Binding About.AppText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <TextBlock Classes="caption muted" Text="{Binding About.SdkText}" TextWrapping="Wrap" />
+                            <TextBlock Classes="caption muted" Text="{Binding About.ServerText}" TextWrapping="Wrap"
+                                       IsVisible="{Binding About.ServerText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                            <Separator />
+                            <ItemsControl ItemsSource="{Binding About.Links}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:PanelLink">
+                                        <Button Classes="quiet link" HorizontalAlignment="Left" ToolTip.Tip="{Binding Url.AbsoluteUri}"
+                                                AutomationProperties.Name="{Binding Name}" Content="{Binding Label}"
+                                                Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).OpenLinkCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding CopyDetailsCommand}" Content="{v:Text CopyDetails}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- The chats: a menu under the header, as wide as the panel -->
+            <Border Classes="menu history" IsVisible="{Binding IsHistoryOpen}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Classes="history-head">
+                        <Button DockPanel.Dock="Right" Classes="icon small" Command="{Binding NewChatCommand}" ToolTip.Tip="{v:Text NewChat}"
+                                AutomationProperties.Name="{v:Text NewChat}">
+                            <c:FsIcon Data="{DynamicResource Icon.Add}" />
+                        </Button>
+                        <TextBlock Classes="strong" Text="{v:Text History}" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="menu-caption" Text="{v:Text NoHistory}" IsVisible="{Binding Sessions.Count, Converter={x:Static v:Counts.None}}" />
+                    <ItemsControl ItemsSource="{Binding Sessions}" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.Template>
+                            <ControlTemplate>
+                                <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsPresenter ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                </ScrollViewer>
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="vm:SessionItemViewModel">
+                                <Panel>
+                                    <Button Classes="menu-item session" Classes.selected="{Binding IsCurrent}" AutomationProperties.Name="{Binding Title}"
+                                            Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).OpenSessionCommand}"
+                                            CommandParameter="{Binding}">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Classes="caption muted" Text="{Binding WhenText}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Classes="caption muted strong" Text="{Binding BypassText}" AutomationProperties.Name="{Binding BypassText}"
+                                                           TextTrimming="CharacterEllipsis" IsVisible="{Binding HasBypass}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Button>
+                                    <Button Classes="icon small delete" ToolTip.Tip="{v:Text DeleteSession}" AutomationProperties.Name="{v:Text DeleteSession}"
+                                            Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).DeleteSessionCommand}"
+                                            CommandParameter="{Binding}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                                    </Button>
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- ===== A problem with the agent or the connection: a banner in the flow, above the composer ======== -->
+        <Border Grid.Row="2" Classes="banner error chat-error">
+            <Border.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="Error" Converter="{x:Static StringConverters.IsNotNullOrEmpty}" />
+                    <Binding Path="!SignInRequired" />
+                </MultiBinding>
+            </Border.IsVisible>
+            <DockPanel>
+                <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                <Button DockPanel.Dock="Right" Classes="quiet" Content="{v:Text Retry}" Command="{Binding InitializeCommand}" />
+                <TextBlock Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <!-- ===== Grant cards waiting for an answer, then the composer: chips, the field, then attach, the host's items, the
+             tool mode, send / stop ===== -->
+        <StackPanel Grid.Row="3">
+        <ItemsControl Classes="grant-cards" ItemsSource="{Binding Grants.Cards}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="parts:GrantPart">
+                    <ContentControl Content="{Binding}" IsVisible="{Binding IsPending}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <!-- The Bypass confirmation: while it waits for the person or the server, and when the server did not confirm it. -->
+        <ContentControl Classes="bypass-card" Content="{Binding Grants.BypassCard}" IsVisible="{Binding Grants.BypassCard.IsShown, FallbackValue=False}" />
+        <Border Name="ComposerBox" Classes="composer">
+            <StackPanel>
+                <!-- The skills picked for the next message -->
+                <ItemsControl Classes="chips" ItemsSource="{Binding PickedSkills}" Focusable="False" IsVisible="{Binding PickedSkills.Count, Converter={x:Static v:Counts.Any}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="m:SkillOption">
+                            <Border Classes="chip removable" ToolTip.Tip="{Binding Description}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <c:FsIcon Classes="accent" Data="{DynamicResource Icon.AutoAwesome}" />
+                                    <TextBlock Classes="chip-title" Text="{Binding Name}" />
+                                    <Button Classes="icon small" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}"
+                                            Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveSkillCommand}"
+                                            CommandParameter="{Binding}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <!-- Attached context: chips, a picture's small; an implicit one (the current selection) can be switched off -->
+                <ItemsControl Classes="chips" ItemsSource="{Binding Attachments}" Focusable="False" IsVisible="{Binding Attachments.Count, Converter={x:Static v:Counts.Any}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:AttachmentViewModel">
+                            <Border Classes="chip" Classes.removable="{Binding !IsImplicit}" Classes.implicit="{Binding IsImplicit}" Classes.excluded="{Binding !IsIncluded}"
+                                    ToolTip.Tip="{Binding Subtitle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <ToggleButton Classes="icon small include" IsChecked="{Binding IsIncluded, Mode=OneWay}" Command="{Binding ToggleCommand}"
+                                                  ToolTip.Tip="{v:Text IncludeAttachment}" AutomationProperties.Name="{v:Text IncludeAttachment}" IsVisible="{Binding IsImplicit}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Check}" />
+                                    </ToggleButton>
+                                    <Border Classes="thumb" IsVisible="{Binding HasImage}">
+                                        <Image b:PictureSource.Data="{Binding Image}" b:PictureSource.Width="16" Stretch="UniformToFill" />
+                                    </Border>
+                                    <c:FsIcon Classes="muted" Data="{DynamicResource Icon.Description}">
+                                        <c:FsIcon.IsVisible>
+                                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                <Binding Path="!IsImplicit" />
+                                                <Binding Path="!HasImage" />
+                                            </MultiBinding>
+                                        </c:FsIcon.IsVisible>
+                                    </c:FsIcon>
+                                    <TextBlock Classes="chip-title" Text="{Binding Title}" />
+                                    <Button Classes="icon small" ToolTip.Tip="{v:Text RemoveAttachment}" AutomationProperties.Name="{v:Text RemoveAttachment}" IsVisible="{Binding !IsImplicit}"
+                                            Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveAttachmentCommand}"
+                                            CommandParameter="{Binding}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBox Name="Composer" Classes="composer" Text="{Binding Input, Mode=TwoWay}" IsEnabled="{Binding IsReady}"
+                         PlaceholderText="{v:Text ComposerPlaceholder}" AutomationProperties.Name="{v:Text Message}" />
+                <DockPanel Classes="composer-bar">
+                    <Panel DockPanel.Dock="Right">
+                        <Button Classes="icon large primary" ToolTip.Tip="{v:Text SendShortcut}" AutomationProperties.Name="{v:Text Send}"
+                                Command="{Binding SendCommand}" IsVisible="{Binding !IsBusy}">
+                            <c:FsIcon Data="{DynamicResource Icon.Send}" />
+                        </Button>
+                        <Button Classes="icon large primary" ToolTip.Tip="{v:Text StopShortcut}" AutomationProperties.Name="{v:Text Stop}"
+                                Command="{Binding StopCommand}" IsVisible="{Binding IsBusy}">
+                            <c:FsIcon Data="{DynamicResource Icon.Stop}" />
+                        </Button>
+                    </Panel>
+                    <!-- Wraps: at the narrowest panel the thinking pill goes to a line of its own rather than under the send button. -->
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" VerticalAlignment="Center">
+                        <Button Classes="icon large" ToolTip.Tip="{v:Text Attach}" AutomationProperties.Name="{v:Text Attach}"
+                                Command="{Binding $parent[v:ChatView].AttachCommand}"
+                                IsVisible="{Binding $parent[v:ChatView].AttachCommand, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <c:FsIcon Data="{DynamicResource Icon.AttachFile}" />
+                        </Button>
+                        <!-- A host's own buttons (e.g. "Add context") -->
+                        <ContentPresenter VerticalAlignment="Center" Content="{Binding $parent[v:ChatView].ComposerToolbar}"
+                                          IsVisible="{Binding $parent[v:ChatView].ComposerToolbar, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        <!-- The tool mode: "Ask" and its menu, which opens above. -->
+                        <ToggleButton Name="ModeButton" Classes="pill" ToolTip.Tip="{Binding ToolModeHint}" AutomationProperties.Name="{v:Text ToolModeMenu}"
+                                      AutomationProperties.HelpText="{Binding ToolModeHint}"
+                                      IsChecked="{Binding IsModeMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <c:FsIcon Data="{DynamicResource Icon.Shield}" />
+                                <TextBlock Text="{Binding SelectedToolMode.Label}" VerticalAlignment="Center" />
+                                <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsModeMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #ModeButton}" Placement="TopEdgeAlignedLeft"
+                               HorizontalOffset="-12" VerticalOffset="14" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #ModeButton}">
+                            <Border Classes="popup-room">
+                            <Border Classes="menu popup modes">
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text ToolModeMenu}" />
+                                    <ItemsControl ItemsSource="{Binding ToolModes}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ToolModeOption">
+                                                <Button Classes="menu-item mode" AutomationProperties.Name="{Binding Label}"
+                                                        AutomationProperties.HelpText="{Binding Description}" IsEnabled="{Binding IsAvailable}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectToolModeCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <DockPanel>
+                                                        <Panel DockPanel.Dock="Left" Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}">
+                                                                <c:FsIcon.IsVisible>
+                                                                    <MultiBinding Converter="{x:Static v:Same.Instance}">
+                                                                        <Binding />
+                                                                        <Binding Path="$parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectedToolMode" />
+                                                                    </MultiBinding>
+                                                                </c:FsIcon.IsVisible>
+                                                            </c:FsIcon>
+                                                        </Panel>
+                                                        <StackPanel Classes="mode-option">
+                                                            <TextBlock Classes="strong" Text="{Binding Label}" />
+                                                            <TextBlock Classes="caption muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Classes="menu-caption" Text="{Binding ToolModeHint}" TextWrapping="Wrap" />
+                                    <Separator />
+                                    <Button Classes="menu-item" Command="{Binding ResetApprovalsCommand}" Content="{v:Text ResetApprovals}"
+                                            ToolTip.Tip="{v:Text ResetApprovalsHint}" />
+                                </StackPanel>
+                            </Border>
+                            </Border>
+                        </Popup>
+                        <!-- How long the agent thinks: Auto, Off, and the levels up to the maximum the agent's profile may set. -->
+                        <ToggleButton Name="ReasoningButton" Classes="pill" ToolTip.Tip="{Binding ReasoningToolTip}" AutomationProperties.Name="{Binding ReasoningAutomationName}"
+                                      AutomationProperties.HelpText="{Binding ReasoningHint}"
+                                      IsChecked="{Binding IsReasoningMenuOpen, Mode=TwoWay}" IsEnabled="{Binding IsReady}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <c:FsIcon Data="{DynamicResource Icon.Psychology}" />
+                                <TextBlock Text="{Binding ReasoningPillText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                                <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <Popup IsOpen="{Binding IsReasoningMenuOpen, Mode=TwoWay}" PlacementTarget="{Binding #ReasoningButton}" Placement="TopEdgeAlignedLeft"
+                               HorizontalOffset="-12" VerticalOffset="14" IsLightDismissEnabled="True" OverlayInputPassThroughElement="{Binding #ReasoningButton}">
+                            <Border Classes="popup-room">
+                            <Border Classes="menu popup modes">
+                                <StackPanel>
+                                    <TextBlock Classes="menu-caption" Text="{v:Text ReasoningMenu}" />
+                                    <ItemsControl ItemsSource="{Binding ReasoningOptions}" Focusable="False">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="vm:ReasoningOption">
+                                                <Button Classes="menu-item mode" AutomationProperties.Name="{Binding Label}"
+                                                        AutomationProperties.HelpText="{Binding Description}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SelectReasoningCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <DockPanel>
+                                                        <Panel DockPanel.Dock="Left" Classes="slot">
+                                                            <c:FsIcon Data="{DynamicResource Icon.Check}" IsVisible="{Binding IsSelected}" />
+                                                        </Panel>
+                                                        <StackPanel Classes="mode-option">
+                                                            <TextBlock Classes="strong" Text="{Binding Label}" />
+                                                            <TextBlock Classes="caption muted" Text="{Binding Description}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            </Border>
+                        </Popup>
+                    </WrapPanel>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+        </StackPanel>
+
+        <!-- Under the composer: answers come from an AI and can be wrong. Quiet, but always there; a host's empty text hides it. -->
+        <StackPanel Grid.Row="4" Classes="notice-line">
+            <TextBlock Classes="caption muted" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding Strings.AiNotice}"
+                       AutomationProperties.Name="{Binding Strings.AiNotice}"
+                       IsVisible="{Binding Strings.AiNotice, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <Button Classes="quiet small branding" HorizontalAlignment="Center" IsVisible="{Binding BrandingLink, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Command="{Binding OpenLinkCommand}" CommandParameter="{Binding BrandingLink}" Content="{Binding BrandingLink.Label}"
+                    ToolTip.Tip="{Binding BrandingLink.Url.AbsoluteUri}" AutomationProperties.Name="{Binding BrandingLink.Name}" />
+        </StackPanel>
+    </Grid>
+    </ThemeVariantScope>
+</UserControl>

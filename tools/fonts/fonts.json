@@ -1,0 +1,34 @@
+{
+  "comment": "Pinned sources of the bundled fonts (22 section 3.4). fetch-fonts.ps1 downloads each source, checks sha256, and writes the outputs. Inter comes from the Avalonia.Fonts.Inter package, not from here (only its licence text is fetched).",
+  "outputDir": "src/Fadenstack.UI.Avalonia/Assets/Fonts",
+  "sources": [
+    { "id": "noto-regular", "version": "Sans2.004", "url": "https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf", "sha256": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9" },
+    { "id": "noto-medium", "version": "Sans2.004", "url": "https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Medium.otf", "sha256": "7633f5a016d4dd95e685a69633d818aabc4644c4b08e26bd35b1b30c45ed5dda" },
+    { "id": "noto-bold", "version": "Sans2.004", "url": "https://github.com/notofonts/noto-cjk/raw/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Bold.otf", "sha256": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0" },
+    { "id": "noto-licence", "version": "Sans2.004", "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/LICENSE", "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2" },
+    { "id": "jetbrains-zip", "version": "2.304", "url": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip", "sha256": "6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf" },
+    { "id": "sora-semibold", "version": "7f9a9c5 (sora-xor/sora-font)", "url": "https://raw.githubusercontent.com/sora-xor/sora-font/7f9a9c5d0ccd1c099cfac420aa27133df1c5fdc4/fonts/ttf/Sora-SemiBold.ttf", "sha256": "b02621d4009da9a18eb8a5cbe277f084eb9c3f065ba08a6e77769e81863becf2" },
+    { "id": "sora-licence", "version": "7f9a9c5 (sora-xor/sora-font)", "url": "https://raw.githubusercontent.com/sora-xor/sora-font/7f9a9c5d0ccd1c099cfac420aa27133df1c5fdc4/OFL.txt", "sha256": "ba0b9729c9428ba79a0459ab8ec575791b51509dbec213e383d0316d37fec299" },
+    { "id": "inter-licence", "version": "v4.1", "url": "https://raw.githubusercontent.com/rsms/inter/v4.1/LICENSE.txt", "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a" }
+  ],
+  "zipEntries": [
+    { "from": "jetbrains-zip", "entry": "fonts/ttf/JetBrainsMono-Regular.ttf", "sha256": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f", "to": "JetBrainsMono-Regular.ttf" },
+    { "from": "jetbrains-zip", "entry": "fonts/ttf/JetBrainsMono-Bold.ttf", "sha256": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb", "to": "JetBrainsMono-Bold.ttf" },
+    { "from": "jetbrains-zip", "entry": "OFL.txt", "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad", "to": "licenses/JetBrainsMono-OFL.txt" }
+  ],
+  "copies": [
+    { "from": "sora-semibold", "to": "Sora-SemiBold.ttf" },
+    { "from": "sora-licence", "to": "licenses/Sora-OFL.txt" },
+    { "from": "noto-licence", "to": "licenses/NotoSansSC-OFL.txt" },
+    { "from": "inter-licence", "to": "licenses/Inter-OFL.txt" }
+  ],
+  "subsets": [
+    { "from": "noto-regular", "to": "NotoSansSC-Regular.otf" },
+    { "from": "noto-medium", "to": "NotoSansSC-Medium.otf" },
+    { "from": "noto-bold", "to": "NotoSansSC-Bold.otf" }
+  ],
+  "subset": {
+    "comment": "GB 2312 (every two-byte code, via Python's gb2312 codec) + CJK punctuation, fullwidth forms, general punctuation + Basic Latin and Latin-1/Extended-A.",
+    "unicodeRanges": "U+0020-007E,U+00A0-017F,U+2000-206F,U+20AC,U+2100-214F,U+2190-21FF,U+25A0-25FF,U+3000-303F,U+FF00-FFEF,U+FE30-FE4F"
+  }
+}

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsSample>true</IsSample>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- The harness and its session are compiled into the tests, too (tests/Fadenstack.UI.Avalonia.Tests). -->
+    <RootNamespace>Fadenstack.UI.Avalonia.Sample</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Fadenstack.UI.Avalonia\Fadenstack.UI.Avalonia.csproj" />
+    <Compile Include="..\Fadenstack.Samples.Wpf\DemoGateway.cs" Link="DemoGateway.cs" />
+    <Compile Include="..\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
+  </ItemGroup>
+</Project>

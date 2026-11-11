@@ -1,0 +1,443 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Fadenstack.UI.Avalonia.Controls"
+        xmlns:v="using:Fadenstack.UI.Avalonia.Views">
+    <!--
+        The chat panel's own layout (design 22, section 6.6), on top of the skin's control styles (Controls.axaml, which
+        the panel puts on the application): the header, the conversation's overlays, the composer, Markdown. Only theme keys:
+        no colour, font size or radius is written here. No shadows on what a long chat draws hundreds of times.
+    -->
+
+    <!-- ===== The panel ================================================================================== -->
+
+    <Style Selector="Grid.chat">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
+    <!-- Header, 48 high: the chat's title (16/600, trimmed), then the icon buttons. -->
+    <Style Selector="Border.header">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.TitleBar.Height}" />
+        <Setter Property="Padding" Value="16,0,8,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="TextBlock.header-title">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <!-- The marker under the header while the agent works alongside the person under a grant: a band, the time left, Stop. -->
+    <Style Selector="Border.grant-marker">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,6,8,6" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="Border.grant-marker Button">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.grant-marker c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <!-- The same band while the chat runs in Bypass: the warning colours, so it is never taken for the work band. -->
+    <Style Selector="Border.grant-marker.bypass">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Border.grant-marker.bypass c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+    </Style>
+
+    <!-- The chat's popups that look like the menu (in a Border.popup-room, Controls.axaml). -->
+    <Style Selector="Border.menu.popup">
+        <Setter Property="MinWidth" Value="220" />
+        <Setter Property="MaxWidth" Value="320" />
+    </Style>
+    <Style Selector="TextBlock.menu-caption">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="Margin" Value="12,8,12,4" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <!-- The 18 slot at a menu row's left, kept for alignment when it is empty. -->
+    <Style Selector="Panel.slot">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+        <Setter Property="Margin" Value="0,0,12,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Panel.slot c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <Style Selector="Panel.slot c|FsIcon.muted">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="Button.menu-item.mode">
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="StackPanel.mode-option">
+        <Setter Property="Spacing" Value="2" />
+    </Style>
+    <!-- Settings → Approvals: one row per approval, its Revoke at the end. -->
+    <Style Selector="DockPanel.standing">
+        <Setter Property="Margin" Value="12,2,4,2" />
+    </Style>
+    <Style Selector="DockPanel.standing Button">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- The chats: a menu under the header, as wide as the panel. -->
+    <Style Selector="Border.menu.history">
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="8,4,8,8" />
+        <Setter Property="MaxHeight" Value="440" />
+    </Style>
+    <Style Selector="DockPanel.history-head">
+        <Setter Property="Margin" Value="12,2,0,4" />
+    </Style>
+    <Style Selector="Button.menu-item.session">
+        <Setter Property="Padding" Value="12,0,40,0" />
+    </Style>
+    <Style Selector="Button.icon.delete">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+
+    <!-- About: a card under the header. -->
+    <Style Selector="Border.menu.about">
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="8,4,8,8" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.4}" />
+    </Style>
+    <Style Selector="DockPanel.about-head">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="StackPanel.about-agent">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Button.quiet.link">
+        <Setter Property="Margin" Value="-8,0,0,0" />
+    </Style>
+
+    <!-- The empty chat: avatar 96, the title, the greeting, the suggestions as full-width secondary rows. -->
+    <Style Selector="StackPanel.empty">
+        <Setter Property="MaxWidth" Value="440" />
+        <Setter Property="Margin" Value="{DynamicResource Fadenstack.Space.5}" />
+        <Setter Property="Spacing" Value="8" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Panel.avatar">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Border.avatar">
+        <Setter Property="Width" Value="96" />
+        <Setter Property="Height" Value="96" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="c|FsIcon.avatar">
+        <Setter Property="Size" Value="48" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+    </Style>
+    <!-- The host's picture of the agent (ChatView.AgentPicture) in the same 96 square, centred: a control without a size of
+         its own fills it, one with a size and centred alignment sits in its middle. -->
+    <Style Selector="ContentPresenter.agent-picture">
+        <Setter Property="Width" Value="96" />
+        <Setter Property="Height" Value="96" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="StackPanel.signin Border.avatar">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="TextBlock.greeting">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ItemsControl.suggestions">
+        <Setter Property="Margin" Value="0,16,0,0" />
+    </Style>
+    <Style Selector="ItemsControl.suggestions > ContentPresenter">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector="Button.secondary.suggestion">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+
+    <!-- Floating buttons over the turns: "Show earlier", "Jump to newest". -->
+    <Style Selector="Button.secondary.floating">
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Normal}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Pill}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.secondary.floating c|FsIcon">
+        <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+    </Style>
+    <Style Selector="Button.secondary.floating.top">
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <Style Selector="Button.secondary.floating.bottom">
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- A problem with the agent or the connection: a banner above the composer, in the flow. -->
+    <Style Selector="Border.banner.chat-error">
+        <Setter Property="Margin" Value="16,8,16,0" />
+        <Setter Property="MaxWidth" Value="760" />
+    </Style>
+    <Style Selector="Border.banner Button.quiet">
+        <Setter Property="Margin" Value="8,-8,-8,-8" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <!-- Grant cards waiting for an answer, above the composer and as wide. -->
+    <Style Selector="ItemsControl.grant-cards">
+        <Setter Property="Margin" Value="16,8,16,0" />
+        <Setter Property="MaxWidth" Value="760" />
+    </Style>
+    <Style Selector="ItemsControl.grant-cards > ContentPresenter">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <!-- The Bypass confirmation: where a grant card goes, as wide. -->
+    <Style Selector="ContentControl.bypass-card">
+        <Setter Property="Margin" Value="16,8,16,0" />
+        <Setter Property="MaxWidth" Value="760" />
+    </Style>
+
+    <!-- ===== The composer: a card; the field inside is borderless, the card shows the focus ================ -->
+
+    <!-- At most the reading width, centred with the turns when the chat is wide. -->
+    <Style Selector="Border.composer">
+        <Setter Property="Margin" Value="16,8,16,4" />
+        <Setter Property="MaxWidth" Value="760" />
+        <Setter Property="Padding" Value="12,8,8,8" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+    </Style>
+    <!-- Focus: 2 px Focus; the padding gives the extra pixel back, so nothing inside moves. -->
+    <Style Selector="Border.composer:focus-within">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Focus}" />
+        <Setter Property="Padding" Value="11,7,7,7" />
+    </Style>
+    <Style Selector="ItemsControl.chips">
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="ItemsControl.chips > ContentPresenter">
+        <Setter Property="Margin" Value="0,0,6,4" />
+    </Style>
+    <Style Selector="TextBlock.chip-title">
+        <Setter Property="MaxWidth" Value="200" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.chip.implicit">
+        <Setter Property="Padding" Value="0,0,10,0" />
+    </Style>
+    <!-- An implicit chip switched off: no fill, an outline, so it reads as "not included". -->
+    <Style Selector="Border.chip.excluded">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="Border.chip c|FsIcon.accent, Border.chip c|FsIcon.muted">
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.thumb">
+        <Setter Property="Width" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+        <Setter Property="Height" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Check}" />
+        <Setter Property="ClipToBounds" Value="True" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- The field: 1 to 8 lines of 14, no border of its own in any state. -->
+    <Style Selector="TextBox.composer">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0,4" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MaxHeight" Value="176" />
+        <Setter Property="LineHeight" Value="{DynamicResource Fadenstack.LineHeight.Body}" />
+        <Setter Property="AcceptsReturn" Value="True" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.composer /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.composer:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="DockPanel.composer-bar">
+        <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+
+    <!-- The AI notice under the composer: 12, ForegroundMuted, centred. -->
+    <Style Selector="StackPanel.notice-line">
+        <Setter Property="Margin" Value="16,0,16,8" />
+        <Setter Property="MaxWidth" Value="760" />
+        <Setter Property="Spacing" Value="0" />
+    </Style>
+
+    <!-- ===== Compact mode (ChatView.IsCompact): the panel in a small floating host ===================== -->
+
+    <!-- The host has its own header; the turns, the bubbles and the composer take less room. -->
+    <Style Selector="Grid.chat.compact Border.header">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Grid.chat.compact StackPanel.turn">
+        <Setter Property="Margin" Value="8,8,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.bubble">
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.banner.chat-error">
+        <Setter Property="Margin" Value="8,4,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.composer">
+        <Setter Property="Margin" Value="8,4,8,2" />
+    </Style>
+    <Style Selector="Grid.chat.compact ItemsControl.grant-cards">
+        <Setter Property="Margin" Value="8,4,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact Border.grant-marker">
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Grid.chat.compact ContentControl.bypass-card">
+        <Setter Property="Margin" Value="8,4,8,0" />
+    </Style>
+    <Style Selector="Grid.chat.compact StackPanel.notice-line">
+        <Setter Property="Margin" Value="8,0,8,4" />
+    </Style>
+
+    <!-- ===== Markdown ==================================================================================== -->
+
+    <Style Selector="v|MarkdownView">
+        <Setter Property="Spacing" Value="10" />
+    </Style>
+    <Style Selector="SelectableTextBlock.md-paragraph, TextBlock.md-paragraph, SelectableTextBlock.md-item, TextBlock.md-item">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="{DynamicResource Fadenstack.LineHeight.Body}" />
+    </Style>
+    <Style Selector="TextBlock.md-heading">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,6,0,0" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Body}" />
+    </Style>
+    <Style Selector="TextBlock.md-heading.h1">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Title}" />
+    </Style>
+    <Style Selector="TextBlock.md-heading.h2">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Heading}" />
+    </Style>
+    <Style Selector="TextBlock.md-heading.h3">
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Subtitle}" />
+    </Style>
+    <Style Selector="SelectableTextBlock.md-quote">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="{DynamicResource Fadenstack.LineHeight.Body}" />
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style Selector="TextBlock.md-marker">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Fadenstack.LineHeight.Body}" />
+        <Setter Property="MinWidth" Value="20" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Run.code">
+        <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.FontFamily.Mono}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.CodeInlineBackground}" />
+    </Style>
+    <Style Selector="Run.link">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Link}" />
+        <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+
+    <!-- A code block: a frame, the language and a copy button on top; the code wraps in a narrow panel and scrolls in a wide one. -->
+    <Style Selector="Border.code">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.CodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="DockPanel.code-head">
+        <Setter Property="Margin" Value="12,4,4,0" />
+    </Style>
+    <Style Selector="ScrollViewer.code-scroll">
+        <Setter Property="Padding" Value="12,0,12,12" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+    </Style>
+    <Style Selector="TextBlock.code-line">
+        <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.FontFamily.Mono}" />
+        <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+    </Style>
+    <Style Selector="Border.preview">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.preview-switch">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Spacing" Value="4" />
+        <Setter Property="Margin" Value="8,8,8,0" />
+    </Style>
+    <Style Selector="StackPanel.preview-body">
+        <Setter Property="Margin" Value="12,8,12,12" />
+        <Setter Property="Spacing" Value="10" />
+    </Style>
+    <Style Selector="Border.quote">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="Padding" Value="12,0,0,0" />
+    </Style>
+    <!-- Tables scroll inside their own frame. -->
+    <Style Selector="Border.table">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="Border.table-head">
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+    </Style>
+    <Style Selector="Border.table-cell">
+        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+    </Style>
+    <Style Selector="Border.rule">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Margin" Value="0,4" />
+    </Style>
+</Styles>

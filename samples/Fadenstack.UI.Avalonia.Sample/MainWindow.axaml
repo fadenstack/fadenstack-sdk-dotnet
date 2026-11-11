@@ -1,0 +1,7 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views;assembly=Fadenstack.UI.Avalonia"
+        x:Class="Fadenstack.UI.Avalonia.Sample.MainWindow"
+        Title="Fadenstack chat (Avalonia)" Width="520" Height="900">
+    <v:ChatView x:Name="Chat" />
+</Window>
