@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Fadenstack.Http;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Auth;
 
@@ -48,7 +49,7 @@ public sealed class MemoryTokenStore : ITokenStore
 }
 
 /// <summary>
-/// One file per server and agent, under the user's data folder, encrypted with DPAPI on Windows
+/// One file per server and agent, under the data root (<see cref="FadenstackPaths.DataRoot"/>), encrypted with DPAPI on Windows
 /// (<see cref="SecretProtection.Default"/>).
 /// </summary>
 public sealed class FileTokenStore : ITokenStore
@@ -58,7 +59,7 @@ public sealed class FileTokenStore : ITokenStore
 
     public FileTokenStore(string? directory = null, ISecretProtector? protector = null)
     {
-        _directory = directory ?? SecretProtection.DataDirectory("tokens");
+        _directory = directory ?? FadenstackPaths.Data("tokens");
         Directory.CreateDirectory(_directory);
         _protector = protector ?? SecretProtection.Default;
     }

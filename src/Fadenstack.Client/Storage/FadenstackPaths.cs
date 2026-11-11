@@ -36,7 +36,7 @@ public static class FadenstackPaths
     /// <summary>Preferences, which hold no personal content. <c>%APPDATA%\Fadenstack</c> on Windows.</summary>
     public static string SettingsRoot => Current.Settings;
 
-    /// <summary>Logs; <c>DataRoot\logs</c> on Windows.</summary>
+    /// <summary>Logs (<see cref="Logging.FadenstackFileLoggerProvider"/>); <c>DataRoot\logs</c> on Windows.</summary>
     public static string LogRoot => Current.Logs;
 
     /// <summary>A folder under <see cref="DataRoot"/>, created, readable by its owner only (Unix).</summary>
@@ -100,13 +100,40 @@ public static class FadenstackPaths
     private static StringComparison Comparison =>
         RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
-    /// <summary>A name that is safe as one file or folder name: invalid characters and dots become underscores.</summary>
+    /// <summary>
+    /// A name that is safe as one file or folder name, and the same on every OS: control characters, the characters
+    /// Windows refuses in a name (<c>\ / : * ? " &lt; &gt; |</c>) and dots become underscores, whatever OS this runs on
+    /// (<see cref="Path.GetInvalidFileNameChars"/> holds only <c>/</c> and NUL off Windows). A trailing space, which
+    /// Windows drops, becomes an underscore, and a Windows device name (<c>CON</c>, <c>NUL</c>, <c>COM1</c>...) gets
+    /// one in front. So a person's folders have the same names on Windows, macOS and Linux.
+    /// </summary>
     public static string SafeName(string name)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        var safe = new string(name.Select(c => invalid.Contains(c) || c == '.' ? '_' : c).ToArray());
-        return safe.Length == 0 ? "_" : safe;
+        if (name is null)
+        {
+            throw new ArgumentNullException(nameof(name));
+        }
+        var safe = new string(name.Select(c => c < ' ' || c == '.' || NotInNames.IndexOf(c) >= 0 ? '_' : c).ToArray());
+        if (safe.Length == 0)
+        {
+            return "_";
+        }
+        if (safe[safe.Length - 1] == ' ')
+        {
+            safe = safe.Substring(0, safe.Length - 1) + "_";
+        }
+        return DeviceNames.Contains(safe) ? "_" + safe : safe;
     }
+
+    /// <summary>The characters Windows refuses in a file or folder name, refused on every OS.</summary>
+    private const string NotInNames = "\\/:*?\"<>|";
+
+    /// <summary>Windows' device names, which no file or folder may have (any case).</summary>
+    private static readonly HashSet<string> DeviceNames = new(
+        new[] { "CON", "PRN", "AUX", "NUL" }
+            .Concat(Enumerable.Range(1, 9).Select(n => "COM" + n))
+            .Concat(Enumerable.Range(1, 9).Select(n => "LPT" + n)),
+        StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The roots for an OS, given its environment and special folders (the real ones, or a test's).</summary>
     internal static Roots Resolve(Os os, Func<string, string?> env, Func<Environment.SpecialFolder, string> folder)

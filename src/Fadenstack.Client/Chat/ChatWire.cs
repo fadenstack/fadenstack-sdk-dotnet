@@ -249,11 +249,19 @@ internal static class ChatWire
         }
     }
 
-    public static FunctionCallContent Call(string id, string name, string? arguments)
+    public static FunctionCallContent Call(string id, string name, string? arguments, int? index = null)
     {
         var parsed = Arguments(arguments, out var error);
-        return new FunctionCallContent(id, name, parsed) { Exception = error };
+        var call = new FunctionCallContent(id, name, parsed) { Exception = error };
+        if (index is { } i)
+        {
+            call.AdditionalProperties = new AdditionalPropertiesDictionary { [FadenstackChatOptions.CallIndex] = i };
+        }
+        return call;
     }
+
+    /// <summary>Whether an outcome refuses the prompt or the answer; any other outcome informs, and the turn goes on.</summary>
+    public static bool IsRefusal(string? outcome) => outcome is "prompt_blocked" or "response_blocked";
 
     public static ChatFinishReason? Finish(string? value) => value switch
     {
@@ -322,11 +330,12 @@ internal static class ChatWire
                 }
                 if (m.TryGetProperty("tool_calls", out var calls) && calls.ValueKind == JsonValueKind.Array)
                 {
+                    var position = 0;
                     foreach (var call in calls.EnumerateArray())
                     {
                         var function = call.GetProperty("function");
                         message.Contents.Add(Call(Str(call, "id") ?? "", Str(function, "name") ?? "",
-                            Str(function, "arguments")));
+                            Str(function, "arguments"), position++));
                     }
                 }
             }
@@ -342,7 +351,17 @@ internal static class ChatWire
         if (faden.ValueKind == JsonValueKind.Object && faden.TryGetProperty("governance", out var g)
             && g.ValueKind == JsonValueKind.Object)
         {
-            Refused(response, Notice(g));
+            var notice = Notice(g);
+            if (IsRefusal(notice.Outcome))
+            {
+                Refused(response, notice);
+            }
+            else
+            {
+                // Any other outcome informs: the answer stands, the notice goes with it.
+                response.AdditionalProperties ??= new AdditionalPropertiesDictionary();
+                response.AdditionalProperties[FadenstackChatOptions.Governance] = notice;
+            }
         }
         return response;
     }

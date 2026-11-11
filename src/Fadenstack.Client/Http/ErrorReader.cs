@@ -46,17 +46,15 @@ internal static class ErrorReader
     {
         var status = response.StatusCode;
         var parsed = Parse(body, $"{(int)status} {response.ReasonPhrase}");
-        switch ((int)status)
+        FadenstackApiException exception = (int)status switch
         {
-            case 401:
-                return new FadenstackAuthenticationException(status, parsed.Message, parsed.Code);
-            case 403:
-                return new FadenstackPermissionException(status, parsed.Message, parsed.Code, parsed.Type);
-            case 429:
-                return new FadenstackRateLimitedException(status, parsed.Message, parsed.Code, RetryAfter(response));
-            default:
-                return new FadenstackApiException(status, parsed.Message, parsed.Code, parsed.Type, parsed.Param);
-        }
+            401 => new FadenstackAuthenticationException(status, parsed.Message, parsed.Code),
+            403 => new FadenstackPermissionException(status, parsed.Message, parsed.Code, parsed.Type),
+            429 => new FadenstackRateLimitedException(status, parsed.Message, parsed.Code, RetryAfter(response)),
+            _ => new FadenstackApiException(status, parsed.Message, parsed.Code, parsed.Type, parsed.Param),
+        };
+        exception.Faden = parsed.Fadenstack;
+        return exception;
     }
 
     internal static TimeSpan? RetryAfter(HttpResponseMessage response)

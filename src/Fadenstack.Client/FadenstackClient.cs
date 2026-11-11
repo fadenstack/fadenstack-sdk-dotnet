@@ -74,7 +74,7 @@ public sealed class FadenstackClient : IDisposable
         configure?.Invoke(options);
         tokens = new AgentTokenProvider(options.ApiUrl ?? serverUrl, agent, store ?? new FileTokenStore(),
             options.HttpClient ?? new System.Net.Http.HttpClient(FadenstackTransport.CreateHandler(options)),
-            allowInsecureHttp: options.AllowInsecureHttp);
+            allowInsecureHttp: options.AllowInsecureHttp, logger: options.LoggerFactory.CreateLogger(Log.Category));
         options.Credentials = tokens;
         return new FadenstackClient(options);
     }

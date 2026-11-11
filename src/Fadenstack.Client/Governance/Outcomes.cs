@@ -38,6 +38,9 @@ public sealed record GovernanceNotice
     /// <summary>The admin's message for the policy: what the user is told.</summary>
     public string Message { get; init; } = "";
 
+    /// <summary>The server's error code when the notice stands for an error (<c>rate_limited</c>, a quiet-hours or daily-limit code, ...).</summary>
+    public string? Code { get; init; }
+
     public string? DecisionId { get; init; }
 
     public string? RequestId { get; init; }

@@ -131,6 +131,12 @@ public static class FadenstackChatOptions
     /// </summary>
     public const string Provenance = "faden.provenance";
 
+    /// <summary>
+    /// Set on a <see cref="FunctionCallContent"/> the stream produced: the call's index in the stream (an <see cref="int"/>),
+    /// which the gateway's tool events may name when the model gave the call no usable id.
+    /// </summary>
+    public const string CallIndex = "faden.call_index";
+
     public static ChatOptions WithConversation(this ChatOptions options, string conversationId, string? turnId = null)
     {
         options.AdditionalProperties ??= new AdditionalPropertiesDictionary();

@@ -99,6 +99,23 @@ public sealed class AgentResource
         }
     }
 
+    /// <summary>
+    /// The tools of the organisation's MCP servers for the signed-in user and this agent, each with whether it is allowed and
+    /// switched on. Null when the server does not list them (an older one, without the route).
+    /// </summary>
+    public async Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var list = await _transport.GetAsync<AgentToolListWire>(Route("tools"), cancellationToken).ConfigureAwait(false);
+            return (list?.Tools ?? new List<AgentToolInfo>()).Where(t => !string.IsNullOrEmpty(t.Name)).ToList();
+        }
+        catch (FadenstackApiException e) when (e.Status == System.Net.HttpStatusCode.NotFound && e.Code != "agent_not_found")
+        {
+            return null; // no route: a server from before the list
+        }
+    }
+
     /// <summary>At most <paramref name="length"/> characters, never half a surrogate pair (it could not be sent).</summary>
     private static string Cut(string text, int length) =>
         text.Length <= length ? text : text.Substring(0, char.IsHighSurrogate(text[length - 1]) ? length - 1 : length);
