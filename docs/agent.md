@@ -57,12 +57,39 @@ if (!await tokens.IsSignedInAsync())
 |---|---|
 | `IsSignedInAsync()` | Whether a sign-in is kept and its refresh token has not expired. It does not ask the server. |
 | `SignInAsync(loginToken, deviceLabel)` | Signs in and keeps the sign-in in the store. |
-| `SignOutAsync()` | Forgets the sign-in on this device. It does not revoke it on the server; revoking is done there. |
+| `SignOutAsync()` | Revokes the sign-in at the server (best effort), then forgets it on this device. |
 | `DeviceId` | This device's sign-in id, once signed in. |
 
 A sign-in sends the user's login token, so `AgentTokenProvider` refuses an `http://` API URL unless it is this machine (`localhost`, `127.0.0.1` or `::1`) or you pass `allowInsecureHttp: true` for a development server. Its constructor throws `ArgumentException` otherwise.
 
 After the sign-in, the provider supplies access tokens by itself. An access token is short-lived and is renewed with a refresh token shortly before it expires; the server replaces the refresh token on every use. When the server refuses a renewal (the sign-in was revoked, a refresh token was used twice, or the user lost access), the provider forgets the sign-in and throws `FadenstackSignInRequiredException`. Ask the user to sign in again.
+
+## Sign in by pairing
+
+A desktop app should not handle a password. Pairing (the OAuth device grant, RFC 8628) lets the person approve the app in the web console, in their browser, where they sign in however the server lets them (password, SSO, MFA). The app shows a short code and receives the same agent tokens a sign-in issues.
+
+```csharp
+var store = new FileTokenStore();
+var pairing = new AgentPairing(serverUrl, new HttpClient(), store);
+
+var start = await pairing.StartAsync("docs-assistant", "Desktop agent on " + Environment.MachineName,
+    PairingClient.ForThisDevice("Desktop assistant", "1.2.3"));
+Console.WriteLine($"Approve {start.UserCode} at {start.VerificationUriComplete}");   // open the link in the browser
+
+var result = await pairing.WaitAsync(start, new Progress<PairingProgress>(p => Console.WriteLine($"{p.State}, {p.TimeLeft} left")));
+Console.WriteLine($"Signed in as {result.SignedInUser?.DisplayName}");
+
+var tokens = new AgentTokenProvider(serverUrl, "docs-assistant", store);   // same server, agent and store: signed in
+```
+
+`WaitAsync` polls the server's interval, five seconds longer after each `slow_down`, and retries network errors after 5, 10, 20 and then 30 seconds while the pairing is valid. It ends with `FadenstackPairingDeniedException` (denied in the console), `FadenstackPairingExpiredException` (the code expired) or, from `StartAsync`, `FadenstackPairingUnsupportedException` (the server is older than the feature). All derive from `FadenstackException`. The pairing code the app polls with stays in the `PairingStart` object in memory: it is never stored, logged or printed. The user code may be shown on screen, not logged. To trust a server's own CA, build the `HttpClient` on `FadenstackTransport.CreateHandler(options)` with `TrustedCaCertificate` set.
+
+The tokens and who signed in (`SignedInUser`: id, e-mail, display name) go into the `ITokenStore` under the same key `AgentTokenProvider` uses. Token sets stored before the user was kept still load, with no user.
+
+| Member | Meaning |
+|---|---|
+| `AgentTokenProvider.SignedInUser` | Who is signed in, once the provider has loaded the sign-in; `GetSignedInUserAsync()` reads it from the store. |
+| `AgentTokenProvider.SignOutAsync()` | Revokes the sign-in at the server (`POST /api/agent-tokens/revoke`, best effort: a network failure is ignored), then deletes the tokens on this device. Afterwards sign-in is required. |
 
 ### Where the sign-in is kept
 
@@ -282,6 +309,22 @@ A cancelled turn is recorded as cancelled in the session and is never sent to th
 - `UseHistoryBudget(tokens)` sets about how many tokens of earlier turns a request carries. The oldest turns are left out first; the current turn is always sent.
 
 `ReasoningEffort` is the Microsoft.Extensions.AI type.
+
+### How long it thinks: the person's choice
+
+The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto, Off (`none`), Low, Medium or High, as in other agents. The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder); a new chat starts from it and a change applies from the next message.
+
+The server can only set a maximum, in the agent version's `ui`:
+
+```json
+{ "reasoning": { "max": "low" } }
+```
+
+- `max` is optional: `none`, `low`, `medium`, `high` or `xhigh`. Anything else is ignored.
+- The pill hides the levels above the maximum; Off is always offered. A stored choice above a later, lower maximum shows and sends the maximum.
+- With a maximum, Auto means the maximum (it is sent). Without one, Auto sends no field.
+- The order is: the person's choice, then `UseReasoning`, then Auto, each lowered to the maximum.
+- In code: `agent.ReasoningChoices` (`Levels`, `Max`), `agent.Reasoning`, `agent.ReasoningChoice`, `agent.SetReasoningAsync(level)` and `session.Reasoning`. The turn's start entry in the session records `reasoning_effort`; the client events carry nothing about it.
 
 ## What is reported to the server
 
