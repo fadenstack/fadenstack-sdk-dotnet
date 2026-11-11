@@ -546,9 +546,11 @@ public sealed class FadenstackAgent : IDisposable
     /// the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no user, the
     /// shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
     /// sign out (the sign-in tokens stay; that is the host's call: <see cref="Auth.AgentTokenProvider.SignOutAsync"/>), and it
-    /// leaves stores the host passed to their owner. What the server keeps is for its operator to erase.
+    /// leaves stores the host passed to their owner -- they may hold other people's data -- but says so: in its result and
+    /// as a warning in the log, so a host never believes a person's data gone that its own store still keeps
+    /// (fadenstack-dev sdk/46 D-1). What the server keeps is for its operator to erase.
     /// </summary>
-    public async Task DeleteMyDataAsync(CancellationToken cancellationToken = default)
+    public async Task<DataDeletion> DeleteMyDataAsync(CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
@@ -559,6 +561,12 @@ public sealed class FadenstackAgent : IDisposable
         {
             var removed = folders.Count(FadenstackPaths.DeleteUnderData);
             Log.DataDeleted(Logger, removed);
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null);
+            if (deletion.HostStoresLeft)
+            {
+                Log.DataLeftInHostStores(Logger, deletion.HostSessionStoreLeft, deletion.HostApprovalStoreLeft);
+            }
+            return deletion;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
