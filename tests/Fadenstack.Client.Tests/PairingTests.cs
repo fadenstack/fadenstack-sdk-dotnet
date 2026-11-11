@@ -266,6 +266,17 @@ public class PairingTests
     }
 
     [Fact]
+    public async Task A_server_that_answers_the_start_with_405_is_reported_as_unsupported_too()
+    {
+        // Core 0.7.0 has no pairing routes, but DELETE /api/agent-tokens/{device_id} matches the path: 405, not 404
+        // (fadenstack-dev sdk/46 D-2). The person must hear "update the server", not a raw error.
+        var server = new FakeServer().On("POST", "/api/agent-tokens/pairings",
+            _ => FakeServer.Respond(HttpStatusCode.MethodNotAllowed, new { detail = "Method Not Allowed" }));
+        var pairing = new AgentPairing(Server, new HttpClient(server), new MemoryTokenStore());
+        await Assert.ThrowsAsync<FadenstackPairingUnsupportedException>(() => pairing.StartAsync(Agent, "PC", App));
+    }
+
+    [Fact]
     public async Task Start_failures_are_typed()
     {
         var limited = new FakeServer().On("POST", "/api/agent-tokens/pairings", _ => FakeServer.Respond((HttpStatusCode)429, new { detail = "slow" }));
