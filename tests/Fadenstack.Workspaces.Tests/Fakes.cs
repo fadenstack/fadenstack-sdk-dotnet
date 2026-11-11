@@ -6,6 +6,12 @@ using Fadenstack.Tools;
 
 namespace Fadenstack.Workspaces.Tests;
 
+/// <summary>A document's full path on the OS the tests run on: <c>C:\Docs\name</c> on Windows, <c>/docs/name</c> elsewhere.</summary>
+internal static class Docs
+{
+    public static string At(string name) => (OperatingSystem.IsWindows() ? @"C:\Docs\" : "/docs/") + name;
+}
+
 /// <summary>Processes under the test's control. Process 1 is "us".</summary>
 internal sealed class FakeProcesses : IProcessSource
 {
@@ -211,9 +217,9 @@ internal sealed class Fixture : IDisposable
     {
         Processes.Add("WINWORD", At(9), 100, "report.docx - Word");
         Processes.Add("WINWORD", At(10), 200, "notes.docx - Word");
-        Word.Open(100, @"C:\Docs\report.docx", active: true);
-        Word.Open(200, @"C:\Docs\notes.docx", active: true);
-        Word.Open(200, @"C:\Docs\report.docx");
+        Word.Open(100, Docs.At("report.docx"), active: true);
+        Word.Open(200, Docs.At("notes.docx"), active: true);
+        Word.Open(200, Docs.At("report.docx"));
     }
 
     public InstanceKey KeyOf(int pid) => InstanceKey.For("word", pid, Processes.ById(pid)!.StartedUtc);

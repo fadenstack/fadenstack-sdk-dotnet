@@ -5,6 +5,15 @@ namespace Fadenstack.Agents;
 /// <summary>A tool call that waits for the user.</summary>
 public sealed record ApprovalRequest
 {
+    /// <summary>
+    /// The session (<see cref="AgentSession.Id"/>) the call belongs to. Empty when a caller does not say: a screen that
+    /// shows several chats at once uses it to hand the request to the chat that owns it.
+    /// </summary>
+    public string SessionId { get; init; } = "";
+
+    /// <summary>The turn within that session the call belongs to. Empty when a caller does not say.</summary>
+    public string TurnId { get; init; } = "";
+
     public string CallId { get; init; } = "";
 
     public string ToolName { get; init; } = "";
@@ -13,6 +22,15 @@ public sealed record ApprovalRequest
 
     /// <summary><c>host</c>, <c>mcp</c>, or <c>gateway</c> (a gateway tool the gateway holds for the user).</summary>
     public string Source { get; init; } = "host";
+
+    /// <summary>The MCP server's label, for a tool from a local MCP server (<see cref="AgentTool.Server"/>).</summary>
+    public string? Server { get; init; }
+
+    /// <summary>The server's own hint that the tool only reads (<see cref="AgentTool.ReadOnlyHint"/>); null when it gave none.</summary>
+    public bool? ReadOnlyHint { get; init; }
+
+    /// <summary>The server's own hint that the tool may delete or overwrite (<see cref="AgentTool.DestructiveHint"/>); null when it gave none.</summary>
+    public bool? DestructiveHint { get; init; }
 
     /// <summary>Why it asks: the tool mode, or the admin's message for a rule (<see cref="RequiredByRule"/>).</summary>
     public string Reason { get; init; } = "";

@@ -59,7 +59,7 @@ public class HistoryPictureTests
         Assert.Equal(new[]
         {
             "image:" + Picture(1),
-            "text:<attachment title=\"Selection\" kind=\"selection\">\nOffer B: 40 EUR\n</attachment>\n\nWhich is cheaper?",
+            "text:<attachment id=\"a2\" title=\"Selection\" kind=\"selection\">\nOffer B: 40 EUR\n</attachment>\n\nWhich is cheaper?",
         }, Parts(user));
     }
 
@@ -72,8 +72,8 @@ public class HistoryPictureTests
         Assert.True(SentPictures(messages).Count <= ContextBuilder.MaxHistoryPictures);
         Assert.Equal(new[]
         {
-            "text:<attachment title=\"Picture 1\" kind=\"picture\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\n" +
-            "<attachment title=\"Picture 2\" kind=\"picture\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\nfirst",
+            "text:<attachment id=\"a1\" title=\"Picture 1\" kind=\"picture\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\n" +
+            "<attachment id=\"a2\" title=\"Picture 2\" kind=\"picture\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\nfirst",
         }, Parts(messages[0]));
     }
 
@@ -134,7 +134,7 @@ public class HistoryPictureTests
             Entry(EntryTypes.UserMessage, "t1", new { text = "look", attachments = new[] { new { title = "P", content = "data:image/png;base64,***", media_type = "image/png" } } }),
         };
         var user = Assert.Single(new ContextBuilder().Build(entries));
-        Assert.Equal(new[] { "text:<attachment title=\"P\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\nlook" }, Parts(user));
+        Assert.Equal(new[] { "text:<attachment id=\"a1\" title=\"P\">\n[A picture the user attached earlier; it is not sent again.]\n</attachment>\n\nlook" }, Parts(user));
     }
 
     [Fact]

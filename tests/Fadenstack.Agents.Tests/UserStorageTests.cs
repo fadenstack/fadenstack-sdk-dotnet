@@ -3,6 +3,7 @@ using Fadenstack.Auth;
 using Fadenstack.Client.Tests;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Fadenstack.Agents.Tests;
@@ -17,20 +18,23 @@ public sealed class PathsCollection
     public const string Name = "FadenstackPaths";
 }
 
-/// <summary>
-/// Sessions and approvals on the device: in the signed-in user's own folder, and what an older SDK left behind (39 F10;
-/// ported from the desktop branch).
-/// </summary>
+/// <summary>Sessions and approvals on the device: in the signed-in user's own folder, and what an older SDK left behind.</summary>
 [Collection(PathsCollection.Name)]
 public class UserStorageTests : IDisposable
 {
     private const string Principal = """{"tenant_id":"t-1","user_id":"u-1","agent_id":"a-1","device_id":null}""";
     private readonly string _temporary = Path.Combine(Path.GetTempPath(), "faden-user-" + Guid.NewGuid());
 
-    public UserStorageTests() => FadenstackPaths.RootForTests = _temporary;
+    public UserStorageTests()
+    {
+        FadenstackPaths.RootForTests = _temporary;
+        SecretProtection.ResetForTests(); // sessions go to files only when the protector encrypts, on every OS
+        SecretProtection.Use(new FakeEncryptingProtector());
+    }
 
     public void Dispose()
     {
+        SecretProtection.ResetForTests();
         FadenstackPaths.RootForTests = null;
         if (Directory.Exists(_temporary))
         {
@@ -117,7 +121,7 @@ public class UserStorageTests : IDisposable
     {
         FadenstackPaths.User("someone-else");
         File.WriteAllText(Path.Combine(FadenstackPaths.Data("sessions"), "s1.jsonl"), "x");
-        UserDataMigration.Adopt("u-1");
+        UserDataMigration.Adopt("u-1", NullLogger.Instance);
         Assert.True(File.Exists(Data("sessions", "s1.jsonl")));
         Assert.False(Directory.Exists(Data("users", "u-1")));
     }
@@ -125,7 +129,7 @@ public class UserStorageTests : IDisposable
     [Fact]
     public void Nothing_happens_without_older_data()
     {
-        UserDataMigration.Adopt("u-1");
+        UserDataMigration.Adopt("u-1", NullLogger.Instance);
         Assert.False(Directory.Exists(Data("users")));
     }
 

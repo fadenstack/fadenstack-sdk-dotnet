@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Fadenstack.Chat;
 using Microsoft.Extensions.AI;
 
@@ -229,14 +230,16 @@ public sealed class ContextBuilder
             return text;
         }
         var builder = new System.Text.StringBuilder();
-        foreach (var a in list)
+        for (var n = 0; n < list.Count; n++)
         {
+            var a = list[n];
             var picture = MessageAttachment.IsPictureType(Str(a, "media_type"));
             if (picture && pictures && Picture(a) is not null)
             {
                 continue; // an image part
             }
-            builder.Append("<attachment title=\"").Append(Attr(Str(a, "title"))).Append('"');
+            // The id is the attachment's place in the message (pictures counted), so it names the same one every time.
+            builder.Append("<attachment id=\"a").Append(n + 1).Append("\" title=\"").Append(Attr(Str(a, "title"))).Append('"');
             foreach (var name in new[] { "kind", "source", "reference" })
             {
                 if (Str(a, name) is { Length: > 0 } value)
@@ -245,7 +248,7 @@ public sealed class ContextBuilder
                 }
             }
             var content = picture ? "[A picture the user attached earlier; it is not sent again.]" : Str(a, "content") ?? "";
-            builder.Append(">\n").Append(content).Append("\n</attachment>\n\n");
+            builder.Append(">\n").Append(Contained(content)).Append("\n</attachment>\n\n");
         }
         return builder.Append(text).ToString();
     }
@@ -279,6 +282,10 @@ public sealed class ContextBuilder
             return null;
         }
     }
+
+    /// <summary>An attachment's text cannot close its block, or open another: <c>&lt;attachment</c> and <c>&lt;/attachment</c> (any case) lose their bracket.</summary>
+    private static string Contained(string content) =>
+        Regex.Replace(content, "<(/?attachment)", "&lt;$1", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private static string Attr(string? value) => (value ?? "").Replace("&", "&amp;").Replace("\"", "&quot;").Replace("<", "&lt;");
 

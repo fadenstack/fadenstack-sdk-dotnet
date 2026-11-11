@@ -1,5 +1,6 @@
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Agents;
 
@@ -26,7 +27,8 @@ public sealed class ToolInvocation
     private readonly Func<Governance.GovernanceNotice, Task>? _notice;
 
     internal ToolInvocation(AgentTool tool, FunctionCallContent call, AIFunctionArguments arguments, string sessionId, string turnId,
-        FadenstackAgent? agent = null, Func<string, object, Task>? record = null, Func<Governance.GovernanceNotice, Task>? notice = null)
+        FadenstackAgent? agent = null, Func<string, object, Task>? record = null, Func<Governance.GovernanceNotice, Task>? notice = null,
+        AgentSession? session = null)
     {
         Tool = tool;
         Call = call;
@@ -34,6 +36,7 @@ public sealed class ToolInvocation
         SessionId = sessionId;
         TurnId = turnId;
         Agent = agent;
+        Session = session;
         _record = record;
         _notice = notice;
     }
@@ -56,6 +59,9 @@ public sealed class ToolInvocation
 
     /// <summary>The agent the call runs in: its client, its profile; null outside a session.</summary>
     public FadenstackAgent? Agent { get; }
+
+    /// <summary>The session the call belongs to; null outside a session.</summary>
+    public AgentSession? Session { get; }
 
     /// <summary>A tool service of this call (<see cref="AgentBuilder.AddToolService{T}"/>): the same instance the tool gets; null when none is added.</summary>
     public T? GetService<T>() where T : class => Arguments.Services?.GetService(typeof(T)) as T;
@@ -93,14 +99,27 @@ public interface IToolSource
     Task<IReadOnlyList<AgentTool>> GetToolsAsync(AgentContext context, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// A tool source whose tools can change while the agent runs (a server that adds or drops a tool, a setting that switches
+/// a group of tools on or off). The agent asks it again at the start of the next turn, never inside a turn, and settles its
+/// tools by the same rules as at start; a tool that went away is refused with "(name) is no longer available."
+/// </summary>
+public interface IChangingToolSource : IToolSource
+{
+    /// <summary>Raised, from any thread, when <see cref="IToolSource.GetToolsAsync"/> would now answer differently.</summary>
+    event EventHandler? Changed;
+}
+
 /// <summary>What a tool source or module can see of the running agent.</summary>
 public sealed class AgentContext
 {
-    internal AgentContext(FadenstackClient client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report)
+    internal AgentContext(FadenstackClient client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report,
+        ILoggerFactory loggerFactory)
     {
         Client = client;
         Profile = profile;
         _report = report;
+        LoggerFactory = loggerFactory;
     }
 
     private readonly Func<IReadOnlyList<Models.AgentClientEvent>, Task> _report;
@@ -108,6 +127,9 @@ public sealed class AgentContext
     public FadenstackClient Client { get; }
 
     public Models.AgentProfile Profile { get; }
+
+    /// <summary>The agent's logger factory (<see cref="AgentBuilder.UseLogging"/>); a tool source logs through it, content-free.</summary>
+    public ILoggerFactory LoggerFactory { get; }
 
     /// <summary>Reports an event to the server (names and counts, never content).</summary>
     public Task ReportAsync(Models.AgentClientEvent clientEvent) => _report(new[] { clientEvent });

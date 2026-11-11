@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Workspaces;
 
@@ -16,11 +17,14 @@ public sealed class DocumentLeases
     private readonly string _directory;
     private readonly IProcessSource _processes;
 
-    /// <param name="directory">Default: <c>%LOCALAPPDATA%\Fadenstack\leases</c> (the user data folder elsewhere).</param>
+    /// <param name="directory">
+    /// Default: <c>leases</c> in <see cref="FadenstackPaths.DataRoot"/>, not per Fadenstack user: every agent process of
+    /// the OS user coordinates through it.
+    /// </param>
     /// <param name="processes">Default: the real processes.</param>
     public DocumentLeases(string? directory = null, IProcessSource? processes = null)
     {
-        _directory = directory ?? SecretProtection.DataDirectory("leases");
+        _directory = directory ?? FadenstackPaths.Data("leases");
         Directory.CreateDirectory(_directory);
         _processes = processes ?? SystemProcessSource.Instance;
     }

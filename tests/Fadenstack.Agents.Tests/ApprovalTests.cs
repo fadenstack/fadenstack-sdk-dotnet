@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Client.Tests;
 using Fadenstack.Governance;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Fadenstack.Agents.Tests;
@@ -56,6 +56,7 @@ public class ApprovalTests
         Assert.Empty(session.ApprovedForSession);
         Assert.Empty(await store.ListAsync(Gateway.Slug));
         Assert.All(Decisions(session), d => Assert.Equal(("once", true, false), (Str(d, "scope"), d.GetProperty("asked").GetBoolean(), d.GetProperty("for_session").GetBoolean())));
+        Assert.All(Decisions(session), d => Assert.Equal(toolClass.ToWire(), Str(d, "tool_class"))); // a reopened chat's card keeps it
         Assert.Equal((false, false), (decided.Single().Decision.ForSession, decided.Single().Decision.Always));
         Assert.All(Decided(gateway), e => Assert.Equal("once", Str(e, "scope")));
     }
@@ -462,37 +463,55 @@ public class ApprovalTests
         Assert.Equal("once", Str(Assert.Single(Decided(gateway)), "scope"));
         Assert.Equal(new[] { "once" }, AnswerScopes(gateway));
     }
+
+    [Fact]
+    public async Task A_request_carries_its_session_and_turn_for_a_tool_the_mode_asks_about()
+    {
+        var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":1,"text":"ok"}""")).Says("Done.");
+        var requests = new List<ApprovalRequest>();
+        using var agent = gateway.Builder().AddTools(new PageTools())
+            .UseApprovals((r, _) => { requests.Add(r); return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        var announced = new List<ApprovalRequest>();
+        await foreach (var e in session.StreamAsync("Go."))
+        {
+            if (e is ApprovalRequested a)
+            {
+                announced.Add(a.Request);
+            }
+        }
+        var asked = Assert.Single(requests);
+        Assert.Equal(session.Id, asked.SessionId);
+        Assert.NotEmpty(asked.TurnId);
+        Assert.Equal((asked.SessionId, asked.TurnId), (Assert.Single(announced).SessionId, announced[0].TurnId));
+    }
+
+    [Fact]
+    public async Task A_request_for_a_gateway_tool_carries_its_session_and_turn()
+    {
+        var gateway = new Gateway()
+            .Then(Gateway.Custom("faden.approval_required", new { approvalId = "ap-1", toolCallId = "gw-1", toolCallName = "mcp.github.merge", message = "Merging needs your OK.", timeoutS = 300 }),
+                Gateway.Text("Merged."), Gateway.Finish("stop"), FakeServer.Done);
+        ApprovalRequest? asked = null;
+        using var agent = gateway.Builder()
+            .UseApprovals((r, _) => { asked = r; return Task.FromResult(ApprovalDecision.Approve()); }).Build();
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("Merge it.");
+        Assert.Equal(session.Id, asked!.SessionId);
+        Assert.NotEmpty(asked.TurnId);
+    }
+
+    [Fact]
+    public void A_request_built_by_a_caller_has_no_session_or_turn()
+    {
+        var request = new ApprovalRequest();
+        Assert.Equal(("", ""), (request.SessionId, request.TurnId));
+    }
 }
 
 /// <summary>Bypass mode: what it lets through, what it still asks, and its warning. One class: the warning is global.</summary>
 public class PermissionModeTests
 {
-    private sealed class Captured : TraceListener
-    {
-        private readonly System.Text.StringBuilder _text = new();
-
-        public string Text
-        {
-            get
-            {
-                lock (_text)
-                {
-                    return _text.ToString();
-                }
-            }
-        }
-
-        public override void Write(string? message)
-        {
-            lock (_text)
-            {
-                _text.Append(message);
-            }
-        }
-
-        public override void WriteLine(string? message) => Write(message + "\n");
-    }
-
     [Fact]
     public async Task Bypass_asks_about_the_apps_own_tools_while_the_server_does_not_allow_it()
     {
@@ -560,27 +579,19 @@ public class PermissionModeTests
     [Fact]
     public async Task An_agent_in_bypass_warns_once_and_one_that_asks_does_not()
     {
-        var captured = new Captured();
-        Trace.Listeners.Add(captured);
-        try
-        {
-            using var asks = new Gateway().Builder().Build();
-            await asks.StartAsync();
-            Assert.DoesNotContain("bypass", captured.Text);
+        var logs = new CapturingLoggerFactory();
+        using var asks = new Gateway().Builder().UseLogging(logs).Build();
+        await asks.StartAsync();
+        Assert.DoesNotContain(logs.Entries, e => e.Message.Contains("bypass mode"));
 
-            using var bypass = new Gateway().Builder().UsePermissionMode(PermissionMode.Bypass).Build();
-            await bypass.StartAsync();
-            await bypass.StartAsync();
-            await bypass.StartSessionAsync();
-            var text = captured.Text;
-            Assert.Equal(1, text.Split(new[] { "is set to bypass mode" }, StringSplitOptions.None).Length - 1);
-            Assert.Contains("The agent 'docs-assistant' is set to bypass mode, which this server does not allow: every tool call " +
-                "that would ask still asks. Bypass mode never answers the gateway's own tools.", text);
-        }
-        finally
-        {
-            Trace.Listeners.Remove(captured);
-        }
+        using var bypass = new Gateway().Builder().UseLogging(logs).UsePermissionMode(PermissionMode.Bypass).Build();
+        await bypass.StartAsync();
+        await bypass.StartAsync();
+        await bypass.StartSessionAsync();
+        var warning = Assert.Single(logs.Entries, e => e.Message.Contains("is set to bypass mode"));
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Equal("Agent docs-assistant is set to bypass mode, which this server does not allow: every tool call that would ask " +
+            "still asks; bypass mode never answers the gateway's own tools", warning.Message);
     }
 }
 

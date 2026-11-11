@@ -3,6 +3,8 @@ using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Agents;
 
@@ -24,6 +26,7 @@ public sealed class AgentBuilder
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
+    private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
     private IStepUpHandler? _stepUp;
     private ToolMode? _defaultMode;
@@ -33,6 +36,7 @@ public sealed class AgentBuilder
     private ReasoningEffort? _reasoning;
     private bool _pictures = true;
     private AppDescription? _app;
+    private ILoggerFactory? _loggerFactory;
 
     internal AgentBuilder()
     {
@@ -104,6 +108,24 @@ public sealed class AgentBuilder
     public AgentBuilder UseSessionStore(ISessionStore store)
     {
         _sessions = store ?? throw new ArgumentNullException(nameof(store));
+        return this;
+    }
+
+    /// <summary>
+    /// How many sessions, and how old, the default session store keeps (default <see cref="SessionRetention.Default"/>). If the
+    /// server sets limits too (<see cref="AgentProfile.LocalRetention"/>), the stricter of each applies.
+    /// </summary>
+    public AgentBuilder UseSessionRetention(SessionRetention retention)
+    {
+        if (retention is null)
+        {
+            throw new ArgumentNullException(nameof(retention));
+        }
+        if (retention.MaxSessions < 1 || retention.MaxAgeDays < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(retention), "Both limits must be positive.");
+        }
+        _retention = retention;
         return this;
     }
 
@@ -207,6 +229,17 @@ public sealed class AgentBuilder
         return this;
     }
 
+    /// <summary>
+    /// Where the agent logs, and its client and local MCP servers with it: names, ids, counts, durations and outcomes, never
+    /// content (no prompts, answers, reasoning, attachments, tool arguments or results, tokens, secrets or user ids). Spans
+    /// and metrics need no factory: subscribe to <see cref="FadenstackTelemetry"/>'s sources. Default: no logging.
+    /// </summary>
+    public AgentBuilder UseLogging(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+        return this;
+    }
+
     /// <summary>A delegating chat client at <paramref name="order"/> (<see cref="StageOrder"/>).</summary>
     public AgentBuilder AddChatStage(int order, Func<IChatClient, IChatClient> wrap)
     {
@@ -260,6 +293,10 @@ public sealed class AgentBuilder
         {
             var options = _options ?? throw new InvalidOperationException("Call UseServer(...) or UseClient(...).");
             options.Agent = agent;
+            if (_loggerFactory is not null)
+            {
+                options.LoggerFactory = _loggerFactory;
+            }
             client = new FadenstackClient(options);
             ownsClient = true;
         }
@@ -284,6 +321,7 @@ public sealed class AgentBuilder
             OwnsClient = ownsClient,
             Agent = agent,
             Chat = chat,
+            LoggerFactory = _loggerFactory ?? client.Options.LoggerFactory,
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
@@ -292,6 +330,7 @@ public sealed class AgentBuilder
             Approvals = _approvals,
             Sessions = _sessions,
             ApprovalStore = _approvalStore,
+            Retention = _retention,
             PermissionMode = _permissionMode,
             StepUpHandler = _stepUp,
             DefaultMode = _defaultMode,
@@ -327,6 +366,9 @@ internal sealed class AgentSettings
     public bool OwnsClient { get; init; }
     public string Agent { get; init; } = "";
     public IChatClient Chat { get; init; } = null!;
+
+    /// <summary>The builder's, else the client's (a client made elsewhere logs to its own).</summary>
+    public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
     public List<AgentTool> Tools { get; init; } = new();
     public List<IToolSource> Sources { get; init; } = new();
     public List<IToolStage> ToolStages { get; init; } = new();
@@ -343,6 +385,7 @@ internal sealed class AgentSettings
     public IStepUpHandler? StepUp => StepUpHandler ?? Approvals as IStepUpHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
+    public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
     /// <summary>The app's cap on the server's default level; null: none.</summary>
     public ToolMode? DefaultMode { get; init; }

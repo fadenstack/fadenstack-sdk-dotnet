@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using Fadenstack.Agents.Sessions;
+using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Agents;
 
@@ -19,8 +21,19 @@ public sealed class FadenstackAgent : IDisposable
     private IApprovalStore? _approvalStore;
     private AgentProfile? _profile;
     private DateTimeOffset _profileRead;
-    private IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
+    private volatile IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
+    private IReadOnlyList<AgentTool> _hostTools = Array.Empty<AgentTool>();
+    private readonly List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)> _sourceTools = new();
+    private readonly HashSet<IToolSource> _changed = new();
+    private readonly HashSet<string> _gone = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _refreshing = new(1, 1);
+    private readonly List<(IChangingToolSource Source, EventHandler Handler)> _subscriptions = new();
+    private AgentContext? _context;
     private bool _warned;
+    private ILogger? _logger;
+    private ReasoningChoiceStore? _reasoningStore;
+    private ReasoningChoices _reasoningChoices = ReasoningChoices.Everything;
+    private ReasoningLevel? _reasoningPick;
 
     internal FadenstackAgent(AgentSettings settings)
     {
@@ -92,7 +105,7 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
     internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
 
-    /// <summary>The time, for the profile's age; tests set it.</summary>
+    /// <summary>The time, for the profile's age and the grants' remaining time (<see cref="AgentGrants.ServerNow"/>); tests set it.</summary>
     internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
 
     // No level: no limit (Bypass, cut to Auto in Ceiling unless offered); one this SDK does not know: read-only.
@@ -105,6 +118,12 @@ public sealed class FadenstackAgent : IDisposable
     internal AgentSettings Settings => _settings;
 
     internal EventReporter Reporter { get; }
+
+    /// <summary>Where the agent and its sessions log (<see cref="AgentBuilder.UseLogging"/>); nowhere by default.</summary>
+    internal ILogger Logger => _logger ??= _settings.LoggerFactory.CreateLogger(Log.Category);
+
+    /// <summary>A first-party module's logger (provenance), under the module's own category, through the agent's factory.</summary>
+    internal ILogger CreateLogger(string category) => _settings.LoggerFactory.CreateLogger(category);
 
     /// <summary>The host's store, or the default one once <see cref="StartAsync"/> knows whose it is.</summary>
     internal ISessionStore SessionStore => _settings.Sessions ?? _sessions ?? throw new InvalidOperationException("Call StartAsync first.");
@@ -127,27 +146,43 @@ public sealed class FadenstackAgent : IDisposable
                 return;
             }
             var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
-            UseDefaultStores(profile.Principal);
-            var tools = HostTools(profile);
-            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync);
+            var dropped = new List<string>();
+            var tools = HostTools(profile, dropped);
+            foreach (var name in dropped)
+            {
+                Log.ToolDropped(Logger, name);
+            }
+            var hostTools = tools.Count;
+            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            var fromSources = new List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)>();
             foreach (var source in _settings.Sources)
             {
-                foreach (var tool in await source.GetToolsAsync(context, cancellationToken).ConfigureAwait(false))
+                if (source is IChangingToolSource changing)
                 {
-                    if (tools.Any(t => t.Name == tool.Name))
-                    {
-                        continue; // a host tool wins over an MCP tool of the same name
-                    }
-                    tools.Add(tool);
+                    EventHandler handler = (_, _) => OnSourceChanged(source);
+                    changing.Changed += handler;
+                    _subscriptions.Add((changing, handler));
                 }
+                fromSources.Add((source, await source.GetToolsAsync(context, cancellationToken).ConfigureAwait(false)));
             }
+            _hostTools = tools;
+            _context = context;
+            lock (_changed)
+            {
+                _sourceTools.AddRange(fromSources);
+            }
+            tools = Compose();
+            UseDefaultStores(profile.Principal, _settings.Retention.Within(profile.LocalRetention));
             _tools = tools;
             _profile = profile;
+            _reasoningChoices = ReasoningChoices.FromUi(profile.Ui);
+            _reasoningPick = _reasoningStore?.Get(Slug);
+            Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
+            Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped.Count);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && !BypassOffered)
             {
                 _warned = true;
-                Trace.TraceWarning($"The agent '{Slug}' is set to bypass mode, which this server does not allow: every tool call " +
-                    "that would ask still asks. Bypass mode never answers the gateway's own tools.");
+                Log.BypassMode(Logger, Slug); // set to bypass, which no server allows yet: every call still asks
             }
             else if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && _settings.StepUp is null)
             {
@@ -180,24 +215,10 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>
-    /// The stores the host did not pass: in the signed-in user's own folder (<c>users/&lt;user&gt;/sessions</c>,
-    /// <c>.../approvals</c>) when the profile names the user, so two Fadenstack users -- or one on two servers -- on one OS
-    /// account never share sessions or "Allow always" (39 F10); in the shared folders of an older SDK otherwise. The first
-    /// user also adopts what an older SDK kept (<see cref="UserDataMigration"/>).
+    /// The host tools <paramref name="profile"/>'s contract allows, with its class and approval; the names of those it
+    /// leaves out go to <paramref name="dropped"/>.
     /// </summary>
-    private void UseDefaultStores(AgentPrincipal? principal)
-    {
-        if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
-        {
-            UserDataMigration.Adopt(principal.UserId);
-        }
-        string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
-        _sessions ??= _settings.Sessions is null ? new FileSessionStore(Folder("sessions")) : null;
-        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
-    }
-
-    /// <summary>The host tools <paramref name="profile"/>'s contract allows, with its class and approval.</summary>
-    private List<AgentTool> HostTools(AgentProfile profile)
+    private List<AgentTool> HostTools(AgentProfile profile, List<string>? dropped = null)
     {
         var contract = profile.HostToolContract.GroupBy(t => t.Name).ToDictionary(g => g.Key, g => g.First());
         var tools = new List<AgentTool>();
@@ -206,11 +227,15 @@ public sealed class FadenstackAgent : IDisposable
             ToolContractEntry? entry = null;
             if (contract.Count > 0 && !contract.TryGetValue(tool.Name, out entry))
             {
+                dropped?.Add(tool.Name);
                 continue; // the gateway refuses it anyway; not offering it keeps the model from trying
             }
             var risk = ToolModes.ParseClass(entry?.Risk);
             tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
-                tool.Source, tool.Server, tool.OpenWorld) { Describe = tool.Describe, Outputs = tool.Outputs, Approval = entry?.Approval });
+                tool.Source, tool.Server, tool.OpenWorld) {
+                Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope, ReadOnlyHint = tool.ReadOnlyHint, DestructiveHint = tool.DestructiveHint,
+                Approval = entry?.Approval,
+            });
         }
         return tools;
     }
@@ -237,18 +262,129 @@ public sealed class FadenstackAgent : IDisposable
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
-                Trace.TraceWarning($"The profile of the agent '{Slug}' could not be read again ({e.GetType().Name}); the one held stays.");
+                Log.ProfileRereadFailed(Logger, Slug, e.GetType().Name);
                 return;
             }
             var hosts = HostTools(profile);
-            var own = new HashSet<string>(_settings.Tools.Select(t => t.Name));
-            _tools = hosts.Concat(_tools.Where(t => !own.Contains(t.Name))).ToList();
+            // Settled as a changed tool source is (RefreshToolsAsync): one at a time, and a host tool that went away is refused by name.
+            await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                var before = _tools;
+                List<AgentTool> after;
+                lock (_changed)
+                {
+                    _hostTools = hosts;
+                    after = Compose();
+                }
+                MarkGone(before, after);
+                _tools = after;
+            }
+            finally
+            {
+                _refreshing.Release();
+            }
             _profile = profile;
+            _reasoningChoices = ReasoningChoices.FromUi(profile.Ui); // a maximum the server lowered counts from the next message
         }
         finally
         {
             _starting.Release();
         }
+    }
+
+    /// <summary>
+    /// The stores the host did not pass: in the signed-in user's own folder, or -- from a gateway that names no user -- in
+    /// the shared one an older SDK used.
+    /// </summary>
+    private void UseDefaultStores(AgentPrincipal? principal, SessionRetention retention)
+    {
+        if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
+        {
+            UserDataMigration.Adopt(principal.UserId, Logger);
+        }
+        string Folder(string name) => principal is null ? FadenstackPaths.Data(name) : FadenstackPaths.User(principal.UserId, name);
+        if (_sessions is null && _settings.Sessions is null)
+        {
+            // A transcript is personal data: it goes to disk only encrypted.
+            if (SecretProtection.Default.Encrypts)
+            {
+                _sessions = new FileSessionStore(Folder("sessions"), retention: retention);
+            }
+            else
+            {
+                _sessions = new MemorySessionStore();
+                Log.TranscriptsNotKept(Logger, Slug);
+            }
+        }
+        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
+        if (_reasoningStore is null && (_settings.Sessions is null || _settings.ApprovalStore is null))
+        {
+            // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.
+            _reasoningStore = new ReasoningChoiceStore(Folder("preferences"));
+        }
+    }
+
+    /// <summary>
+    /// The levels of thinking the agent offers: Auto, Off, and Low, Medium and High up to the maximum the profile's
+    /// <c>ui.reasoning.max</c> sets, if any.
+    /// </summary>
+    public ReasoningChoices ReasoningChoices => _reasoningChoices;
+
+    /// <summary>
+    /// The level this person picked for this agent on this device, if any. Kept per person and per agent in the SDK's user
+    /// folder, so it survives a restart and a new agent instance -- unless the host passed both its own session and approval
+    /// stores, which leaves the pick in memory for the run. A pick above a maximum the server set later still counts, and
+    /// is lowered to it.
+    /// </summary>
+    public ReasoningLevel? ReasoningChoice => _reasoningPick;
+
+    /// <summary>
+    /// How long new messages think: the person's pick, else what the app set with <see cref="AgentBuilder.UseReasoning"/>,
+    /// else <see cref="ReasoningLevel.Auto"/> -- each lowered to the server's maximum, if it sets one.
+    /// </summary>
+    public ReasoningLevel Reasoning => ResolveReasoning().Level;
+
+    /// <summary>What a request carries when nothing else was set for the session; null (no field) for Auto without a maximum.</summary>
+    internal ReasoningEffort? RequestEffort => ResolveReasoning().Effort;
+
+    /// <summary>What a request carries for a level the session was given: Auto is the maximum, if there is one.</summary>
+    internal ReasoningEffort? EffortFor(ReasoningLevel level) =>
+        level == ReasoningLevel.Auto ? _reasoningChoices.Max : _reasoningChoices.Cap(level.ToEffort());
+
+    private (ReasoningLevel Level, ReasoningEffort? Effort) ResolveReasoning()
+    {
+        if (_reasoningPick is { } pick)
+        {
+            return pick == ReasoningLevel.Auto ? (ReasoningLevel.Auto, _reasoningChoices.Max) : Capped(_reasoningChoices.Cap(pick.ToEffort()));
+        }
+        // The app's own effort goes out exactly as it set it (extra high stays extra high) unless the maximum is lower.
+        return _settings.Reasoning is { } app ? Capped(_reasoningChoices.Cap(app)) : (ReasoningLevel.Auto, _reasoningChoices.Max);
+    }
+
+    private static (ReasoningLevel Level, ReasoningEffort? Effort) Capped(ReasoningEffort? effort) => (ReasoningLevels.FromEffort(effort), effort);
+
+    /// <summary>
+    /// Keeps the person's pick for this agent (null forgets it), from the next message on; a running turn is not changed.
+    /// A level the agent does not offer is ignored. Returns the level new messages think at.
+    /// </summary>
+    public async Task<ReasoningLevel> SetReasoningAsync(ReasoningLevel? level, CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return SetReasoning(level);
+    }
+
+    /// <summary>
+    /// <see cref="SetReasoningAsync"/> for a UI thread, once the agent started: it writes one small file and waits for nothing.
+    /// </summary>
+    public ReasoningLevel SetReasoning(ReasoningLevel? level)
+    {
+        if (level is null || _reasoningChoices.Offers(level.Value))
+        {
+            _reasoningPick = level;
+            _reasoningStore?.Set(Slug, level);
+        }
+        return Reasoning;
     }
 
     /// <summary>
@@ -392,15 +528,59 @@ public sealed class FadenstackAgent : IDisposable
         return await ApprovalStore.ListAsync(Slug, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Starts the agent unless the host passed <paramref name="store"/>: the default one is the signed-in user's.</summary>
-    private Task StartUnless(object? store, CancellationToken cancellationToken) =>
-        store is null ? StartAsync(cancellationToken) : Task.CompletedTask;
+    /// <summary>
+    /// Writes a ZIP of the signed-in user's data on this device to <paramref name="destination"/> (left open): every session
+    /// of every agent, one JSON file each, the "Allow always" approvals, and a README (an access request, GDPR Art. 15 and 20).
+    /// Without a user from the gateway these are the shared folders of an older SDK. Sign-in tokens are never included, nor
+    /// is what the server keeps. A store the host passed is read for this agent only.
+    /// </summary>
+    public async Task ExportMyDataAsync(Stream destination, CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken).ConfigureAwait(false);
+        Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
+    }
+
+    /// <summary>
+    /// Deletes the signed-in user's data on this device (an erasure request, GDPR Art. 17): the whole folder of the user --
+    /// the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no user, the
+    /// shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
+    /// sign out (the sign-in tokens stay; that is the host's call: <see cref="Auth.AgentTokenProvider.SignOutAsync"/>), and it
+    /// leaves stores the host passed to their owner. What the server keeps is for its operator to erase.
+    /// </summary>
+    public async Task DeleteMyDataAsync(CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        var principal = Profile.Principal;
+        var folders = principal is null
+            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences") }
+            : new[] { FadenstackPaths.UserFolder(principal.UserId) };
+        try
+        {
+            var removed = folders.Count(FadenstackPaths.DeleteUnderData);
+            Log.DataDeleted(Logger, removed);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.DataDeletionFailed(Logger, e.GetType().Name);
+            throw;
+        }
+    }
+
+    /// <summary>The default stores need the profile (whose folder); a store the host passed does not.</summary>
+    private Task StartUnless(object? hostStore, CancellationToken cancellationToken) =>
+        hostStore is null ? StartAsync(cancellationToken) : Task.CompletedTask;
 
     /// <summary>Sends what is left to report.</summary>
     public Task FlushAsync(CancellationToken cancellationToken = default) => Reporter.FlushAsync(cancellationToken);
 
     public void Dispose()
     {
+        foreach (var (source, handler) in _subscriptions)
+        {
+            source.Changed -= handler;
+        }
+        _subscriptions.Clear();
         foreach (var source in _settings.Sources.OfType<IDisposable>())
         {
             source.Dispose();
@@ -410,10 +590,129 @@ public sealed class FadenstackAgent : IDisposable
             _settings.Client.Dispose();
         }
         _starting.Dispose();
+        _refreshing.Dispose();
     }
 
-    internal IList<AITool> Offer(ToolMode mode) =>
-        _tools.Where(t => ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden).Select(t => (AITool)t.Function).ToList();
+    /// <summary>The host tools, then each source's tools in the builder's order; a host tool wins over an MCP tool of the same name.</summary>
+    private List<AgentTool> Compose()
+    {
+        var tools = new List<AgentTool>(_hostTools);
+        var names = new HashSet<string>(tools.Select(t => t.Name), StringComparer.Ordinal);
+        foreach (var (_, fromSource) in _sourceTools)
+        {
+            foreach (var tool in fromSource)
+            {
+                if (names.Add(tool.Name))
+                {
+                    tools.Add(tool);
+                }
+            }
+        }
+        return tools;
+    }
+
+    private void OnSourceChanged(IToolSource source)
+    {
+        lock (_changed)
+        {
+            _changed.Add(source);
+        }
+    }
+
+    /// <summary>
+    /// Asks the sources that said they changed for their tools again, and settles them as at start. Called at the start of a
+    /// turn, never inside one, so a turn's tools do not change under it. A tool that went away stays refused by name.
+    /// A source that fails keeps the tools it had.
+    /// </summary>
+    internal async Task RefreshToolsAsync(CancellationToken cancellationToken)
+    {
+        lock (_changed)
+        {
+            if (_changed.Count == 0 || _context is null)
+            {
+                return;
+            }
+        }
+        await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            List<IToolSource> changed;
+            lock (_changed)
+            {
+                changed = _changed.ToList();
+                _changed.Clear();
+            }
+            if (changed.Count == 0)
+            {
+                return;
+            }
+            var before = _tools;
+            foreach (var source in changed)
+            {
+                IReadOnlyList<AgentTool> fresh;
+                try
+                {
+                    fresh = await source.GetToolsAsync(_context!, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    Log.ToolsRefreshFailed(Logger, Slug, e.GetType().Name); // it keeps the tools it had
+                    continue;
+                }
+                lock (_changed)
+                {
+                    var at = _sourceTools.FindIndex(s => ReferenceEquals(s.Source, source));
+                    if (at >= 0)
+                    {
+                        _sourceTools[at] = (source, fresh);
+                    }
+                }
+            }
+            List<AgentTool> after;
+            lock (_changed)
+            {
+                after = Compose();
+            }
+            MarkGone(before, after);
+            _tools = after;
+            Log.ToolsRefreshed(Logger, Slug, changed.Count, after.Count);
+        }
+        finally
+        {
+            _refreshing.Release();
+        }
+    }
+
+    /// <summary>Keeps the names of the tools that were offered and are no more; a name offered again is taken off.</summary>
+    private void MarkGone(IReadOnlyList<AgentTool> before, IReadOnlyList<AgentTool> after)
+    {
+        var now = new HashSet<string>(after.Select(t => t.Name), StringComparer.Ordinal);
+        lock (_gone)
+        {
+            foreach (var tool in before)
+            {
+                if (!now.Contains(tool.Name))
+                {
+                    _gone.Add(tool.Name);
+                }
+            }
+            _gone.RemoveWhere(now.Contains);
+        }
+    }
+
+    /// <summary>Whether a tool of this name was offered and went away: a call to it is refused as such, not as unknown.</summary>
+    internal bool IsGone(string name)
+    {
+        lock (_gone)
+        {
+            return _gone.Contains(name);
+        }
+    }
+
+    /// <summary>The tools the model gets in <paramref name="session"/> this round: the mode's, and those the tool's scope offers.</summary>
+    internal IList<AITool> Offer(ToolMode mode, AgentSession session) =>
+        _tools.Where(t => (t.Scope is null || t.Scope.Offers(t, session)) && ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden)
+            .Select(t => (AITool)t.Function).ToList();
 
     internal AgentTool? Find(string name) => _tools.FirstOrDefault(t => t.Name == name);
 }

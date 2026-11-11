@@ -18,9 +18,19 @@ public class IdentityTests
     [Fact]
     public void Workspace_locations_compare_as_paths()
     {
-        var a = new WorkspaceRef("word", @"C:\Docs\Report.docx");
-        Assert.True(a.SameLocation(new WorkspaceRef("WORD", @"c:\docs\sub\..\report.docx")));
-        Assert.False(a.SameLocation(new WorkspaceRef("excel", @"C:\Docs\Report.docx")));
+        var a = new WorkspaceRef("word", Docs.At("Report.docx"));
+        if (OperatingSystem.IsWindows())
+        {
+            // Windows' paths ignore case.
+            Assert.True(a.SameLocation(new WorkspaceRef("WORD", @"c:\docs\sub\..\report.docx")));
+        }
+        else
+        {
+            // Elsewhere the case counts; ".." still resolves.
+            Assert.True(a.SameLocation(new WorkspaceRef("WORD", "/docs/sub/../Report.docx")));
+            Assert.False(a.SameLocation(new WorkspaceRef("word", "/docs/report.docx")));
+        }
+        Assert.False(a.SameLocation(new WorkspaceRef("excel", Docs.At("Report.docx"))));
         Assert.Equal("Document3", new WorkspaceRef("word", "unsaved:Document3").Name);
     }
 }
@@ -32,7 +42,7 @@ public class DirectoryTests
     {
         using var f = new Fixture();
         f.TwoWords();
-        using var agent = f.Registry.Register(new AgentPresence { Agent = "word-assistant", Instance = f.KeyOf(200).ToString(), Workspaces = [@"C:\Docs\notes.docx"] }, autoHeartbeat: false);
+        using var agent = f.Registry.Register(new AgentPresence { Agent = "word-assistant", Instance = f.KeyOf(200).ToString(), Workspaces = [Docs.At("notes.docx")] }, autoHeartbeat: false);
 
         var instances = f.Directory.GetInstances("word");
 
@@ -81,8 +91,8 @@ public class DirectoryTests
 
         Assert.Null(resolution.Workspace);
         Assert.Equal(2, resolution.Candidates.Count);
-        Assert.Contains(@"word:C:\Docs\report.docx@word#1", resolution.Message);
-        Assert.Contains(@"word:C:\Docs\notes.docx@word#2", resolution.Message);
+        Assert.Contains($@"word:{Docs.At("report.docx")}@word#1", resolution.Message);
+        Assert.Contains($@"word:{Docs.At("notes.docx")}@word#2", resolution.Message);
     }
 
     [Fact]
@@ -93,7 +103,9 @@ public class DirectoryTests
 
         var ambiguous = await f.Directory.ResolveAsync("word", "report");
         var picked = await f.Directory.ResolveAsync("word", "report.docx@word#2");
-        var byPath = await f.Directory.ResolveAsync("word", @"word:c:\docs\report.docx@word#1");
+        // On Windows in another case, which its paths ignore.
+        var byPath = await f.Directory.ResolveAsync("word",
+            OperatingSystem.IsWindows() ? @"word:c:\docs\report.docx@word#1" : $"word:{Docs.At("report.docx")}@word#1");
 
         Assert.Equal(2, ambiguous.Candidates.Count);
         Assert.Equal(200, picked.Workspace!.Ref.Instance!.Value.ProcessId);
@@ -120,7 +132,7 @@ public class LeaseTests
     public void A_second_holder_waits_until_release()
     {
         using var f = new Fixture();
-        var doc = new WorkspaceRef("word", @"C:\Docs\report.docx");
+        var doc = new WorkspaceRef("word", Docs.At("report.docx"));
 
         var first = f.Leases.TryAcquire(doc, "word-assistant", TimeSpan.FromMinutes(1));
         var second = f.Leases.TryAcquire(doc, "desktop-assistant", TimeSpan.FromMinutes(1));
@@ -137,7 +149,7 @@ public class LeaseTests
     public void A_lease_of_an_ended_process_is_taken_over()
     {
         using var f = new Fixture();
-        var doc = new WorkspaceRef("word", @"C:\Docs\report.docx");
+        var doc = new WorkspaceRef("word", Docs.At("report.docx"));
         var orphan = f.Leases.TryAcquire(doc, "word-assistant", TimeSpan.FromMinutes(5));
         Assert.NotNull(orphan);
 
@@ -155,7 +167,7 @@ public class LeaseTests
     public void An_expired_lease_is_taken_over()
     {
         using var f = new Fixture();
-        var doc = new WorkspaceRef("word", @"C:\Docs\report.docx");
+        var doc = new WorkspaceRef("word", Docs.At("report.docx"));
         using var expired = f.Leases.TryAcquire(doc, "word-assistant", TimeSpan.FromMilliseconds(-1));
 
         using var fresh = f.Leases.TryAcquire(doc, "desktop-assistant", TimeSpan.FromMinutes(1));
@@ -205,7 +217,7 @@ public class WorkspaceToolTests
     {
         using var f = new Fixture();
         f.TwoWords();
-        var doc = new WorkspaceRef("word", @"C:\Docs\notes.docx");
+        var doc = new WorkspaceRef("word", Docs.At("notes.docx"));
 
         var result = await Tool(f, "append_text", new WorkspaceToolOptions { Holder = "desktop-assistant" })
             .InvokeAsync(new AIFunctionArguments { ["workspace"] = JsonDocument.Parse("\"notes\"").RootElement, ["text"] = "hello" });
@@ -220,7 +232,7 @@ public class WorkspaceToolTests
     {
         using var f = new Fixture();
         f.TwoWords();
-        using var held = f.Leases.TryAcquire(new WorkspaceRef("word", @"C:\Docs\notes.docx"), "word-assistant", TimeSpan.FromMinutes(1));
+        using var held = f.Leases.TryAcquire(new WorkspaceRef("word", Docs.At("notes.docx")), "word-assistant", TimeSpan.FromMinutes(1));
 
         var result = await Tool(f, "append_text", new WorkspaceToolOptions { LeaseWait = TimeSpan.FromMilliseconds(300) })
             .InvokeAsync(new AIFunctionArguments { ["workspace"] = "notes.docx", ["text"] = "hello" });
@@ -253,9 +265,9 @@ public class SystemToolsTests
         f.TwoWords();
         using var agent = f.Registry.Register(new AgentPresence
         {
-            Agent = "word-assistant", Instance = f.KeyOf(200).ToString(), Workspaces = [@"C:\Docs\report.docx"], Status = AgentStatus.Busy,
+            Agent = "word-assistant", Instance = f.KeyOf(200).ToString(), Workspaces = [Docs.At("report.docx")], Status = AgentStatus.Busy,
         }, autoHeartbeat: false);
-        using var lease = f.Leases.TryAcquire(new WorkspaceRef("word", @"C:\Docs\report.docx"), "word-assistant", TimeSpan.FromMinutes(1));
+        using var lease = f.Leases.TryAcquire(new WorkspaceRef("word", Docs.At("report.docx")), "word-assistant", TimeSpan.FromMinutes(1));
         var tools = new SystemTools(f.Directory);
 
         var instances = tools.ListRunningInstances("word").Split('\n');
@@ -264,8 +276,8 @@ public class SystemToolsTests
         Assert.StartsWith("word#1: process 100", instances[0]);
         Assert.EndsWith("no Fadenstack agent", instances[0]);
         Assert.Contains("agents: word-assistant (busy, on report.docx)", instances[1]);
-        Assert.Contains(@"word:C:\Docs\report.docx@word#1, active; being changed by word-assistant", open);
-        Assert.Contains(@"word:C:\Docs\report.docx@word#2; agents: word-assistant (busy, on report.docx); being changed by word-assistant", open);
+        Assert.Contains($@"word:{Docs.At("report.docx")}@word#1, active; being changed by word-assistant", open);
+        Assert.Contains($@"word:{Docs.At("report.docx")}@word#2; agents: word-assistant (busy, on report.docx); being changed by word-assistant", open);
     }
 
     [Fact]
@@ -277,12 +289,12 @@ public class SystemToolsTests
         var existing = Path.Combine(f.Root, "taken.docx");
         File.WriteAllText(existing, "");
 
-        var opened = await tools.OpenWorkspaceAsync("word", @"C:\Docs\budget.docx", "word#2");
+        var opened = await tools.OpenWorkspaceAsync("word", Docs.At("budget.docx"), "word#2");
         var created = await tools.CreateWorkspaceAsync("word", instance: "word#1");
         var refused = await tools.SaveWorkspaceAsync("word", "Document1@word#1", existing);
         var saved = await tools.SaveWorkspaceAsync("word", "Document1@word#1", Path.Combine(f.Root, "deck-notes.docx"));
 
-        Assert.Equal(@"Open as word:C:\Docs\budget.docx@word#2", opened);
+        Assert.Equal($@"Open as word:{Docs.At("budget.docx")}@word#2", opened);
         Assert.Equal("Open as word:unsaved:Document1@word#1", created);
         Assert.Contains("already exists", refused);
         Assert.StartsWith("Saved: ", saved);

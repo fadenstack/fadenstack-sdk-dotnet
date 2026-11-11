@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Fadenstack.Workspaces;
+namespace Fadenstack.Agents.Registry;
 
 /// <summary>A process as the framework needs it: identity, start time, session, window title.</summary>
 public sealed record ProcessSnapshot(int Id, string Name, DateTime StartedUtc, int SessionId, string? WindowTitle)

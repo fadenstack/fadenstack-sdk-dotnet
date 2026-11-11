@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using Fadenstack.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Agents;
 
@@ -12,8 +12,8 @@ internal static class UserDataMigration
 {
     private static readonly string[] Folders = { "sessions", "approvals" };
 
-    /// <summary>Moves them for <paramref name="userId"/>, and traces the result (folder count or failure kind; never the user or a path).</summary>
-    internal static void Adopt(string userId)
+    /// <summary>Moves them for <paramref name="userId"/>, and logs the result (folder count or failure kind; never the user or a path).</summary>
+    internal static void Adopt(string userId, ILogger logger)
     {
         try
         {
@@ -28,11 +28,11 @@ internal static class UserDataMigration
             {
                 Directory.Move(folder, Path.Combine(partition, Path.GetFileName(folder)));
             }
-            Trace.TraceInformation($"The earlier sessions and approvals ({legacy.Count} folders) moved into the user's own folder.");
+            Log.DataAdopted(logger, legacy.Count);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            Trace.TraceWarning($"The earlier sessions and approvals could not be moved into the user's own folder ({e.GetType().Name}).");
+            Log.DataAdoptionFailed(logger, e.GetType().Name);
         }
     }
 }

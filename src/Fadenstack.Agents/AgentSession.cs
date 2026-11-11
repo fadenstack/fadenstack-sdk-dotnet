@@ -26,6 +26,7 @@ public sealed class AgentSession
     private readonly HashSet<string> _approvedForSession = new();
     private readonly SemaphoreSlim _turn = new(1, 1);
     private readonly ContextBuilder _context;
+    private ReasoningLevel? _reasoning;
 
     internal AgentSession(FadenstackAgent agent, string id, List<TranscriptEntry> entries, ToolMode toolMode)
     {
@@ -42,6 +43,27 @@ public sealed class AgentSession
     public ToolMode ToolMode { get; set; }
 
     /// <summary>
+    /// How long the model thinks on the next message. Until it is set, the agent's level (<see cref="FadenstackAgent.Reasoning"/>:
+    /// the person's pick, the profile's default, the app's) -- so a new conversation starts from the person's pick. A turn
+    /// that already started keeps the level it started with.
+    /// </summary>
+    public ReasoningLevel Reasoning
+    {
+        get => _reasoning is { } level && level != ReasoningLevel.Auto ? ReasoningLevels.FromEffort(_agent.EffortFor(level)) : _reasoning ?? _agent.Reasoning;
+        set => _reasoning = value;
+    }
+
+    /// <summary>What a turn started now would send: the session's level, or -- while it follows the agent -- the agent's own effort.</summary>
+    internal ReasoningEffort? RequestEffort => _reasoning is { } level ? _agent.EffortFor(level) : _agent.RequestEffort;
+
+    /// <summary>
+    /// Who is asked about this session's calls that need approval, instead of the agent's own handler
+    /// (<see cref="AgentBuilder.UseApprovals(IApprovalHandler)"/>); null: the agent's. A session that someone else's person
+    /// supervises sets it, such as a task delegated by another agent (<c>Fadenstack.Agents.Delegation.DelegationHost</c>).
+    /// </summary>
+    public IApprovalHandler? Approvals { get; set; }
+
+    /// <summary>
     /// The mode turns run in: the user's pick, narrowed by the ceiling the server sets, if any. Bypass only while the
     /// server holds the conversation's Bypass grant (<see cref="StartBypassAsync"/>): no grant, no Bypass -- it is Auto
     /// (sdk/09 L-59).
@@ -51,12 +73,19 @@ public sealed class AgentSession
         get
         {
             var mode = ToolModes.Narrowest(ToolMode, _agent.Ceiling);
-            return mode == ToolMode.Bypass && Bypass is null ? ToolMode.Auto : mode;
+            return mode == ToolMode.Bypass && (Bypass is null || Delegated) ? ToolMode.Auto : mode;
         }
     }
 
     /// <summary>The conversation's live Bypass grant (the marker shows its time left); null when it is not in Bypass.</summary>
     public AgentGrant? Bypass => _agent.Grants.BypassFor(Id);
+
+    /// <summary>
+    /// A task another agent handed over (<c>Fadenstack.Agents.Delegation.DelegationHost</c>): it never runs in Bypass -- not
+    /// by the app's <see cref="PermissionMode.Bypass"/>, not by its host's mode, and nobody switches it on for it -- so it
+    /// never makes a Bypass grant nor sends the level (sdk/09 L-58: a delegated or receiving agent does not inherit it).
+    /// </summary>
+    internal bool Delegated { get; set; }
 
     // The mode before Bypass, to go back to when it ends.
     private ToolMode? _beforeBypass;
@@ -171,7 +200,7 @@ public sealed class AgentSession
     {
         var grants = _agent.Grants;
         var choices = grants.BypassChoices;
-        if (!_agent.BypassOffered || choices.Count == 0)
+        if (Delegated || !_agent.BypassOffered || choices.Count == 0)
         {
             return null;
         }
@@ -249,7 +278,7 @@ public sealed class AgentSession
         {
             await EndBypassGrantsAsync(cancellationToken).ConfigureAwait(false);
         }
-        if (_agent.PermissionMode == PermissionMode.Bypass && ToolMode >= ToolMode.Ask && Bypass is null && _agent.BypassOffered)
+        if (!Delegated && _agent.PermissionMode == PermissionMode.Bypass && ToolMode >= ToolMode.Ask && Bypass is null && _agent.BypassOffered)
         {
             try
             {
@@ -527,6 +556,23 @@ public sealed class AgentSession
     private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
 
     /// <summary>
+    /// Which call of a round a word of the gateway (<c>faden.tool_denied</c>, <c>faden.approval_required</c>) is about: the
+    /// call's index in the stream when the gateway gives one, else its id, else (no id) the tool's name.
+    /// </summary>
+    private sealed record Aim(string CallId, string ToolName, int? Index)
+    {
+        public static Aim From(JsonElement value) => new(ChatWire.Str(value, "toolCallId") ?? "", ChatWire.Str(value, "toolCallName") ?? "",
+            value.ValueKind == JsonValueKind.Object && value.TryGetProperty("toolCallIndex", out var i)
+                && i.ValueKind == JsonValueKind.Number && i.TryGetInt32(out var n) ? n : null);
+    }
+
+    /// <summary>A call as the model made it, with its place in the stream: the gateway may name either.</summary>
+    private sealed record RoundCall(FunctionCallContent Call, string ModelId, int Index);
+
+    /// <summary>A call of a round ready to run: under an id of its own, with what the gateway said of it.</summary>
+    private sealed record PlannedCall(FunctionCallContent Call, bool Denied, bool Hidden, GatewayMark? Mark);
+
+    /// <summary>
     /// How a call that needed approval was settled; the user's reason when they declined, and what let an approved
     /// call through (<see cref="ApprovalScopes"/>).
     /// </summary>
@@ -539,10 +585,13 @@ public sealed class AgentSession
         private readonly string _id;
         private readonly ChannelWriter<AgentEvent> _writer;
         private readonly List<GovernanceNotice> _notices = new();
-        private readonly HashSet<string> _deniedByGateway = new();
-        private readonly Dictionary<string, GatewayMark> _marks = new();
+        // What the gateway said of this round's calls (cleared as a round starts), and the tools it hides for the turn.
+        private readonly List<Aim> _denials = new();
+        private readonly List<(Aim Aim, GatewayMark Mark)> _marks = new();
+        private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
 
-        // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id.
+        // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id. Cleared
+        // as a round starts too: a model that reuses an id in a later round never inherits an earlier call's grant.
         private readonly Dictionary<string, string> _covered = new();
         private readonly StringBuilder _text = new();
 
@@ -553,7 +602,16 @@ public sealed class AgentSession
         private GovernanceNotice? _blocked;
         private bool _toolDenied;
         private ToolMode _mode;
+        private ReasoningEffort? _effort;
         private IReadOnlyList<string> _skills = Array.Empty<string>();
+
+        // The turn's span and clock, and the model requests it made: what its end reports.
+        private readonly Stopwatch _watch = Stopwatch.StartNew();
+        private Activity? _activity;
+        private int _rounds;
+
+        /// <summary>What let a call that needed approval through, when an admin's rule made it ask (the scope says the rest).</summary>
+        private const string RuleKind = "rule";
 
         // In Bypass: the conversation's grant as the turn began, and the calls of the app's tools it ran (L-61).
         private readonly List<string> _bypassRan = new();
@@ -581,6 +639,17 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             _mode = _session.EffectiveToolMode;
+            _effort = _session.RequestEffort;
+            using var scope = Log.TurnScope(Agent.Logger, _session.Id, _id);
+            using var activity = AgentTelemetry.Source.StartActivity("invoke_agent " + Agent.Slug);
+            _activity = activity;
+            activity?.SetTag("gen_ai.operation.name", "invoke_agent");
+            activity?.SetTag("gen_ai.agent.name", Agent.Slug);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
+            activity?.SetTag("fadenstack.turn.id", _id);
+            activity?.SetTag("fadenstack.tool_mode", _mode.ToWire());
+            activity?.SetTag("fadenstack.reasoning_effort", ReasoningLevels.Record(_effort));
+            Log.TurnStarted(Agent.Logger, _session.Id, _id, _mode.ToWire(), attachments.Count);
             BypassGrant = _mode == ToolMode.Bypass ? _session.Bypass?.Id : null;
             // The last turn ran in Bypass and this one does not: the model hears it ended (from the transcript, so an
             // app started again tells it too).
@@ -605,10 +674,12 @@ public sealed class AgentSession
             {
                 tool_mode = _session.ToolMode.ToWire(),
                 effective_tool_mode = _mode.ToWire(),
+                reasoning_effort = ReasoningLevels.Record(_effort),
             }).ConfigureAwait(false);
             Emit(new TurnStarted(_mode));
             try
             {
+                await Agent.RefreshToolsAsync(cancellationToken).ConfigureAwait(false); // tools that changed since the last turn, never inside one
                 for (var round = 0; ; round++)
                 {
                     if (round == Agent.Settings.MaxRounds)
@@ -620,7 +691,7 @@ public sealed class AgentSession
                         }).ConfigureAwait(false);
                         break;
                     }
-                    var calls = await RequestAsync(cancellationToken).ConfigureAwait(false);
+                    var calls = await RequestAsync(round, cancellationToken).ConfigureAwait(false);
                     if (_blocked is not null || calls.Count == 0)
                     {
                         break;
@@ -640,7 +711,7 @@ public sealed class AgentSession
             {
                 var notice = new GovernanceNotice
                 {
-                    Outcome = "rate_limited", Message = e.Message, RetryAfter = e.RetryAfter,
+                    Outcome = "rate_limited", Message = e.Message, RetryAfter = e.RetryAfter, Code = e.Code,
                 };
                 await NoticeAsync(notice).ConfigureAwait(false);
                 await EndAsync(TurnStatus.Error, ChatOutcome.RateLimited).ConfigureAwait(false);
@@ -667,16 +738,24 @@ public sealed class AgentSession
         }
 
         /// <summary>One model call; returns the calls of the agent's own tools to run.</summary>
-        private async Task<List<FunctionCallContent>> RequestAsync(CancellationToken cancellationToken)
+        private async Task<List<PlannedCall>> RequestAsync(int round, CancellationToken cancellationToken)
         {
+            _denials.Clear();
             // What the gateway said about calls holds for this round's calls only: a model may give a later round's
             // call an id it used before, and an earlier "a grant covers it" must never let that one run unasked.
             _marks.Clear();
             _covered.Clear();
-            var options = new ChatOptions { Tools = Agent.Offer(_mode) }
+            _rounds++;
+            using var activity = AgentTelemetry.Source.StartActivity("chat" + (Agent.Profile.Model is { } model ? " " + model : ""));
+            activity?.SetTag("gen_ai.operation.name", "chat");
+            activity?.SetTag("gen_ai.request.model", Agent.Profile.Model);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
+            activity?.SetTag("fadenstack.round", round);
+            var requested = Stopwatch.StartNew();
+            var options = new ChatOptions { Tools = Agent.Offer(_mode, _session) }
                 .WithConversation(_session.Id, _id)
                 .WithToolMode(_mode);
-            if (Agent.Settings.Reasoning is { } effort)
+            if (_effort is { } effort)
             {
                 options.Reasoning = new ReasoningOptions { Effort = effort };
             }
@@ -739,6 +818,7 @@ public sealed class AgentSession
             {
                 calls.Clear(); // a refused answer's tool calls never run
             }
+            var planned = Plan(calls, round);
             _text.Append(text);
             _receipts.AddRange(receipts);
             if (text.Length > 0 || calls.Count > 0)
@@ -746,7 +826,7 @@ public sealed class AgentSession
                 await _session.AppendAsync(EntryTypes.AssistantMessage, _id, new
                 {
                     text = text.ToString(),
-                    tool_calls = calls.Select(c => new { id = c.CallId, name = c.Name, arguments = Json(c.Arguments) }).ToList(),
+                    tool_calls = planned.Select(p => new { id = p.Call.CallId, name = p.Call.Name, arguments = Json(p.Call.Arguments) }).ToList(),
                     origin = "model",
                     // What made the answer, by the receipts' ids: never more of them than that.
                     receipts = receipts.Count == 0 ? null : receipts.Select(ReceiptData).ToList(),
@@ -761,8 +841,74 @@ public sealed class AgentSession
                 // A model that thought and then wrote nothing would leave the user with nothing at all on screen.
                 await NoticeAsync(EmptyAnswer(finish)).ConfigureAwait(false);
             }
-            return calls;
+            activity?.SetTag("fadenstack.tool_calls", planned.Count);
+            Log.ModelRequest(Agent.Logger, _id, round, planned.Count, requested.ElapsedMilliseconds);
+            return planned;
         }
+
+        /// <summary>
+        /// The round's calls, each under an id of its own and with the gateway's word on it. A call with no id, or an id
+        /// another call of the round has, gets <c>fs-{turn}-{round}-{index}</c>. A word that cannot tell calls apart (no id,
+        /// or one id on several calls) covers every call of its tool: a refusal is never lost, and a mark asks.
+        /// </summary>
+        private List<PlannedCall> Plan(List<FunctionCallContent> calls, int round)
+        {
+            var model = calls.Select((c, i) => new RoundCall(c, c.CallId,
+                c.AdditionalProperties?.TryGetValue(FadenstackChatOptions.CallIndex, out var index) == true && index is int n ? n : i)).ToList();
+            var denied = new bool[model.Count];
+            var marks = new GatewayMark?[model.Count];
+            foreach (var aim in _denials)
+            {
+                foreach (var i in Aimed(aim, model, out _))
+                {
+                    denied[i] = true;
+                }
+            }
+            foreach (var (aim, mark) in _marks)
+            {
+                foreach (var i in Aimed(aim, model, out var byName))
+                {
+                    var word = byName ? mark with { Rule = true } : mark;
+                    marks[i] = marks[i] is { } earlier ? Merge(earlier, word) : word;
+                }
+            }
+            return model.Select((c, i) =>
+            {
+                var shared = c.ModelId.Length == 0 || model.Count(o => o.ModelId == c.ModelId) > 1;
+                var call = shared
+                    ? new FunctionCallContent($"fs-{_id}-{round}-{c.Index}", c.Call.Name, c.Call.Arguments) { Exception = c.Call.Exception }
+                    : c.Call;
+                var hidden = _hidden.Contains(c.Call.Name);
+                return new PlannedCall(call, denied[i] || hidden, hidden, marks[i]);
+            }).ToList();
+        }
+
+        /// <summary>The places in the round a word of the gateway covers; <paramref name="byName"/> when it could only go by the tool's name.</summary>
+        private static List<int> Aimed(Aim aim, IReadOnlyList<RoundCall> round, out bool byName)
+        {
+            byName = false;
+            if (aim.Index is { } index)
+            {
+                return Where(round, c => c.Index == index);
+            }
+            if (aim.CallId.Length > 0)
+            {
+                var same = Where(round, c => c.ModelId == aim.CallId);
+                if (same.Count <= 1)
+                {
+                    return same;
+                }
+            }
+            byName = true;
+            return Where(round, c => aim.ToolName.Length == 0 || c.Call.Name == aim.ToolName);
+        }
+
+        private static List<int> Where(IReadOnlyList<RoundCall> round, Func<RoundCall, bool> match) =>
+            Enumerable.Range(0, round.Count).Where(i => match(round[i])).ToList();
+
+        /// <summary>Two marks on one call: a rule wins, the stricter class wins.</summary>
+        private static GatewayMark Merge(GatewayMark a, GatewayMark b) => new(a.Rule || b.Rule,
+            a.ToolClass is { } own ? Stricter(own, b.ToolClass) : b.ToolClass, b.Rule && !a.Rule ? b.Message : a.Message);
 
         /// <summary>
         /// The notice for a model call that ended with no text and no tool call (<c>empty_answer</c>); <c>length</c> when
@@ -808,10 +954,7 @@ public sealed class AgentSession
                     break;
                 case "faden.tool_denied":
                     _toolDenied = true;
-                    if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } callId)
-                    {
-                        _deniedByGateway.Add(callId);
-                    }
+                    _denials.Add(Aim.From(value));
                     await NoticeAsync(new GovernanceNotice
                     {
                         Outcome = "tool_denied", Stage = "tool",
@@ -820,7 +963,15 @@ public sealed class AgentSession
                     }).ConfigureAwait(false);
                     break;
                 case "faden.governance":
-                    break; // arrives as GovernanceNoticeContent in the same update
+                    // A refusal arrives as GovernanceNoticeContent in the same update; any other outcome only informs.
+                    if (value.ValueKind == JsonValueKind.Object && !ChatWire.IsRefusal(ChatWire.Str(value, "outcome")))
+                    {
+                        await NoticeAsync(ChatWire.Notice(value)).ConfigureAwait(false);
+                    }
+                    break;
+                case "faden.tool_mode":
+                    FollowToolMode(value);
+                    break;
                 case "TOOL_CALL_START":
                     Emit(new ToolCallStarted(ChatWire.Str(e.Event, "toolCallId") ?? "", ChatWire.Str(e.Event, "toolCallName") ?? "",
                         ToolClass.Read, "gateway", new Dictionary<string, object?>()));
@@ -891,6 +1042,8 @@ public sealed class AgentSession
             var approvalId = ChatWire.Str(value, "approvalId")!;
             var request = new ApprovalRequest
             {
+                SessionId = _session.Id,
+                TurnId = _id,
                 CallId = ChatWire.Str(value, "toolCallId") ?? "",
                 ToolName = ChatWire.Str(value, "toolCallName") ?? "",
                 ToolClass = ToolModes.ParseClass(ChatWire.Str(value, "toolClass")),
@@ -913,27 +1066,49 @@ public sealed class AgentSession
             }
         }
 
-        /// <summary>The gateway's word on a call of the agent's own tool, kept until the call runs.</summary>
+        /// <summary>The gateway's word on a call of the agent's own tool, kept until the round's calls are planned.</summary>
         private void Mark(JsonElement value)
         {
-            if (ChatWire.Str(value, "toolCallId") is not { Length: > 0 } callId)
-            {
-                return;
-            }
             var toolClass = ChatWire.Str(value, "toolClass");
-            _marks[callId] = new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
-                ChatWire.Str(value, "message") ?? "");
+            _marks.Add((Aim.From(value), new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
+                ChatWire.Str(value, "message") ?? "")));
         }
 
-        private async Task RunToolAsync(FunctionCallContent call, CancellationToken cancellationToken)
+        /// <summary>
+        /// The gateway's tool mode for this turn: the turn's mode is never widened by it, an unknown mode is ignored, and the
+        /// tools it hides are refused here too.
+        /// </summary>
+        private void FollowToolMode(JsonElement value)
         {
+            if (ToolModes.ParseMode(ChatWire.Str(value, "effective_tool_mode")) is { } effective)
+            {
+                _mode = ToolModes.Narrowest(_mode, effective);
+            }
+            if (value.ValueKind == JsonValueKind.Object && value.TryGetProperty("hidden", out var hidden) && hidden.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var name in hidden.EnumerateArray().Where(h => h.ValueKind == JsonValueKind.String))
+                {
+                    _hidden.Add(name.GetString()!);
+                }
+            }
+        }
+
+        private async Task RunToolAsync(PlannedCall planned, CancellationToken cancellationToken)
+        {
+            var (call, mark) = (planned.Call, planned.Mark);
             var tool = Agent.Find(call.Name);
             var source = tool?.Source ?? "host";
-            _marks.TryGetValue(call.CallId, out var mark);
             var toolClass = tool is null ? ToolClass.Unknown : Stricter(tool.Class, mark?.ToolClass);
             var arguments = call.Arguments is null
                 ? new Dictionary<string, object?>()
                 : new Dictionary<string, object?>(call.Arguments);
+            // A name the model made up is its words, not ours: only the agent's own tools are named in logs and traces.
+            var loggedName = tool?.Name ?? "(unknown)";
+            using var activity = AgentTelemetry.Source.StartActivity("execute_tool " + loggedName);
+            activity?.SetTag("gen_ai.operation.name", "execute_tool");
+            activity?.SetTag("gen_ai.tool.name", loggedName);
+            activity?.SetTag("gen_ai.tool.call.id", call.CallId);
+            activity?.SetTag("gen_ai.conversation.id", _session.Id);
             await _session.AppendAsync(EntryTypes.ToolStart, _id, new
             {
                 call_id = call.CallId, name = call.Name, source, tool_class = toolClass.ToWire(),
@@ -942,23 +1117,36 @@ public sealed class AgentSession
             var watch = Stopwatch.StartNew();
             string result;
             string outcome;
+            string? approval = null;
             var waited = TimeSpan.Zero;
             IReadOnlyList<DataContent> pictures = Array.Empty<DataContent>();
             if (tool is null)
             {
-                (result, outcome) = ($"Tool '{call.Name}' does not exist here.", "error");
+                (result, outcome) = (Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
             }
-            else if (_deniedByGateway.Contains(call.CallId))
+            else if (planned.Denied)
             {
+                if (planned.Hidden)
+                {
+                    _toolDenied = true;
+                    await NoticeAsync(new GovernanceNotice
+                    {
+                        Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{call.Name}' is not allowed: the gateway hides it in this tool mode.",
+                    }).ConfigureAwait(false);
+                }
                 (result, outcome) = ($"Tool '{call.Name}' is not allowed here.", "denied");
             }
             else if (call.Exception is not null)
             {
                 (result, outcome) = ($"Error: the arguments are not valid JSON ({call.Exception.Message}).", "error");
             }
+            else if (tool.Scope?.BeforeCall(tool, _session) is { } answered)
+            {
+                (result, outcome) = (answered, "ok"); // a tool outside the conversation's scope, now switched on
+            }
             else
             {
-                (result, outcome, waited, pictures) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
+                (result, outcome, waited, pictures, approval) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
                     .ConfigureAwait(false);
             }
             if (pictures.Count > 0)
@@ -982,6 +1170,7 @@ public sealed class AgentSession
                 duration_ms = (long)ran.TotalMilliseconds, origin = "client", pictures = pictures.Count,
             }).ConfigureAwait(false);
             Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
+            RecordToolCall(activity, loggedName, toolClass.ToWire(), source, outcome, approval ?? "none", ran, waited);
             if (tool is not null)
             {
                 Agent.Reporter.Add(new ToolExecutedEvent
@@ -992,15 +1181,36 @@ public sealed class AgentSession
             }
         }
 
+        /// <summary>What a finished tool call leaves: its span's tags, the metrics, and a log line (names, class, outcome, times).</summary>
+        private void RecordToolCall(Activity? activity, string tool, string toolClass, string source, string outcome, string approval,
+            TimeSpan ran, TimeSpan waited)
+        {
+            activity?.SetTag("fadenstack.tool.class", toolClass);
+            activity?.SetTag("fadenstack.tool.source", source);
+            activity?.SetTag("fadenstack.tool.outcome", outcome);
+            activity?.SetTag("fadenstack.approval", approval);
+            activity?.SetTag("fadenstack.approval.wait_ms", (long)waited.TotalMilliseconds);
+            if (outcome == "error")
+            {
+                activity?.SetStatus(ActivityStatusCode.Error);
+            }
+            var (classTag, outcomeTag) = (new KeyValuePair<string, object?>("class", toolClass), new KeyValuePair<string, object?>("outcome", outcome));
+            AgentTelemetry.ToolCalls.Add(1, classTag, outcomeTag);
+            AgentTelemetry.ToolDuration.Record(ran.TotalMilliseconds, classTag, outcomeTag);
+            Log.ToolCall(Agent.Logger, tool, toolClass, source, outcome, approval, (long)ran.TotalMilliseconds);
+        }
+
         /// <summary>
         /// Asks if the mode, an admin's rule or the agent's contract says so, then runs the tool; also returns how long the
-        /// asking took. <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's. The contract's
+        /// asking took and what let the call through (null: nothing needed approval, or it was declined).
+        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's. The contract's
         /// <see cref="AgentTool.Approval"/> goes on top of the mode, as the gateway puts it: <c>always</c> asks every time,
         /// like a rule; <c>ask</c> asks where the mode would run; <c>never</c> runs a read or write tool the mode would ask
         /// about, unless a rule asks. None of them shows a tool the mode hides.
         /// </summary>
-        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures)> DecideAndRunAsync(AgentTool tool,
-            ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments, CancellationToken cancellationToken)
+        private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures, string? Approval)> DecideAndRunAsync(
+            AgentTool tool, ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments,
+            CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
             var decided = ToolModes.Decide(_mode, toolClass);
@@ -1009,7 +1219,7 @@ public sealed class AgentSession
                 _toolDenied = true;
                 var why = $"the tool mode is {_mode.ToWire()}";
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
-                return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>());
+                return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
             }
             var always = tool.Approval == "always";
             var rule = mark is { Rule: true } || always;
@@ -1021,6 +1231,7 @@ public sealed class AgentSession
             {
                 decided = ToolModeDecision.Run;
             }
+            string? approval = null;
             // In Bypass the device reports what ran without the person's answer, as the gateway records it (L-61): what the
             // mode ran, and what the turn's own Bypass grant settled. A call the person answered is recorded as an answer
             // (L-60); one a time or work grant settled belongs to that grant.
@@ -1029,10 +1240,15 @@ public sealed class AgentSession
             {
                 var settled = await ApproveAsync(new ApprovalRequest
                 {
+                    SessionId = _session.Id,
+                    TurnId = _id,
                     CallId = call.CallId,
                     ToolName = tool.Name,
                     ToolClass = toolClass,
                     Source = tool.Source,
+                    Server = tool.Server,
+                    ReadOnlyHint = tool.ReadOnlyHint,
+                    DestructiveHint = tool.DestructiveHint,
                     Reason = mark is { Rule: true } ? mark.Message
                         : always ? $"This agent asks every time before it uses '{tool.Name}'."
                         : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
@@ -1046,8 +1262,9 @@ public sealed class AgentSession
                 {
                     _toolDenied = true;
                     var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>());
+                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>(), null);
                 }
+                approval = KindOf(settled.Scope, rule);
                 unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
             }
             var askedFor = asking.Elapsed;
@@ -1055,7 +1272,7 @@ public sealed class AgentSession
             try
             {
                 var invocation = new ToolInvocation(tool, call, new AIFunctionArguments(arguments) { Services = services }, _session.Id, _id,
-                    Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync);
+                    Agent, (type, data) => _session.AppendAsync(type, _id, data), NoticeAsync, _session);
                 services.Bind(invocation);
                 if (BypassGrant is not null && unanswered)
                 {
@@ -1063,7 +1280,7 @@ public sealed class AgentSession
                 }
                 var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
-                return (text, "ok", askedFor, pictures);
+                return (text, "ok", askedFor, pictures, approval);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -1071,7 +1288,7 @@ public sealed class AgentSession
             }
             catch (Exception e)
             {
-                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>());
+                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>(), approval);
             }
         }
 
@@ -1204,7 +1421,7 @@ public sealed class AgentSession
             ApprovalDecision? decision;
             try
             {
-                decision = await Agent.Settings.Approvals.RequestAsync(request, limit.Token).ConfigureAwait(false);
+                decision = await (_session.Approvals ?? Agent.Settings.Approvals).RequestAsync(request, limit.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
@@ -1308,6 +1525,9 @@ public sealed class AgentSession
             }
         }
 
+        /// <summary>What let a call through: an admin's rule, else the scope the user gave (once, chat, always), a grant, or bypass; null if declined.</summary>
+        private static string? KindOf(string? scope, bool rule) => scope is null ? null : rule ? RuleKind : scope;
+
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
         private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs,
             string? grantId = null, int? minutes = null)
@@ -1317,6 +1537,8 @@ public sealed class AgentSession
                 call_id = request.CallId,
                 name = request.ToolName,
                 source = request.Source,
+                tool_class = request.ToolClass.ToWire(), // so a reopened chat's card says what the tool does
+                server = request.Server, // a local MCP server's name, for the card's source line
                 approved = scope is not null,
                 for_session = asked && scope == ApprovalScopes.Chat, // for older readers
                 scope,
@@ -1333,6 +1555,12 @@ public sealed class AgentSession
                 ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope, GrantId = grantId,
                 Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
             });
+            var toolClass = request.ToolClass.ToWire();
+            Log.Approval(Agent.Logger, request.ToolName, toolClass, KindOf(scope, rule) ?? (timedOut ? "timeout" : "declined"), asked, waitedMs ?? 0);
+            if (waitedMs is { } waited)
+            {
+                AgentTelemetry.ApprovalWait.Record(waited, new KeyValuePair<string, object?>("class", toolClass));
+            }
         }
 
         private async Task<bool> ApprovedAlwaysAsync(string tool, ToolClass toolClass)
@@ -1364,12 +1592,25 @@ public sealed class AgentSession
         private async Task NoticeAsync(GovernanceNotice notice)
         {
             _notices.Add(notice);
+            // The message is the admin's text for the user and may quote what was checked: the log keeps the codes.
+            Log.Notice(Agent.Logger, notice.Outcome, notice.Stage, notice.Category, notice.Code, notice.DecisionId);
             await _session.AppendAsync(EntryTypes.GovernanceNotice, _id, notice).ConfigureAwait(false);
             Emit(new NoticeRaised(notice));
         }
 
         private async Task EndAsync(string status, ChatOutcome? outcome)
         {
+            _activity?.SetTag("fadenstack.turn.status", status);
+            _activity?.SetTag("fadenstack.turn.outcome", outcome?.ToString());
+            _activity?.SetTag("fadenstack.turn.rounds", _rounds);
+            _activity?.SetTag("gen_ai.usage.input_tokens", _usage?.InputTokenCount);
+            _activity?.SetTag("gen_ai.usage.output_tokens", _usage?.OutputTokenCount);
+            if (status == TurnStatus.Error)
+            {
+                _activity?.SetStatus(ActivityStatusCode.Error);
+            }
+            AgentTelemetry.Turns.Add(1, new KeyValuePair<string, object?>("outcome", status));
+            Log.TurnEnded(Agent.Logger, _session.Id, _id, _mode.ToWire(), _rounds, status, outcome?.ToString(), _watch.ElapsedMilliseconds);
             await _session.AppendAsync(EntryTypes.TurnEnd, _id, new
             {
                 status,

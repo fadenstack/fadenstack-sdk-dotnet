@@ -24,6 +24,10 @@ internal sealed class ToolServices : IServiceProvider, IDisposable
         {
             return this;
         }
+        if (serviceType == typeof(ToolInvocation))
+        {
+            return _invocation; // the call itself: a tool that needs its session and turn
+        }
         lock (_made)
         {
             if (_made.TryGetValue(serviceType, out var made))

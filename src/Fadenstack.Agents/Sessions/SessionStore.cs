@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
 using Fadenstack.Http;
+using Fadenstack.Models;
+using Fadenstack.Storage;
 
 namespace Fadenstack.Agents.Sessions;
 
@@ -21,6 +23,11 @@ public interface ISessionStore
 public sealed record SessionRetention(int MaxSessions = 50, int MaxAgeDays = 90)
 {
     public static SessionRetention Default { get; } = new();
+
+    /// <summary>The stricter of these limits and the server's (<c>local_retention</c>); a limit the server leaves out stays.</summary>
+    internal SessionRetention Within(LocalRetention? server) => server is null
+        ? this
+        : new SessionRetention(Math.Min(MaxSessions, server.MaxSessions ?? MaxSessions), Math.Min(MaxAgeDays, server.MaxAgeDays ?? MaxAgeDays));
 }
 
 /// <summary>Sessions in memory only: gone with the process.</summary>
@@ -91,7 +98,7 @@ public sealed class MemorySessionStore : ISessionStore
 /// when the server names no user). Each line is encrypted for the current user (DPAPI on Windows); elsewhere the files
 /// are readable by their owner only.
 /// </summary>
-public sealed class FileSessionStore : ISessionStore
+public sealed class FileSessionStore : ISessionStore, IListsAgents
 {
     private readonly string _root;
     private readonly ISecretProtector _protector;
@@ -100,7 +107,7 @@ public sealed class FileSessionStore : ISessionStore
 
     public FileSessionStore(string? directory = null, ISecretProtector? protector = null, SessionRetention? retention = null)
     {
-        _root = directory ?? SecretProtection.DataDirectory("sessions");
+        _root = directory ?? FadenstackPaths.Data("sessions");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
         _retention = retention ?? SessionRetention.Default;
@@ -172,13 +179,17 @@ public sealed class FileSessionStore : ISessionStore
         return Task.CompletedTask;
     }
 
+    IReadOnlyList<string> IListsAgents.Agents() => Directory.Exists(_root)
+        ? Directory.GetDirectories(_root).Select(d => Path.GetFileName(d)).ToList()
+        : new List<string>();
+
     /// <summary>Keeps the newest <see cref="SessionRetention.MaxSessions"/> not older than the age limit.</summary>
     private void Prune(string agent, string keep)
     {
         var cutoff = DateTime.UtcNow.AddDays(-_retention.MaxAgeDays);
         var others = Directory.GetFiles(AgentDirectory(agent), "*.jsonl")
             .Select(f => new FileInfo(f))
-            .Where(f => Path.GetFileNameWithoutExtension(f.Name) != Safe(keep))
+            .Where(f => Path.GetFileNameWithoutExtension(f.Name) != FadenstackPaths.SafeName(keep))
             .OrderByDescending(f => f.LastWriteTimeUtc).ToList();
         for (var i = 0; i < others.Count; i++)
         {
@@ -191,7 +202,7 @@ public sealed class FileSessionStore : ISessionStore
 
     private string AgentDirectory(string agent)
     {
-        var path = Path.Combine(_root, Safe(agent));
+        var path = Path.Combine(_root, FadenstackPaths.SafeName(agent));
         if (!Directory.Exists(path))
         {
             Directory.CreateDirectory(path);
@@ -200,12 +211,5 @@ public sealed class FileSessionStore : ISessionStore
         return path;
     }
 
-    private string PathOf(string agent, string sessionId) => Path.Combine(AgentDirectory(agent), Safe(sessionId) + ".jsonl");
-
-    internal static string Safe(string name)
-    {
-        var invalid = Path.GetInvalidFileNameChars();
-        var safe = new string(name.Select(c => invalid.Contains(c) || c == '.' ? '_' : c).ToArray());
-        return safe.Length == 0 ? "_" : safe;
-    }
+    private string PathOf(string agent, string sessionId) => Path.Combine(AgentDirectory(agent), FadenstackPaths.SafeName(sessionId) + ".jsonl");
 }

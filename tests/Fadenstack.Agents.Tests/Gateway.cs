@@ -108,9 +108,6 @@ public sealed class Gateway
         return new FakeGrants(Server);
     }
 
-    /// <summary>Who the token is for (<c>principal</c>), as JSON; null as from an older server.</summary>
-    public string? Principal { get; set; }
-
     /// <summary>How often the agent read its profile.</summary>
     public int ProfileReads => Server.Requests.Count(r => r.Path == "/v1/agents/docs-assistant/profile");
 
@@ -119,6 +116,12 @@ public sealed class Gateway
 
     /// <summary>The agent's marking policy as JSON; null: no provenance module (503).</summary>
     public string? ProvenancePolicy { get; set; }
+
+    /// <summary>The profile's <c>principal</c> as JSON; null: an older gateway that names no user.</summary>
+    public string? Principal { get; set; }
+
+    /// <summary>The profile's <c>local_retention</c> as JSON; null: a server that sets none.</summary>
+    public string? LocalRetention { get; set; }
 
     /// <summary>The provenance engine is down: records are not signed (503).</summary>
     public bool ProvenanceDown { get; set; }
@@ -229,7 +232,8 @@ public sealed class Gateway
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
                  "approvals":{{Approvals}},
                  "required_client_modules":{{modules}},"edition":"community","features":{{Features}},
-                 "user":{"language":{{language}} },"principal":{{Principal ?? "null"}} }
+                 "user":{"language":{{language}} },"principal":{{Principal ?? "null"}},
+                 "local_retention":{{LocalRetention ?? "null"}} }
                 """;
     }
 
