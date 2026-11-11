@@ -1,9 +1,10 @@
-using System.Diagnostics;
 using System.Globalization;
 using Fadenstack.Agents;
 using Fadenstack.Models;
 using Fadenstack.Tools;
 using Fadenstack.UI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Provenance;
 
@@ -171,8 +172,8 @@ public sealed class ProvenanceOptions
         return this;
     }
 
-    /// <summary>The agent's policy with these options applied: stricter only.</summary>
-    internal ProvenancePolicy Tighten(ProvenancePolicy policy)
+    /// <summary>The agent's policy with these options applied: stricter only; an option that would loosen it is logged and ignored.</summary>
+    internal ProvenancePolicy Tighten(ProvenancePolicy policy, ILogger? logger = null)
     {
         if (_refuse)
         {
@@ -186,7 +187,7 @@ public sealed class ProvenanceOptions
             }
             else
             {
-                Trace.TraceWarning($"Provenance: a short-text threshold of {tokens} tokens would loosen the policy's {policy.ShortTextTokens}; ignored.");
+                Log.ThresholdIgnored(logger ?? NullLogger.Instance, tokens, policy.ShortTextTokens);
             }
         }
         if (_marked.Count > 0)

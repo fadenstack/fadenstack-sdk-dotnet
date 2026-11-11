@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Fadenstack.Agents;
@@ -67,7 +66,7 @@ internal sealed class ProvenanceState
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
             {
-                Trace.TraceWarning($"Provenance: the policy could not be read ({e.GetType().Name}); the last known or the default applies.");
+                Log.PolicyUnavailable(Log.For(agent), e.GetType().Name);
                 if (_policy is { } last)
                 {
                     _until = DateTimeOffset.UtcNow + PolicyRetry;
@@ -75,7 +74,7 @@ internal sealed class ProvenanceState
                 }
                 policy = new ProvenancePolicy();
             }
-            _policy = Options.Tighten(policy);
+            _policy = Options.Tighten(policy, Log.For(agent));
             _until = DateTimeOffset.UtcNow + (fresh ? PolicyKept : PolicyRetry);
             return _policy;
         }
@@ -250,7 +249,7 @@ internal sealed class OutputCheckStage : IToolStage
             }).ConfigureAwait(false);
         }
         var names = string.Join(", ", unmarked.Select(o => $"'{o.Argument}'"));
-        Trace.TraceWarning($"Provenance: '{invocation.Tool.Name}' declares {names} as content for people and did not place it through IProvenance.PlaceAsync.");
+        Log.NotPlaced(Log.For(invocation.Agent), invocation.Tool.Name, names);
         if (_state.Options.DevelopmentMode)
         {
             throw new ProvenanceUnmarkedException(
@@ -298,7 +297,7 @@ internal sealed class OutputCheckStage : IToolStage
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            Trace.TraceWarning($"Provenance: the unmarked content of '{report.Tool}' was not reported ({e.GetType().Name}).");
+            Log.UnmarkedNotReported(Log.For(invocation.Agent), report.Tool, e.GetType().Name);
             return false;
         }
     }
