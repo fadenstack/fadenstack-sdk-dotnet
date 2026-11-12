@@ -401,6 +401,105 @@ public sealed class AgentSession
         }
     }
 
+    /// <summary>
+    /// One host tool the person started (a button, a view of a module), with its result; no model request. The server checks it
+    /// first (<see cref="HostToolPhase.Prepare"/>) and asks the person through the approval handler where it says so --
+    /// always for this call alone, never for the chat or for good -- then checks it again right before it runs
+    /// (<see cref="HostToolPhase.Dispatch"/>), and anything that changed in between stops it. A refusal, a decline or a
+    /// failure is the result's <see cref="HostCommandResult.Outcome"/>; a stopped command throws. The transcript gets a
+    /// <c>user.command</c> entry, which the model never sees (<see cref="Sessions.EntryTypes.UserCommand"/>). Needs a server
+    /// with the route (<c>POST tools/check</c>); an older one makes the command fail, never run unchecked.
+    /// </summary>
+    public async Task<HostCommandResult> InvokeToolAsync(string name, IReadOnlyDictionary<string, object?>? arguments,
+        HostCommandOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        HostCommandResult? result = null;
+        await foreach (var e in StreamToolAsync(name, arguments, options, cancellationToken).ConfigureAwait(false))
+        {
+            if (e is ToolCallCompleted completed)
+            {
+                result = new HostCommandResult(completed.TurnId, completed.CallId, completed.Outcome, completed.Result);
+            }
+        }
+        return result ?? throw new InvalidOperationException("The host command did not finish.");
+    }
+
+    /// <summary>The same, streaming the events a turn has; leaving the stream early, or cancelling, also cancels a pending approval.</summary>
+    public async IAsyncEnumerable<AgentEvent> StreamToolAsync(string name, IReadOnlyDictionary<string, object?>? arguments,
+        HostCommandOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        options ??= new HostCommandOptions();
+        HostCommands.CheckName(name);
+        // A copy taken now, as strict JSON: what the person reviews is what runs, whatever the caller does with its own after.
+        var copy = ParseArguments(CommandJson.Of(arguments ?? new Dictionary<string, object?>()));
+        if (options.Origin == HostToolOrigin.ModelTool)
+        {
+            throw new ArgumentException("Invalid command origin.", nameof(options));
+        }
+        var label = HostCommandOptions.CheckLabel(options.Label);
+        if (!await _turn.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("A turn is already running in this session.");
+        }
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var channel = Channel.CreateUnbounded<AgentEvent>(new UnboundedChannelOptions { SingleReader = true });
+        var run = RunCommandAsync(name, copy, options.Origin, label, channel.Writer, stop.Token);
+        try
+        {
+            while (await channel.Reader.WaitToReadAsync(CancellationToken.None).ConfigureAwait(false))
+            {
+                while (channel.Reader.TryRead(out var e))
+                {
+                    yield return e;
+                }
+            }
+            await run.ConfigureAwait(false); // rethrows what ended the command
+        }
+        finally
+        {
+            if (!run.IsCompleted)
+            {
+                stop.Cancel();
+                try
+                {
+                    await run.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // the reader left; the command is recorded as cancelled
+                }
+            }
+            _turn.Release();
+        }
+    }
+
+    private static Dictionary<string, object?> ParseArguments(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject().ToDictionary(p => p.Name, p => (object?)p.Value.Clone());
+    }
+
+    private async Task RunCommandAsync(string name, Dictionary<string, object?> arguments, HostToolOrigin origin, string? label,
+        ChannelWriter<AgentEvent> writer, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Yield(); // the caller gets the stream before the first check goes out
+            var turn = new Turn(this, Guid.NewGuid().ToString("N"), writer);
+            await turn.RunCommandAsync(name, arguments, origin, label, cancellationToken).ConfigureAwait(false);
+            writer.TryComplete();
+        }
+        catch (Exception e)
+        {
+            writer.TryComplete(e);
+            throw;
+        }
+        finally
+        {
+            await _agent.Reporter.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>Reports the session's counts (never content) and sends what is left to report.</summary>
     public async Task CloseAsync(CancellationToken cancellationToken = default)
     {
@@ -578,9 +677,25 @@ public sealed class AgentSession
     /// </summary>
     private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null, string? GrantId = null);
 
+    /// <summary>The server's answer to a host call's first check, what the person reviewed, and the limits they were reviewed under.</summary>
+    private sealed record PreparedHostPolicy(HostToolDecision Decision, string InputJson, string Controls);
+
+    /// <summary>A command the server or the person refused: the tool's outcome is <c>denied</c> with this text.</summary>
+    private sealed class CommandDenied : Exception
+    {
+        public CommandDenied(string message) : base(message)
+        {
+        }
+    }
+
     /// <summary>One turn: the loop of model calls and tool runs, and its record.</summary>
     private sealed class Turn
     {
+        // A host command the person started (null: a turn of model calls), the arguments reviewed for it, and the time they took.
+        private HostToolOrigin? _command;
+        private string? _commandJson;
+        private TimeSpan _commandWaited;
+
         private readonly AgentSession _session;
         private readonly string _id;
         private readonly ChannelWriter<AgentEvent> _writer;
@@ -634,6 +749,177 @@ public sealed class AgentSession
         }
 
         private FadenstackAgent Agent => _session._agent;
+
+        /// <summary>One host tool the person started: its own turn, without a model request (<see cref="InvokeToolAsync"/>).</summary>
+        public async Task RunCommandAsync(string name, Dictionary<string, object?> arguments, HostToolOrigin origin, string? label,
+            CancellationToken cancellationToken)
+        {
+            _mode = _session.EffectiveToolMode;
+            _command = origin;
+            _commandJson = CommandJson.Of(arguments);
+            using var scope = Log.TurnScope(Agent.Logger, _session.Id, _id);
+            await _session.AppendAsync(EntryTypes.UserCommand, _id, new { name, origin = HostCommands.Wire(origin), label }).ConfigureAwait(false);
+            await _session.AppendAsync(EntryTypes.TurnStart, _id, new
+            {
+                tool_mode = _session.ToolMode.ToWire(),
+                effective_tool_mode = _mode.ToWire(),
+                origin = HostCommands.Wire(origin),
+            }).ConfigureAwait(false);
+            Emit(new TurnStarted(_mode));
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var tool = Agent.Find(name);
+                if (tool is not null && tool.Source != "host")
+                {
+                    throw new InvalidOperationException("Explicit commands are available for host tools only.");
+                }
+                var call = new FunctionCallContent(Guid.NewGuid().ToString("N"), name, arguments);
+                await RunToolAsync(new PlannedCall(call, false, false, null), cancellationToken).ConfigureAwait(false);
+                await EndAsync(TurnStatus.Ok, _toolDenied ? ChatOutcome.ToolDenied : ChatOutcome.Completed).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
+                throw;
+            }
+            catch
+            {
+                await EndAsync(TurnStatus.Error, null).ConfigureAwait(false);
+                throw;
+            }
+        }
+
+        /// <summary>A check of a host call for the server: this turn's, with the session's level as it is now.</summary>
+        private HostToolCheck CheckOf(AgentTool tool, string argumentsJson, HostToolOrigin origin, string? callId, HostToolPhase phase,
+            HostToolDecision? prepared)
+        {
+            using var document = JsonDocument.Parse(argumentsJson);
+            return new HostToolCheck
+            {
+                Name = tool.Name, Arguments = document.RootElement.Clone(), ToolMode = ToolModes.Narrowest(_mode, _session.EffectiveToolMode),
+                Origin = origin, CallId = callId, Phase = phase, SchemaSha256 = CommandJson.SchemaHash(tool.Function.JsonSchema),
+                Prepared = prepared, ConversationId = _session.Id, TurnId = _id,
+            };
+        }
+
+        private static JsonElement ArgumentsElement(IEnumerable<KeyValuePair<string, object?>> arguments) =>
+            JsonSerializer.SerializeToElement(arguments.ToDictionary(a => a.Key, a => a.Value), FadenstackJson.Options);
+
+        private static string? CheckArguments(JsonElement schema, JsonElement arguments) => HostCommands.CheckArguments(schema, arguments);
+
+        /// <summary>
+        /// A model's host call, right before the tool runs: the arguments are the ones the person reviewed (a stage that
+        /// changed them -- local PII unmasking -- would send raw values to a new cloud endpoint, so it stops the call), the
+        /// approval limits are the same, and the server says the same again.
+        /// </summary>
+        private async Task CheckHostDispatchAsync(ToolInvocation invocation, PreparedHostPolicy policy, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (CommandJson.Of(ArgumentsElement(invocation.Arguments)) != policy.InputJson)
+            {
+                throw new InvalidOperationException(
+                    "Host arguments changed after policy review. Transformed host arguments require a reviewed disclosure contract.");
+            }
+            await Agent.RefreshPolicyAsync(cancellationToken).ConfigureAwait(false);
+            if (Agent.ApprovalControls != policy.Controls)
+            {
+                throw new InvalidOperationException("Approval limits changed. Review a new host call.");
+            }
+            var checkedAgain = await Agent.Client.Agent!.CheckHostToolAsync(
+                CheckOf(invocation.Tool, policy.InputJson, HostToolOrigin.ModelTool, invocation.Call.CallId, HostToolPhase.Dispatch, policy.Decision),
+                cancellationToken).ConfigureAwait(false);
+            if (HostCommands.Drifted(policy.Decision, checkedAgain, Agent.Profile.Principal))
+            {
+                throw new InvalidOperationException("The host call's identity or central policy changed. Review it again.");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (CommandJson.Of(ArgumentsElement(invocation.Arguments)) != policy.InputJson)
+            {
+                throw new InvalidOperationException("Host arguments changed after approval.");
+            }
+        }
+
+        /// <summary>
+        /// The person's command, with the final stage arguments: checked by the server, approved where it says so, checked
+        /// again immediately before the tool runs. Arguments a stage transformed are refused for the same reason as above.
+        /// </summary>
+        private async Task<object?> InvokeCommandAsync(ToolInvocation invocation, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var serialized = CommandJson.Of(ArgumentsElement(invocation.Arguments));
+            if (serialized != _commandJson)
+            {
+                throw new InvalidOperationException(
+                    "Transformed direct-command arguments are not supported. Use the normal governed conversation.");
+            }
+            var tool = invocation.Tool;
+            using var document = JsonDocument.Parse(serialized);
+            var arguments = document.RootElement.Clone();
+            if (HostCommands.CheckArguments(tool.Function.JsonSchema, arguments) is { } invalid)
+            {
+                throw new InvalidOperationException(invalid);
+            }
+            var origin = _command!.Value;
+            var resource = Agent.Client.Agent!;
+            var prepared = await resource.CheckHostToolAsync(
+                CheckOf(tool, serialized, origin, null, HostToolPhase.Prepare, null), cancellationToken).ConfigureAwait(false);
+            if (Agent.Profile.Principal is not { } principal || prepared.Principal != principal)
+            {
+                throw new InvalidOperationException("The command's authenticated identity does not match the active agent profile.");
+            }
+            var toolClass = Stricter(invocation.Class, prepared.ToolClass);
+            var mode = ToolModes.Narrowest(_mode, prepared.EffectiveToolMode);
+            var local = ToolModes.Decide(mode, toolClass);
+            if (prepared.Decision == HostToolVerdict.Deny || local == ToolModeDecision.Hidden)
+            {
+                _toolDenied = true;
+                await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Message = prepared.Message }).ConfigureAwait(false);
+                throw new CommandDenied(prepared.Message);
+            }
+            if (prepared.Decision == HostToolVerdict.Ask || local == ToolModeDecision.Ask)
+            {
+                var asking = Stopwatch.StartNew();
+                var copy = ParseArguments(serialized);
+                var settled = await ApproveAsync(new ApprovalRequest
+                {
+                    SessionId = _session.Id,
+                    TurnId = _id,
+                    CallId = invocation.Call.CallId,
+                    ToolName = tool.Name,
+                    ToolClass = toolClass,
+                    Source = "host",
+                    ReadOnlyHint = tool.ReadOnlyHint,
+                    DestructiveHint = tool.DestructiveHint,
+                    Reason = prepared.Message,
+                    Arguments = copy,
+                    OpenWorld = tool.OpenWorld == true,
+                }, prepared.RequiredByRule, gatewayWait: false, null, cancellationToken,
+                    tool.Describe is null ? null : () => DescribeTargetAsync(tool, copy, cancellationToken), individual: true).ConfigureAwait(false);
+                _commandWaited += asking.Elapsed;
+                if (!settled.Approved)
+                {
+                    _toolDenied = true;
+                    throw new CommandDenied($"The user declined to run '{tool.Name}'.");
+                }
+            }
+            if (CommandJson.Of(ArgumentsElement(invocation.Arguments)) != serialized)
+            {
+                throw new InvalidOperationException("The command changed after review.");
+            }
+            var dispatched = await resource.CheckHostToolAsync(
+                CheckOf(tool, serialized, origin, null, HostToolPhase.Dispatch, prepared), cancellationToken).ConfigureAwait(false);
+            if (HostCommands.Drifted(prepared, dispatched, principal))
+            {
+                throw new InvalidOperationException("The command's identity or policy changed. Review it again.");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (CommandJson.Of(ArgumentsElement(invocation.Arguments)) != serialized)
+            {
+                throw new InvalidOperationException("The command changed after review.");
+            }
+            return await tool.Function.InvokeAsync(invocation.Arguments, cancellationToken).ConfigureAwait(false);
+        }
 
         public async Task RunAsync(string message, IReadOnlyList<MessageAttachment> attachments, IReadOnlyList<PickedSkill> skills,
             CancellationToken cancellationToken)
@@ -1213,6 +1499,40 @@ public sealed class AgentSession
             CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
+            PreparedHostPolicy? policy = null;
+            if (_command is null && tool.Source == "host" && Agent.HostToolPolicyChecks)
+            {
+                // The server's word on this call, fresh, before the person is asked (host_tools.dispatch_check). Anything but a
+                // clear answer stops the call: nothing falls back to the policy cached in the profile.
+                try
+                {
+                    await Agent.RefreshPolicyAsync(cancellationToken).ConfigureAwait(false);
+                    var inputJson = CommandJson.Of(arguments);
+                    var prepared = await Agent.Client.Agent!.CheckHostToolAsync(
+                        CheckOf(tool, inputJson, HostToolOrigin.ModelTool, call.CallId, HostToolPhase.Prepare, null), cancellationToken).ConfigureAwait(false);
+                    if (Agent.Profile.Principal is not { } principal || prepared.Principal != principal)
+                    {
+                        throw new FadenstackException("The host call's authenticated identity changed.");
+                    }
+                    if (prepared.Decision == HostToolVerdict.Deny)
+                    {
+                        _toolDenied = true;
+                        await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Message = prepared.Message }).ConfigureAwait(false);
+                        return (prepared.Message, "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
+                    }
+                    policy = new PreparedHostPolicy(prepared, inputJson, Agent.ApprovalControls);
+                    toolClass = Stricter(toolClass, prepared.ToolClass);
+                    _mode = ToolModes.Narrowest(ToolModes.Narrowest(_mode, _session.EffectiveToolMode), prepared.EffectiveToolMode);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    return ($"Error: {e.Message}", "error", TimeSpan.Zero, Array.Empty<DataContent>(), null);
+                }
+            }
             var decided = ToolModes.Decide(_mode, toolClass);
             if (decided == ToolModeDecision.Hidden)
             {
@@ -1221,8 +1541,13 @@ public sealed class AgentSession
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
                 return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
             }
+            if (_command is not null && CheckArguments(tool.Function.JsonSchema, ArgumentsElement(arguments)) is { } invalid)
+            {
+                return ($"Error: {invalid}", "error", TimeSpan.Zero, Array.Empty<DataContent>(), null);
+            }
             var always = tool.Approval == "always";
-            var rule = mark is { Rule: true } || always;
+            var centralRule = policy?.Decision.RequiredByRule == true;
+            var rule = mark is { Rule: true } || always || centralRule;
             if (tool.Approval == "ask")
             {
                 decided = ToolModeDecision.Ask;
@@ -1236,7 +1561,9 @@ public sealed class AgentSession
             // mode ran, and what the turn's own Bypass grant settled. A call the person answered is recorded as an answer
             // (L-60); one a time or work grant settled belongs to that grant.
             var unanswered = true;
-            if (rule || decided == ToolModeDecision.Ask)
+            var centralAsks = policy?.Decision.Decision == HostToolVerdict.Ask;
+            // A command asks inside its own check (InvokeCommandAsync), once the server has said whether it must.
+            if (_command is null && (rule || decided == ToolModeDecision.Ask || centralAsks))
             {
                 var settled = await ApproveAsync(new ApprovalRequest
                 {
@@ -1250,6 +1577,7 @@ public sealed class AgentSession
                     ReadOnlyHint = tool.ReadOnlyHint,
                     DestructiveHint = tool.DestructiveHint,
                     Reason = mark is { Rule: true } ? mark.Message
+                        : centralRule || (centralAsks && decided != ToolModeDecision.Ask) ? policy!.Decision.Message
                         : always ? $"This agent asks every time before it uses '{tool.Name}'."
                         : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
@@ -1278,17 +1606,21 @@ public sealed class AgentSession
                 {
                     _bypassRan.Add(call.CallId); // it runs: the device reports it, whatever it returns
                 }
-                var value = await Invoker()(invocation, cancellationToken).ConfigureAwait(false);
+                var value = await Invoker(policy)(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
-                return (text, "ok", askedFor, pictures, approval);
+                return (text, "ok", askedFor + _commandWaited, pictures, approval);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
             }
+            catch (CommandDenied e)
+            {
+                return (e.Message, "denied", askedFor + _commandWaited, Array.Empty<DataContent>(), approval);
+            }
             catch (Exception e)
             {
-                return ($"Error: {e.Message}", "error", askedFor, Array.Empty<DataContent>(), approval);
+                return ($"Error: {e.Message}", "error", askedFor + _commandWaited, Array.Empty<DataContent>(), approval);
             }
         }
 
@@ -1362,9 +1694,20 @@ public sealed class AgentSession
             return line.Length > MaxTargetChars ? line.Substring(0, MaxTargetChars - 1) + "…" : line;
         }
 
-        private ToolInvoker Invoker()
+        private ToolInvoker Invoker(PreparedHostPolicy? policy = null)
         {
-            ToolInvoker invoker = (i, ct) => i.Tool.Function.InvokeAsync(i.Arguments, ct).AsTask();
+            ToolInvoker invoker = async (i, ct) =>
+            {
+                if (_command is not null)
+                {
+                    return await InvokeCommandAsync(i, ct).ConfigureAwait(false);
+                }
+                if (policy is not null)
+                {
+                    await CheckHostDispatchAsync(i, policy, ct).ConfigureAwait(false);
+                }
+                return await i.Tool.Function.InvokeAsync(i.Arguments, ct).ConfigureAwait(false);
+            };
             var stages = Agent.Settings.ToolStages;
             for (var s = stages.Count - 1; s >= 0; s--)
             {
@@ -1386,12 +1729,13 @@ public sealed class AgentSession
         /// through. <paramref name="target"/> is read only when the user is asked: what the call acts on, for the card.
         /// </summary>
         private async Task<Settled> ApproveAsync(ApprovalRequest request, bool rule, bool gatewayWait, TimeSpan? timeout,
-            CancellationToken cancellationToken, Func<Task<string?>>? target = null)
+            CancellationToken cancellationToken, Func<Task<string?>>? target = null, bool individual = false)
         {
             var (name, toolClass) = (request.ToolName, request.ToolClass);
-            var open = !rule && !AsksEveryTime(toolClass);
-            var (granted, leadsOutside) = rule ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
-            var standing = rule ? null
+            // An individual call (a person's own command) is asked about on its own: no grant, no standing approval, none offered.
+            var open = !rule && !individual && !AsksEveryTime(toolClass);
+            var (granted, leadsOutside) = rule || individual ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
+            var standing = rule || individual ? null
                 : granted is not null ? ApprovalScopes.Grant
                 : !open ? null
                 : Offers(ApprovalScopes.Always) && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always

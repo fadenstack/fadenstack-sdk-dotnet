@@ -73,6 +73,7 @@ public sealed class Gateway
                 }
                 return FakeServer.Respond(HttpStatusCode.OK, new { @object = "agent.user", language = UserLanguage });
             })
+            .On("POST", "/v1/agents/docs-assistant/tools/check", r => CheckAnswer(r))
             .Json("POST", "/v1/agents/docs-assistant/events", new { accepted = 1 }, HttpStatusCode.Accepted)
             .Json("PUT", "/v1/agents/docs-assistant/manifest", new { sha256 = "abc", @new = true })
             .Json("POST", "/v1/agents/docs-assistant/approvals/ap-1", new { ok = true })
@@ -82,6 +83,52 @@ public sealed class Gateway
     }
 
     public FakeServer Server { get; }
+
+    /// <summary>The profile's <c>version</c> (the agent's published version); tests change it on the way.</summary>
+    public int Version { get; set; } = 3;
+
+    /// <summary>The 64-hex comparison stamps of the host-call check (<c>POST .../tools/check</c>).</summary>
+    public static string Stamp(char c) => new(c, 64);
+
+    /// <summary>The principal the check answers for, as the profile names it.</summary>
+    public const string HostPrincipal = """{"tenant_id":"tenant-test","user_id":"user-test","agent_id":"agent-test","device_id":"device-test"}""";
+
+    /// <summary>
+    /// What the check answers: this decision, or what <see cref="OnCheck"/> returns for the request (an object; a ready
+    /// <see cref="HttpResponseMessage"/> for a failure). Null: the route is not there (an older server, 404).
+    /// </summary>
+    public HostDecision? Check { get; set; }
+
+    public Func<Recorded, object?>? OnCheck { get; set; }
+
+    /// <summary>The checks the agent sent, in order.</summary>
+    public List<Recorded> Checks => Server.Requests.Where(r => r.Path.EndsWith("/tools/check")).ToList();
+
+    /// <summary>
+    /// Makes the server answer host-call checks with <paramref name="decision"/> (ask, destructive, auto by default) for the
+    /// profile's principal, and -- when <paramref name="advertise"/> -- list <c>host_tools.dispatch_check</c> in its features.
+    /// </summary>
+    public Gateway UseHostChecks(HostDecision? decision = null, bool advertise = true)
+    {
+        Principal = HostPrincipal;
+        Check = decision ?? new HostDecision();
+        Features = advertise ? """["agents","host_tools.dispatch_check"]""" : """["agents"]""";
+        return this;
+    }
+
+    private HttpResponseMessage CheckAnswer(Recorded request)
+    {
+        if (Check is null && OnCheck is null)
+        {
+            return FakeServer.Respond(HttpStatusCode.NotFound, new { detail = "Not Found" });
+        }
+        var answered = OnCheck?.Invoke(request);
+        if (answered is HttpResponseMessage response)
+        {
+            return response;
+        }
+        return FakeServer.Respond(HttpStatusCode.OK, answered ?? Check!.ToWire());
+    }
 
     /// <summary>The profile's <c>tool_modes</c>, as JSON values, read at each profile request: tests change them on the way.</summary>
     public string Ceiling { get; set; }
@@ -226,7 +273,7 @@ public sealed class Gateway
     {
         var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
         return $$"""
-                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":3,"draft":false,
+                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":{{Version}},"draft":false,
                  "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
@@ -297,4 +344,19 @@ public sealed class Gateway
     /// <summary>The events the agent reported, in order.</summary>
     public List<System.Text.Json.JsonElement> Reported =>
         Reports.SelectMany(r => r.Json.GetProperty("events").EnumerateArray()).ToList();
+}
+
+
+/// <summary>One answer of the host-call check, as the server sends it.</summary>
+public sealed record HostDecision(string Decision = "ask", string ToolClass = "destructive", string EffectiveToolMode = "auto",
+    bool RequiredByRule = false, string Message = "Individual approval", char Profile = 'a', char Arguments = 'b', char DecisionStamp = 'c',
+    string Principal = Gateway.HostPrincipal)
+{
+    public object ToWire() => new
+    {
+        decision = Decision, tool_class = ToolClass, effective_tool_mode = EffectiveToolMode, required_by_rule = RequiredByRule,
+        message = Message, profile_stamp = Gateway.Stamp(Profile), arguments_stamp = Gateway.Stamp(Arguments),
+        decision_stamp = Gateway.Stamp(DecisionStamp), decision_id = (string?)null,
+        principal = System.Text.Json.JsonDocument.Parse(Principal).RootElement,
+    };
 }

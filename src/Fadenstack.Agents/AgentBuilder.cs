@@ -28,6 +28,7 @@ public sealed class AgentBuilder
     private IApprovalStore? _approvalStore;
     private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
+    private bool _requireHostToolPolicyChecks;
     private IStepUpHandler? _stepUp;
     private ToolMode? _defaultMode;
     private int _maxRounds = 16;
@@ -146,6 +147,17 @@ public sealed class AgentBuilder
     public AgentBuilder UsePermissionMode(PermissionMode mode)
     {
         _permissionMode = mode is PermissionMode.Ask or PermissionMode.Bypass ? mode : throw new ArgumentOutOfRangeException(nameof(mode));
+        return this;
+    }
+
+    /// <summary>
+    /// Requires the server's fresh dispatch checks for host tools (<c>host_tools.dispatch_check</c>): the agent refuses to
+    /// start against a server that does not advertise them, and never falls back to cached policy. A server that advertises
+    /// them is used without this call; once seen, losing them fails closed (see <c>docs/host-commands.md</c>).
+    /// </summary>
+    public AgentBuilder RequireHostToolPolicyChecks()
+    {
+        _requireHostToolPolicyChecks = true;
         return this;
     }
 
@@ -332,6 +344,7 @@ public sealed class AgentBuilder
             ApprovalStore = _approvalStore,
             Retention = _retention,
             PermissionMode = _permissionMode,
+            RequireHostToolPolicyChecks = _requireHostToolPolicyChecks,
             StepUpHandler = _stepUp,
             DefaultMode = _defaultMode,
             MaxRounds = _maxRounds,
@@ -387,6 +400,7 @@ internal sealed class AgentSettings
     public IApprovalStore? ApprovalStore { get; init; }
     public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
+    public bool RequireHostToolPolicyChecks { get; init; }
     /// <summary>The app's cap on the server's default level; null: none.</summary>
     public ToolMode? DefaultMode { get; init; }
     public int MaxRounds { get; init; }
