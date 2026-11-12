@@ -104,6 +104,40 @@ public class PairingTests
         Assert.Equal(TimeSpan.FromSeconds(5), start.Interval);
     }
 
+    [Theory]
+    [InlineData("https://faden-login.example/pair", null)]
+    [InlineData("https://faden.test/pair", "https://evil.example/pair?code=BDWP-HTQX")]
+    [InlineData("https://anna:secret@faden.test/pair", null)]
+    [InlineData("http://faden.test/pair", null)]
+    [InlineData("https://faden.test:8443/pair", null)]
+    public async Task A_sign_in_page_not_on_the_servers_own_address_is_refused(string page, string? complete)
+    {
+        var rig = new Rig();
+        rig.Server.Json("POST", "/api/agent-tokens/pairings", new
+        {
+            pairing_code = Pairing, user_code = "BDWP-HTQX", verification_uri = page,
+            verification_uri_complete = complete ?? page + "?code=BDWP-HTQX", expires_in = 600, interval = 5,
+        }, HttpStatusCode.Created);
+
+        var e = await Assert.ThrowsAsync<FadenstackException>(() => rig.Pairing().StartAsync(Agent, "PC", App));
+
+        Assert.Contains("another address", e.Message);
+    }
+
+    [Fact]
+    public async Task A_relative_sign_in_page_is_the_servers_own()
+    {
+        var rig = new Rig();
+        rig.Server.Json("POST", "/api/agent-tokens/pairings", new
+        {
+            pairing_code = Pairing, user_code = "BDWP-HTQX", verification_uri = "/pair", expires_in = 600, interval = 5,
+        }, HttpStatusCode.Created);
+
+        var start = await rig.Pairing().StartAsync(Agent, "PC", App);
+
+        Assert.Equal("https://faden.test/pair", start.VerificationUri.AbsoluteUri);
+    }
+
     [Fact]
     public async Task The_pairing_code_is_not_in_the_start_object_the_text_or_the_log()
     {
