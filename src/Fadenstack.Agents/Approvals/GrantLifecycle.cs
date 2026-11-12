@@ -705,6 +705,8 @@ public sealed class GrantLifecycle : IDisposable
         }
         catch (FadenstackApiException e) when (e.Status == HttpStatusCode.NotFound)
         {
+            // ended meanwhile: the copy drops it now, as EndAsync does, not at the next look
+            await RefreshQuietlyAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (Exception e) when (e is FadenstackException or HttpRequestException)

@@ -350,6 +350,23 @@ public class GrantLifecycleTests
     }
 
     [Fact]
+    public async Task Stop_drops_a_grant_the_server_already_ended_from_the_running_list_at_once()
+    {
+        using var rig = await Rig.StartAsync();
+        var first = await rig.WorkAsync(30, "c-1");
+        var second = await rig.WorkAsync(30, "c-2");
+        rig.Server.End(first.Id, "person");
+        rig.Server.Server.On("DELETE", $"{Route}/{first.Id}", _ =>
+            FakeServer.Respond(HttpStatusCode.NotFound, new { error = new { message = "You have no such grant.", code = "grant_not_found" } }));
+
+        await rig.Life.StopAsync();
+
+        // The device's copy reads the server's list again: no marker shows it until the next look (desktop app, 12 Nov 2026).
+        Assert.DoesNotContain(rig.Life.Running, g => g.Id == first.Id);
+        Assert.DoesNotContain(rig.Life.Running, g => g.Id == second.Id);
+    }
+
+    [Fact]
     public async Task A_stop_the_server_cannot_take_says_so_and_ends_nothing_said()
     {
         using var rig = await Rig.StartAsync();
