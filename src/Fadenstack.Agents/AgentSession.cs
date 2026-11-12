@@ -590,9 +590,10 @@ public sealed class AgentSession
         private readonly List<(Aim Aim, GatewayMark Mark)> _marks = new();
         private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
 
-        // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id. Cleared
-        // as a round starts too: a model that reuses an id in a later round never inherits an earlier call's grant.
-        private readonly Dictionary<string, string> _covered = new();
+        // Calls of the agent's own tools the gateway said a grant covers (faden.grant_used): call id -> grant id and tool.
+        // Cleared as a round starts too: a model that reuses an id in a later round never inherits an earlier call's grant.
+        // A mark counts once, for that call and tool: it is taken out when read, so a repeated id never spends it twice.
+        private readonly Dictionary<string, (string GrantId, string Tool)> _covered = new();
         private readonly StringBuilder _text = new();
 
         // The conversation's Bypass ended since its last turn: the model is told (BypassEndedNote).
@@ -944,9 +945,10 @@ public sealed class AgentSession
                 case "faden.grant_used":
                     // The gateway checked the call against the device's grants and counted it: the first line. The
                     // copy is the second (ApproveAsync).
-                    if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } covered && ChatWire.Str(value, "grantId") is { Length: > 0 } grant)
+                    if (ChatWire.Str(value, "toolCallId") is { Length: > 0 } covered && ChatWire.Str(value, "grantId") is { Length: > 0 } grant
+                        && ChatWire.Str(value, "toolCallName") is { Length: > 0 } coveredTool)
                     {
-                        _covered[covered] = grant;
+                        _covered[covered] = (grant, coveredTool);
                     }
                     break;
                 case "faden.grants":
@@ -1435,10 +1437,13 @@ public sealed class AgentSession
                 : decision.ForSession && request.CanAllowForSession ? ApprovalScopes.Chat
                 : ApprovalScopes.Once;
             string? grantId = null;
+            int? confirmed = null; // the minutes the server confirmed, which may be fewer than the person picked
             if (scope == ApprovalScopes.Grant)
             {
-                grantId = await GrantForTimeAsync(name, decision!.ForTime!.Value, cancellationToken).ConfigureAwait(false);
-                scope = grantId is null ? ApprovalScopes.Once : scope;
+                var made = await GrantForTimeAsync(name, decision!.ForTime!.Value, cancellationToken).ConfigureAwait(false);
+                grantId = made?.Id;
+                confirmed = made is null ? null : Math.Max(1, (int)Math.Ceiling(made.RemainingS / 60.0));
+                scope = made is null ? ApprovalScopes.Once : scope;
             }
             if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass).ConfigureAwait(false))
             {
@@ -1449,9 +1454,9 @@ public sealed class AgentSession
                 _session.ApproveForChat(name);
             }
             var minutes = scope == ApprovalScopes.Grant ? (int?)decision!.ForTime!.Value.TotalMinutes : null;
-            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes).ConfigureAwait(false);
+            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes, confirmed).ConfigureAwait(false);
             Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
-                : scope == ApprovalScopes.Grant ? ApprovalDecision.ApproveFor(decision.ForTime!.Value)
+                : scope == ApprovalScopes.Grant ? ApprovalDecision.ApproveFor(TimeSpan.FromMinutes(confirmed!.Value))
                 : scope == ApprovalScopes.Always ? ApprovalDecision.ApproveAlways()
                 : scope == ApprovalScopes.Chat ? ApprovalDecision.ApproveForSession()
                 : scope == ApprovalScopes.Once ? ApprovalDecision.Approve()
@@ -1471,10 +1476,13 @@ public sealed class AgentSession
         /// </summary>
         private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
-            if (!_covered.TryGetValue(request.CallId, out var grantId) || !Agent.Grants.Available)
+            var marked = _covered.TryGetValue(request.CallId, out var mark);
+            _covered.Remove(request.CallId); // counts once
+            if (!marked || mark.Tool != request.ToolName || !Agent.Grants.Available)
             {
                 return (null, null);
             }
+            var grantId = mark.GrantId;
             if (!Agent.Grants.Knows(grantId))
             {
                 try
@@ -1505,14 +1513,14 @@ public sealed class AgentSession
         }
 
         /// <summary>
-        /// The grant for a time the user picked on the card, as the server confirmed it; null when it did not (offline,
+        /// The grant for a time the user picked on the card, as the server confirmed it (it may be shorter); null when it did not (offline,
         /// refused): this call is approved once, and the chat says the grant was not made (L-59: no answer, no grant).
         /// </summary>
-        private async Task<string?> GrantForTimeAsync(string tool, TimeSpan duration, CancellationToken cancellationToken)
+        private async Task<AgentGrant?> GrantForTimeAsync(string tool, TimeSpan duration, CancellationToken cancellationToken)
         {
             try
             {
-                return (await Agent.Grants.GrantForTimeAsync(tool, duration, cancellationToken: cancellationToken).ConfigureAwait(false)).Id;
+                return await Agent.Grants.GrantForTimeAsync(tool, duration, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -1530,7 +1538,7 @@ public sealed class AgentSession
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
         private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs,
-            string? grantId = null, int? minutes = null)
+            string? grantId = null, int? minutes = null, int? confirmedMinutes = null)
         {
             await _session.AppendAsync(EntryTypes.ApprovalDecision, _id, new
             {
@@ -1543,7 +1551,8 @@ public sealed class AgentSession
                 for_session = asked && scope == ApprovalScopes.Chat, // for older readers
                 scope,
                 grant_id = grantId,
-                grant_minutes = minutes,
+                grant_minutes = minutes, // the time the person picked
+                grant_confirmed_minutes = confirmedMinutes, // what the server confirmed (sdk/43 §6: the same keys as every SDK's)
                 asked,
                 rule,
                 outside_grant = request.LeadsOutside is not null, // a link led out of the grant's places: asked
