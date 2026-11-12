@@ -25,7 +25,7 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | Sign in with a login token | `tokens.SignInAsync(loginToken, deviceLabel)` | `tokens.signIn(loginToken, deviceLabel)` | |
 | A login token from a password | — | `loginWithPassword({ apiUrl, email, password })` | |
 | Sign in by pairing | `AgentPairing`: `StartAsync`, `WaitAsync`, `RedeemAsync` | `AgentPairing`: `start`, `wait`, `redeem` | |
-| Several agents with one approval | `StartAsync(..., agents)`; at most `AgentPairing.MaxAgents` (8) | `start(..., { agents })` | |
+| Several agents with one approval | `StartAsync(..., agents)`; at most `AgentPairing.MaxAgents` (8); agents an old server left out in `PairingStart.AgentsLeft` | `start(..., { agents })`; agents an old server left out in `PairingStart.ignoredAgents` | |
 | A server too old for pairing | `FadenstackPairingUnsupportedException` (404 and 405) | `FadenstackPairingUnsupportedError` (404 and 405) | |
 | Denied, expired, agent not redeemable | `FadenstackPairingDeniedException`, `FadenstackPairingExpiredException`, `FadenstackPairingAgentException` | `FadenstackPairingDeniedError`, `FadenstackPairingExpiredError`, `FadenstackPairingAgentError` | |
 | The sign-in page must be the server's own | `StartAsync` throws `FadenstackException` | `start` throws `FadenstackError` | |
@@ -96,4 +96,4 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | A `mermaid` fence | `CodeBlock.IsDiagram`, shown as text | a code block with `diagram: true`, shown as text | |
 | Details on an approval card | `ApprovalPart.TitleInlines`, `SourceLine`, `HasSourceLine`, `Reason` | `ApprovalPart.titleParts`, `sourceLine`, `hasSourceLine`, `reason` | |
 | A gate on running turns | `AgentChatOptions.TurnGate`, a lease with `Dispose()` | `turnGate`, a lease with `dispose()` | |
-| Answers without an AI mark | hidden by default; `chat.TellUnmarked`, preference key `tell-unmarked` | hidden by default; preference key `unmarkedNotice` | |
+| Answers without an AI mark | hidden by default; `chat.TellUnmarked`, preference key `tell-unmarked` | hidden by default; `chat.showUnmarkedNotice`, `setShowUnmarkedNotice`, preference key `unmarkedNotice` | |
