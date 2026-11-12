@@ -140,8 +140,9 @@ public class DataRightsTests : IDisposable
         await Seed("u-2", Gateway.Slug, "s1", "somebody else's");
         KeepAToken();
 
-        await agent.DeleteMyDataAsync();
+        var deletion = await agent.DeleteMyDataAsync();
 
+        Assert.False(deletion.HostStoresLeft); // the SDK's own stores: nothing left anywhere
         Assert.False(Directory.Exists(Data("users", "u-1")));
         Assert.True(File.Exists(Data("users", "u-2", "sessions", Gateway.Slug, "s1.jsonl")));
         Assert.Equal(TokenSecret, File.ReadAllText(Data("tokens", "agent.bin")));
@@ -154,6 +155,23 @@ public class DataRightsTests : IDisposable
         await agent.ApprovalStore.AddAsync(Gateway.Slug, new StoredApproval("stamp", ToolClass.Write, DateTimeOffset.UtcNow));
         Assert.Single(await agent.ListSessionsAsync());
         Assert.Single(await agent.ApprovalStore.ListAsync(Gateway.Slug));
+    }
+
+    [Fact]
+    public async Task Deleting_says_so_when_the_host_passed_its_own_store_and_leaves_it_to_the_host()
+    {
+        // sdk/46 D-1: a host's store may hold other people's chats, so the SDK does not empty it -- but it must not let the
+        // host believe the person's data gone.
+        var sessions = new MemorySessionStore();
+        using var agent = new Gateway { Principal = Principal }.Builder(sessions).Build();
+        await sessions.AppendAsync(Gateway.Slug, "s1", Entry("mine"));
+
+        var deletion = await agent.DeleteMyDataAsync();
+
+        Assert.True(deletion.HostSessionStoreLeft);
+        Assert.True(deletion.HostApprovalStoreLeft); // the test gateway's builder passes an approval store of its own too
+        Assert.True(deletion.HostStoresLeft);
+        Assert.Single(await sessions.ListAsync(Gateway.Slug));
     }
 
     [Fact]

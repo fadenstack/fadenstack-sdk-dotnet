@@ -61,6 +61,10 @@ internal static partial class Log
         Message = "The user's data on this device was deleted: {Folders} folders removed")]
     internal static partial void DataDeleted(ILogger logger, int folders);
 
+    [LoggerMessage(EventId = 2015, Level = LogLevel.Warning,
+        Message = "The user's data on this device was deleted, but not in the stores the host passed (sessions {Sessions}, approvals {Approvals}): the host deletes its part")]
+    internal static partial void DataLeftInHostStores(ILogger logger, bool sessions, bool approvals);
+
     [LoggerMessage(EventId = 2008, Level = LogLevel.Warning,
         Message = "The user's data on this device could not be deleted ({ErrorType})")]
     internal static partial void DataDeletionFailed(ILogger logger, string errorType);

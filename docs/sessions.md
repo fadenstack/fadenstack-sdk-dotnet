@@ -37,6 +37,7 @@ Entries are only ever appended. A turn that was stopped is still recorded, as st
 
 `session.History` shows what the next request would carry. It is built from the transcript by these rules:
 
+- A turn that holds a `user.command` entry (a host tool the person started, see [Host commands](host-commands.md)) is left out entirely: it is local tool activity, not a conversation with the model.
 - A refused prompt, a failed turn and a cancelled turn are left out entirely, and so is an older turn without an end (the app closed while it ran). Only the newest turn may still be running.
 - Of a turn whose answer was stopped, only the question stays.
 - Consecutive user messages are merged into one.

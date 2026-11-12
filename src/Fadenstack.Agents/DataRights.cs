@@ -14,6 +14,16 @@ internal interface IListsAgents
     IReadOnlyList<string> Agents();
 }
 
+/// <summary>
+/// What <see cref="FadenstackAgent.DeleteMyDataAsync"/> did: the folders it removed, and whether a store the host passed was
+/// left to the host (it may hold other people's data, so the SDK does not empty it; the host deletes this person's part).
+/// </summary>
+public sealed record DataDeletion(int FoldersRemoved, bool HostSessionStoreLeft, bool HostApprovalStoreLeft)
+{
+    /// <summary>Whether the person's data may still be in a store the host passed.</summary>
+    public bool HostStoresLeft => HostSessionStoreLeft || HostApprovalStoreLeft;
+}
+
 /// <summary>What an export wrote.</summary>
 internal sealed record ExportCounts(int Agents, int Sessions, int Approvals, int Unreadable);
 

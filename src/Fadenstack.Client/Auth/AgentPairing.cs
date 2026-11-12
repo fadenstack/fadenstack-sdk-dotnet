@@ -90,7 +90,7 @@ public sealed class AgentPairing
         var (status, text, response) = await SendAsync("api/agent-tokens/pairings", body, cancellationToken).ConfigureAwait(false);
         try
         {
-            if (status == HttpStatusCode.NotFound)
+            if (TooOld(status))
             {
                 Log.PairingEnded(_log, agent, "unsupported");
                 throw new FadenstackPairingUnsupportedException(
@@ -209,7 +209,7 @@ public sealed class AgentPairing
                     case "invalid_grant":
                         throw Expired(start, "The server no longer knows this code. Get a new one.");
                     default:
-                        if (status == HttpStatusCode.NotFound)
+                        if (TooOld(status))
                         {
                             throw new FadenstackPairingUnsupportedException(
                                 "This server does not support signing in from the desktop app yet. Ask your IT to update Fadenstack.");
@@ -331,6 +331,13 @@ public sealed class AgentPairing
 
     private sealed record Started(string PairingCode, string UserCode, string VerificationUri, string? VerificationUriComplete,
         int ExpiresIn = 600, int Interval = 5);
+
+    /// <summary>
+    /// A server older than pairing: no route (404), or a route of the same path for another method (405 -- core 0.7.0
+    /// answers <c>POST /api/agent-tokens/pairings</c> with 405, as <c>DELETE /api/agent-tokens/{device_id}</c> matches it).
+    /// </summary>
+    internal static bool TooOld(HttpStatusCode status) =>
+        status is HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed;
 }
 
 /// <summary>What the app says about itself when it asks for a pairing. The approval page shows it as the app's own word.</summary>

@@ -45,7 +45,7 @@ public class BypassStepUpTests
 
         Assert.NotNull(grant);
         var opened = Assert.Single(card.Opened);
-        Assert.Equal(("https://faden.example/step-up#code=BCDF-GHJK", "BCDF-GHJK", session.Id),
+        Assert.Equal(("https://faden.test/step-up#code=BCDF-GHJK", "BCDF-GHJK", session.Id),
             (opened.Link.AbsoluteUri, opened.UserCode, opened.ConversationId));
         Assert.Equal(new[] { StepUpStage.Browser, StepUpStage.Approved }, card.Stages);
         Assert.Equal(new int?[] { 60 }, grants.StepUpLongest); // the page shows the card's longest time

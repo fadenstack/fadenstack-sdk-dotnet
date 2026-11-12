@@ -191,6 +191,15 @@ public sealed class UiStrings
     /// <summary>A card answered for a time: "Allowed for 30 min".</summary>
     public string AllowedFor(string duration) => Fill(duration);
 
+    /// <summary>A card once the server confirmed the time (it may be less than the one picked): "Server confirmed up to 30 min".</summary>
+    public string AllowedForConfirmed(string duration) => Fill(duration);
+
+    /// <summary>A card whose time the person picked and the server has not yet answered.</summary>
+    public string ConfirmingGrant => Text();
+
+    /// <summary>What a time grant is, beside "Allow for…".</summary>
+    public string TimeGrantHint => Text();
+
     /// <summary>A call a running grant let through without asking.</summary>
     public string AllowedByGrant => Text();
 
@@ -357,6 +366,55 @@ public sealed class UiStrings
 
     /// <summary>A running Bypass in Settings: "Bypass in a chat, 12 min left · Each tool that runs is recorded…".</summary>
     public string SettingsGrantBypass(string left, string recorded) => Fill2(left, recorded);
+
+    // -- the marker for every grant of the device, across chats (sdk/46 G2) -----------------------------
+
+    /// <summary>The device-wide marker with several grants running: "2 grants running · first ends in 12 min".</summary>
+    public string GrantsMarkerMany(int count, string left) => Fill2(count, left);
+
+    /// <summary>One grant's time left in a marker's line: "12 min left".</summary>
+    public string GrantsLeft(string left) => Fill(left);
+
+    /// <summary>A paused grant in a marker's line.</summary>
+    public string GrantsPaused => Text();
+
+    /// <summary>The avatar's badge while the grant that ends first is paused.</summary>
+    public string GrantsBadgePaused => Text();
+
+    /// <summary>The marker of a single Bypass that is paused (the app was closed).</summary>
+    public string GrantsBypassPaused => Text();
+
+    /// <summary>What a grant is called in a marker's line: "Working alongside you", or "Bypass" for <c>bypass</c>.</summary>
+    public string GrantsKind(string kind) => kind == Fadenstack.Models.GrantKinds.Bypass ? this["Mode_Bypass_Label"] : this["GrantsKindWork"];
+
+    /// <summary>The chat of a grant when the app cannot name it.</summary>
+    public string GrantsChatUnknown => Text();
+
+    /// <summary>Stop did not reach the server: what is left runs on until its time.</summary>
+    public string GrantsStopFailed => Text();
+
+    public string GrantsExtendFailed => Text();
+
+    /// <summary>The server refused more time: the grant is at the longest it may run.</summary>
+    public string GrantsAtLongest => Text();
+
+    /// <summary>A grant stays paused because the server could not check whether it may go on.</summary>
+    public string GrantsWaiting => Text();
+
+    /// <summary>The title of a stretch of work's summary: "Worked alongside you for 23 min".</summary>
+    public string GrantsSummaryWork(string period) => Fill(period);
+
+    /// <summary>The title of a Bypass's summary: "Bypass ran for 23 min".</summary>
+    public string GrantsSummaryBypass(string period) => Fill(period);
+
+    /// <summary>"Where: Word "report.docx" · Folder "Offers"".</summary>
+    public string GrantsSummaryPlaces(string places) => Fill(places);
+
+    /// <summary>"Ran without asking: 3".</summary>
+    public string GrantsSummaryCalls(int calls) => Fill(calls);
+
+    /// <summary>Why a grant ended, as <see cref="Fadenstack.Agents.GrantLifecycle"/> says it: one sentence for a summary.</summary>
+    public string GrantsEnded(Fadenstack.Agents.GrantEndReason reason) => this["GrantsEnded_" + reason];
 
     private static string Level(string? evidence) => evidence switch
     {

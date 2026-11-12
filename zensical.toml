@@ -7,6 +7,7 @@ nav = [
   { "Overview" = "index.md" },
   { "Build an agent" = "agent.md" },
   { "Host tools" = "tools.md" },
+  { "Host commands and policy" = "host-commands.md" },
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },
   { "Local MCP servers" = "local-mcp.md" },

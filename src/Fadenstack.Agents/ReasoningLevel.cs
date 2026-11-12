@@ -84,7 +84,8 @@ public static class ReasoningLevels
 
 /// <summary>
 /// The levels an agent offers: always Auto and Off, and Low, Medium and High up to the maximum the server may set in the
-/// agent's profile, <c>ui.reasoning</c> (<c>{"max": "low"}</c>; none, low, medium, high or xhigh). Without a maximum, or
+/// agent's profile, <c>ui.reasoning</c> (<c>{"max": "low"}</c>; the gateway's scale none, minimal, low, medium, high, xhigh
+/// or max: minimal caps at none, the nearest level the SDK can send, and max sets no cap). Without a maximum, or
 /// with one that is not readable, all five are offered and Auto sends no field. With one, Auto means the maximum.
 /// </summary>
 public sealed class ReasoningChoices
@@ -118,9 +119,18 @@ public sealed class ReasoningChoices
         {
             return Everything;
         }
-        ReasoningEffort? max = raw.GetString()?.Trim().ToLowerInvariant() switch
+        var name = raw.GetString()?.Trim().ToLowerInvariant();
+        if (name == "max")
+        {
+            // The top of the gateway's scale: the server lets the agent think as long as it likes.
+            return Everything;
+        }
+        ReasoningEffort? max = name switch
         {
             "none" => ReasoningEffort.None,
+            // The gateway's scale has "minimal" between none and low; the SDK cannot send it, so the cap is the level
+            // below it the SDK can send. The server still caps every request itself.
+            "minimal" => ReasoningEffort.None,
             "low" => ReasoningEffort.Low,
             "medium" => ReasoningEffort.Medium,
             "high" => ReasoningEffort.High,

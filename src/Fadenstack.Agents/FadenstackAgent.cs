@@ -34,6 +34,7 @@ public sealed class FadenstackAgent : IDisposable
     private ReasoningChoiceStore? _reasoningStore;
     private ReasoningChoices _reasoningChoices = ReasoningChoices.Everything;
     private ReasoningLevel? _reasoningPick;
+    private volatile bool _hostPolicySeen;
 
     internal FadenstackAgent(AgentSettings settings)
     {
@@ -146,6 +147,7 @@ public sealed class FadenstackAgent : IDisposable
                 return;
             }
             var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
+            AssertHostPolicySupport(profile);
             var dropped = new List<string>();
             var tools = HostTools(profile, dropped);
             foreach (var name in dropped)
@@ -241,6 +243,60 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>
+    /// Whether host tool calls of the model go through the server's fresh dispatch checks (<c>host_tools.dispatch_check</c>):
+    /// the server advertised them, or the app required them (<see cref="AgentBuilder.RequireHostToolPolicyChecks"/>). Once
+    /// negotiated, losing the support fails closed until a new agent is built.
+    /// </summary>
+    public bool HostToolPolicyChecks => _hostPolicySeen || _settings.RequireHostToolPolicyChecks;
+
+    /// <summary>
+    /// Reads the profile again, right now, for the approval limits and the server's support for the checks. The agent's
+    /// identity and its published contract must be the ones the agent started with; a change throws a
+    /// <see cref="FadenstackException"/> (reconnect before running tools).
+    /// </summary>
+    internal async Task RefreshPolicyAsync(CancellationToken cancellationToken)
+    {
+        var before = Profile;
+        var fresh = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        AssertHostPolicySupport(fresh);
+        if (Binding(before) != Binding(fresh))
+        {
+            throw new FadenstackException("The agent identity or published contract changed. Reconnect before running tools.");
+        }
+        _profile = fresh;
+        _profileRead = Clock();
+        if (_context is not null)
+        {
+            _context = new AgentContext(Client, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
+        }
+    }
+
+    /// <summary>What must not change while the agent runs: who it is, what it was published with.</summary>
+    private static string Binding(AgentProfile p) => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        p.Id, p.Slug, p.Version, p.Draft, p.Principal, Contract = p.HostToolContract, p.InstructionsSha256,
+        Modules = p.RequiredClientModules, p.Extensions,
+    }, Http.FadenstackJson.Options);
+
+    /// <summary>The approval limits a host call was reviewed under; a change while the person decides stops the call.</summary>
+    internal string ApprovalControls => System.Text.Json.JsonSerializer.Serialize(
+        new { Modes = Profile.ToolModes, Profile.Approvals }, Http.FadenstackJson.Options);
+
+    private void AssertHostPolicySupport(AgentProfile profile)
+    {
+        var supported = profile.Features.Contains(HostToolFeatures.DispatchCheck);
+        if ((_settings.RequireHostToolPolicyChecks || _hostPolicySeen) && !supported)
+        {
+            throw new FadenstackException(
+                "This agent requires fresh central host-tool dispatch checks. The gateway does not advertise support.");
+        }
+        if (supported)
+        {
+            _hostPolicySeen = true;
+        }
+    }
+
+    /// <summary>
     /// Reads the profile again when a session starts or opens and it is older than <see cref="ProfileMaxAge"/> (39 F8): a
     /// ceiling an administrator lowered, a highest level, or a tool's class or approval reach the next session without a
     /// restart. The tools of the agent's sources (local MCP) stay as they were. When the server cannot be reached the
@@ -265,6 +321,7 @@ public sealed class FadenstackAgent : IDisposable
                 Log.ProfileRereadFailed(Logger, Slug, e.GetType().Name);
                 return;
             }
+            AssertHostPolicySupport(profile); // not swallowed above: a server that dropped the checks is not trusted with the old ones
             var hosts = HostTools(profile);
             // Settled as a changed tool source is (RefreshToolsAsync): one at a time, and a host tool that went away is refused by name.
             await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -546,9 +603,11 @@ public sealed class FadenstackAgent : IDisposable
     /// the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no user, the
     /// shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
     /// sign out (the sign-in tokens stay; that is the host's call: <see cref="Auth.AgentTokenProvider.SignOutAsync"/>), and it
-    /// leaves stores the host passed to their owner. What the server keeps is for its operator to erase.
+    /// leaves stores the host passed to their owner -- they may hold other people's data -- but says so: in its result and
+    /// as a warning in the log, so a host never believes a person's data gone that its own store still keeps
+    /// (fadenstack-dev sdk/46 D-1). What the server keeps is for its operator to erase.
     /// </summary>
-    public async Task DeleteMyDataAsync(CancellationToken cancellationToken = default)
+    public async Task<DataDeletion> DeleteMyDataAsync(CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
@@ -559,6 +618,12 @@ public sealed class FadenstackAgent : IDisposable
         {
             var removed = folders.Count(FadenstackPaths.DeleteUnderData);
             Log.DataDeleted(Logger, removed);
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null);
+            if (deletion.HostStoresLeft)
+            {
+                Log.DataLeftInHostStores(Logger, deletion.HostSessionStoreLeft, deletion.HostApprovalStoreLeft);
+            }
+            return deletion;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

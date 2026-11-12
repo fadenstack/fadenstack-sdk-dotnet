@@ -145,7 +145,8 @@
                                     <MenuItem Header="{v:Text AllowForChat}" Command="{Binding AllowForSessionCommand}" IsVisible="{Binding CanAllowForSession}" />
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}" IsVisible="{Binding CanAllowAlways}" />
                                     <!-- "Allow for…": the times the agent allows, a grant the server holds; each answers with its DurationOption. -->
-                                    <MenuItem Classes="durations" Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}" IsVisible="{Binding CanAllowForTime}">
+                                    <MenuItem Classes="durations" Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}" IsVisible="{Binding CanAllowForTime}"
+                                              ToolTip.Tip="{Binding TimeGrantHint}">
                                         <MenuItem.Styles>
                                             <Style Selector="MenuItem.durations > MenuItem" x:DataType="parts:DurationOption">
                                                 <Setter Property="Header" Value="{Binding Label}" />
