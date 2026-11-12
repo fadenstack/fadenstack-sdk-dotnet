@@ -141,6 +141,50 @@ Add one with `builder.AddToolSource(source)`. The `AgentContext` gives the sourc
 
 An `AgentTool` wraps an `AIFunction` with its class, its `Source` (`host` or `mcp`), the `Server` label of an MCP tool, and whether it reaches outside the organisation.
 
+### Tool sources that change
+
+Some sources have tools that come and go: a server that adds or drops a tool, a setting that switches a group of tools on or off. Such a source implements `IChangingToolSource`, which adds one event:
+
+```csharp
+public interface IChangingToolSource : IToolSource
+{
+    event EventHandler? Changed;
+}
+```
+
+Raise `Changed`, from any thread, when `GetToolsAsync` would now answer differently. The agent listens from its start. It asks a source again at the start of the next turn, never inside a turn, and settles the answer by the same rules as at start: a host tool wins over a source's tool of the same name, and the agent's contract sets the class. From then on `agent.Tools` and the model's requests show the new list. A source that did not raise `Changed` is not asked again. If asking again fails, the agent keeps the tools it had and writes a warning (event 2014). A model that calls a tool that went away is told "(name) is no longer available." The agent stops listening when it is disposed. `LocalMcpModule` is a changing source.
+
+### Tools in scope per conversation
+
+A tool source can decide, per conversation, which of its tools the model is offered. Set `AgentTool.Scope` to an `IToolScope`:
+
+```csharp
+public interface IToolScope
+{
+    bool Offers(AgentTool tool, AgentSession session);
+    string? BeforeCall(AgentTool tool, AgentSession session);
+}
+```
+
+`Offers` says whether the model gets the tool in this session's requests now; a tool without a `Scope` is always offered. A tool that is not offered can still be called by name. `BeforeCall` runs before the call is approved or run: it returns the text that answers the call instead, or null to run it. Both can be called from any thread. This is how the local MCP module brings its tools in only when the model asks for them ([Tools on request](local-mcp.md#tools-on-request)). A minimal scope that offers a tool once the model has called it:
+
+```csharp
+using System.Collections.Concurrent;
+using Fadenstack.Agents;
+
+public sealed class AskedForScope : IToolScope
+{
+    private readonly ConcurrentDictionary<(string Session, string Tool), bool> _on = new();
+
+    public bool Offers(AgentTool tool, AgentSession session) => _on.ContainsKey((session.Id, tool.Name));
+
+    public string? BeforeCall(AgentTool tool, AgentSession session) =>
+        _on.TryAdd((session.Id, tool.Name), true)
+            ? $"{tool.Name} is now switched on. Call it again with its parameters."
+            : null;
+}
+```
+
 ## FadenstackTransport
 
 `client.Transport` makes authenticated requests to the server with the client's tokens, TLS settings and typed errors. Use it to add requests the SDK does not cover yet, without copying the plumbing:
