@@ -35,8 +35,10 @@ internal static class TranscriptTurns
     {
         var user = entries.FirstOrDefault(e => e.Type == EntryTypes.UserMessage);
         var data = user?.Data ?? default;
-        var turn = new TurnViewModel(chat, Json.Str(data, "text") ?? "", user?.Timestamp ?? entries[0].Timestamp,
-            previewLength, TurnState.Completed)
+        // A host command the person started: shown by its label (else the tool's name), and not a message to edit or send again.
+        var command = entries.FirstOrDefault(e => e.Type == EntryTypes.UserCommand);
+        var turn = new TurnViewModel(chat, Json.Str(data, "text") ?? Json.Str(command?.Data ?? default, "label") ?? Json.Str(command?.Data ?? default, "name") ?? "",
+            user?.Timestamp ?? command?.Timestamp ?? entries[0].Timestamp, previewLength, TurnState.Completed, isCommand: command is not null)
         {
             Id = entries[0].TurnId,
             // The skills the user picked, then what they attached: as the chips were when it was sent.

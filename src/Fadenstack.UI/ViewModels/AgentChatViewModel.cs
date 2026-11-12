@@ -772,6 +772,90 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// Starts a host tool the person chose (a button, a view of a module) in this chat: shown as a turn with its label, checked
+    /// by the server and approved through the same cards as a model's call, run without a model request
+    /// (<see cref="AgentSession.InvokeToolAsync"/>). The host's <see cref="AgentChatOptions.BeforeCommand"/> runs first. The
+    /// composer's draft and attachments are left alone, and the chat is busy until it ends (Stop cancels it). The arguments are
+    /// copied before anything is awaited. Null when nothing was started: the chat is not ready or busy, or
+    /// <see cref="AgentChatOptions.BeforeCommand"/> threw (<see cref="Error"/> says why); a bad <see cref="ChatCommandOptions.Label"/>
+    /// throws an <see cref="ArgumentException"/>.
+    /// </summary>
+    public async Task<HostCommandResult?> InvokeToolAsync(string name, IReadOnlyDictionary<string, object?>? arguments, ChatCommandOptions? options = null)
+    {
+        if (!_isReady || _isBusy)
+        {
+            return null;
+        }
+        options ??= new ChatCommandOptions();
+        var label = HostCommandOptions.CheckLabel(options.Label);
+        var command = new OutgoingCommand(name, options.Origin, label);
+        var stop = new CancellationTokenSource();
+        _stop = stop;
+        IsBusy = true;
+        Error = null;
+        TurnViewModel? turn = null;
+        HostCommandResult? result = null;
+        try
+        {
+            var snapshot = JsonSerializer.SerializeToElement(arguments ?? new Dictionary<string, object?>(), Fadenstack.Http.FadenstackJson.Options)
+                .EnumerateObject().ToDictionary(p => p.Name, p => (object?)p.Value.Clone());
+            if (_options.BeforeCommand is { } beforeCommand)
+            {
+                try
+                {
+                    await beforeCommand(command, stop.Token);
+                    stop.Token.ThrowIfCancellationRequested();
+                }
+                catch (Exception e)
+                {
+                    if (!stop.IsCancellationRequested)
+                    {
+                        Error = e.Message;
+                    }
+                    return null;
+                }
+            }
+            var started = new TurnViewModel(this, label ?? name, _options.Clock(), _options.PreviewLength, isCommand: true);
+            turn = started;
+            Turns.Add(started);
+            OnPropertyChanged(nameof(IsEmpty));
+            _current = started;
+            await Task.Run(async () => result = await RunCommandAsync(started, name, snapshot, command, _selectedMode.Mode, stop.Token));
+            await _batcher.WhenFlushedAsync();
+        }
+        finally
+        {
+            _current = null;
+            _stop = null;
+            stop.Dispose();
+            IsBusy = false;
+            if (turn is not null)
+            {
+                TouchCurrentSession(label ?? name);
+            }
+            RefreshBypassOption();
+            RunAfterCommand(command);
+        }
+        return result;
+    }
+
+    private void RunAfterCommand(OutgoingCommand command)
+    {
+        if (_options.AfterCommand is not { } afterCommand)
+        {
+            return;
+        }
+        try
+        {
+            afterCommand(command);
+        }
+        catch (Exception e)
+        {
+            Error = e.Message;
+        }
+    }
+
     private void RunAfterSend(OutgoingMessage message)
     {
         if (_options.AfterSend is not { } afterSend)
@@ -1468,6 +1552,47 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         {
             _batcher.Enqueue(() => turn.Fail(e.Message, _options.Clock()));
         }
+    }
+
+    private async Task<HostCommandResult?> RunCommandAsync(TurnViewModel turn, string name, IReadOnlyDictionary<string, object?> arguments,
+        OutgoingCommand command, ToolMode mode, CancellationToken cancellationToken)
+    {
+        HostCommandResult? result = null;
+        try
+        {
+            if (_session is null)
+            {
+                _session = await _agent.StartSessionAsync(mode, cancellationToken).ConfigureAwait(false);
+                _batcher.Enqueue(() => OnPropertyChanged(nameof(CurrentSessionId)));
+            }
+            _session.ToolMode = mode;
+            var options = new HostCommandOptions { Origin = command.Origin, Label = command.Label };
+            await foreach (var e in _session.StreamToolAsync(name, arguments, options, cancellationToken).ConfigureAwait(false))
+            {
+                Apply(turn, e);
+                if (e is ToolCallCompleted completed)
+                {
+                    result = new HostCommandResult(completed.TurnId, completed.CallId, completed.Outcome, completed.Result);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _batcher.Enqueue(() => turn.Stop(_options.Clock()));
+        }
+        catch (FadenstackSignInRequiredException e)
+        {
+            _batcher.Enqueue(() =>
+            {
+                SignInRequired = true;
+                turn.Fail(e.Message, _options.Clock());
+            });
+        }
+        catch (Exception e)
+        {
+            _batcher.Enqueue(() => turn.Fail(e.Message, _options.Clock()));
+        }
+        return result;
     }
 
     private void Apply(TurnViewModel turn, AgentEvent e)

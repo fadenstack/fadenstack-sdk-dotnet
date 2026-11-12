@@ -43,18 +43,20 @@ public sealed class TurnViewModel : ObservableObject
     /// <summary>A model call of the turn ended with nothing (<c>empty_answer</c>): Try again is offered, as for a failed turn.</summary>
     private bool _unanswered;
 
-    internal TurnViewModel(AgentChatViewModel? chat, string userText, DateTimeOffset timestamp, int previewLength, TurnState state = TurnState.Running)
+    internal TurnViewModel(AgentChatViewModel? chat, string userText, DateTimeOffset timestamp, int previewLength, TurnState state = TurnState.Running,
+        bool isCommand = false)
     {
         _chat = chat;
+        IsCommand = isCommand;
         _strings = chat?.Strings ?? UiStrings.Current;
         UserText = userText;
         Timestamp = timestamp;
         _previewLength = previewLength;
         _state = state;
         CopyCommand = new RelayCommand(Copy, () => AnswerText.Length > 0);
-        EditCommand = new RelayCommand(() => _chat?.Edit(UserText), () => _chat is not null && !IsRunning);
+        EditCommand = new RelayCommand(() => _chat?.Edit(UserText), () => _chat is not null && !IsCommand && !IsRunning);
         RetryCommand = new AsyncRelayCommand(() => _chat?.SendAsync(UserText) ?? Task.CompletedTask,
-            () => _chat is not null && !IsRunning && (_state is TurnState.Failed or TurnState.Stopped || (_state == TurnState.Completed && _unanswered)));
+            () => _chat is not null && !IsCommand && !IsRunning && (_state is TurnState.Failed or TurnState.Stopped || (_state == TurnState.Completed && _unanswered)));
     }
 
     public string? Id { get; internal set; }
@@ -63,6 +65,9 @@ public sealed class TurnViewModel : ObservableObject
     public UiStrings Strings => _strings;
 
     public string UserText { get; }
+
+    /// <summary>A host tool the person started (a button, a view), not a message: shown by its label, never edited or sent again as text.</summary>
+    public bool IsCommand { get; }
 
     /// <summary>What went with the message.</summary>
     public IReadOnlyList<AttachmentChip> Attachments { get; internal set; } = Array.Empty<AttachmentChip>();

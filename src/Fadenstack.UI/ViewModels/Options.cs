@@ -74,6 +74,16 @@ public sealed class AgentChatOptions
     public Action<OutgoingMessage>? AfterSend { get; set; }
 
     /// <summary>
+    /// Runs before a host command goes (<see cref="AgentChatViewModel.InvokeToolAsync"/>), for what the host does first: check
+    /// that its document is in a state the tool may act on. It runs on the UI thread; the chat is busy meanwhile and Stop
+    /// cancels the token. When it throws, nothing is sent or shown as a turn: <see cref="AgentChatViewModel.Error"/> says why.
+    /// </summary>
+    public Func<OutgoingCommand, CancellationToken, Task>? BeforeCommand { get; set; }
+
+    /// <summary>Runs once after every host command, however it ended, also when <see cref="BeforeCommand"/> threw.</summary>
+    public Action<OutgoingCommand>? AfterCommand { get; set; }
+
+    /// <summary>
     /// A gate on running turns, for a host that runs several chats and limits how many work at the same time. It is awaited
     /// when a turn is about to start (the user's message is shown, nothing is sent yet) and returns a lease that is disposed
     /// once, when the turn ends. While it waits, <see cref="AgentChatViewModel.IsWaitingForSlot"/> is true and the turn says
@@ -102,6 +112,33 @@ public sealed class OutgoingMessage
 
     /// <summary>What the user sent, trimmed.</summary>
     public string Text { get; }
+}
+
+/// <summary>A host command on its way, for <see cref="AgentChatOptions.BeforeCommand"/> and <see cref="AgentChatOptions.AfterCommand"/>. Never its arguments.</summary>
+public sealed class OutgoingCommand
+{
+    internal OutgoingCommand(string name, Fadenstack.Models.HostToolOrigin origin, string? label)
+    {
+        Name = name;
+        Origin = origin;
+        Label = label;
+    }
+
+    public string Name { get; }
+
+    public Fadenstack.Models.HostToolOrigin Origin { get; }
+
+    /// <summary>The display text the chat shows for it; null when there is none (the chat shows <see cref="Name"/>).</summary>
+    public string? Label { get; }
+}
+
+/// <summary>What goes with a host command started from the chat (<see cref="AgentChatViewModel.InvokeToolAsync"/>).</summary>
+public sealed class ChatCommandOptions
+{
+    public Fadenstack.Models.HostToolOrigin Origin { get; set; } = Fadenstack.Models.HostToolOrigin.UserCommand;
+
+    /// <summary>Human-readable local title: one line of at most 200 characters. It changes neither governance nor the model's history.</summary>
+    public string? Label { get; set; }
 }
 
 /// <summary>A language in the panel's settings: <c>auto</c> (the host's) or a tag, named in itself ("Deutsch").</summary>

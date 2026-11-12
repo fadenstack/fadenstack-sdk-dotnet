@@ -39,8 +39,16 @@ public sealed class ContextBuilder
         var status = entries.Where(e => e.Type == EntryTypes.TurnEnd && e.TurnId is not null)
             .GroupBy(e => e.TurnId!).ToDictionary(g => g.Key, g => g.Last().Status ?? TurnStatus.Ok);
         var newest = entries.LastOrDefault(e => e.TurnId is not null)?.TurnId;
+        // The turns of host commands the person started: local tool activity, not model turns. Replaying their results would
+        // disclose content without a prompt and leave tool messages without a call.
+        var commands = new HashSet<string>(entries.Where(e => e.Type == EntryTypes.UserCommand && e.TurnId is not null).Select(e => e.TurnId!),
+            StringComparer.Ordinal);
         bool Included(TranscriptEntry entry)
         {
+            if (commands.Contains(entry.TurnId!))
+            {
+                return false;
+            }
             // The newest turn without an end is in progress: all of it. An older one was cut off (the app closed while it
             // ran): left out as a cancelled one is, so no tool call goes without its result.
             var turnStatus = status.TryGetValue(entry.TurnId!, out var s) ? s

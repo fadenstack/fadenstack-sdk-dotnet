@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Fadenstack.Http;
 using Fadenstack.Models;
+using Fadenstack.Tools;
 
 namespace Fadenstack.Resources;
 
@@ -25,6 +26,88 @@ public sealed class AgentResource
     /// <summary>The agent's current version: model, tool contract, local MCP mode, tool modes; not its instructions.</summary>
     public Task<AgentProfile> GetProfileAsync(CancellationToken cancellationToken = default) =>
         _transport.GetAsync<AgentProfile>(Route("profile"), cancellationToken);
+
+    /// <summary>
+    /// Current central policy for one host tool call (<c>POST tools/check</c>): the person's explicit command
+    /// (<see cref="HostToolOrigin.UserCommand"/>, <see cref="HostToolOrigin.UserHistory"/>) or a call of the model
+    /// (<see cref="HostToolOrigin.ModelTool"/>, which needs its <see cref="HostToolCheck.CallId"/>: a call without one is
+    /// refused here, before anything is sent). It never runs a tool or a model. Ask once with
+    /// <see cref="HostToolPhase.Prepare"/> before the person is asked, and again with <see cref="HostToolPhase.Dispatch"/> and
+    /// the first answer in <see cref="HostToolCheck.Prepared"/> right before the tool runs: compare the answer's stamps. A
+    /// decision, class or level this SDK does not know narrows (a denial, unclassified, off); an answer without valid stamps
+    /// or principal throws a <see cref="FadenstackException"/>. An older server without the route answers 404.
+    /// </summary>
+    public async Task<HostToolDecision> CheckHostToolAsync(HostToolCheck check, CancellationToken cancellationToken = default)
+    {
+        if (check is null)
+        {
+            throw new ArgumentNullException(nameof(check));
+        }
+        if (check.Origin == HostToolOrigin.ModelTool && string.IsNullOrEmpty(check.CallId))
+        {
+            throw new ArgumentException("A model host call needs its call id.", nameof(check));
+        }
+        var body = new Dictionary<string, object?>
+        {
+            ["name"] = check.Name,
+            ["arguments"] = check.Arguments.ValueKind == JsonValueKind.Object ? check.Arguments : new Dictionary<string, object?>(),
+            ["tool_mode"] = check.ToolMode.ToWire(),
+            ["origin"] = check.Origin switch
+            {
+                HostToolOrigin.UserHistory => "user_history",
+                HostToolOrigin.ModelTool => "model_tool",
+                _ => "user_command",
+            },
+            ["phase"] = check.Phase == HostToolPhase.Dispatch ? "dispatch" : "prepare",
+            ["schema_sha256"] = check.SchemaSha256,
+        };
+        if (check.CallId is not null)
+        {
+            body["call_id"] = check.CallId;
+        }
+        if (check.Prepared is { } prepared)
+        {
+            body["prepared_profile"] = prepared.ProfileStamp;
+            body["prepared_arguments"] = prepared.ArgumentsStamp;
+            body["prepared_decision"] = prepared.DecisionStamp;
+        }
+        var headers = new Dictionary<string, string>
+        {
+            ["X-Faden-Conversation-Id"] = check.ConversationId,
+            ["X-Faden-Turn-Id"] = check.TurnId,
+        };
+        var answer = await _transport.PostAsync<JsonElement>(Route("tools/check"), body, headers, cancellationToken).ConfigureAwait(false);
+        return ReadHostToolDecision(answer);
+    }
+
+    private static readonly JsonSerializerOptions PrincipalOptions = new() { Converters = { new AgentPrincipalConverter() } };
+
+    private static HostToolDecision ReadHostToolDecision(JsonElement answer)
+    {
+        string? Text(string name) =>
+            answer.ValueKind == JsonValueKind.Object && answer.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        string? Stamp(string name) =>
+            Text(name) is { Length: 64 } s && s.All(c => (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) ? s : null;
+        AgentPrincipal? principal = null;
+        if (answer.ValueKind == JsonValueKind.Object && answer.TryGetProperty("principal", out var p))
+        {
+            principal = JsonSerializer.Deserialize<AgentPrincipal?>(p.GetRawText(), PrincipalOptions);
+        }
+        var (profile, arguments, decision) = (Stamp("profile_stamp"), Stamp("arguments_stamp"), Stamp("decision_stamp"));
+        if (profile is null || arguments is null || decision is null || principal is null)
+        {
+            throw new FadenstackException("The gateway did not return a valid host-command policy decision.");
+        }
+        return new HostToolDecision
+        {
+            Decision = Text("decision") switch { "run" => HostToolVerdict.Run, "ask" => HostToolVerdict.Ask, _ => HostToolVerdict.Deny },
+            ToolClass = ToolModes.ParseClass(Text("tool_class")),
+            EffectiveToolMode = ToolModes.ParseMode(Text("effective_tool_mode")) ?? ToolMode.Off,
+            RequiredByRule = !(answer.TryGetProperty("required_by_rule", out var rule) && rule.ValueKind == JsonValueKind.False),
+            Message = Text("message") ?? "",
+            ProfileStamp = profile, ArgumentsStamp = arguments, DecisionStamp = decision, Principal = principal,
+        };
+    }
 
     /// <summary>Reports what the SDK did -- names, counts, outcomes. Up to 100 per call.</summary>
     public async Task ReportAsync(IReadOnlyList<AgentClientEvent> events, CancellationToken cancellationToken = default)

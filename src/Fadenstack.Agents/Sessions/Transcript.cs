@@ -30,6 +30,12 @@ public static class EntryTypes
 {
     public const string SessionStart = "session.start";
     public const string UserMessage = "user.message";
+
+    /// <summary>
+    /// A host tool the person started (a button, a module's view), not a message: it names the tool, its origin and a display
+    /// label, never the arguments. Its turn is local activity, left out of the model's history.
+    /// </summary>
+    public const string UserCommand = "user.command";
     public const string TurnStart = "assistant.turn_start";
     public const string AssistantMessage = "assistant.message";
     public const string ToolStart = "tool.execution_start";
@@ -42,7 +48,7 @@ public static class EntryTypes
     /// <summary>The SDK's own types; a module's entries use names of their own (<see cref="ToolInvocation.RecordAsync"/>).</summary>
     public static IReadOnlyList<string> All { get; } = new[]
     {
-        SessionStart, UserMessage, TurnStart, AssistantMessage, ToolStart, ToolComplete, ApprovalDecision, GovernanceNotice,
+        SessionStart, UserMessage, UserCommand, TurnStart, AssistantMessage, ToolStart, ToolComplete, ApprovalDecision, GovernanceNotice,
         Compaction, TurnEnd,
     };
 }
