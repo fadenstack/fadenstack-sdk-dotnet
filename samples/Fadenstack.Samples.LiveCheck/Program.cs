@@ -424,7 +424,8 @@ internal sealed class LiveCheck
         await agent.StartAsync();
         var attached = mcp.Attached.FirstOrDefault()
             ?? throw new CheckFailed($"not attached ({string.Join("; ", mcp.Skipped.Select(s => $"{s.Label}: {s.Reason} {s.Error?.Message}"))})");
-        var mcpTools = agent.Tools.Where(t => t.Source == "mcp").ToList();
+        // The server's tools, not the module's own tool search (find_tool, class read, since local tools on request).
+        var mcpTools = agent.Tools.Where(t => t.Source == "mcp" && t.Name != LocalMcpModule.FindToolName).ToList();
         Console.WriteLine($"     tools offered by the SDK: {string.Join(", ", agent.Tools.Select(t => $"{t.Source}:{t.Name}:{t.Class.ToWire()}"))}");
         Expect(mcpTools.Count > 0 && mcpTools.All(t => t.Class == ToolClass.Unknown), "MCP tools are not unclassified");
         var session = await agent.StartSessionAsync();
