@@ -33,6 +33,14 @@ internal static class ErrorReader
                 {
                     return new Parsed(detail.GetString() ?? fallback, null, null, null, faden);
                 }
+                if (detail.ValueKind == JsonValueKind.Array)
+                {
+                    // FastAPI's validation errors: [{ loc, msg, type }, ...]
+                    var messages = detail.EnumerateArray()
+                        .Select(d => d.ValueKind == JsonValueKind.Object ? Str(d, "msg") : null)
+                        .Where(m => !string.IsNullOrEmpty(m)).ToList();
+                    return new Parsed(messages.Count > 0 ? string.Join("; ", messages) : fallback, "validation_error", null, null, faden);
+                }
             }
         }
         catch (JsonException)

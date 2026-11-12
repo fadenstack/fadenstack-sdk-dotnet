@@ -56,6 +56,9 @@ public sealed class FakeGrants
     /// <summary>The step-ups the device started.</summary>
     public int StepUpsStarted => Server.Requests.Count(r => r.Method == "POST" && r.Path == StepUpRoute);
 
+    /// <summary>The address the second sign-in's pages are given at; the server's own origin unless a test sets another.</summary>
+    public string StepUpOrigin { get; set; } = "https://faden.test";
+
     /// <summary>What the device asked the page to show as the longest time.</summary>
     public List<int?> StepUpLongest { get; } = new();
 
@@ -76,8 +79,8 @@ public sealed class FakeGrants
         return FakeServer.Respond(HttpStatusCode.Created, new
         {
             step_up_code = $"device-code-{StepUpsStarted}", user_code = "BCDF-GHJK",
-            verification_uri = "https://faden.example/step-up",
-            verification_uri_complete = "https://faden.example/step-up#code=BCDF-GHJK", expires_in = 600, interval = 1,
+            verification_uri = StepUpOrigin + "/step-up",
+            verification_uri_complete = StepUpOrigin + "/step-up#code=BCDF-GHJK", expires_in = 600, interval = 1,
         });
     }
 
@@ -189,6 +192,15 @@ public sealed class FakeGrants
         grants = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList(),
     };
 
+    /// <summary>Changes the grant the server is about to answer a request with, as a faulty or hostile server might.</summary>
+    public Action<Dictionary<string, object?>>? Tamper { get; set; }
+
+    /// <summary>While set, a request to make a grant waits for it: the card shows "confirming" meanwhile.</summary>
+    public ManualResetEventSlim? HoldCreate { get; set; }
+
+    /// <summary>With <see cref="HoldCreate"/>: once released, the request ends as a cancelled one (the person pressed Stop).</summary>
+    public bool CancelAfterHold { get; set; }
+
     /// <summary>The server cannot be reached when a grant is made (the device is offline).</summary>
     public bool Offline { get; set; }
 
@@ -217,6 +229,12 @@ public sealed class FakeGrants
         grant["conversation_id"] = kind is "work" or "bypass" || body.TryGetProperty("conversation", out var c) && c.ValueKind == JsonValueKind.True
             ? r.Header("x-faden-conversation-id") : null;
         grant["narrowed"] = minutes > LongestMinutes ? new[] { "minutes" } : Array.Empty<string>();
+        Tamper?.Invoke(grant);
+        HoldCreate?.Wait(TimeSpan.FromSeconds(20));
+        if (CancelAfterHold)
+        {
+            throw new OperationCanceledException();
+        }
         return FakeServer.Respond(HttpStatusCode.Created, Shown(grant));
     }
 
@@ -226,7 +244,7 @@ public sealed class FakeGrants
         {
             ["object"] = "agent.grant", ["id"] = $"g-{_grants.Count + 1}", ["kind"] = kind, ["status"] = "active",
             ["scope"] = scope, ["issued_at"] = ServerNow, ["expires_at"] = ServerNow.AddMinutes(minutes),
-            ["max_calls"] = null, ["calls_used"] = 0, ["device_id"] = "device-7", ["narrowed"] = Array.Empty<string>(),
+            ["max_calls"] = null, ["calls_used"] = 0, ["agent_id"] = "a-1", ["agent_version"] = 3, ["device_id"] = "device-7", ["narrowed"] = Array.Empty<string>(),
             ["evidence_level"] = EvidenceLevel ?? (kind == "time" ? "decisions" : "calls"),
         };
         _grants.Add(grant);
@@ -272,9 +290,17 @@ public sealed class FakeGrants
         return FakeServer.Respond(HttpStatusCode.OK, new { @object = "agent.grant_report", matched = calls.Count, device_only = 0, gateway_only = 0 });
     }
 
-    private Dictionary<string, object?> Shown(Dictionary<string, object?> grant) => new(grant)
+    /// <summary>Changes every grant the server shows (made, read or listed), as a faulty or hostile server might.</summary>
+    public Action<Dictionary<string, object?>>? TamperShown { get; set; }
+
+    private Dictionary<string, object?> Shown(Dictionary<string, object?> grant)
     {
-        ["server_now"] = ServerNow,
-        ["remaining_s"] = (int)Math.Max(0, ((DateTimeOffset)grant["expires_at"]! - ServerNow).TotalSeconds),
-    };
+        var shown = new Dictionary<string, object?>(grant)
+        {
+            ["server_now"] = ServerNow,
+            ["remaining_s"] = (int)Math.Max(0, ((DateTimeOffset)grant["expires_at"]! - ServerNow).TotalSeconds),
+        };
+        TamperShown?.Invoke(shown);
+        return shown;
+    }
 }
