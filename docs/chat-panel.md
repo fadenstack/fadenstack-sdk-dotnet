@@ -1,13 +1,14 @@
 # Chat panel
 
-This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, what the panel shows, its languages and settings, hosting it in add-ins, and extending how answers are rendered.
+This page covers the ready chat UI: the view models in `Fadenstack.UI`, the WPF skin in `Fadenstack.UI.Wpf`, the Avalonia skin in `Fadenstack.UI.Avalonia`, what the panel shows, its languages and settings, hosting it in add-ins, and extending how answers are rendered.
 
-## Two packages
+## The packages
 
-The UI is split in two, and the split is strict:
+The UI is split into a layer of view models and a skin that draws them, and the split is strict:
 
 - **`Fadenstack.UI`** holds all of the behaviour, as view models without platform references: the chat (`AgentChatViewModel`), its turns, the parts of each answer, the tool-mode picker, the session history, every text the panel shows (`UiStrings`, from the package's resources), and the `IUiDispatcher` and `IClipboard` services a skin implements. It targets `netstandard2.0` and `net8.0`, and it runs headless in unit tests.
 - **`Fadenstack.UI.Wpf`** only renders. It is XAML templates, styles, themes and a few view-only behaviours, such as keeping the conversation scrolled to the bottom and moving the focus to the composer. It targets `net472` and `net8.0-windows`.
+- **`Fadenstack.UI.Avalonia`** renders the same view models with Avalonia 12, for desktop applications that run on Windows, macOS and Linux. It targets `net8.0`. See [The Avalonia skin](#the-avalonia-skin).
 
 Another skin can bind to the same view models.
 
@@ -36,7 +37,7 @@ await chat.InitializeAsync();
 
 What each piece does:
 
-- `ApprovalBroker` is the agent's approval handler for a UI: each request becomes an approval card in the chat, and the user's click is the decision. Give the same broker to the builder and to the view model. When no chat is listening, it declines.
+- `ApprovalBroker` is the agent's approval handler for a UI: each request becomes an approval card in the chat, and the user's click is the decision. Give the same broker to the builder and to the view model. When no chat is listening, it declines. Several chats can share one broker: every request carries the session and the turn it belongs to (`ApprovalRequest.SessionId`, `TurnId`), and a chat ignores the requests of other sessions. A request with no session is shown by every chat.
 - `WpfDispatcher` is the WPF UI thread. Create it on the UI thread. It runs the chat's updates at background priority, so typing always comes first.
 - `WpfClipboard` backs the copy buttons.
 - `InitializeAsync` starts the agent and reads the session list. Call it on the UI thread.
@@ -61,13 +62,16 @@ When the panel closes, dispose the view model and then the agent.
 - **The header** shows the agent's name, the tool-mode picker with a line on what the picked mode means, the list of chats on this device, a button for a new chat, and the settings (the gear). If the user may not pick a mode, the picker shows it greyed out.
 - **An empty chat** shows the agent's greeting and suggested prompts, from the agent's profile (`ui.greeting`, `ui.suggestions`). The definition may carry them per language (`ui.languages.<tag>.greeting` and `.suggestions`; `de` also serves `de-AT`): the panel shows the ones for its language, and others when the user picks another.
 - **The answer streams as Markdown**: headings, lists, code blocks with a copy button, tables, quotes, rules and links. Text and tool calls appear in the order they happened.
+- **Quotes and list items hold blocks**, three levels deep: a table, a list or a code block inside a quote or an item is drawn as one. A quote, a list item or a Markdown preview inside three others does not nest further: the content of a container at the third level is one block of plain text, with its markup as typed. A thousand `>` cost three levels, and the text is kept, not dropped. The cap is `MarkdownParser.MaxNestingDepth` (3), so parsing is bounded too.
+- **A `markdown` (or `md`) fence is a preview**: its content drawn, with a *Preview* and *Source* switch above it. It counts as one level of nesting. In the view model it is a `PreviewBlock` (`Source` is the fence as a `CodeBlock`, `Blocks` its content). A `mermaid` fence is a `CodeBlock` whose `IsDiagram` is true, labelled *Diagram · Mermaid*. It is shown as text and not drawn: drawing a diagram is up to the host.
 - **Each tool call is one line**: "Running read_page" while it runs, then "Ran read_page" with its class and duration. It expands to its arguments and result.
-- **Approvals are cards** in the answer, above the call they are for, with *Allow* and *Deny*. Where the request offers more, *Allow* is a split button: its main part allows this call, its drop-down lists *Allow for this chat* and *Allow always*: never for destructive or unclassified tools, nor for a call an administrator's rule covers. The buttons sit in one row when they fit; in a narrow pane they go two by two, or one under the other, never one alone on a row. Destructive and unclassified tools are marked. A tool that says what a call acts on (`AgentTool.Describe`) has it on the card, above the arguments. A call that an earlier approval lets through gets no card, also when a session is opened again. A card for a tool that reaches outside the organisation (`OpenWorld`, such as a web search) says that what it is given leaves the organisation; a destructive one still says it cannot be undone.
+- **Approvals are cards** in the answer, above the call they are for, with *Allow* and *Deny*. Where the request offers more, *Allow* is a split button: its main part allows this call, its drop-down lists *Allow for this chat* and *Allow always*: never for destructive or unclassified tools, nor for a call an administrator's rule covers. The buttons sit in one row when they fit; in a narrow pane they go two by two, or one under the other, never one alone on a row. Destructive and unclassified tools are marked. A tool that says what a call acts on (`AgentTool.Describe`) has it on the card, above the arguments. The title has a row of its own, with the tool's name in code ("Run `allowed_folders`?"). Under it, a tool from a local MCP server says where it comes from ("From Files, an MCP server on this computer") and that the organisation has not checked it, with the server's own hint when it gave one ("The server says it only reads." or "The server says it may delete or overwrite."; if it says both, the warning wins). A chat opened again draws the same cards, because the transcript keeps the tool's class and the MCP server's name. In the view model these are `ApprovalPart.TitleInlines`, `SourceLine`, `HasSourceLine` and `Reason`. A call that an earlier approval lets through gets no card, also when a session is opened again. A card for a tool that reaches outside the organisation (`OpenWorld`, such as a web search) says that what it is given leaves the organisation; a destructive one still says it cannot be undone.
 - **On a server that holds grants**, a card for a read or write tool also offers *Allow for…* in that drop-down, a sub-menu with the times the agent allows (15 min up to its longest grant); the card then says *Allowed for 30 min*. An app that knows where the agent will work offers a **grant card** with `session.OfferWorkAsync(places)`: "Work alongside you?", the places (each can be taken out), the time (30 min to start), what the agent may do without asking and what still asks, *Allow* and *Not now*. It shows above the composer (`Grants.Cards`). See [Grants](tools.md#grants-for-a-time-and-working-alongside).
 - **While a stretch of work runs**, a band under the header says "Working alongside you · 23 min left", counted by the server's clock, with *Stop*, which ends every grant of the agent on this device and the running turn. Two minutes before the end it also offers *Another 30 min*, within the agent's longest grant (`Grants.HasMarker`, `StopCommand`, `KeepGoingCommand`).
 - **Bypass**, where the server offers it (`agent.BypassOffered`), is the picker's last entry. Picking it shows the **confirmation** above the composer (`Grants.BypassCard`): what will no longer be asked in this chat, what still asks, what the server records of each call (as the organisation set it), the time (the shortest first), that it cannot be extended, and an optional reason that administrators see. *Not now* comes first; *Switch Bypass on* is never the default button, *Enter* and *Esc* never switch it on, and only the person's click does. The card then waits for the server: without its confirmation it says why (offline, not allowed, limits not readable) and the chat stays in its mode. A chat without a conversation yet gets one, which goes again when the card is declined (`StartBypassAsync`).
 - **While the chat runs in Bypass**, a band under the header says "Bypass on · 12 min left" and what is recorded, with *Stop*, which ends Bypass and the running turn (`Grants.HasBypass`, `BypassText`, `BypassRecordedText`, `StopBypassCommand`). It never offers more time. When Bypass ends -- its time, *Stop*, *Revoke* in the settings, an administrator, the organisation turning it off, a narrower limit -- the band goes, the chat goes back to the mode it had before, and a line says why (`HasBypassEnded`, `BypassEndedText`). Leaving the chat for another, or a new one, ends its Bypass; a chat opened again starts without it.
 - **The tool-mode picker** says whose limit a greyed-out level is: the organisation's, or the agent's own highest level.
+- **The thinking pill** sits beside the tool mode. The person picks how long the agent thinks there: *Auto*, *Off*, *Low*, *Medium* or *High*, up to the maximum the server sets. See [How long it thinks](agent.md#how-long-it-thinks-the-persons-choice). In the view model: `ReasoningOptions`, `SelectedReasoning`, `SelectReasoningCommand` and `ReasoningPillText`.
 - **The tool-mode menu** ends with *Reset approvals*, which forgets what the user allowed always for this agent on this device and what they allowed for the current chat (`ResetApprovalsCommand`).
 - **Refusals and limits are notices** in the answer. A refused prompt is marked *Not sent*, with *Edit and resend*. A notice shows the server's decision id for support.
 - **Citations** ("Used 3 references") and **the model's reasoning** ("Thinking...", then how long it thought) are collapsed until the user opens them. Personal data the server kept from the model is reported as a notice.
@@ -77,6 +81,45 @@ When the panel closes, dispose the view model and then the agent.
 - **Under the composer** the panel says, in the user's language, that the answers are generated by AI and can be wrong (`UiStrings.AiNotice`). The EU AI Act asks that people know they are dealing with an AI system. Change its words with your own resources like any text; an empty text hides it, for a host that says the same in another place the user always sees. Below it, on a small line of its own, is a muted *Fadenstack* link to fadenstack.com; see [About and the Fadenstack link](#about-and-the-fadenstack-link).
 - **Skills**: on a server with skills, `$` at the end of the text (or `/` as the whole of it) opens the skills the user can pick, narrowed as they type. *Up* and *Down* move, *Enter* or *Tab* picks, *Esc* closes the list. A picked skill is a chip for the next message only, and shows under the message when it is sent.
 - **Pictures**: for a model that sees pictures, a pasted picture, or picture files pasted or dropped on the composer, go with the next message, at most 1600 pixels on the longer side, as JPEG. A chip shows each small. For another model the panel says it does not see pictures. Pasted text stays text.
+
+## The Avalonia skin
+
+`Fadenstack.UI.Avalonia` draws the same view models as the WPF skin, with Avalonia 12, so a desktop application can run on Windows, macOS and Linux. It targets `net8.0`.
+
+```csharp
+using Fadenstack.UI.Avalonia.Services;
+using Fadenstack.UI.Avalonia.Views;
+using Fadenstack.UI.ViewModels;
+
+var chat = new AgentChatViewModel(agent, approvals, new AvaloniaUiDispatcher(),
+    new AgentChatOptions { Clipboard = new AvaloniaClipboard(() => TopLevel.GetTopLevel(panel)) });
+panel.Content = new ChatView { DataContext = chat };
+await chat.InitializeAsync();
+```
+
+The application uses `FluentTheme`, and the skin's control styles go after it. `ChatView` adds them itself when the application has not:
+
+```xml
+<Application.Styles>
+  <FluentTheme />
+  <fs:FadenstackControls xmlns:fs="using:Fadenstack.UI.Avalonia.Themes" />
+</Application.Styles>
+```
+
+The skin follows the system's light or dark theme and has a high contrast variant (`FadenstackTheme.HighContrastVariant`). `FadenstackTheme.Apply(target, new ThemeChoices { ... })` sets the accent, the density, the text size and high contrast at run time.
+
+`ChatView` takes the host's own content in slots, as the WPF panel does:
+
+| Property | What it takes |
+|---|---|
+| `HeaderToolbar` | Icon buttons at the header's right end. |
+| `ComposerToolbar` | Content for the composer's bottom left. |
+| `SettingsContent` | Your items in the panel's settings. |
+| `SignInContent` | Content shown in place of the turns while the agent needs a sign-in. |
+| `AttachCommand` | A command; when set, the composer shows *Attach*. |
+| `AgentPicture` | Any control as the agent's picture over the empty chat, such as an animated avatar. It is in the visual tree only while the empty chat shows. |
+
+The options, languages, grants and notices described on this page belong to the view models, so they apply to both skins. The XAML examples, `WpfDispatcher`, `WpfClipboard` and the VSTO hosting are WPF only.
 
 ## Built for long sessions
 
@@ -178,7 +221,7 @@ Satellite assemblies hold the translations: `de\Fadenstack.UI.resources.dll` and
 
 ## Settings
 
-The gear in the header opens the panel's settings: the language; *Approvals*, which lists what the user allowed for longer than one call -- the grants the server holds, with their time left (a running Bypass also with what is recorded), and the tools allowed always on this device -- each with *Revoke* (`Grants.Standing`); below it your add-in's own items, such as sign out or its options, so they all sit in one place, and *About* last. Put your items in `ChatView.SettingsContent`; they get the panel's colours:
+The gear in the header opens the panel's settings: the language; the notice for [answers without an AI mark](#answers-without-an-ai-mark); *Approvals*, which lists what the user allowed for longer than one call -- the grants the server holds, with their time left (a running Bypass also with what is recorded), and the tools allowed always on this device -- each with *Revoke* (`Grants.Standing`); below it your add-in's own items, such as sign out or its options, so they all sit in one place, and *About* last. Put your items in `ChatView.SettingsContent`; they get the panel's colours:
 
 ```csharp
 var view = new ChatView
@@ -190,13 +233,19 @@ var view = new ChatView
 
 The gear always shows, because *About* is always there.
 
+## Answers without an AI mark
+
+An administrator can let a model route answer without a machine-readable AI mark (the EU AI Act, Art. 50(2), asks for one). The gateway then sends the event `faden.unmarked` with the answer. The panel hides it by default. A person can turn the notice on in the settings, with *Tell me when an answer carries no AI mark*. With it on, an answer without a mark gets one quiet notice, once per answer: "Answer without an AI mark. This answer carries no machine-readable AI mark. Your organisation allowed this model to answer without one."
+
+The choice is kept per user in the panel's preferences, under the key `tell-unmarked` (`AgentChatViewModel.TellUnmarkedPreference`): the value is `1` when on, and the key is removed when off. If the preference store fails, the notice stays off. In code: `chat.TellUnmarked` and `ToggleTellUnmarkedCommand`. The event never reaches the generic notice, so the panel never shows its raw name.
+
 ## About and the Fadenstack link
 
 *About*, the last item in the settings, opens a card inside the panel with:
 
 - the agent: its name, *Version 3* or *Draft*, and its model when the profile names one;
 - the app the agent runs in, when you described it with `DescribeApp` (its name and version);
-- the SDK: *Fadenstack SDK 0.2.1 (.NET)*;
+- the SDK: *Fadenstack SDK 0.3.0 (.NET)*, the version of the package;
 - the server's address, shown only;
 - links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website) and *Developer docs*;
 - *Copy details*, which copies the agent, its version and model, the app, the SDK and the server as lines of text, for a support request.
@@ -205,7 +254,7 @@ The gear always shows, because *About* is always there.
 
 The links open in the browser through `MarkdownText.OpenLink`, as links in answers do; replace it to route them through your host. Another skin handles `chat.LinkRequested`.
 
-**What a link sends.** A link to fadenstack.com or developers.fadenstack.com carries two values and nothing else: `ref`, where it was opened (`sdk-panel` for the line under the composer, `sdk-about` for About), and `v`, the SDK's major and minor version (`0.2`). It never carries the user, the organisation, the server, the agent, the app, a model, an id or anything typed in the panel. The *Help* link goes to your own server and carries nothing.
+**What a link sends.** A link to fadenstack.com or developers.fadenstack.com carries two values and nothing else: `ref`, where it was opened (`sdk-panel` for the line under the composer, `sdk-about` for About), and `v`, the SDK's major and minor version (`0.3`). It never carries the user, the organisation, the server, the agent, the app, a model, an id or anything typed in the panel. The *Help* link goes to your own server and carries nothing.
 
 | Option | What it is |
 |---|---|
@@ -313,6 +362,34 @@ var options = new AgentChatOptions
 is sent: the text stays in the composer and `Error` shows the message. Attachments it adds go with this message.
 `AfterSend` runs once after every send, however it ended: its turn finished, failed or was stopped, or `BeforeSend`
 threw.
+
+## A gate on running turns
+
+A host that runs several chats can limit how many turns work at the same time. Give the options a `TurnGate`. It is awaited when a turn is about to start, after the user's message is shown and before anything is sent, and it returns a lease that the chat disposes once, when the turn ends:
+
+```csharp
+var slots = new SemaphoreSlim(2);
+
+var options = new AgentChatOptions
+{
+    TurnGate = async cancellationToken =>
+    {
+        await slots.WaitAsync(cancellationToken);
+        return new Slot(slots);
+    },
+};
+
+public sealed class Slot : IDisposable
+{
+    private readonly SemaphoreSlim _slots;
+
+    public Slot(SemaphoreSlim slots) => _slots = slots;
+
+    public void Dispose() => _slots.Release();
+}
+```
+
+While the gate waits, `chat.IsWaitingForSlot` is true and the turn says "Waiting for a free slot" (`Strings.WaitingForSlot`). Stop cancels the wait, and nothing is sent. If the gate throws, the turn fails with the exception's message. Without a `TurnGate` (the default) there is no gate.
 
 ## The view model
 
