@@ -28,12 +28,12 @@ public sealed class FakeGrants
             server.On("GET", $"{Route}/{id}", _ => CanSayWhy
                     ? Change(id, _ => { })
                     : FakeServer.Respond(HttpStatusCode.NotFound, new { detail = "Not Found" }))
-                .On("DELETE", $"{Route}/{id}", _ => Change(id, g =>
+                .On("DELETE", $"{Route}/{id}", _ => Unreachable(RevokeOffline) ?? Change(id, g =>
                 {
                     g["status"] = "revoked";
                     g["revoked_by"] = g.TryGetValue("revoked_by", out var by) && by is not null ? by : "person";
                 }))
-                .On("POST", $"{Route}/{id}/pause", _ => Change(id, g => (g["status"], g["paused_at"]) = ("paused", ServerNow)))
+                .On("POST", $"{Route}/{id}/pause", _ => Unreachable(PauseOffline) ?? Change(id, g => (g["status"], g["paused_at"]) = ("paused", ServerNow)))
                 .On("POST", $"{Route}/{id}/resume", _ => Resume(id))
                 .On("POST", $"{Route}/{id}/extend", r => Extend(id, r))
                 .On("POST", $"{Route}/{id}/report", r => Report(id, r));
@@ -136,6 +136,15 @@ public sealed class FakeGrants
         }
         return Change(id, g => (g["status"], g["paused_at"]) = ("active", null));
     }
+
+    /// <summary>The server cannot be reached when a grant is ended (the device is offline).</summary>
+    public bool RevokeOffline { get; set; }
+
+    /// <summary>The server cannot be reached when a grant is paused.</summary>
+    public bool PauseOffline { get; set; }
+
+    private static HttpResponseMessage? Unreachable(bool offline) =>
+        offline ? throw new HttpRequestException("No route to host.") : null;
 
     public FakeServer Server { get; }
 

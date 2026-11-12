@@ -760,4 +760,79 @@
   <data name="TimeGrantHint" xml:space="preserve">
     <value>Die zeitlich begrenzte Freigabe gilt für dieses Werkzeug in Ihren Chats auf diesem Gerät bis zum Ablauf. Die Zugriffsrechte der Anwendung und die Administrationsregeln gelten weiterhin.</value>
   </data>
+  <data name="GrantsMarkerMany" xml:space="preserve">
+    <value>{0} Freigaben laufen · die erste endet in {1}</value>
+  </data>
+  <data name="GrantsLeft" xml:space="preserve">
+    <value>noch {0}</value>
+  </data>
+  <data name="GrantsPaused" xml:space="preserve">
+    <value>pausiert</value>
+  </data>
+  <data name="GrantsBadgePaused" xml:space="preserve">
+    <value>Pausiert</value>
+  </data>
+  <data name="GrantsBypassPaused" xml:space="preserve">
+    <value>Bypass pausiert</value>
+  </data>
+  <data name="GrantsKindWork" xml:space="preserve">
+    <value>Arbeitet mit Ihnen</value>
+  </data>
+  <data name="GrantsChatUnknown" xml:space="preserve">
+    <value>Ein Chat</value>
+  </data>
+  <data name="GrantsStopFailed" xml:space="preserve">
+    <value>Stoppen hat den Server nicht erreicht. Versuchen Sie es noch einmal; die Freigaben enden in jedem Fall zu ihrer Zeit.</value>
+  </data>
+  <data name="GrantsExtendFailed" xml:space="preserve">
+    <value>Die Zeit konnte nicht verlängert werden</value>
+  </data>
+  <data name="GrantsAtLongest" xml:space="preserve">
+    <value>Länger geht es nicht. Um weiterzumachen, fragen Sie erneut an und beantworten Sie die Karte.</value>
+  </data>
+  <data name="GrantsWaiting" xml:space="preserve">
+    <value>Der Server konnte nicht prüfen, ob eine Freigabe weitergehen darf. Sie bleibt pausiert; es wird gleich erneut versucht.</value>
+  </data>
+  <data name="GrantsSummaryWork" xml:space="preserve">
+    <value>Hat {0} mit Ihnen zusammengearbeitet</value>
+  </data>
+  <data name="GrantsSummaryBypass" xml:space="preserve">
+    <value>Bypass lief {0}</value>
+  </data>
+  <data name="GrantsSummaryPlaces" xml:space="preserve">
+    <value>Wo: {0}</value>
+  </data>
+  <data name="GrantsSummaryCalls" xml:space="preserve">
+    <value>Ohne Rückfrage ausgeführt: {0}</value>
+  </data>
+  <data name="GrantsEnded_Time" xml:space="preserve">
+    <value>Sie endete, als ihre Zeit um war.</value>
+  </data>
+  <data name="GrantsEnded_Stopped" xml:space="preserve">
+    <value>Sie haben sie beendet.</value>
+  </data>
+  <data name="GrantsEnded_Elsewhere" xml:space="preserve">
+    <value>Der Server hat sie beendet: in den Einstellungen, in einer anderen App, durch die Administration oder weil ihre Aufrufe verbraucht waren.</value>
+  </data>
+  <data name="GrantsEnded_Spent" xml:space="preserve">
+    <value>Sie hat alle erlaubten Aufrufe verbraucht.</value>
+  </data>
+  <data name="GrantsEnded_Locked" xml:space="preserve">
+    <value>Sie endete, weil der Bildschirm 30 Minuten lang gesperrt war.</value>
+  </data>
+  <data name="GrantsEnded_Away" xml:space="preserve">
+    <value>Sie endete, weil sie 30 Minuten lang pausiert war, während die App geschlossen war.</value>
+  </data>
+  <data name="GrantsEnded_Admin" xml:space="preserve">
+    <value>Die Administration hat sie beendet.</value>
+  </data>
+  <data name="GrantsEnded_KillSwitch" xml:space="preserve">
+    <value>Sie endete, weil Ihre Organisation sie ausgeschaltet hat.</value>
+  </data>
+  <data name="GrantsEnded_Limit" xml:space="preserve">
+    <value>Sie endete, weil Ihre Organisation eingeschränkt hat, wer sie nutzen darf.</value>
+  </data>
+  <data name="GrantsEnded_Host" xml:space="preserve">
+    <value>Die App hat sie beendet.</value>
+  </data>
 </root>

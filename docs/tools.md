@@ -338,6 +338,44 @@ a new grant needs the full card.
 
 `agent.ListApprovalsAsync()` lists what the user allowed always, for the same Settings list.
 
+### Keeping a grant from running unattended
+
+A grant that outlives the person's attention is a risk: the app is closed, the screen is locked, and the agent still runs
+under it. `GrantLifecycle` holds the rules for that, so every app gets the same ones. It looks after this device's stretches
+of work and Bypass grants (`GrantLifecycleOptions.Manages` adds or narrows which), uses the server's clock for every time,
+and does no operating-system work: the app feeds it what only the app knows.
+
+```csharp
+using var lifecycle = new GrantLifecycle(agent.Grants);
+lifecycle.Ended += (_, e) => Say(e.Grant, e.Reason, e.Ran);       // once per grant, and why
+lifecycle.EndingSoon += (_, e) => Offer(e.Grant, e.Left);          // two minutes before the end
+
+await lifecycle.AppStartedAsync();                                  // once signed in
+await lifecycle.SetScreenLockAsync(ScreenLockState.Locked);         // from the OS monitor
+await lifecycle.AppEndingAsync();                                   // when the app closes
+```
+
+| The app tells it | It does |
+|---|---|
+| `AppEndingAsync(within)` | Pauses every running grant at the server (default wait: 3 seconds). The time runs on. Offline, a grant runs on at the server until its time. Returns how many were paused. |
+| `AppStartedAsync()` | Reads the server's list; resumes each grant paused for less than 30 minutes (`GrantLifecycle.PausedLimit`), with no card and no second sign-in, and ends each paused longer (`GrantEndReason.Away`). The server may refuse the resume (403: it ended the grant, `Ended` says why), not be able to check (503) or be out of reach: the grant stays paused and is tried again at each tick. A grant found running runs on. With the screen locked, a paused grant resumes with the unlock. Returns how each fared (`GrantResumeOutcome`). |
+| `SetScreenLockAsync(state)` | `Locked` pauses each stretch of work; `Unlocked` resumes what the lock paused. Locked for 30 minutes (`LockedFor`), the stretch of work ends (`GrantEndReason.Locked`). `Unknown` (the app cannot read the lock) never pauses, and after a lock it never resumes: only `Unlocked` does, and the 30-minute end still holds. Bypass is paused by the app's end only (`GrantLifecycleOptions.PausedByLock` changes this). |
+| `StopAsync()` | Ends every grant it looks after, a paused one too, and says `Stopped` without asking the server. Returns how many ended; the rest run on at the server until their time. The app stops the running turns of their conversations itself. |
+| `TickAsync()` | One look: the server's list once in 30 seconds while a grant runs, a resume the server could not take is tried again, the 30-minute lock end, grants that ended, grants near their end. The lifecycle ticks by itself every 15 seconds unless `GrantLifecycleOptions.TickEvery` is zero. |
+
+It tells the app, on any thread: `EndingSoon` once per end time, two minutes before it (never for Bypass, which is never
+extended; `KeepGoingAsync(id)` adds 30 minutes and the server cuts it at the longest grant), and `Ended` once per
+grant with a `GrantEndReason`: `Time`, `Stopped`, `Spent`, `Locked`, `Away`, `Host` (`EndAsync`, for a setting of the app's
+own), or the server's word when something else ended it (`Admin`, `KillSwitch`, `Limit`; `Elsewhere` when the server
+cannot say). `Changed` is raised after each look, for a marker that counts down.
+
+The chat panel's `GrantMarkerViewModel` shows the lifecycle for every chat at once: one marker for all running grants with
+the time left, Stop, the "another 30 min" offer, and one summary per grant that ended, saying why. Its texts are in the
+package's resources in every language it ships. A summary for a grant the lock ended waits until the screen is unlocked.
+Where an app offers a grant in a chat, `AgentChatViewModel.Session` is the session to offer through, and the card names its
+conversation (`GrantOffer.ConversationId`, `GrantPart.ConversationId`): chats sharing one `ApprovalBroker` show only their
+own cards. A card offered with no conversation, or in a chat with no session open yet, shows in every chat.
+
 ## Where tools run
 
 | Source | Runs | Page |

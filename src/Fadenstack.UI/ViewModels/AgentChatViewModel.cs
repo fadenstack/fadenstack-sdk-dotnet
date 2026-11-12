@@ -305,6 +305,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     public string? CurrentSessionId => _session?.Id;
 
+    /// <summary>
+    /// The session this chat shows; null before its first message and after "new chat". A host that offers a grant in this
+    /// chat (<see cref="AgentSession.OfferWorkAsync"/>, <see cref="AgentSession.StartBypassAsync"/>) uses this one, so the card
+    /// lands in this chat and the grant belongs to its conversation.
+    /// </summary>
+    public AgentSession? Session => _session;
+
     /// <summary>The composer's text; a <c>$</c> at its end (or <c>/</c> as the whole of it) opens the skill picker, narrowed by what follows.</summary>
     public string Input
     {

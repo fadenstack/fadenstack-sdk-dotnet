@@ -90,6 +90,9 @@ public sealed class GrantPart : ObservableObject
 
     public GrantOffer Offer => _pending.Offer;
 
+    /// <summary>The conversation the card is for (<see cref="GrantOffer.ConversationId"/>); null when it was offered before one existed.</summary>
+    public string? ConversationId => Offer.ConversationId;
+
     /// <summary>Whether the card extends a running grant (it shows only what it adds).</summary>
     public bool IsExtension => Offer.Extending is not null;
 
