@@ -351,9 +351,5 @@ public sealed class GrantMarkerViewModel : ObservableObject, IDisposable
         Refresh();
     });
 
-    private static string Short(string identifier)
-    {
-        var name = Path.GetFileName(identifier.TrimEnd('/', '\\'));
-        return string.IsNullOrEmpty(name) ? identifier : name;
-    }
+    private static string Short(string identifier) => PlaceNames.Short(identifier);
 }

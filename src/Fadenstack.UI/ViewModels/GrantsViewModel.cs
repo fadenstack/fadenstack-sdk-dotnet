@@ -453,11 +453,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>A place as Settings lists it: a file's name, else as given.</summary>
-    private static string Short(string identifier)
-    {
-        var name = Path.GetFileName(identifier.TrimEnd('/', '\\'));
-        return string.IsNullOrEmpty(name) ? identifier : name;
-    }
+    private static string Short(string identifier) => PlaceNames.Short(identifier);
 
     private void OnGrantRequested(PendingGrant pending)
     {

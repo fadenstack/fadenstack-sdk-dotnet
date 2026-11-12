@@ -6,7 +6,7 @@
     <PackageTags>$(PackageTags);mcp</PackageTags>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol.Core" Version="2.2.0" />
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
