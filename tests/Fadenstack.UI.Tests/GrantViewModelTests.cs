@@ -58,13 +58,13 @@ public class GrantViewModelTests
         card.AllowForTimeCommand.Execute(card.Durations[1]);
         await sending;
 
-        Assert.Equal((ApprovalState.ApprovedForTime, "Allowed for 30 min"), (card.State, card.StateText));
+        Assert.Equal((ApprovalState.ApprovedForTime, "Server confirmed up to 30 min"), (card.State, card.StateText));
         Assert.Single(grants.Made);
         var (reopened, _, _) = Chat(gateway, sessions: sessions);
         await reopened.InitializeAsync();
         await reopened.OpenSessionAsync(chat.CurrentSessionId!);
         var again = reopened.Turns.SelectMany(t => t.Parts).OfType<ApprovalPart>().Single();
-        Assert.Equal("Allowed for 30 min", again.StateText);
+        Assert.Equal("Server confirmed up to 30 min", again.StateText);
         agent.Dispose();
     }
 

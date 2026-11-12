@@ -323,6 +323,12 @@ public enum ApprovalState
 
     /// <summary>Let through by a grant that was running (no question asked).</summary>
     ApprovedByGrant,
+
+    /// <summary>The person picked a time; no claim that a grant exists until the server answers.</summary>
+    Confirming,
+
+    /// <summary>The turn was stopped before the card was answered.</summary>
+    Stopped,
 }
 
 /// <summary>A duration a card or the marker offers, with its label ("30 min", "1 h").</summary>
@@ -365,7 +371,7 @@ public sealed class ApprovalPart : ResponsePart
             if (d is not null)
             {
                 _allowedFor = d.Value;
-                Decide(ApprovalDecision.ApproveFor(d.Value), ApprovalState.ApprovedForTime);
+                Decide(ApprovalDecision.ApproveFor(d.Value), ApprovalState.Confirming);
             }
         }, d => IsPending && d is not null && Request.GrantDurations.Contains(d.Value));
     }
@@ -385,7 +391,7 @@ public sealed class ApprovalPart : ResponsePart
     /// <summary>Allows the call and the tool for the picked time, if the server confirms it (else this call alone).</summary>
     public IRelayCommand<DurationOption> AllowForTimeCommand { get; }
 
-    /// <summary>The time the card was answered for, once it was.</summary>
+    /// <summary>The time the person picked, once they did.</summary>
     internal TimeSpan? AllowedFor
     {
         get => _allowedFor;
@@ -395,6 +401,22 @@ public sealed class ApprovalPart : ResponsePart
             OnPropertyChanged(nameof(StateText));
         }
     }
+
+    private TimeSpan? _confirmedFor;
+
+    /// <summary>The time the server confirmed, which may be shorter than the one picked; null until it did.</summary>
+    internal TimeSpan? ConfirmedFor
+    {
+        get => _confirmedFor;
+        set
+        {
+            _confirmedFor = value;
+            OnPropertyChanged(nameof(StateText));
+        }
+    }
+
+    /// <summary>What a time grant is, for the card to say beside "Allow for…".</summary>
+    public string TimeGrantHint => _strings.TimeGrantHint;
 
     /// <summary>Whether the card offers "Allow for this chat".</summary>
     public bool CanAllowForSession => Request.CanAllowForSession;
@@ -476,12 +498,18 @@ public sealed class ApprovalPart : ResponsePart
 
     public bool IsPending => _state == ApprovalState.Pending;
 
+    /// <summary>Whether the card still waits: for the person's answer, or for the server's.</summary>
+    public bool IsUnsettled => _state is ApprovalState.Pending or ApprovalState.Confirming;
+
     public string StateText => _state switch
     {
+        ApprovalState.Confirming => _strings.ConfirmingGrant,
+        ApprovalState.Stopped => _strings.Stopped,
         ApprovalState.Approved => _strings.Allowed,
         ApprovalState.ApprovedForSession => _strings.AllowedForChat,
         ApprovalState.ApprovedAlways => _strings.AllowedAlways,
-        ApprovalState.ApprovedForTime => _allowedFor is { } d ? _strings.AllowedFor(_strings.Period(d)) : _strings.Allowed,
+        ApprovalState.ApprovedForTime => _confirmedFor is { } c ? _strings.AllowedForConfirmed(_strings.Period(c))
+            : _allowedFor is { } d ? _strings.AllowedFor(_strings.Period(d)) : _strings.Allowed,
         ApprovalState.ApprovedByGrant => _strings.AllowedByGrant,
         ApprovalState.Denied => _strings.Denied,
         ApprovalState.Expired => _strings.NoAnswer,

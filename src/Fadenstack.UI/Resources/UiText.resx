@@ -938,4 +938,16 @@
     <value>Allowed this time only: the server did not confirm the longer approval</value>
     <comment>A notice's title</comment>
   </data>
+  <data name="AllowedForConfirmed" xml:space="preserve">
+    <value>Server confirmed up to {0}</value>
+    <comment>A card once the server confirmed the time, which may be less than picked; {0}: the time, e.g. 30 min</comment>
+  </data>
+  <data name="ConfirmingGrant" xml:space="preserve">
+    <value>Confirming permission with the server…</value>
+    <comment>A card whose time the person picked and the server has not yet answered</comment>
+  </data>
+  <data name="TimeGrantHint" xml:space="preserve">
+    <value>For a time allows this tool in your chats on this device until it expires. Native permissions and administrator rules still apply.</value>
+    <comment>Beside "Allow for…": what a time grant is</comment>
+  </data>
 </root>

@@ -751,4 +751,13 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>Nur dieses Mal zugelassen: Der Server hat die längere Freigabe nicht bestätigt</value>
   </data>
+  <data name="AllowedForConfirmed" xml:space="preserve">
+    <value>Vom Server für bis zu {0} bestätigt</value>
+  </data>
+  <data name="ConfirmingGrant" xml:space="preserve">
+    <value>Berechtigung wird beim Server bestätigt…</value>
+  </data>
+  <data name="TimeGrantHint" xml:space="preserve">
+    <value>Die zeitlich begrenzte Freigabe gilt für dieses Werkzeug in Ihren Chats auf diesem Gerät bis zum Ablauf. Die Zugriffsrechte der Anwendung und die Administrationsregeln gelten weiterhin.</value>
+  </data>
 </root>

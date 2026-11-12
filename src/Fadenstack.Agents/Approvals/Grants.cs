@@ -93,11 +93,16 @@ public sealed class AgentGrants
     public async Task<AgentGrant> GrantForTimeAsync(string tool, TimeSpan duration, string? conversationId = null,
         string? shownText = null, CancellationToken cancellationToken = default)
     {
+        var minutes = Minutes(duration);
         var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
         {
-            Kind = GrantKinds.Time, Tools = new List<string> { tool }, Minutes = Minutes(duration),
+            Kind = GrantKinds.Time, Tools = new List<string> { tool }, Minutes = minutes,
             Conversation = conversationId is not null, ShownTextSha256 = Hash(shownText),
         }, conversationId, cancellationToken).ConfigureAwait(false);
+        if (!Answers(grant, GrantKinds.Time, minutes, conversationId) || grant.Scope.Tools is not { Count: 1 } tools || tools[0] != tool)
+        {
+            throw new InvalidOperationException("The returned grant exceeds or differs from the confirmed request. Inspect active grants.");
+        }
         return Keep(grant);
     }
 
@@ -109,11 +114,22 @@ public sealed class AgentGrants
     public async Task<AgentGrant> GrantWorkAsync(IReadOnlyList<GrantPlace> places, TimeSpan duration, string conversationId,
         string? shownText = null, CancellationToken cancellationToken = default)
     {
+        var classes = new List<string>(Settings?.GrantClasses ?? new List<string> { "read", "write" });
+        var targets = Targets(places);
+        var minutes = Minutes(duration);
         var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
         {
-            Kind = GrantKinds.Work, Classes = new List<string>(Settings?.GrantClasses ?? new List<string> { "read", "write" }),
-            Targets = Targets(places), Minutes = Minutes(duration), ShownTextSha256 = Hash(shownText),
+            Kind = GrantKinds.Work, Classes = classes, Targets = targets, Minutes = minutes, ShownTextSha256 = Hash(shownText),
         }, conversationId, cancellationToken).ConfigureAwait(false);
+        // Nothing wider than what the card showed: classes, and each place with the actions it was given.
+        if (!Answers(grant, GrantKinds.Work, minutes, conversationId) || grant.Scope.Classes is not { Count: > 0 } granted
+            || granted.Any(c => !classes.Contains(c)) || grant.Scope.Targets is not { Count: > 0 } returned
+            || returned.Any(t => !targets.Any(asked => asked.Type == t.Type)
+                || t.Identifiers.Any(i => !targets.Any(asked => asked.Type == t.Type && asked.Identifiers.Contains(i)))
+                || (t.Actions ?? granted).Any(a => !classes.Contains(a))))
+        {
+            throw new InvalidOperationException("The returned work grant exceeds the confirmed places or actions. Inspect active grants.");
+        }
         return Keep(grant);
     }
 
@@ -148,6 +164,10 @@ public sealed class AgentGrants
             {
                 var grant = await _agent.Client.Agent!.CreateGrantAsync(request, conversationId, proof, cancellationToken)
                     .ConfigureAwait(false);
+                if (!Answers(grant, GrantKinds.Bypass, request.Minutes, conversationId))
+                {
+                    throw new InvalidOperationException("The returned Bypass grant exceeds or differs from the confirmed request. Inspect active grants.");
+                }
                 return Keep(grant);
             }
             catch (FadenstackAuthenticationException e) when (e.Code == StepUpRequired && attempt == 0)
@@ -339,6 +359,11 @@ public sealed class AgentGrants
             return;
         }
         var list = await _agent.Client.Agent!.ListGrantsAsync(cancellationToken).ConfigureAwait(false);
+        if (list.Data.Any(g => !Owned(g)))
+        {
+            Replace(Array.Empty<AgentGrant>(), null); // another agent version's or device's grant: nothing is held (fail closed)
+            throw new InvalidOperationException(NotOwned);
+        }
         Replace(list.Data, list.ServerNow);
     }
 
@@ -408,20 +433,62 @@ public sealed class AgentGrants
         }
     }
 
-    /// <summary>A stream's <c>faden.grants</c>: the device's live grants, which replace the copy.</summary>
+    /// <summary>
+    /// A stream's <c>faden.grants</c>: the device's live grants, which replace the copy -- never join an older one. A
+    /// snapshot that is malformed, or holds a grant of another agent version or device, clears the copy (fail closed); a
+    /// single grant this SDK cannot read is left out.
+    /// </summary>
     internal void Replace(JsonElement snapshot)
     {
-        if (snapshot.ValueKind != JsonValueKind.Object || !snapshot.TryGetProperty("grants", out var list)
-            || list.ValueKind != JsonValueKind.Array)
-        {
-            return;
-        }
-        var grants = JsonSerializer.Deserialize<List<AgentGrant>>(list.GetRawText(), Fadenstack.Http.FadenstackJson.Options) ?? new();
-        DateTimeOffset? now = snapshot.TryGetProperty("serverNow", out var n) && n.ValueKind == JsonValueKind.String
+        var grants = new List<AgentGrant>();
+        DateTimeOffset? now = null;
+        var valid = snapshot.ValueKind == JsonValueKind.Object && snapshot.TryGetProperty("grants", out var list)
+            && list.ValueKind == JsonValueKind.Array && snapshot.TryGetProperty("serverNow", out var n) && n.ValueKind == JsonValueKind.String
             && DateTimeOffset.TryParse(n.GetString(), System.Globalization.CultureInfo.InvariantCulture,
-                System.Globalization.DateTimeStyles.None, out var parsed) ? parsed : null;
+                System.Globalization.DateTimeStyles.None, out _);
+        if (valid)
+        {
+            now = DateTimeOffset.Parse(snapshot.GetProperty("serverNow").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+        }
+        if (valid)
+        {
+            foreach (var entry in snapshot.GetProperty("grants").EnumerateArray())
+            {
+                try
+                {
+                    if (JsonSerializer.Deserialize<AgentGrant>(entry.GetRawText(), Fadenstack.Http.FadenstackJson.Options) is { Id.Length: > 0 } grant)
+                    {
+                        grants.Add(grant);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // left out: it covers nothing here
+                }
+            }
+            valid = grants.All(Owned);
+        }
+        if (!valid)
+        {
+            grants.Clear();
+            now = null;
+        }
         Replace(grants, now);
     }
+
+    // Whether the grant is this agent version's on this device (the profile says which; a device the profile does not name is not compared).
+    private bool Owned(AgentGrant grant) =>
+        _agent.ProfileOrNull is { } profile && grant.AgentId == profile.Id
+        && (profile.Version is null || grant.AgentVersion == profile.Version)
+        && (profile.Principal?.DeviceId is not { Length: > 0 } device || grant.DeviceId == device);
+
+    private const string NotOwned = "The grant belongs to another agent version or device.";
+
+    // Whether the server's grant is the one asked for: of this kind, running, with time left but no more than asked, for
+    // the conversation asked, and the agent's own. The caller checks the scope.
+    private bool Answers(AgentGrant grant, string kind, int minutes, string? conversationId) =>
+        grant.Kind == kind && grant.Status == "active" && grant.RemainingS > 0 && grant.RemainingS <= minutes * 60L
+        && (conversationId is null || grant.ConversationId == conversationId) && Owned(grant);
 
     private void Replace(IEnumerable<AgentGrant> grants, DateTimeOffset? serverNow)
     {
@@ -439,6 +506,10 @@ public sealed class AgentGrants
 
     private AgentGrant Keep(AgentGrant grant)
     {
+        if (!Owned(grant))
+        {
+            throw new InvalidOperationException(NotOwned);
+        }
         lock (_gate)
         {
             _grants = _grants.Where(g => g.Id != grant.Id).Append(grant).ToList();

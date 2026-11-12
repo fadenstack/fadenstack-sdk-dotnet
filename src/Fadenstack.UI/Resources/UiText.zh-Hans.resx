@@ -751,4 +751,13 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>仅本次允许：服务器未确认长时间批准</value>
   </data>
+  <data name="AllowedForConfirmed" xml:space="preserve">
+    <value>服务器已确认，最长 {0}</value>
+  </data>
+  <data name="ConfirmingGrant" xml:space="preserve">
+    <value>正在与服务器确认权限…</value>
+  </data>
+  <data name="TimeGrantHint" xml:space="preserve">
+    <value>临时授权允许在有效期内，在此设备的各个对话中使用此工具。应用自身的访问权限和管理员规则仍然适用。</value>
+  </data>
 </root>

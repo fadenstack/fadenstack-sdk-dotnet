@@ -761,7 +761,7 @@
                                     <MenuItem Header="{v:Text AllowAlways}" Command="{Binding AllowAlwaysCommand}"
                                               Visibility="{Binding CanAllowAlways, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                                     <!-- "Allow for…": the times the agent allows, a grant the server holds; each answers with its DurationOption. -->
-                                    <MenuItem Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}"
+                                    <MenuItem Header="{v:Text AllowFor}" ItemsSource="{Binding Durations}" ToolTip="{Binding TimeGrantHint}"
                                               Visibility="{Binding CanAllowForTime, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                                         <MenuItem.ItemContainerStyle>
                                             <Style TargetType="MenuItem" BasedOn="{StaticResource Fadenstack.AllowMenuItem}">

@@ -109,12 +109,20 @@ public sealed class AgentResource
         };
     }
 
-    /// <summary>Reports what the SDK did -- names, counts, outcomes. Up to 100 per call.</summary>
+    /// <summary>The most events one report may hold; the server takes no more.</summary>
+    public const int MaxEventsPerReport = 100;
+
+    /// <summary>Reports what the SDK did -- names, counts, outcomes. Up to <see cref="MaxEventsPerReport"/> per call.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">More than <see cref="MaxEventsPerReport"/> events: refused here, unsent.</exception>
     public async Task ReportAsync(IReadOnlyList<AgentClientEvent> events, CancellationToken cancellationToken = default)
     {
         if (events.Count == 0)
         {
             return;
+        }
+        if (events.Count > MaxEventsPerReport)
+        {
+            throw new ArgumentOutOfRangeException(nameof(events), $"At most {MaxEventsPerReport} events per report.");
         }
         // Serialized by their runtime type, so each carries its own fields.
         var batch = new { events = events.Select(e => (object)e).ToList() };
@@ -260,12 +268,27 @@ public sealed class AgentResource
     /// <summary>
     /// Starts the second sign-in before Bypass (sdk/41) for this app's sign-in: the person approves it in the browser
     /// (<see cref="StepUpStarted.VerificationUriComplete"/>). <paramref name="longestMinutes"/> is what the Bypass card
-    /// offers at most; the page shows it, and the server holds the grant to it.
+    /// offers at most; the page shows it, and the server holds the grant to it. Both pages must lie on the API's own origin
+    /// (scheme, host and port; OWASP ASVS 5.0 V3.7): a response that names another is refused, and nothing is opened.
     /// </summary>
-    public Task<StepUpStarted> StartStepUpAsync(int? longestMinutes, string? clientVersion,
-        CancellationToken cancellationToken = default) =>
-        _transport.PostAsync<StepUpStarted>(_transport.Api("api/agent-tokens/step-ups"),
-            new { longest_minutes = longestMinutes, client_version = clientVersion }, cancellationToken);
+    /// <exception cref="FadenstackException">A page of the second sign-in is not on the API's origin.</exception>
+    public async Task<StepUpStarted> StartStepUpAsync(int? longestMinutes, string? clientVersion,
+        CancellationToken cancellationToken = default)
+    {
+        var started = await _transport.PostAsync<StepUpStarted>(_transport.Api("api/agent-tokens/step-ups"),
+            new { longest_minutes = longestMinutes, client_version = clientVersion }, cancellationToken).ConfigureAwait(false);
+        if (!OnApiOrigin(started.VerificationUri) || !OnApiOrigin(started.VerificationUriComplete))
+        {
+            throw new FadenstackException("The step-up sign-in origin changed.");
+        }
+        return started;
+    }
+
+    // Whether the page is an absolute http(s) address with the API's scheme, host and port, and no sign-in in the address.
+    private bool OnApiOrigin(string page) =>
+        Uri.TryCreate(page, UriKind.Absolute, out var uri) && uri.UserInfo.Length == 0
+        && uri.Scheme == _transport.ApiUrl.Scheme && uri.Port == _transport.ApiUrl.Port
+        && string.Equals(uri.Host, _transport.ApiUrl.Host, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Asks whether the person approved the step-up: the proof once approved, else the RFC 8628 error (<c>authorization_pending</c>,
