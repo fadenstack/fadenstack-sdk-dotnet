@@ -556,6 +556,15 @@
                                     <TextBlock Classes="menu-caption" Text="{v:Text SettingsApprovalsEmpty}" IsVisible="{Binding !Grants.HasStanding}" />
                                     <Separator />
                                 </StackPanel>
+                                <Button Classes="menu-item" Command="{Binding ToggleTellUnmarkedCommand}" AutomationProperties.Name="{v:Text SettingsUnmarked}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Panel Classes="slot">
+                                            <c:FsIcon Data="{DynamicResource Icon.Check}" IsVisible="{Binding TellUnmarked}" />
+                                        </Panel>
+                                        <TextBlock Text="{v:Text SettingsUnmarked}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="260" />
+                                    </StackPanel>
+                                </Button>
+                                <Separator />
                                 <ContentPresenter Content="{Binding $parent[v:ChatView].SettingsContent}" />
                                 <Button Classes="menu-item" Command="{Binding OpenAboutCommand}" AutomationProperties.Name="{v:Text About}">
                                     <StackPanel Orientation="Horizontal">

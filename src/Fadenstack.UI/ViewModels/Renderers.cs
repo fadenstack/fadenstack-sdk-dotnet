@@ -78,6 +78,36 @@ internal sealed class PiiRenderer : IAgentEventRenderer
 }
 
 /// <summary>
+/// <c>faden.unmarked</c>: the answer carries no machine-readable AI mark because an administrator allowed that model
+/// route to answer unmarked (AI Act Art. 50(2)). Hidden unless the user turned the notice on in the panel's settings;
+/// then one quiet notice per answer. Never falls through to the generic notice.
+/// </summary>
+internal sealed class UnmarkedRenderer : IAgentEventRenderer
+{
+    internal const string EventName = "faden.unmarked";
+    internal const string NoticeKey = "unmarked";
+
+    private readonly Func<bool> _enabled;
+
+    public UnmarkedRenderer(Func<bool> enabled) => _enabled = enabled;
+
+    public bool TryRender(FadenstackEventContent e, TurnViewModel turn)
+    {
+        if (e.Kind != EventName)
+        {
+            return false;
+        }
+        if (_enabled() && !turn.Parts.OfType<NoticePart>().Any(n => n.Key == NoticeKey))
+        {
+            var notice = NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.UnmarkedTitle, s.UnmarkedMessage, null));
+            notice.Key = NoticeKey;
+            turn.AddPart(notice);
+        }
+        return true;
+    }
+}
+
+/// <summary>
 /// Events the chat shows elsewhere or not at all, and a generic notice for anything else. An answer's receipt
 /// (<c>faden.provenance</c>) is kept with the turn by the session; it is no message for the user.
 /// </summary>
@@ -95,7 +125,11 @@ internal sealed class FallbackRenderer : IAgentEventRenderer
         {
             return true;
         }
-        var message = e.Value.ValueKind == JsonValueKind.Object && Json.Str(e.Value, "message") is { } m ? m : e.Kind;
+        // An event without a message is nothing to tell the user: never its raw name.
+        if (e.Value.ValueKind != JsonValueKind.Object || Json.Str(e.Value, "message") is not { } message)
+        {
+            return true;
+        }
         turn.AddPart(NoticePart.Localized(turn.Strings, NoticeSeverity.Info, s => (s.NoticeFallback, message, null)));
         return true;
     }

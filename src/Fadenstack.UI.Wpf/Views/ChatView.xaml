@@ -202,6 +202,17 @@
                                     <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding Grants.StandingEmpty}" TextWrapping="Wrap" MaxWidth="260" Margin="8,2,8,4"
                                                Visibility="{Binding Grants.HasStanding, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
                                 </StackPanel>
+                                <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" />
+                                <Button Style="{StaticResource Fadenstack.GhostButton}" HorizontalContentAlignment="Left" Padding="8,6"
+                                        Command="{Binding ToggleTellUnmarkedCommand}" AutomationProperties.Name="{local:Text SettingsUnmarked}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Grid Width="20">
+                                            <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="12" Text="&#xE73E;" Foreground="{DynamicResource Fadenstack.AccentIcon}"
+                                                       Visibility="{Binding TellUnmarked, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                        </Grid>
+                                        <TextBlock Text="{local:Text SettingsUnmarked}" TextWrapping="Wrap" MaxWidth="260" />
+                                    </StackPanel>
+                                </Button>
                                 <Border x:Name="SettingsSeparator" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" Visibility="Collapsed" />
                                 <ContentPresenter x:Name="SettingsHost" />
                                 <Border x:Name="AboutSeparator" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,4,0,2" Visibility="Collapsed" />

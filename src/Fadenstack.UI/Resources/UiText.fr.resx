@@ -214,6 +214,15 @@
   <data name="Decision" xml:space="preserve">
     <value>Décision {0}</value>
   </data>
+  <data name="UnmarkedTitle" xml:space="preserve">
+    <value>Réponse sans marque d'IA</value>
+  </data>
+  <data name="UnmarkedMessage" xml:space="preserve">
+    <value>Cette réponse ne porte aucune marque d'IA lisible par machine. Votre organisation a autorisé ce modèle à répondre sans marque.</value>
+  </data>
+  <data name="SettingsUnmarked" xml:space="preserve">
+    <value>M'avertir quand une réponse ne porte pas de marque d'IA</value>
+  </data>
   <data name="PiiTitle" xml:space="preserve">
     <value>Données personnelles protégées</value>
   </data>
