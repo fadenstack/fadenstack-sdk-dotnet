@@ -168,6 +168,8 @@ The request tells you what to show:
 | `Reason` | Why it asks: the tool's class and the mode, or the administrator's message for a rule. |
 | `Arguments` | The call's arguments. Empty for gateway tools, whose arguments stay on the server. |
 | `CallId` | The call's id. |
+| `SessionId`, `TurnId` | The session and the turn the call belongs to. A screen that shows several chats at once uses them to hand the request to the chat that owns it. Empty when a caller does not say. |
+| `Server`, `ReadOnlyHint`, `DestructiveHint` | For a tool from a local MCP server: its label, and what the server says about the tool (it only reads, it may delete or overwrite). Null where it said nothing. The hints are shown on the card; no tool mode acts on them. |
 | `CanAllowForSession` | Whether you may offer "Allow for this chat". |
 | `CanAllowAlways` | Whether you may offer "Allow always". |
 | `GrantDurations` | The times you may offer for "Allow for…" (`CanAllowForTime`): a grant the server holds, for a `Read` or `Write` tool, up to the agent's longest grant. Empty where it is not offered. |

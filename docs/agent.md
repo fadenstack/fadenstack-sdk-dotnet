@@ -113,6 +113,16 @@ The tokens and who signed in (`SignedInUser`: id, e-mail, display name) go into 
 | `AgentTokenProvider.SignedInUser` | Who is signed in, once the provider has loaded the sign-in; `GetSignedInUserAsync()` reads it from the store. |
 | `AgentTokenProvider.SignOutAsync()` | Revokes the sign-in at the server (`POST /api/agent-tokens/revoke`, best effort: a network failure is ignored), then deletes the tokens on this device. Afterwards sign-in is required. |
 
+### The sign-in page
+
+The server names the page where the person approves the app (`PairingStart.VerificationUri`, and `VerificationUriComplete` with the code in the address). That page must be on the server's own address: the same scheme, host and port as the server URL you gave `AgentPairing`, and with no user name or password in the address. A relative address is the server's own. If the server names a page anywhere else, `StartAsync` throws `FadenstackException` before anything is shown, because a page on another site would be a phishing page. The TypeScript SDK refuses the same. Open the address in the system browser, and show `UserCode` beside it.
+
+### A server that is too old
+
+A server from before pairing has no route to start it. It answers `POST /api/agent-tokens/pairings` with 404, or with 405: core 0.7.0 does, because the same path belongs to another method there. `StartAsync` throws `FadenstackPairingUnsupportedException` for both, and `WaitAsync` and `RedeemAsync` throw it when their routes answer the same way. Nothing was started and nothing is kept.
+
+The exception's message is written for the person ("This server does not support signing in from the desktop app yet. Ask your IT to update Fadenstack."). Show it, and offer the sign-in with a login token ([Sign in](#sign-in)) where your app has a way to get one. Do not try pairing again in a loop: the server will not change by itself.
+
 ### Where the sign-in is kept
 
 `FileTokenStore`, the default, keeps one file per server and agent in the user's local data folder (`%LOCALAPPDATA%\Fadenstack\tokens\` on Windows). On Windows the file is encrypted with DPAPI for the current user. On macOS and Linux it is encrypted when the app called `FadenstackSecrets.UseOsKeyStore()` (see [Sessions on the device](sessions.md#where-they-are-stored)), and otherwise it is not encrypted and only its owner may read it. A file that cannot be read, such as another user's or a damaged one, counts as no sign-in.
@@ -216,6 +226,7 @@ var session = await agent.StartSessionAsync();       // starts in Ask
 | `session.ToolMode`, `session.EffectiveToolMode` | The user's pick, and the mode turns run in. See [Host tools](tools.md#tool-modes). |
 | `session.Transcript`, `session.History` | What is kept, and what the next request would carry. |
 | `session.ApprovedForSession`, `session.ResetApprovals(tool)` | The tools the user allowed for this chat, and forgetting them. Kept in memory only. |
+| `session.Approvals` | Who is asked about this session's calls instead of the agent's approval handler; null (the default) means the agent's. A task that another agent hands over sets it. |
 | `session.CloseAsync()` | Reports the session's counts (never content) and sends what is left to report. |
 
 A session runs one turn at a time. Starting a turn while another runs in the same session throws `InvalidOperationException`.
@@ -254,6 +265,8 @@ await foreach (var e in session.StreamAsync("What is on page 7?"))
 | `TurnCompleted` | Last, when the turn ended with an outcome. | `Result`: the `AgentResult` |
 
 Every event carries the turn's `TurnId`.
+
+**Call ids.** `CallId` ties a `ToolCallStarted` to its `ToolCallCompleted`, to an approval and to what the gateway says about the call. A model may send a call with no id, or two calls of one round with the same id. The SDK then gives such calls ids of its own, `fs-<turn id>-<round>-<index>`: the round counts the turn's model calls from 0, and the index is the call's place in that round. Calls with ids of their own keep them. The new ids are what the events, the transcript and the results sent back to the model carry. When the gateway refuses a call and can only name the tool, because the call has no id of its own or its id is shared, the refusal covers every call of that tool in the round, so a refusal is never lost.
 
 `GatewayEvent.Event` is a `FadenstackEventContent`: the event as the gateway sent it (`Event`), its type (`Type`), the name of a custom event (`Name`), its value (`Value`) and `Kind`, which is the name for a custom event and the type otherwise. Citations (`faden.citations`) and personal-data notices (`faden.pii`) arrive this way. Every gateway event arrives as a `GatewayEvent`, including those the SDK also turns into the events above, so render the kinds you know and ignore the rest.
 
@@ -316,6 +329,94 @@ var result = await session.SendAsync("Answer this mail.", new SendOptions
 
 Every model call of the turn gets the skills, and the session keeps them with the message. The next message has none unless they are picked again.
 
+## The organisation's tools
+
+The server lists the tools of the organisation's MCP servers that this user and this agent can have, with what the agent's tool rules make of each. An app can show them, for example on a Tools page:
+
+```csharp
+var tools = await agent.Client.Agent!.ListToolsAsync();
+if (tools is null)
+{
+    // The server is too old to list them.
+}
+else
+{
+    foreach (var tool in tools)
+    {
+        Console.WriteLine($"{tool.Server}: {tool.Name} (allowed {tool.Allowed}, switched on {tool.Enabled})");
+    }
+}
+```
+
+`ListToolsAsync` calls `GET /v1/agents/{agent}/tools` and returns `AgentToolInfo` values:
+
+| Property | Meaning |
+|---|---|
+| `Name` | The name the model calls it by, such as `mcp.github.search`. |
+| `Server` | The MCP server that brings it. |
+| `Description` | What the server says it does. |
+| `Allowed` | Whether the agent's tool rules let its requests be offered and run the tool. |
+| `Enabled` | Whether the tool is switched on. An administrator may have switched it off. |
+
+It returns names and descriptions only, never how a server is reached. The list is empty when the user has no such tools, and `null` when the server has no route for it (404). An unknown agent (`agent_not_found`) is an error, as is a user who may not use the agent (`FadenstackPermissionException`). The MCP servers on the device are another thing: see [Local MCP servers](local-mcp.md).
+
+## Logging
+
+The agent logs through the `ILoggerFactory` you give the builder, and so do its client, its local MCP servers and the provenance module. Without one, nothing is logged:
+
+```csharp
+builder.UseLogging(loggerFactory);
+```
+
+A client without an agent has `FadenstackClientOptions.LoggerFactory`, and `AgentPairing` takes an `ILogger`.
+
+**The logs are free of content.** The SDK's own entries hold names, ids, counts, durations, outcomes and the type of an error. They never hold a prompt, an answer, the model's reasoning, an attachment, a tool's arguments or results, a token, a secret or who the user is. A turn's entries sit in a scope with the conversation and turn ids. What your app logs through the same factory is yours to keep free of content.
+
+Each package has its own range of event ids and its own logger category:
+
+| Package | Category | Event ids | Examples |
+|---|---|---|---|
+| `Fadenstack.Client` | `Fadenstack.Client` | 1000-1099 | Requests (method, route template, status, duration), sign-in renewals, pairing progress, a skipped event |
+| `Fadenstack.Agents` | `Fadenstack.Agents` | 2000-2099 | 2000 profile loaded, 2010 and 2011 a turn started and ended, 2020 a tool call, 2021 an approval, 2040 transcripts kept in memory only |
+| `Fadenstack.Mcp` | `Fadenstack.Mcp` | 3000-3099 | A local server attached, refused, stopped or restarted |
+| `Fadenstack.Provenance` | `Fadenstack.Provenance` | 4000-4099 | A placement that was not recorded or reported |
+| `Fadenstack.Secrets` | | 5000-5099 | 5000 no usable OS key store |
+
+**Traces and metrics** need no factory. Subscribe to the names in `FadenstackTelemetry`, for example with OpenTelemetry:
+
+| Name | What it is |
+|---|---|
+| `FadenstackTelemetry.ClientSource` | Spans of the client's HTTP requests. |
+| `FadenstackTelemetry.AgentsSource` | Spans of turns, model requests and tool calls. |
+| `FadenstackTelemetry.AgentsMeter` | `fadenstack.agent.turns`, `fadenstack.agent.tool_calls`, `fadenstack.agent.tool.duration` and `fadenstack.agent.approval.wait`. |
+
+Tags carry names, ids, counts and outcomes, never content.
+
+### A log file
+
+A desktop app or an add-in often wants its logs in a file. `FadenstackFileLoggerProvider` writes rolling files in the operating system user's own log folder:
+
+```csharp
+using Fadenstack.Logging;
+
+using var files = new FadenstackFileLoggerProvider("my-addin");
+using var factory = LoggerFactory.Create(logging => logging.AddProvider(files));   // Microsoft.Extensions.Logging
+
+builder.UseLogging(factory);
+```
+
+The files are `<app>-<yyyyMMdd>.log`, one line per entry: the time in UTC, the level, the category, the event id and the message, and for an exception its type, message and stack trace. The folder is `FadenstackPaths.LogRoot`: `%LOCALAPPDATA%\Fadenstack\logs` on Windows, `~/Library/Logs/Fadenstack` on macOS, and `$XDG_STATE_HOME/Fadenstack/logs` on Linux (`~/.local/state/Fadenstack/logs` when the variable is not set). A folder you choose in `FadenstackFileLoggerOptions.Folder` must be that folder or below it, or the constructor throws `ArgumentException`: logs stay in the user's own folder, never in a machine-wide one.
+
+| `FadenstackFileLoggerOptions` | Meaning |
+|---|---|
+| `Folder` | Where the files go; the log root by default. |
+| `MaxFileBytes` | A file is closed and numbered (`.1`, `.2`) before it passes this size. Default 5 MB. |
+| `MaxAge` | Files older than this are deleted. Default 14 days. |
+| `MaxTotalBytes` | The oldest files are deleted while the app's files together are larger. Default 50 MB. |
+| `QueueCapacity` | Entries waiting for the writer; more are dropped. Default 4096. |
+
+Logging never holds up or fails the caller. Entries go to a queue and one background writer. When the queue is full, an entry is dropped and counted (`Dropped`). Disposing the provider writes what is queued. The provider touches only files of its own app name, because add-ins and a desktop agent share the folder. It writes every level its factory passes on, so set a minimum level on the factory.
+
 ## Cancellation
 
 Pass a `CancellationToken` to `StreamAsync` or `SendAsync`. Cancelling it stops the turn: the request to the gateway is cancelled, a running tool gets the cancellation through its `CancellationToken` parameter, a pending approval's token is cancelled, and `OperationCanceledException` is thrown.
@@ -342,11 +443,13 @@ The server can only set a maximum, in the agent version's `ui`:
 { "reasoning": { "max": "low" } }
 ```
 
-- `max` is optional: `none`, `low`, `medium`, `high` or `xhigh`. Anything else is ignored.
+- `max` is optional. It takes the gateway's names, from least to most: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`. Anything else, or a value that is not a string, is ignored, as if the server had set none.
+- The SDK can send `none`, `low`, `medium`, `high` and `xhigh`. `minimal` has no level of its own in `ReasoningEffort`, so it caps at `none`, the level below it that the SDK can send; the server still caps every request itself. `max` is the top of the scale: it sets no cap, and the agent behaves as if the server had set no maximum.
 - The pill hides the levels above the maximum; Off is always offered. A stored choice above a later, lower maximum shows and sends the maximum.
-- With a maximum, Auto means the maximum (it is sent). Without one, Auto sends no field.
+- With a maximum, Auto means the maximum (it is sent, so with `xhigh` Auto sends `xhigh`). Without one, or with `max`, Auto sends no field.
 - The order is: the person's choice, then `UseReasoning`, then Auto, each lowered to the maximum.
 - In code: `agent.ReasoningChoices` (`Levels`, `Max`), `agent.Reasoning`, `agent.ReasoningChoice`, `agent.SetReasoningAsync(level)` and `session.Reasoning`. The turn's start entry in the session records `reasoning_effort`; the client events carry nothing about it.
+- A host that passes both its own session store and its own approval store has taken over the device's storage: the person's choice then lasts for the run only.
 
 ## What is reported to the server
 
