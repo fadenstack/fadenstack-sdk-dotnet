@@ -751,4 +751,79 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>Permitido solo esta vez: el servidor no confirmó la aprobación prolongada</value>
   </data>
+  <data name="GrantsMarkerMany" xml:space="preserve">
+    <value>{0} permisos en curso · el primero termina en {1}</value>
+  </data>
+  <data name="GrantsLeft" xml:space="preserve">
+    <value>quedan {0}</value>
+  </data>
+  <data name="GrantsPaused" xml:space="preserve">
+    <value>en pausa</value>
+  </data>
+  <data name="GrantsBadgePaused" xml:space="preserve">
+    <value>En pausa</value>
+  </data>
+  <data name="GrantsBypassPaused" xml:space="preserve">
+    <value>Bypass en pausa</value>
+  </data>
+  <data name="GrantsKindWork" xml:space="preserve">
+    <value>Trabaja con usted</value>
+  </data>
+  <data name="GrantsChatUnknown" xml:space="preserve">
+    <value>Un chat</value>
+  </data>
+  <data name="GrantsStopFailed" xml:space="preserve">
+    <value>Detener no llegó al servidor. Vuelva a intentarlo; los permisos terminan a su hora en cualquier caso.</value>
+  </data>
+  <data name="GrantsExtendFailed" xml:space="preserve">
+    <value>No se pudo ampliar el tiempo</value>
+  </data>
+  <data name="GrantsAtLongest" xml:space="preserve">
+    <value>No puede durar más. Para continuar, solicítelo de nuevo y responda a la tarjeta.</value>
+  </data>
+  <data name="GrantsWaiting" xml:space="preserve">
+    <value>El servidor no pudo comprobar si un permiso puede continuar. Sigue en pausa y se volverá a intentar en breve.</value>
+  </data>
+  <data name="GrantsSummaryWork" xml:space="preserve">
+    <value>Ha trabajado con usted durante {0}</value>
+  </data>
+  <data name="GrantsSummaryBypass" xml:space="preserve">
+    <value>Bypass estuvo activo durante {0}</value>
+  </data>
+  <data name="GrantsSummaryPlaces" xml:space="preserve">
+    <value>Dónde: {0}</value>
+  </data>
+  <data name="GrantsSummaryCalls" xml:space="preserve">
+    <value>Ejecutado sin preguntar: {0}</value>
+  </data>
+  <data name="GrantsEnded_Time" xml:space="preserve">
+    <value>Terminó cuando se acabó su tiempo.</value>
+  </data>
+  <data name="GrantsEnded_Stopped" xml:space="preserve">
+    <value>Usted lo detuvo.</value>
+  </data>
+  <data name="GrantsEnded_Elsewhere" xml:space="preserve">
+    <value>El servidor lo terminó: en Configuración, en otra aplicación, por la administración o porque se agotaron sus llamadas.</value>
+  </data>
+  <data name="GrantsEnded_Spent" xml:space="preserve">
+    <value>Agotó las llamadas permitidas.</value>
+  </data>
+  <data name="GrantsEnded_Locked" xml:space="preserve">
+    <value>Terminó porque la pantalla estuvo bloqueada 30 minutos.</value>
+  </data>
+  <data name="GrantsEnded_Away" xml:space="preserve">
+    <value>Terminó porque estuvo en pausa 30 minutos mientras la aplicación estaba cerrada.</value>
+  </data>
+  <data name="GrantsEnded_Admin" xml:space="preserve">
+    <value>La administración lo terminó.</value>
+  </data>
+  <data name="GrantsEnded_KillSwitch" xml:space="preserve">
+    <value>Terminó porque su organización lo desactivó.</value>
+  </data>
+  <data name="GrantsEnded_Limit" xml:space="preserve">
+    <value>Terminó porque su organización restringió quién puede usarlo.</value>
+  </data>
+  <data name="GrantsEnded_Host" xml:space="preserve">
+    <value>La aplicación lo terminó.</value>
+  </data>
 </root>

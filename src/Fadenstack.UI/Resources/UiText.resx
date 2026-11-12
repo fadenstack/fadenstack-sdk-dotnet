@@ -938,4 +938,104 @@
     <value>Allowed this time only: the server did not confirm the longer approval</value>
     <comment>A notice's title</comment>
   </data>
+  <data name="GrantsMarkerMany" xml:space="preserve">
+    <value>{0} grants running · first ends in {1}</value>
+    <comment>A marker with several grants running; {0}: how many; {1}: the time left of the one ending first</comment>
+  </data>
+  <data name="GrantsLeft" xml:space="preserve">
+    <value>{0} left</value>
+    <comment>A grant's time left in a marker's line; {0}: the time</comment>
+  </data>
+  <data name="GrantsPaused" xml:space="preserve">
+    <value>paused</value>
+    <comment>A paused grant in a marker's line</comment>
+  </data>
+  <data name="GrantsBadgePaused" xml:space="preserve">
+    <value>Paused</value>
+    <comment>The avatar's badge while the grant is paused</comment>
+  </data>
+  <data name="GrantsBypassPaused" xml:space="preserve">
+    <value>Bypass paused</value>
+    <comment>The marker of a single Bypass that is paused</comment>
+  </data>
+  <data name="GrantsKindWork" xml:space="preserve">
+    <value>Working alongside you</value>
+    <comment>What a stretch of work is called in a marker's line</comment>
+  </data>
+  <data name="GrantsChatUnknown" xml:space="preserve">
+    <value>A chat</value>
+    <comment>A grant's chat when the app cannot name it</comment>
+  </data>
+  <data name="GrantsStopFailed" xml:space="preserve">
+    <value>Stop did not reach the server. Try again; the grants end at their time in any case.</value>
+    <comment>Said when Stop could not end every grant</comment>
+  </data>
+  <data name="GrantsExtendFailed" xml:space="preserve">
+    <value>The time could not be extended</value>
+    <comment>Said when more time was refused or not reached</comment>
+  </data>
+  <data name="GrantsAtLongest" xml:space="preserve">
+    <value>This cannot run any longer. To keep going, ask again and answer the card.</value>
+    <comment>Said when the server refuses more time: the grant is at its longest</comment>
+  </data>
+  <data name="GrantsWaiting" xml:space="preserve">
+    <value>The server could not check whether a grant may go on. It stays paused and is tried again shortly.</value>
+    <comment>Said while a paused grant waits for the server</comment>
+  </data>
+  <data name="GrantsSummaryWork" xml:space="preserve">
+    <value>Worked alongside you for {0}</value>
+    <comment>The summary of a stretch of work; {0}: how long it ran</comment>
+  </data>
+  <data name="GrantsSummaryBypass" xml:space="preserve">
+    <value>Bypass ran for {0}</value>
+    <comment>The summary of a Bypass; {0}: how long it ran</comment>
+  </data>
+  <data name="GrantsSummaryPlaces" xml:space="preserve">
+    <value>Where: {0}</value>
+    <comment>A summary's places; {0}: the places</comment>
+  </data>
+  <data name="GrantsSummaryCalls" xml:space="preserve">
+    <value>Ran without asking: {0}</value>
+    <comment>A summary's calls; {0}: how many ran without asking</comment>
+  </data>
+  <data name="GrantsEnded_Time" xml:space="preserve">
+    <value>It ended when its time was up.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Stopped" xml:space="preserve">
+    <value>You stopped it.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Elsewhere" xml:space="preserve">
+    <value>The server ended it: in Settings, in another app, by an administrator, or its calls were used up.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Spent" xml:space="preserve">
+    <value>It used up the calls it was allowed.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Locked" xml:space="preserve">
+    <value>It ended because the screen stayed locked for 30 minutes.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Away" xml:space="preserve">
+    <value>It ended because it stayed paused for 30 minutes while the app was closed.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Admin" xml:space="preserve">
+    <value>An administrator ended it.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_KillSwitch" xml:space="preserve">
+    <value>It ended because your organisation turned it off.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Limit" xml:space="preserve">
+    <value>It ended because your organisation narrowed who may use it.</value>
+    <comment>Why a grant ended</comment>
+  </data>
+  <data name="GrantsEnded_Host" xml:space="preserve">
+    <value>The app ended it.</value>
+    <comment>Why a grant ended</comment>
+  </data>
 </root>

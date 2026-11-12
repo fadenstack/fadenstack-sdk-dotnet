@@ -751,4 +751,79 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>Autorisé cette fois seulement : le serveur n'a pas confirmé l'approbation prolongée</value>
   </data>
+  <data name="GrantsMarkerMany" xml:space="preserve">
+    <value>{0} autorisations en cours · la première se termine dans {1}</value>
+  </data>
+  <data name="GrantsLeft" xml:space="preserve">
+    <value>encore {0}</value>
+  </data>
+  <data name="GrantsPaused" xml:space="preserve">
+    <value>en pause</value>
+  </data>
+  <data name="GrantsBadgePaused" xml:space="preserve">
+    <value>En pause</value>
+  </data>
+  <data name="GrantsBypassPaused" xml:space="preserve">
+    <value>Bypass en pause</value>
+  </data>
+  <data name="GrantsKindWork" xml:space="preserve">
+    <value>Travaille avec vous</value>
+  </data>
+  <data name="GrantsChatUnknown" xml:space="preserve">
+    <value>Une conversation</value>
+  </data>
+  <data name="GrantsStopFailed" xml:space="preserve">
+    <value>Arrêter n'a pas atteint le serveur. Réessayez ; les autorisations prennent fin à leur heure dans tous les cas.</value>
+  </data>
+  <data name="GrantsExtendFailed" xml:space="preserve">
+    <value>Le temps n'a pas pu être prolongé</value>
+  </data>
+  <data name="GrantsAtLongest" xml:space="preserve">
+    <value>Cela ne peut pas durer plus longtemps. Pour continuer, demandez à nouveau et répondez à la carte.</value>
+  </data>
+  <data name="GrantsWaiting" xml:space="preserve">
+    <value>Le serveur n'a pas pu vérifier si une autorisation peut continuer. Elle reste en pause ; nouvel essai sous peu.</value>
+  </data>
+  <data name="GrantsSummaryWork" xml:space="preserve">
+    <value>A travaillé avec vous pendant {0}</value>
+  </data>
+  <data name="GrantsSummaryBypass" xml:space="preserve">
+    <value>Bypass est resté actif pendant {0}</value>
+  </data>
+  <data name="GrantsSummaryPlaces" xml:space="preserve">
+    <value>Où : {0}</value>
+  </data>
+  <data name="GrantsSummaryCalls" xml:space="preserve">
+    <value>Exécuté sans demander : {0}</value>
+  </data>
+  <data name="GrantsEnded_Time" xml:space="preserve">
+    <value>Il a pris fin à l'expiration de son temps.</value>
+  </data>
+  <data name="GrantsEnded_Stopped" xml:space="preserve">
+    <value>Vous l'avez arrêté.</value>
+  </data>
+  <data name="GrantsEnded_Elsewhere" xml:space="preserve">
+    <value>Le serveur y a mis fin : dans les paramètres, dans une autre application, par l'administration ou parce que ses appels étaient épuisés.</value>
+  </data>
+  <data name="GrantsEnded_Spent" xml:space="preserve">
+    <value>Il a utilisé tous les appels autorisés.</value>
+  </data>
+  <data name="GrantsEnded_Locked" xml:space="preserve">
+    <value>Il a pris fin parce que l'écran est resté verrouillé 30 minutes.</value>
+  </data>
+  <data name="GrantsEnded_Away" xml:space="preserve">
+    <value>Il a pris fin parce qu'il est resté en pause 30 minutes pendant que l'application était fermée.</value>
+  </data>
+  <data name="GrantsEnded_Admin" xml:space="preserve">
+    <value>L'administration y a mis fin.</value>
+  </data>
+  <data name="GrantsEnded_KillSwitch" xml:space="preserve">
+    <value>Il a pris fin parce que votre organisation l'a désactivé.</value>
+  </data>
+  <data name="GrantsEnded_Limit" xml:space="preserve">
+    <value>Il a pris fin parce que votre organisation a restreint qui peut l'utiliser.</value>
+  </data>
+  <data name="GrantsEnded_Host" xml:space="preserve">
+    <value>L'application y a mis fin.</value>
+  </data>
 </root>

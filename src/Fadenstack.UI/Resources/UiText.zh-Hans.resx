@@ -751,4 +751,79 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>仅本次允许：服务器未确认长时间批准</value>
   </data>
+  <data name="GrantsMarkerMany" xml:space="preserve">
+    <value>{0} 个授权运行中 · 最早的将在 {1} 后结束</value>
+  </data>
+  <data name="GrantsLeft" xml:space="preserve">
+    <value>剩余 {0}</value>
+  </data>
+  <data name="GrantsPaused" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
+  <data name="GrantsBadgePaused" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
+  <data name="GrantsBypassPaused" xml:space="preserve">
+    <value>绕过已暂停</value>
+  </data>
+  <data name="GrantsKindWork" xml:space="preserve">
+    <value>与您协作</value>
+  </data>
+  <data name="GrantsChatUnknown" xml:space="preserve">
+    <value>一个对话</value>
+  </data>
+  <data name="GrantsStopFailed" xml:space="preserve">
+    <value>停止请求未到达服务器。请再试一次；无论如何，授权都会在到时结束。</value>
+  </data>
+  <data name="GrantsExtendFailed" xml:space="preserve">
+    <value>无法延长时间</value>
+  </data>
+  <data name="GrantsAtLongest" xml:space="preserve">
+    <value>无法再延长。如需继续，请重新发起并回答卡片。</value>
+  </data>
+  <data name="GrantsWaiting" xml:space="preserve">
+    <value>服务器无法检查授权是否可以继续。它保持暂停，稍后会再试。</value>
+  </data>
+  <data name="GrantsSummaryWork" xml:space="preserve">
+    <value>已与您协作 {0}</value>
+  </data>
+  <data name="GrantsSummaryBypass" xml:space="preserve">
+    <value>绕过运行了 {0}</value>
+  </data>
+  <data name="GrantsSummaryPlaces" xml:space="preserve">
+    <value>位置：{0}</value>
+  </data>
+  <data name="GrantsSummaryCalls" xml:space="preserve">
+    <value>无需询问即执行：{0}</value>
+  </data>
+  <data name="GrantsEnded_Time" xml:space="preserve">
+    <value>时间到后已结束。</value>
+  </data>
+  <data name="GrantsEnded_Stopped" xml:space="preserve">
+    <value>您已将其停止。</value>
+  </data>
+  <data name="GrantsEnded_Elsewhere" xml:space="preserve">
+    <value>服务器已将其结束：在设置中、在其他应用中、由管理员结束，或其调用次数已用完。</value>
+  </data>
+  <data name="GrantsEnded_Spent" xml:space="preserve">
+    <value>已用完允许的调用次数。</value>
+  </data>
+  <data name="GrantsEnded_Locked" xml:space="preserve">
+    <value>因屏幕锁定 30 分钟而结束。</value>
+  </data>
+  <data name="GrantsEnded_Away" xml:space="preserve">
+    <value>因应用关闭期间暂停了 30 分钟而结束。</value>
+  </data>
+  <data name="GrantsEnded_Admin" xml:space="preserve">
+    <value>管理员已将其结束。</value>
+  </data>
+  <data name="GrantsEnded_KillSwitch" xml:space="preserve">
+    <value>因您的组织已将其关闭而结束。</value>
+  </data>
+  <data name="GrantsEnded_Limit" xml:space="preserve">
+    <value>因您的组织已限制可使用它的人员而结束。</value>
+  </data>
+  <data name="GrantsEnded_Host" xml:space="preserve">
+    <value>应用已将其结束。</value>
+  </data>
 </root>
