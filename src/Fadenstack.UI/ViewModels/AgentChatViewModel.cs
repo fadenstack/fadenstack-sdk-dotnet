@@ -80,7 +80,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _languageOptions = BuildLanguageOptions();
         (_about, _brandingLink) = BuildAbout();
         _batcher = new RenderBatcher(dispatcher, _options.RenderInterval);
-        _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new FallbackRenderer() }).ToList();
+        _renderers = _options.Renderers.Concat(new IAgentEventRenderer[] { new CitationsRenderer(), new PiiRenderer(), new UnmarkedRenderer(() => TellUnmarked), new FallbackRenderer() }).ToList();
         ToolModes = new ObservableCollection<ToolModeOption>(new[] { ToolMode.Off, ToolMode.ReadOnly, ToolMode.Ask, ToolMode.Auto }
             .Select(m => new ToolModeOption(m, Strings)));
         _bypassOption = new ToolModeOption(ToolMode.Bypass, Strings) { IsAvailable = false };
@@ -94,6 +94,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
         SetLanguageCommand = new RelayCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
+        ToggleTellUnmarkedCommand = new RelayCommand(() => TellUnmarked = !TellUnmarked);
         SendCommand = new AsyncRelayCommand(() => SendAsync(Input), () => CanSend);
         SendSuggestionCommand = new AsyncRelayCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy);
         StopCommand = new RelayCommand(Stop, () => _isBusy);
@@ -151,6 +152,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     private const string LanguagePreference = "language";
 
+    /// <summary>The preference that turns the notice for an answer without an AI mark on ("1"); off when absent.</summary>
+    public const string TellUnmarkedPreference = "tell-unmarked";
+
     /// <summary>A picture's media type, from its <c>data:</c> URL.</summary>
     private static readonly Regex PictureType = new(@"^data:(image/[\w.+-]+)[;,]", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
@@ -191,6 +195,49 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     /// <summary>Picks a language (its id: <see cref="Automatic"/> or a tag).</summary>
     public IRelayCommand<string> SetLanguageCommand { get; }
+
+    /// <summary>
+    /// Show a quiet notice after an answer that carries no machine-readable AI mark because the organisation allowed
+    /// the model to answer without one. Off by default; kept per user in the preferences, like the language.
+    /// </summary>
+    public bool TellUnmarked
+    {
+        get => _tellUnmarked ??= ReadTellUnmarked();
+        set
+        {
+            if (TellUnmarked == value)
+            {
+                return;
+            }
+            _tellUnmarked = value;
+            OnPropertyChanged();
+            try
+            {
+                _preferences.Set(TellUnmarkedPreference, value ? "1" : null);
+            }
+            catch (Exception)
+            {
+                // not remembered: still this chat's choice
+            }
+        }
+    }
+
+    /// <summary>Flips <see cref="TellUnmarked"/> (the settings item).</summary>
+    public IRelayCommand ToggleTellUnmarkedCommand { get; }
+
+    private bool? _tellUnmarked;
+
+    private bool ReadTellUnmarked()
+    {
+        try
+        {
+            return _preferences.Get(TellUnmarkedPreference) == "1";
+        }
+        catch (Exception)
+        {
+            return false; // the store failed: hidden
+        }
+    }
 
     // -- About and the links ---------------------------------------------------------------------------
 

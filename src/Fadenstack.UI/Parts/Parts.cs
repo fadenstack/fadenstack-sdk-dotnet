@@ -582,6 +582,9 @@ public sealed class NoticePart : ResponsePart
 
     public NoticeSeverity Severity { get; }
 
+    /// <summary>Names a notice the panel adds at most once to an answer.</summary>
+    internal string? Key { get; set; }
+
     public string Title => Current.Title;
 
     public string Message => Current.Message;

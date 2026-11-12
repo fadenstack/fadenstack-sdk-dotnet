@@ -282,6 +282,18 @@
     <value>Decision {0}</value>
     <comment>{0}: the server's decision id, for support</comment>
   </data>
+  <data name="UnmarkedTitle" xml:space="preserve">
+    <value>Answer without an AI mark</value>
+    <comment>A notice's title: the answer has no machine-readable AI mark</comment>
+  </data>
+  <data name="UnmarkedMessage" xml:space="preserve">
+    <value>This answer carries no machine-readable AI mark. Your organisation allowed this model to answer without one.</value>
+    <comment>A notice's text: an administrator allowed this model to answer unmarked</comment>
+  </data>
+  <data name="SettingsUnmarked" xml:space="preserve">
+    <value>Tell me when an answer carries no AI mark</value>
+    <comment>A setting in the panel's menu: show the unmarked-answer notice</comment>
+  </data>
   <data name="PiiTitle" xml:space="preserve">
     <value>Personal data protected</value>
     <comment>A notice's title</comment>

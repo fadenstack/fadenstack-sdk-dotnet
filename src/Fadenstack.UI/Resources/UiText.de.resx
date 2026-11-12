@@ -214,6 +214,15 @@
   <data name="Decision" xml:space="preserve">
     <value>Entscheidung {0}</value>
   </data>
+  <data name="UnmarkedTitle" xml:space="preserve">
+    <value>Antwort ohne KI-Kennzeichen</value>
+  </data>
+  <data name="UnmarkedMessage" xml:space="preserve">
+    <value>Diese Antwort trägt kein maschinenlesbares KI-Kennzeichen. Ihre Organisation hat diesem Modell erlaubt, ohne eines zu antworten.</value>
+  </data>
+  <data name="SettingsUnmarked" xml:space="preserve">
+    <value>Hinweis, wenn eine Antwort kein KI-Kennzeichen trägt</value>
+  </data>
   <data name="PiiTitle" xml:space="preserve">
     <value>Personenbezogene Daten geschützt</value>
   </data>
