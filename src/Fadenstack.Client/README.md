@@ -41,6 +41,10 @@ var tokens = new AgentTokenProvider(serverUrl, "docs-assistant", store);   // si
 await tokens.SignOutAsync();   // revokes at the server (best effort), deletes the tokens
 ```
 
+One approval can cover several agents of an app suite: pass the further agents to `StartAsync` (at most 8 in all),
+then `WaitAsync(start)` for the first and `RedeemAsync(start, agent)` for each other one; each lands in the store under
+its own agent. See the agent guide for the details and for older servers.
+
 Denied, expired and unsupported pairings throw `FadenstackPairingDeniedException`, `FadenstackPairingExpiredException`
 and `FadenstackPairingUnsupportedException`. The pairing code is never stored or logged.
 
