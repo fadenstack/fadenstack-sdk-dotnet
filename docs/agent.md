@@ -82,6 +82,28 @@ Console.WriteLine($"Signed in as {result.SignedInUser?.DisplayName}");
 var tokens = new AgentTokenProvider(serverUrl, "docs-assistant", store);   // same server, agent and store: signed in
 ```
 
+### One pairing for several agents
+
+An app suite (for example the Office add-ins) can sign in all its agents with one approval. Name the further agents in `StartAsync`; the person sees every agent in the console before approving, and the device then collects one token set per agent, each redeemable once. At most 8 agents in all, none repeated (`ArgumentException` before any request).
+
+```csharp
+string[] suite = ["word-assistant", "excel-assistant", "outlook-assistant"];
+var start = await pairing.StartAsync(suite[0], "Office on " + Environment.MachineName,
+    PairingClient.ForThisDevice("Office add-ins", "1.0"), suite.Skip(1));
+Console.WriteLine($"Approve {start.UserCode} at {start.VerificationUriComplete}");
+
+await pairing.WaitAsync(start);                  // waits for the approval; the first agent's tokens
+foreach (var agent in suite.Skip(1))
+{
+    await pairing.RedeemAsync(start, agent);     // one call each, no waiting; tokens saved under that agent
+}
+var excel = new AgentTokenProvider(serverUrl, "excel-assistant", store);   // signed in
+```
+
+`WaitAsync(start, agent)` waits for the approval and returns that agent's tokens, so the agents can also be collected in any order. `RedeemAsync(start, agent)` is for an agent after the approval is known. If the person may not use an agent, or its tokens were already collected, the server answers `invalid_grant` and the call throws `FadenstackPairingAgentException` (its `Agent` names it); nothing is saved. `PairingStart.Agents` is the list the server stored; `PairingStart.AgentsLeft` and `PairingResult.AgentsLeft` name the agents whose tokens are still to collect.
+
+A server that does not know `agents` (an older 0.7.1 candidate) ignores the list: `PairingStart.Agents` is empty, only the first agent can be signed in, and the others stay in `AgentsLeft`. Asking for one of them throws `FadenstackPairingAgentException` without a request; start another pairing for them. A pairing for one agent sends exactly what it always did.
+
 `WaitAsync` polls the server's interval, five seconds longer after each `slow_down`, and retries network errors after 5, 10, 20 and then 30 seconds while the pairing is valid. It ends with `FadenstackPairingDeniedException` (denied in the console), `FadenstackPairingExpiredException` (the code expired) or, from `StartAsync`, `FadenstackPairingUnsupportedException` (the server is older than the feature). All derive from `FadenstackException`. The pairing code the app polls with stays in the `PairingStart` object in memory: it is never stored, logged or printed. The user code may be shown on screen, not logged. To trust a server's own CA, build the `HttpClient` on `FadenstackTransport.CreateHandler(options)` with `TrustedCaCertificate` set.
 
 The tokens and who signed in (`SignedInUser`: id, e-mail, display name) go into the `ITokenStore` under the same key `AgentTokenProvider` uses. Token sets stored before the user was kept still load, with no user.
