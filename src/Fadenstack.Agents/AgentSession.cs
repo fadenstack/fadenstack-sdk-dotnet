@@ -170,7 +170,7 @@ public sealed class AgentSession
         var answer = await handler.RequestGrantAsync(new GrantOffer
         {
             Places = added, Classes = grant.Scope.Classes ?? new List<string>(), Durations = new[] { more },
-            Preselected = more, Reason = reason, Extending = grant,
+            Preselected = more, Reason = reason, Extending = grant, ConversationId = Id,
         }, cancellationToken).ConfigureAwait(false);
         if (!answer.Allowed)
         {

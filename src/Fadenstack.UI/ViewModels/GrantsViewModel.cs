@@ -472,6 +472,13 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
             _dispatcher.Post(() => BypassCard = new BypassPart(pending, _strings, link => _broker.OpenBrowser(link)));
             return;
         }
+        // A card offered for a conversation shows in the chat of that conversation only (sdk/46 C3): chats sharing one
+        // broker do not show each other's cards. One offered before its conversation existed has none and shows in every chat,
+        // and so does any card in a chat that has no conversation open yet (a host that offers through its own session).
+        if (pending.Offer.ConversationId is { } offeredFor && _session() is { } open && offeredFor != open.Id)
+        {
+            return;
+        }
         _dispatcher.Post(() => Cards.Add(new GrantPart(pending, _strings)));
     }
 
