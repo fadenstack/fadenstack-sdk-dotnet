@@ -7,6 +7,7 @@ nav = [
   { "Overview" = "index.md" },
   { "Build an agent" = "agent.md" },
   { "Host tools" = "tools.md" },
+  { "Server-held grants and Bypass" = "server-grants.md" },
   { "Host commands and policy" = "host-commands.md" },
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },
@@ -18,6 +19,8 @@ nav = [
   { "Extending" = "extending.md" },
   { "Samples" = "samples.md" },
   { "Building a library" = "libraries.md" },
+  { "Testing" = "testing.md" },
+  { "Parity with the TypeScript SDK" = "parity.md" },
 ]
 
 [project.markdown_extensions]
