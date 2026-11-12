@@ -300,7 +300,7 @@ public class ChatViewModelTests
         Assert.True(chat.StopCommand.CanExecute(null));
         chat.StopCommand.Execute(null);
         await sending;
-        Assert.Equal((TurnState.Stopped, ApprovalState.Expired), (turn.State, card.State));
+        Assert.Equal((TurnState.Stopped, ApprovalState.Stopped), (turn.State, card.State));
         Assert.Equal(ToolCallState.Cancelled, turn.Parts.OfType<ToolCallPart>().Single().State);
         Assert.True(turn.RetryCommand.CanExecute(null));
         Assert.False(chat.IsBusy);

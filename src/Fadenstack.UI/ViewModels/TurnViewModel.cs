@@ -239,11 +239,11 @@ public sealed class TurnViewModel : ObservableObject
     internal void ApprovalDecided(ApprovalRequest request, ApprovalDecision decision)
     {
         var part = Parts.OfType<ApprovalPart>().LastOrDefault(p => p.Request.CallId == request.CallId && p.ToolName == request.ToolName);
-        if (part is { IsPending: true })
+        if (part is { IsUnsettled: true })
         {
             if (decision.ForTime is { } time)
             {
-                part.AllowedFor = time;
+                part.ConfirmedFor = time; // the session decides for a time only once the server confirmed the grant
             }
             part.State = decision.Approved
                     ? (decision.ForTime is not null ? ApprovalState.ApprovedForTime
@@ -254,7 +254,7 @@ public sealed class TurnViewModel : ObservableObject
         {
             tool.State = ToolCallState.Running;
         }
-        if (_state == TurnState.WaitingForApproval && !Parts.OfType<ApprovalPart>().Any(p => p.IsPending))
+        if (_state == TurnState.WaitingForApproval && !Parts.OfType<ApprovalPart>().Any(p => p.IsUnsettled))
         {
             State = TurnState.Running;
         }
@@ -341,9 +341,9 @@ public sealed class TurnViewModel : ObservableObject
     {
         CloseReasoning(now);
         CloseText();
-        foreach (var approval in Parts.OfType<ApprovalPart>().Where(p => p.IsPending))
+        foreach (var approval in Parts.OfType<ApprovalPart>().Where(p => p.IsUnsettled))
         {
-            approval.State = ApprovalState.Expired;
+            approval.State = state == TurnState.Stopped ? ApprovalState.Stopped : ApprovalState.Expired;
         }
         foreach (var tool in _tools.Values.Where(t => t.IsRunning))
         {

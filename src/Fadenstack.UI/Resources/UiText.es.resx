@@ -751,4 +751,13 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>Permitido solo esta vez: el servidor no confirmó la aprobación prolongada</value>
   </data>
+  <data name="AllowedForConfirmed" xml:space="preserve">
+    <value>El servidor confirmó hasta {0}</value>
+  </data>
+  <data name="ConfirmingGrant" xml:space="preserve">
+    <value>Confirmando el permiso con el servidor…</value>
+  </data>
+  <data name="TimeGrantHint" xml:space="preserve">
+    <value>El permiso temporal permite usar esta herramienta en tus chats de este dispositivo hasta que caduque. Se siguen aplicando los permisos de la aplicación y las reglas del administrador.</value>
+  </data>
 </root>

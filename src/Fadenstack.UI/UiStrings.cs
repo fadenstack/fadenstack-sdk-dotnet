@@ -191,6 +191,15 @@ public sealed class UiStrings
     /// <summary>A card answered for a time: "Allowed for 30 min".</summary>
     public string AllowedFor(string duration) => Fill(duration);
 
+    /// <summary>A card once the server confirmed the time (it may be less than the one picked): "Server confirmed up to 30 min".</summary>
+    public string AllowedForConfirmed(string duration) => Fill(duration);
+
+    /// <summary>A card whose time the person picked and the server has not yet answered.</summary>
+    public string ConfirmingGrant => Text();
+
+    /// <summary>What a time grant is, beside "Allow for…".</summary>
+    public string TimeGrantHint => Text();
+
     /// <summary>A call a running grant let through without asking.</summary>
     public string AllowedByGrant => Text();
 

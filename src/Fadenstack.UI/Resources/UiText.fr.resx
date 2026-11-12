@@ -751,4 +751,13 @@
   <data name="Notice_grant_failed" xml:space="preserve">
     <value>Autorisé cette fois seulement : le serveur n'a pas confirmé l'approbation prolongée</value>
   </data>
+  <data name="AllowedForConfirmed" xml:space="preserve">
+    <value>Autorisation confirmée par le serveur pour {0} maximum</value>
+  </data>
+  <data name="ConfirmingGrant" xml:space="preserve">
+    <value>Confirmation de l’autorisation auprès du serveur…</value>
+  </data>
+  <data name="TimeGrantHint" xml:space="preserve">
+    <value>L’autorisation temporaire s’applique à cet outil dans vos conversations sur cet appareil jusqu’à son expiration. Les droits d’accès de l’application et les règles d’administration restent applicables.</value>
+  </data>
 </root>
