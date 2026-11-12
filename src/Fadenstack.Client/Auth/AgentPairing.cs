@@ -470,6 +470,13 @@ public sealed class AgentPairing
         {
             throw new FadenstackException("The server's sign-in address is not a web address.");
         }
+        // The page the person opens to approve is the server's own, never another site's and never with credentials in
+        // the address (a page elsewhere would be a phishing page; the TypeScript SDK refuses the same).
+        if (uri.UserInfo.Length > 0
+            || !string.Equals(uri.GetLeftPart(UriPartial.Authority), _server.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new FadenstackException("The server named a sign-in page on another address than its own; it was not used.");
+        }
         return uri;
     }
 
