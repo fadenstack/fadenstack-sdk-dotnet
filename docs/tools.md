@@ -221,7 +221,7 @@ The gateway may also hold a stricter class for a tool than your app has. The age
 
 "Allow always" is kept per device, per agent, per tool and per class, in an approval store. When the tool's class changes, for example when an administrator makes it destructive, the stored approval no longer matches and the user is asked again.
 
-By default the approvals are kept in encrypted files under the user's data folder (`%LOCALAPPDATA%\Fadenstack\approvals\`), one per agent, protected like the sessions. To keep them elsewhere, implement `IApprovalStore` (`ListAsync`, `AddAsync`, `RemoveAsync`) and pass it to `UseApprovalStore`. `MemoryApprovalStore` keeps them in memory only, which suits tests. Each `StoredApproval` holds the tool's name, its class and when it was allowed.
+By default the approvals are kept in files in the signed-in user's own folder (`users\<user>\approvals` in the data folder, see [Sessions on the device](sessions.md#where-they-are-stored)), one per agent, protected like the sessions. To keep them elsewhere, implement `IApprovalStore` (`ListAsync`, `AddAsync`, `RemoveAsync`) and pass it to `UseApprovalStore`. `MemoryApprovalStore` keeps them in memory only, which suits tests. Each `StoredApproval` holds the tool's name, its class and when it was allowed.
 
 To forget approvals:
 

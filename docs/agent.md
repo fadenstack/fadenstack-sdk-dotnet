@@ -115,7 +115,7 @@ The tokens and who signed in (`SignedInUser`: id, e-mail, display name) go into 
 
 ### Where the sign-in is kept
 
-`FileTokenStore`, the default, keeps one file per server and agent in the user's local data folder (`%LOCALAPPDATA%\Fadenstack\tokens\` on Windows). On Windows the file is encrypted with DPAPI for the current user. On other systems it is not encrypted, and only its owner may read it. A file that cannot be read, such as another user's or a damaged one, counts as no sign-in.
+`FileTokenStore`, the default, keeps one file per server and agent in the user's local data folder (`%LOCALAPPDATA%\Fadenstack\tokens\` on Windows). On Windows the file is encrypted with DPAPI for the current user. On macOS and Linux it is encrypted when the app called `FadenstackSecrets.UseOsKeyStore()` (see [Sessions on the device](sessions.md#where-they-are-stored)), and otherwise it is not encrypted and only its owner may read it. A file that cannot be read, such as another user's or a damaged one, counts as no sign-in.
 
 To keep it elsewhere, pass a store:
 
