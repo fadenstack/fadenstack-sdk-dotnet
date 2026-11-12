@@ -214,6 +214,15 @@
   <data name="Decision" xml:space="preserve">
     <value>决定 {0}</value>
   </data>
+  <data name="UnmarkedTitle" xml:space="preserve">
+    <value>无 AI 标记的回答</value>
+  </data>
+  <data name="UnmarkedMessage" xml:space="preserve">
+    <value>此回答不带机器可读的 AI 标记。贵组织已允许该模型在没有标记的情况下作答。</value>
+  </data>
+  <data name="SettingsUnmarked" xml:space="preserve">
+    <value>当回答不带 AI 标记时提醒我</value>
+  </data>
   <data name="PiiTitle" xml:space="preserve">
     <value>个人数据已受保护</value>
   </data>

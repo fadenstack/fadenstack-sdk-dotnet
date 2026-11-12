@@ -434,6 +434,14 @@ public sealed class UiStrings
 
     public string Decision(string id) => Fill(id);
 
+    /// <summary>The notice for an answer without a machine-readable AI mark (shown only when the user turned it on).</summary>
+    public string UnmarkedTitle => Text();
+
+    public string UnmarkedMessage => Text();
+
+    /// <summary>The settings item that turns that notice on.</summary>
+    public string SettingsUnmarked => Text();
+
     public string PiiTitle => Text();
 
     /// <summary>"3 values kept from the model: 2 person, 1 email".</summary>
