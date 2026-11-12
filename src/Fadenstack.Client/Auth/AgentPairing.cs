@@ -15,8 +15,8 @@ namespace Fadenstack.Auth;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="StartAsync"/> asks for a pairing; show <see cref="PairingStart.UserCode"/> and open
-/// <see cref="PairingStart.VerificationUriComplete"/>. <see cref="WaitAsync"/> polls until the person approves or denies
+/// <c>StartAsync</c> asks for a pairing; show <see cref="PairingStart.UserCode"/> and open
+/// <see cref="PairingStart.VerificationUriComplete"/>. <c>WaitAsync</c> polls until the person approves or denies
 /// it, or it expires, and saves the tokens to the <see cref="ITokenStore"/>. An <see cref="AgentTokenProvider"/> for the same
 /// server and agent and store is signed in afterwards.
 /// </para>
@@ -29,6 +29,9 @@ public sealed class AgentPairing
 {
     private static readonly TimeSpan[] Backoff =
         [TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(30)];
+
+    /// <summary>The most agents one pairing can name (the server refuses more with 422).</summary>
+    public const int MaxAgents = 8;
 
     private static readonly TimeSpan SlowDown = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
@@ -78,15 +81,56 @@ public sealed class AgentPairing
     /// <exception cref="FadenstackPairingUnsupportedException">The server is older than this feature (404).</exception>
     /// <exception cref="FadenstackRateLimitedException">Too many pairings were started from this address (429).</exception>
     /// <exception cref="FadenstackException">The server could not be reached.</exception>
+    public Task<PairingStart> StartAsync(string agent, string deviceLabel, PairingClient client,
+        CancellationToken cancellationToken = default) =>
+        StartAsync(agent, deviceLabel, client, null, cancellationToken);
+
+    /// <summary>
+    /// Asks the server for one pairing for <paramref name="agent"/> and the <paramref name="furtherAgents"/> on this device: one
+    /// approval covers all of them, and the device then collects a token set per agent
+    /// (<see cref="WaitAsync(PairingStart, string, IProgress{PairingProgress}?, CancellationToken)"/> and <see cref="RedeemAsync"/>).
+    /// With no further agents this is exactly the one-agent pairing.
+    /// </summary>
+    /// <param name="agent">The main agent's slug or id; use the same for its <see cref="AgentTokenProvider"/>.</param>
+    /// <param name="deviceLabel">Names the sign-in in the person's list of sign-ins.</param>
+    /// <param name="client">What the app says about itself; the approval page shows it as such.</param>
+    /// <param name="furtherAgents">The other agents of the app suite; at most 7, none repeated or equal to <paramref name="agent"/>. May be null.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <exception cref="ArgumentException">More than <see cref="MaxAgents"/> agents in all, a repeated or empty agent. Nothing is sent.</exception>
+    /// <exception cref="FadenstackPairingUnsupportedException">The server is older than this feature (404).</exception>
+    /// <exception cref="FadenstackRateLimitedException">Too many pairings were started from this address (429).</exception>
+    /// <exception cref="FadenstackException">The server could not be reached.</exception>
     public async Task<PairingStart> StartAsync(string agent, string deviceLabel, PairingClient client,
-        CancellationToken cancellationToken = default)
+        IEnumerable<string>? furtherAgents, CancellationToken cancellationToken = default)
     {
-        var body = new
+        var requested = new List<string> { agent };
+        requested.AddRange(furtherAgents ?? []);
+        if (requested.Count > MaxAgents)
         {
-            agent,
-            device_label = deviceLabel,
-            client = new { name = client.Name, version = client.Version, os = client.Os },
-        };
+            throw new ArgumentException($"A pairing names at most {MaxAgents} agents.", nameof(furtherAgents));
+        }
+        if (requested.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new ArgumentException("An agent must not be empty.", nameof(furtherAgents));
+        }
+        if (requested.Distinct(StringComparer.OrdinalIgnoreCase).Count() != requested.Count)
+        {
+            throw new ArgumentException("An agent is named twice.", nameof(furtherAgents));
+        }
+        object body = requested.Count == 1
+            ? new
+            {
+                agent,
+                device_label = deviceLabel,
+                client = new { name = client.Name, version = client.Version, os = client.Os },
+            }
+            : new
+            {
+                agent,
+                agents = requested,
+                device_label = deviceLabel,
+                client = new { name = client.Name, version = client.Version, os = client.Os },
+            };
         var (status, text, response) = await SendAsync("api/agent-tokens/pairings", body, cancellationToken).ConfigureAwait(false);
         try
         {
@@ -123,7 +167,8 @@ public sealed class AgentPairing
             ? Web(c)
             : new Uri(uri.AbsoluteUri + (uri.Query.Length > 0 ? "&" : "?") + "code=" + Uri.EscapeDataString(started.UserCode));
         var expiresIn = started.ExpiresIn > 0 ? started.ExpiresIn : 600;
-        var start = new PairingStart(agent, started.PairingCode, started.UserCode, uri, complete,
+        var stored = (started.Agents ?? []).Where(a => !string.IsNullOrWhiteSpace(a)).ToList();
+        var start = new PairingStart(agent, requested, stored, started.PairingCode, started.UserCode, uri, complete,
             _now().AddSeconds(expiresIn), TimeSpan.FromSeconds(Math.Max(1, started.Interval)));
         Log.PairingStarted(_log, agent, expiresIn);
         return start;
@@ -134,16 +179,32 @@ public sealed class AgentPairing
     /// It waits the server's interval between polls, five seconds longer each time the server says <c>slow_down</c>, and when the
     /// server cannot be reached it tries again after 5, 10, 20 and then 30 seconds for as long as the pairing is valid.
     /// </summary>
-    /// <param name="start">What <see cref="StartAsync"/> returned.</param>
+    /// <param name="start">What <c>StartAsync</c> returned.</param>
     /// <param name="progress">Told the state and the time left after every poll; may be null.</param>
     /// <param name="cancellationToken">Stops the wait; the pairing stays valid at the server until it expires.</param>
     /// <exception cref="FadenstackPairingDeniedException">The person denied the pairing in the console.</exception>
     /// <exception cref="FadenstackPairingExpiredException">The code expired, or the server no longer knows it.</exception>
     /// <exception cref="FadenstackPairingUnsupportedException">The server does not have the pairing routes.</exception>
     /// <exception cref="OperationCanceledException">The wait was cancelled.</exception>
-    public async Task<PairingResult> WaitAsync(PairingStart start, IProgress<PairingProgress>? progress = null,
+    public Task<PairingResult> WaitAsync(PairingStart start, IProgress<PairingProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        WaitAsync(start, start.Agent, progress, cancellationToken);
+
+    /// <summary>
+    /// Like <see cref="WaitAsync(PairingStart, IProgress{PairingProgress}?, CancellationToken)"/>, for <paramref name="agent"/> of a
+    /// pairing for several agents: waits for the approval and saves that agent's tokens under its own key. The other agents are
+    /// collected the same way, or with <see cref="RedeemAsync"/> once the approval is known.
+    /// </summary>
+    /// <param name="start">What <c>StartAsync</c> returned.</param>
+    /// <param name="agent">One of the pairing's agents.</param>
+    /// <param name="progress">Told the state and the time left after every poll; may be null.</param>
+    /// <param name="cancellationToken">Stops the wait.</param>
+    /// <exception cref="ArgumentException"><paramref name="agent"/> is not one of the pairing's agents.</exception>
+    /// <exception cref="FadenstackPairingAgentException">The agent was not approved, was already collected, or the server does not know several agents.</exception>
+    public async Task<PairingResult> WaitAsync(PairingStart start, string agent, IProgress<PairingProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
+        CheckCollectable(start, agent);
         var interval = start.Interval;
         var failures = 0;
         var wait = interval;
@@ -163,7 +224,7 @@ public sealed class AgentPairing
             try
             {
                 (status, text, response) = await SendAsync("api/agent-tokens/pairings/token",
-                    new { pairing_code = start.PairingCode }, cancellationToken).ConfigureAwait(false);
+                    TokenBody(start, agent), cancellationToken).ConfigureAwait(false);
             }
             catch (FadenstackException e)
             {
@@ -177,7 +238,7 @@ public sealed class AgentPairing
                 var code = (int)status >= 400 ? ErrorCode(text) : null;
                 if (response.IsSuccessStatusCode)
                 {
-                    return await FinishAsync(start, text, cancellationToken).ConfigureAwait(false);
+                    return await FinishAsync(start, agent, text, cancellationToken).ConfigureAwait(false);
                 }
                 if ((int)status >= 500)
                 {
@@ -207,6 +268,10 @@ public sealed class AgentPairing
                     case "expired_token":
                         throw Expired(start, "The code expired.");
                     case "invalid_grant":
+                        if (!IsFirst(start, agent))
+                        {
+                            throw NotRedeemable(agent);
+                        }
                         throw Expired(start, "The server no longer knows this code. Get a new one.");
                     default:
                         if (TooOld(status))
@@ -222,7 +287,83 @@ public sealed class AgentPairing
         }
     }
 
-    private async Task<PairingResult> FinishAsync(PairingStart start, string text, CancellationToken cancellationToken)
+    /// <summary>
+    /// Collects another listed agent's tokens after the approval: one call, no waiting, and saves them under that agent's key.
+    /// Call it once <c>WaitAsync</c> has returned.
+    /// </summary>
+    /// <param name="start">What <c>StartAsync</c> returned.</param>
+    /// <param name="agent">One of the pairing's agents.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    /// <exception cref="ArgumentException"><paramref name="agent"/> is not one of the pairing's agents.</exception>
+    /// <exception cref="FadenstackPairingAgentException">The server answered <c>invalid_grant</c>: the person did not approve this agent,
+    /// or it was already collected; or the server does not know several agents (nothing is sent then).</exception>
+    /// <exception cref="FadenstackPairingDeniedException">The person denied the pairing.</exception>
+    /// <exception cref="FadenstackPairingExpiredException">The code or the approval expired.</exception>
+    /// <exception cref="FadenstackException">Not approved yet, or the server could not be reached.</exception>
+    public async Task<PairingResult> RedeemAsync(PairingStart start, string agent, CancellationToken cancellationToken = default)
+    {
+        CheckCollectable(start, agent);
+        var (status, text, response) = await SendAsync("api/agent-tokens/pairings/token", TokenBody(start, agent), cancellationToken)
+            .ConfigureAwait(false);
+        using (response)
+        {
+            if (response.IsSuccessStatusCode)
+            {
+                return await FinishAsync(start, agent, text, cancellationToken).ConfigureAwait(false);
+            }
+            switch (ErrorCode(text))
+            {
+                case "invalid_grant":
+                    throw NotRedeemable(agent);
+                case "authorization_pending":
+                    throw new FadenstackException("The pairing is not approved yet. Wait for the approval first.");
+                case "access_denied":
+                    Log.PairingEnded(_log, agent, "denied");
+                    throw new FadenstackPairingDeniedException("The sign-in was denied in the browser.");
+                case "expired_token":
+                    throw Expired(start, agent, "The code expired.");
+                default:
+                    if (TooOld(status))
+                    {
+                        throw new FadenstackPairingUnsupportedException(
+                            "This server does not support signing in from the desktop app yet. Ask your IT to update Fadenstack.");
+                    }
+                    throw ErrorReader.ToException(response, text);
+            }
+        }
+    }
+
+    private static bool IsFirst(PairingStart start, string agent) =>
+        string.Equals(agent, start.Agent, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The token request: the pairing code, and the agent only for an agent other than the first.</summary>
+    private static object TokenBody(PairingStart start, string agent) => IsFirst(start, agent)
+        ? new { pairing_code = start.PairingCode }
+        : new { pairing_code = start.PairingCode, agent };
+
+    private static void CheckCollectable(PairingStart start, string agent)
+    {
+        if (string.IsNullOrWhiteSpace(agent) || !start.RequestedAgents.Contains(agent, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("This agent is not one of the pairing's agents.", nameof(agent));
+        }
+        // A server that ignores `agents` has stored only the first agent: asking it for another would sign the wrong one in.
+        if (!IsFirst(start, agent) && start.Agents.Count == 0)
+        {
+            throw new FadenstackPairingAgentException(agent,
+                "This server does not support one pairing for several agents; only the first agent can be signed in. "
+                + "Start another pairing for the agents that are left.");
+        }
+    }
+
+    private FadenstackPairingAgentException NotRedeemable(string agent)
+    {
+        Log.PairingEnded(_log, agent, "agent not redeemable");
+        return new FadenstackPairingAgentException(agent,
+            "The person did not approve this agent in the pairing, or its sign-in was already collected.");
+    }
+
+    private async Task<PairingResult> FinishAsync(PairingStart start, string agent, string text, CancellationToken cancellationToken)
     {
         TokenSet tokens;
         try
@@ -233,15 +374,18 @@ public sealed class AgentPairing
         {
             throw new FadenstackException("The server's sign-in answer was not understood.");
         }
-        await _store.SaveAsync(AgentTokenProvider.KeyOf(_server, start.Agent), tokens, cancellationToken).ConfigureAwait(false);
-        Log.PairingEnded(_log, start.Agent, "signed in");
-        return new PairingResult(string.IsNullOrEmpty(tokens.Agent) ? start.Agent : tokens.Agent,
-            Guid.TryParse(tokens.DeviceId, out var device) ? device : Guid.Empty, tokens.User);
+        await _store.SaveAsync(AgentTokenProvider.KeyOf(_server, agent), tokens, cancellationToken).ConfigureAwait(false);
+        start.MarkSignedIn(agent);
+        Log.PairingEnded(_log, agent, "signed in");
+        return new PairingResult(string.IsNullOrEmpty(tokens.Agent) ? agent : tokens.Agent,
+            Guid.TryParse(tokens.DeviceId, out var device) ? device : Guid.Empty, tokens.User, start.AgentsLeft);
     }
 
-    private FadenstackPairingExpiredException Expired(PairingStart start, string message)
+    private FadenstackPairingExpiredException Expired(PairingStart start, string message) => Expired(start, start.Agent, message);
+
+    private FadenstackPairingExpiredException Expired(PairingStart start, string agent, string message)
     {
-        Log.PairingEnded(_log, start.Agent, "expired");
+        Log.PairingEnded(_log, agent, "expired");
         return new FadenstackPairingExpiredException(message);
     }
 
@@ -330,7 +474,7 @@ public sealed class AgentPairing
     }
 
     private sealed record Started(string PairingCode, string UserCode, string VerificationUri, string? VerificationUriComplete,
-        int ExpiresIn = 600, int Interval = 5);
+        int ExpiresIn = 600, int Interval = 5, List<string>? Agents = null);
 
     /// <summary>
     /// A server older than pairing: no route (404), or a route of the same path for another method (405 -- core 0.7.0
@@ -357,10 +501,14 @@ public sealed record PairingClient(string Name, string Version, string Os)
 /// </summary>
 public sealed class PairingStart
 {
-    internal PairingStart(string agent, string pairingCode, string userCode, Uri verificationUri, Uri verificationUriComplete,
-        DateTimeOffset expiresAt, TimeSpan interval)
+    private readonly HashSet<string> _signedIn = new(StringComparer.OrdinalIgnoreCase);
+
+    internal PairingStart(string agent, IReadOnlyList<string> requested, IReadOnlyList<string> stored, string pairingCode,
+        string userCode, Uri verificationUri, Uri verificationUriComplete, DateTimeOffset expiresAt, TimeSpan interval)
     {
         Agent = agent;
+        RequestedAgents = requested;
+        Agents = stored;
         PairingCode = pairingCode;
         UserCode = userCode;
         VerificationUri = verificationUri;
@@ -370,6 +518,35 @@ public sealed class PairingStart
     }
 
     internal string Agent { get; }
+
+    /// <summary>The agents the app asked for, the main one first.</summary>
+    public IReadOnlyList<string> RequestedAgents { get; }
+
+    /// <summary>
+    /// The agents the server stored for this pairing, in order. Empty when the server does not know several agents (an older
+    /// server): then only the first agent can be signed in, and <see cref="AgentsLeft"/> lists the others for a pairing of their own.
+    /// </summary>
+    public IReadOnlyList<string> Agents { get; }
+
+    /// <summary>The requested agents whose tokens this device has not collected yet (including any an older server cannot give).</summary>
+    public IReadOnlyList<string> AgentsLeft
+    {
+        get
+        {
+            lock (_signedIn)
+            {
+                return RequestedAgents.Where(a => !_signedIn.Contains(a)).ToList();
+            }
+        }
+    }
+
+    internal void MarkSignedIn(string agent)
+    {
+        lock (_signedIn)
+        {
+            _signedIn.Add(agent);
+        }
+    }
 
     internal string PairingCode { get; }
 
@@ -396,7 +573,9 @@ public sealed class PairingStart
 /// <param name="AgentSlug">The agent the person signed in to.</param>
 /// <param name="DeviceId">This device's sign-in; the server lists and revokes sign-ins by it.</param>
 /// <param name="SignedInUser">Who approved it; null if the server did not say.</param>
-public sealed record PairingResult(string AgentSlug, Guid DeviceId, SignedInUser? SignedInUser);
+/// <param name="AgentsLeft">The pairing's agents whose tokens are still to collect (empty once all are).</param>
+public sealed record PairingResult(string AgentSlug, Guid DeviceId, SignedInUser? SignedInUser,
+    IReadOnlyList<string>? AgentsLeft = null);
 
 /// <summary>Where a wait for approval stands.</summary>
 public enum PairingState
@@ -442,4 +621,20 @@ public sealed class FadenstackPairingUnsupportedException : FadenstackException
     public FadenstackPairingUnsupportedException(string message) : base(message)
     {
     }
+}
+
+/// <summary>
+/// The agent's tokens cannot be collected from this pairing: the person did not approve it, it was already collected
+/// (<c>invalid_grant</c>), or the server does not know pairings for several agents.
+/// </summary>
+public sealed class FadenstackPairingAgentException : FadenstackException
+{
+    /// <summary>Creates the exception.</summary>
+    public FadenstackPairingAgentException(string agent, string message) : base(message)
+    {
+        Agent = agent;
+    }
+
+    /// <summary>The agent that could not be collected.</summary>
+    public string Agent { get; }
 }
