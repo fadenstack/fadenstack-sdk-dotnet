@@ -280,10 +280,10 @@ public class HostCommandTests
     [Fact]
     public async Task Stop_during_approval_cancels_the_same_command_without_dispatch()
     {
-        var requested = new TaskCompletionSource();
+        var requested = new TaskCompletionSource<bool>();
         var rig = new Rig { Gateway = new Gateway().UseHostChecks(), Tools = new PageTools() };
         rig.Agent = rig.Gateway.Builder().AddTools(rig.Tools)
-            .UseApprovals(async (_, ct) => { requested.SetResult(); await Task.Delay(Timeout.Infinite, ct); return ApprovalDecision.Deny(); }).Build();
+            .UseApprovals(async (_, ct) => { requested.SetResult(true); await Task.Delay(Timeout.Infinite, ct); return ApprovalDecision.Deny(); }).Build();
         using var disposer = rig;
         rig.Session = await rig.Agent.StartSessionAsync(ToolMode.Auto);
         using var stop = new CancellationTokenSource();
@@ -301,7 +301,7 @@ public class HostCommandTests
     [Fact]
     public async Task A_second_command_or_message_cannot_start_while_one_runs_and_a_bad_tool_name_is_refused()
     {
-        var gate = new TaskCompletionSource();
+        var gate = new TaskCompletionSource<bool>();
         var rig = new Rig { Gateway = new Gateway().UseHostChecks(), Tools = new PageTools() };
         rig.Agent = rig.Gateway.Builder().AddTools(rig.Tools).UseApprovals(async (_, _) => { await gate.Task; return ApprovalDecision.Approve(); }).Build();
         using var disposer = rig;
@@ -310,7 +310,7 @@ public class HostCommandTests
         var first = rig.Session.InvokeToolAsync("delete_page", Page(7));
         await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Session.InvokeToolAsync("delete_page", Page(8)));
         await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Session.SendAsync("hello"));
-        gate.SetResult();
+        gate.SetResult(true);
         await first;
 
         Assert.Equal(new[] { "delete_page 7" }, rig.Tools.Ran);
