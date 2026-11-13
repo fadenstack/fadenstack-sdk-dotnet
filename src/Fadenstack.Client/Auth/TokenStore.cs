@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using Fadenstack.Http;
 using Fadenstack.Storage;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Auth;
 
@@ -56,29 +58,34 @@ public sealed class FileTokenStore : ITokenStore
 {
     private readonly string _directory;
     private readonly ISecretProtector _protector;
+    private readonly ILogger _log;
 
-    public FileTokenStore(string? directory = null, ISecretProtector? protector = null)
+    /// <param name="directory">The folder; the data root's <c>tokens</c> by default.</param>
+    /// <param name="protector">How the files are encrypted; <see cref="SecretProtection.Default"/> by default.</param>
+    /// <param name="logger">Where a sign-in that cannot be read is logged (the kind of failure only); nowhere if not given.</param>
+    public FileTokenStore(string? directory = null, ISecretProtector? protector = null, ILogger? logger = null)
     {
         _directory = directory ?? FadenstackPaths.Data("tokens");
         Directory.CreateDirectory(_directory);
         _protector = protector ?? SecretProtection.Default;
+        _log = logger ?? NullLogger.Instance;
     }
 
-    public Task<TokenSet?> LoadAsync(string key, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The kept sign-in, or null when there is none or it cannot be read: locked by another process for longer than a
+    /// moment, another user's, or damaged. Then the user signs in again; the log names the kind of failure.
+    /// </summary>
+    public async Task<TokenSet?> LoadAsync(string key, CancellationToken cancellationToken = default)
     {
-        var path = PathOf(key);
-        if (!File.Exists(path))
-        {
-            return Task.FromResult<TokenSet?>(null);
-        }
         try
         {
-            var json = _protector.Unprotect(SecretProtection.ReadShared(path));
-            return Task.FromResult(JsonSerializer.Deserialize<TokenSet>(json, FadenstackJson.Options));
+            var bytes = await SecretProtection.ReadKeptAsync(PathOf(key), cancellationToken).ConfigureAwait(false);
+            return bytes is null ? null : JsonSerializer.Deserialize<TokenSet>(_protector.Unprotect(bytes), FadenstackJson.Options);
         }
-        catch (Exception e) when (e is CryptographicException or JsonException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or CryptographicException or JsonException)
         {
-            return Task.FromResult<TokenSet?>(null); // another user's, or damaged: sign in again
+            Log.KeptSignInUnreadable(_log, e.GetType().Name);
+            return null;
         }
     }
 

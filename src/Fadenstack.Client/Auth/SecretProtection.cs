@@ -157,6 +157,32 @@ public static class SecretProtection
     }
 
     /// <summary>
+    /// Reads a kept file the way <see cref="ReadShared"/> does, trying again for a moment while another process holds it
+    /// (a scanner, a backup). Null when there is no such file or folder; an <see cref="IOException"/> or
+    /// <see cref="UnauthorizedAccessException"/> when it stays unreadable, which the stores read as "nothing kept".
+    /// </summary>
+    internal static async Task<byte[]?> ReadKeptAsync(string path, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return ReadShared(path);
+            }
+            catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException)
+            {
+                return null;
+            }
+            catch (Exception e) when ((e is IOException or UnauthorizedAccessException) && attempt < ReadAttempts)
+            {
+                await Task.Delay(50 * attempt, cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private const int ReadAttempts = 3;
+
+    /// <summary>
     /// How often the last step is tried while another process holds the file (Windows: a plain reader, or another writer's
     /// rename at the same moment); about two seconds in all.
     /// </summary>
