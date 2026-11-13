@@ -37,6 +37,9 @@ internal static partial class Log
     [LoggerMessage(EventId = 2002, Level = LogLevel.Warning, Message = "Host tool {Tool} is not in the agent's contract and was dropped")]
     internal static partial void ToolDropped(ILogger logger, string tool);
 
+    [LoggerMessage(EventId = 2016, Level = LogLevel.Warning, Message = "A tool source's tool {Tool} was left out: the name is the SDK's own")]
+    internal static partial void ToolNameReserved(ILogger logger, string tool);
+
     [LoggerMessage(EventId = 2003, Level = LogLevel.Warning,
         Message = "Agent {Agent} is set to bypass mode, which this server does not allow: every tool call that would ask still asks; bypass mode never answers the gateway's own tools")]
     internal static partial void BypassMode(ILogger logger, string agent);

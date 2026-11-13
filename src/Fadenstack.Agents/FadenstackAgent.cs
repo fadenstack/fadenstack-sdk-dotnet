@@ -689,10 +689,15 @@ public sealed class FadenstackAgent : IDisposable
     {
         var tools = new List<AgentTool>(_hostTools);
         var names = new HashSet<string>(tools.Select(t => t.Name), StringComparer.Ordinal);
-        foreach (var (_, fromSource) in _sourceTools)
+        foreach (var (source, fromSource) in _sourceTools)
         {
             foreach (var tool in fromSource)
             {
+                if (AgentTool.IsReserved(tool.Name) && source is not ICoreToolSource)
+                {
+                    Log.ToolNameReserved(Logger, tool.Name); // an app's source: the name is the SDK's
+                    continue;
+                }
                 if (names.Add(tool.Name))
                 {
                     tools.Add(tool);

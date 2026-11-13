@@ -184,6 +184,16 @@ public sealed class AgentTool
     /// </summary>
     public IToolScope? Scope { get; init; }
 
+    /// <summary>
+    /// The SDK's tool search, <c>find_tool</c> (the local MCP module's): a name the SDK keeps for itself. It only switches
+    /// tools on for the conversation, so a Fadenstack gateway takes it as read and the tools it finds ask on their own calls;
+    /// an app's tool cannot take the name (the builder refuses it), so the gateway's word cannot reach one with side effects.
+    /// </summary>
+    public const string ToolSearchName = "find_tool";
+
+    /// <summary>Whether <paramref name="name"/> is one the SDK keeps for its own tools.</summary>
+    internal static bool IsReserved(string name) => string.Equals(name, ToolSearchName, StringComparison.Ordinal);
+
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>
     public static IReadOnlyList<AgentTool> From(object target)
     {

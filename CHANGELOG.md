@@ -25,6 +25,11 @@ this file says where it does.
 
 ### Changed
 
+- **Breaking (unlikely to matter):** `find_tool` is the SDK's own name, `AgentTool.ToolSearchName`: `AddTool` and `AddTools`
+  refuse an app's tool of that name, and an app's tool source that brings one has it left out (log event 2016). A
+  Fadenstack gateway from 0.7.1 takes `find_tool` as read, so the local MCP module's search no longer asks under a server;
+  the tools it finds still ask on every call. Only the SDK's own sources bring it.
+
 - **Breaking:** `AgentSession` is now `ChatSession`. The Microsoft Agent Framework has an `AgentSession` of its own, and
   the agent becomes an `AIAgent` in this release; only the name changes.
 - **Breaking:** `MarkableContent.Texts`, `ProvenanceOptions.UseTexts` and `HtmlAttributeMarker.Title` take

@@ -100,6 +100,14 @@ public interface IToolSource
 }
 
 /// <summary>
+/// One of the SDK's own tool sources (the local MCP module): the only kind that may bring a tool under a name the SDK keeps
+/// for itself (<see cref="AgentTool.ToolSearchName"/>). An app's tools and sources never take those names.
+/// </summary>
+internal interface ICoreToolSource : IToolSource
+{
+}
+
+/// <summary>
 /// A tool source whose tools can change while the agent runs (a server that adds or drops a tool, a setting that switches
 /// a group of tools on or off). The agent asks it again at the start of the next turn, never inside a turn, and settles its
 /// tools by the same rules as at start; a tool that went away is refused with "(name) is no longer available."
