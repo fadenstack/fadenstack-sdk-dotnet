@@ -53,6 +53,8 @@ this file says where it does.
   chat line that cannot be read costs only that line.
 - Pairing works on macOS and Linux when the server names its sign-in page as a path.
 - Where `libc` cannot be loaded, a grant's path check asks the person instead of throwing.
+- On .NET Framework, a response without content (a bare 204 from a host's own handler) no longer throws a
+  `NullReferenceException`: it reads as an empty body, as on .NET 8.
 
 ### Security
 
