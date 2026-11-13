@@ -36,9 +36,14 @@ public class RepositoryTests
         var (code, ignored, error) = Git(root, "-c core.ignorecase=true check-ignore --no-index -v --stdin",
             string.Join("\n", paths) + "\n");
 
-        // check-ignore exits 1 when nothing matches, 0 when something does.
+        // check-ignore exits 1 when nothing matches, 0 when something does. Each line is "<file>:<line>:<pattern>\t<path>".
+        // A blank pattern is no rule: with --no-index, a checkout's CRLF .gitignore makes a blank line the "pattern" "\r",
+        // which git status itself does not apply.
         Assert.True(code is 0 or 1, error);
-        Assert.True(ignored.Trim().Length == 0, "Ignored by a .gitignore rule:\n" + ignored);
+        var rules = ignored.Split('\n').Where(line => line.Contains('\t'))
+            .Where(line => line.Substring(0, line.IndexOf('\t')).Split(new[] { ':' }, 3).ElementAtOrDefault(2)?.Trim().Length > 0)
+            .ToList();
+        Assert.True(rules.Count == 0, "Ignored by a .gitignore rule:\n" + string.Join("\n", rules));
     }
 
     private static string? RepositoryRoot()
