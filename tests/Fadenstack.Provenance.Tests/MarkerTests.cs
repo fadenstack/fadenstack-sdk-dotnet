@@ -161,7 +161,7 @@ public class MarkerTests
         Assert.Contains(new FoundMark(id, "unicode-text"), ProvenanceReader.Read(host.Held, "text/plain"));
         Assert.False(new UnicodeTextMarker().Supports(host.Sink("chat"), "text/plain")); // only where the sink says it keeps them
 
-        host.Keep = s => new string(s.Where(c => c < '︀' && !char.IsSurrogate(c)).ToArray()); // a filter that strips them
+        host.Keep = s => new string(s.Where(c => c < '\uFE00' && !char.IsSurrogate(c)).ToArray()); // a filter that strips them
         var stripped = await MarkerTestKit.RunAsync(new UnicodeTextMarker(), Content("text/plain", host.Sink("chat", Carriers.UnicodeText)), host.InsertAsync);
         Assert.Equal(ProvenanceReasons.StrippedByHost, stripped.Outcome.Reason);
     }

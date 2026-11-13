@@ -46,7 +46,7 @@ public class ReaderTests
         Assert.Equal(new FoundMark(Id, "http-header"), ProvenanceReader.ReadHeader($" {Id} "));
         Assert.Null(ProvenanceReader.ReadHeader(null));
         Assert.Equal(new[] { new FoundMark(Id, "unicode-text") }, ProvenanceReader.Read("Hello." + UnicodeTextMarker.Encode(Id), "text/plain"));
-        Assert.Empty(UnicodeTextMarker.Decode("Plain text with a variation selector ️ only."));
+        Assert.Empty(UnicodeTextMarker.Decode("Plain text with a variation selector \uFE0F only."));
     }
 
     [Fact]

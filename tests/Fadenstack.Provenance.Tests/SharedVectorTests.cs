@@ -18,14 +18,14 @@ public class SharedVectorTests
     [Fact]
     public void Invisible_text_is_FEFF_then_FDNP_01_and_the_ids_bytes_as_variation_selectors()
     {
-        const string expected = "﻿\U000E0136\U000E0134\U000E013E\U000E0140︁\U000E0125\U000E0151\U000E0120\U000E0155\U000E0122\U000E0152"
+        const string expected = "\uFEFF\U000E0136\U000E0134\U000E013E\U000E0140\uFE01\U000E0125\U000E0151\U000E0120\U000E0155\U000E0122\U000E0152"
             + "\U000E0125\U000E0153\U000E011D\U000E0127\U000E0156\U000E0123\U000E0155\U000E011D\U000E0124\U000E0151\U000E0125\U000E0121\U000E011D"
             + "\U000E0129\U000E0151\U000E0124\U000E0120\U000E011D\U000E0126\U000E0151\U000E0121\U000E0153\U000E0125\U000E0125\U000E0155\U000E0121"
             + "\U000E0154\U000E0123\U000E0156\U000E0121";
         Assert.Equal(expected, UnicodeTextMarker.Encode(Id));
         Assert.Equal(42, CodePoints(expected));
         // An emoji's own variation selector just before the mark does not run into it.
-        Assert.Equal(new[] { Id }, UnicodeTextMarker.Decode("Thanks ❤️" + expected));
+        Assert.Equal(new[] { Id }, UnicodeTextMarker.Decode("Thanks ❤\uFE0F" + expected));
     }
 
     private static int CodePoints(string text) => text.Count(c => !char.IsLowSurrogate(c));

@@ -60,7 +60,7 @@ public static class ProvenanceReader
                 Add(found, WebUtility.HtmlDecode(m.Groups["v"].Value), VisibleLabelMarker.MarkerName);
             }
         }
-        if (MediaTypes.Is(mediaType, "text/markdown") && FrontMatter.Split(content.TrimStart('﻿')) is { } front
+        if (MediaTypes.Is(mediaType, "text/markdown") && FrontMatter.Split(content.TrimStart('\uFEFF')) is { } front
             && string.Equals(front.Value(MarkdownFrontMatterMarker.GeneratedKey), "true", StringComparison.OrdinalIgnoreCase))
         {
             Add(found, front.Value(MarkdownFrontMatterMarker.RecordKey), MarkdownFrontMatterMarker.MarkerName);

@@ -138,7 +138,7 @@ public sealed class MarkdownFrontMatterMarker : ContentMarker
     public static string Merge(string text, string recordId)
     {
         var newline = text.Contains("\r\n") ? "\r\n" : "\n";
-        var bom = text.Length > 0 && text[0] == '﻿' ? "﻿" : "";
+        var bom = text.Length > 0 && text[0] == '\uFEFF' ? "\uFEFF" : "";
         var body = text.Substring(bom.Length);
         var ours = new[] { $"{GeneratedKey}: true", $"{RecordKey}: \"{recordId}\"" };
         if (FrontMatter.Split(body) is { } existing)
