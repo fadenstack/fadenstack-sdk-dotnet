@@ -158,7 +158,7 @@ public sealed class FadenstackTransport : IDisposable
     {
         using var response = await SendAsync(() => JsonRequest(method, url, body),
             HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var text = await TextOf(response).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw ErrorReader.ToException(response, text);
@@ -185,9 +185,16 @@ public sealed class FadenstackTransport : IDisposable
         return answer;
     }
 
+    /// <summary>
+    /// A response's body as text; empty when it has none. On .NET Framework a response without content (a 204 from a
+    /// host's own handler) has <see cref="HttpResponseMessage.Content"/> null, which .NET 5+ never has.
+    /// </summary>
+    internal static Task<string> TextOf(HttpResponseMessage response) =>
+        response.Content is null ? Task.FromResult("") : response.Content.ReadAsStringAsync();
+
     /// <summary>A response header's values, joined by commas, from the headers or the content's headers; null when absent.</summary>
     internal static string? HeaderValue(HttpResponseMessage response, string name) =>
-        response.Headers.TryGetValues(name, out var values) || response.Content.Headers.TryGetValues(name, out values)
+        response.Headers.TryGetValues(name, out var values) || response.Content?.Headers.TryGetValues(name, out values) == true
             ? string.Join(",", values)
             : null;
 
@@ -210,7 +217,7 @@ public sealed class FadenstackTransport : IDisposable
             }
             return request;
         }, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var text = await TextOf(response).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw ErrorReader.ToException(response, text);

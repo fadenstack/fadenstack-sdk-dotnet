@@ -457,7 +457,7 @@ public sealed class AgentPairing
         }
         try
         {
-            var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var text = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
             return (response.StatusCode, text, response);
         }
         catch (Exception e) when (e is HttpRequestException or System.IO.IOException)
