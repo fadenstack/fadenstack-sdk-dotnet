@@ -212,7 +212,7 @@ public sealed class FadenstackAgent : IDisposable
 
     private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
     {
-        var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var profile = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
         var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
         if (missing.Count > 0)
         {
@@ -264,7 +264,7 @@ public sealed class FadenstackAgent : IDisposable
     internal async Task RefreshPolicyAsync(CancellationToken cancellationToken)
     {
         var before = Profile;
-        var fresh = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var fresh = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
         AssertHostPolicySupport(fresh);
         if (Binding(before) != Binding(fresh))
         {
