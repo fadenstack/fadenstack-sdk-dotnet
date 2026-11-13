@@ -38,8 +38,7 @@ public class LayerTests
             new[] { "Microsoft.Extensions.AI", "Microsoft.Extensions.DependencyInjection.Abstractions", "Microsoft.Agents.AI.Abstractions" }),
         // 3 · modules: the core below them, never another module or the UI; each brings its own heavy dependency
         ["Fadenstack.Mcp"] = Module("ModelContextProtocol"),
-        // TEMPORARY, until P1 (sdk/52 §7; the next commit): Provenance still takes its mark texts from the UI layer.
-        ["Fadenstack.Provenance"] = Module() with { Fadenstack = new[] { Agents, Client, Ui } },
+        ["Fadenstack.Provenance"] = Module(),
         ["Fadenstack.Workspaces"] = Module(),
         // 4 · UI logic: view models and texts, no UI framework, no module
         [Ui] = new(new[] { Agents, Client }, new[] { "CommunityToolkit.Mvvm", "Microsoft.Extensions.AI.Abstractions" }),

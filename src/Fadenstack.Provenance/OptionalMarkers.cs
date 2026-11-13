@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using Fadenstack.Models;
-using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
 
@@ -37,7 +36,7 @@ public sealed class VisibleLabelMarker : ContentMarker
 
     public override Task<MarkableContent> PrepareAsync(MarkableContent content, SignedRecord record, CancellationToken cancellationToken)
     {
-        var label = (content.Texts ?? UiStrings.Current).AiGenerated;
+        var label = (content.Texts ?? ProvenanceTexts.Current).AiGenerated;
         var text = content.Text ?? "";
         var newline = text.Contains("\r\n") ? "\r\n" : "\n";
         if (Is(content.MediaType, "text/html"))
@@ -63,7 +62,7 @@ public sealed class VisibleLabelMarker : ContentMarker
         {
             return MarkOutcome.Written(MarkLayer.Label, MarkerName, "not read back");
         }
-        var label = (placed.Content.Texts ?? UiStrings.Current).AiGenerated;
+        var label = (placed.Content.Texts ?? ProvenanceTexts.Current).AiGenerated;
         return text.Contains(label) || text.Contains(HtmlText.Escape(label))
             ? MarkOutcome.Held(MarkLayer.Label, MarkerName)
             : MarkOutcome.Missing(MarkLayer.Label, MarkerName, ProvenanceReasons.StrippedByHost);

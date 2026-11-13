@@ -152,7 +152,7 @@ public static class MarkerTestKit
         var keyValue = content.Sink.KeyValue is { } kv ? new RecordingSink(kv) : null;
         var headers = content.Sink.Headers is { } h ? new RecordingSink(h) : null;
         var sink = content.Sink with { KeyValue = keyValue, Headers = headers };
-        var given = content with { Sink = sink, Texts = content.Texts ?? UI.UiStrings.Current };
+        var given = content with { Sink = sink, Texts = content.Texts ?? ProvenanceTexts.Current };
         var record = new TestProvenanceBackend().Sign(new RecordRequest
         {
             ContentSha256 = given.Text is { } t ? ContentHash.TextSha256(t) : ContentHash.BytesSha256(given.Bytes ?? Array.Empty<byte>()),

@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Fadenstack.Models;
-using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
 
@@ -38,7 +37,7 @@ public sealed class HtmlAttributeMarker : ContentMarker
         Is(mediaType, "text/html") && (sink.CanCarry(Carriers.HtmlAttribute) || sink.CanCarry(Carriers.HtmlTitle));
 
     public override Task<MarkableContent> PrepareAsync(MarkableContent content, SignedRecord record, CancellationToken cancellationToken) =>
-        Task.FromResult(content.WithText(Wrap(content.Text ?? "", record.Record.Id, Title(content.Texts ?? UiStrings.Current, record.Record.Id))));
+        Task.FromResult(content.WithText(Wrap(content.Text ?? "", record.Record.Id, Title(content.Texts ?? ProvenanceTexts.Current, record.Record.Id))));
 
     /// <summary>
     /// The element a mark wraps HTML in: <c>&lt;span data-ai-generated="id" title="label id"&gt;</c>, the attribute values
@@ -60,7 +59,7 @@ public sealed class HtmlAttributeMarker : ContentMarker
     }
 
     /// <summary>The <c>title</c> a mark carries: the label in the user's language, a space, the record's id.</summary>
-    public static string Title(UiStrings texts, string recordId) => texts.AiGeneratedTitle(recordId);
+    public static string Title(ProvenanceTexts texts, string recordId) => texts.AiGeneratedTitle(recordId);
 
     /// <summary>
     /// For a later write into HTML the host holds as text (a note, a ticket's body): the HTML with the marks around

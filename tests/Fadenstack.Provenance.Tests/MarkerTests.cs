@@ -1,7 +1,6 @@
 using System.Globalization;
 using Fadenstack.Models;
 using Fadenstack.Provenance.Testing;
-using Fadenstack.UI;
 using Xunit;
 
 namespace Fadenstack.Provenance.Tests;
@@ -9,7 +8,7 @@ namespace Fadenstack.Provenance.Tests;
 /// <summary>Each built-in marker through the test kit: honest outcomes, the record's id, no personal data.</summary>
 public class MarkerTests
 {
-    private static readonly UiStrings English = UiStrings.For(CultureInfo.GetCultureInfo("en"));
+    private static readonly ProvenanceTexts English = ProvenanceTexts.For(CultureInfo.GetCultureInfo("en"));
 
     /// <summary>A host that keeps what it is given, and can be read back.</summary>
     private sealed class Host
@@ -47,7 +46,7 @@ public class MarkerTests
     public async Task The_html_title_is_in_the_users_language_and_a_title_only_host_keeps_it()
     {
         var host = new Host();
-        var content = Content("text/html", host.Sink("html.editor", Carriers.HtmlAttribute)) with { Texts = UiStrings.For(CultureInfo.GetCultureInfo("zh-Hans")) };
+        var content = Content("text/html", host.Sink("html.editor", Carriers.HtmlAttribute)) with { Texts = ProvenanceTexts.For(CultureInfo.GetCultureInfo("zh-Hans")) };
 
         var result = await MarkerTestKit.AssertAsync(new HtmlAttributeMarker(), content, host.InsertAsync);
 

@@ -1,7 +1,6 @@
 using Fadenstack.Chat;
 using Fadenstack.Models;
 using Fadenstack.Tools;
-using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
 
@@ -63,7 +62,7 @@ public sealed record MarkableContent
     public bool IsShort { get; init; }
 
     /// <summary>The texts in the user's language, for a marker that writes words people read.</summary>
-    public UiStrings? Texts { get; init; }
+    public ProvenanceTexts? Texts { get; init; }
 
     /// <summary>The integrator's own non-personal facts (<see cref="IRecordEnricher"/>), by namespaced key.</summary>
     public IReadOnlyDictionary<string, string> Facts { get; init; } = new Dictionary<string, string>();

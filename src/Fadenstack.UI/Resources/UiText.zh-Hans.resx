@@ -466,12 +466,6 @@
   <data name="OpensInBrowser" xml:space="preserve">
     <value>{0}（在浏览器中打开）</value>
   </data>
-  <data name="AiGenerated" xml:space="preserve">
-    <value>人工智能生成</value>
-  </data>
-  <data name="AiGeneratedTitle" xml:space="preserve">
-    <value>人工智能生成 {0}</value>
-  </data>
   <data name="Notice_provenance_refused" xml:space="preserve">
     <value>未写入：无法将其标记为人工智能生成的内容</value>
   </data>

@@ -3,7 +3,6 @@ using System.Net;
 using System.Text.Json;
 using Fadenstack.Models;
 using Fadenstack.Tools;
-using Fadenstack.UI;
 using Xunit;
 
 namespace Fadenstack.Provenance.Tests;
@@ -34,8 +33,8 @@ public class SharedVectorTests
     [Fact]
     public void Html_is_one_element_with_data_ai_generated_and_the_title_the_label_and_the_id_and_one_paragraph_is_marked_inside_it()
     {
-        var english = UiStrings.For(CultureInfo.GetCultureInfo("en"));
-        var german = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+        var english = ProvenanceTexts.For(CultureInfo.GetCultureInfo("en"));
+        var german = ProvenanceTexts.For(CultureInfo.GetCultureInfo("de"));
         var en = HtmlAttributeMarker.Title(english, Id);
         Assert.Equal($"<span data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\">Hello</span>", HtmlAttributeMarker.Wrap("Hello", Id, en));
         Assert.Equal($"<p><span data-ai-generated=\"{Id}\" title=\"KI-generiert {Id}\">Hallo</span></p>",
@@ -149,7 +148,7 @@ public class SharedVectorTests
         var recorded = ReaderText.Sha256(vector.Record, "text/html");
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(html, Id));
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(split, Id));
-        var later = HtmlAttributeMarker.Wrap("We are sorry for the trouble.", R2, HtmlAttributeMarker.Title(UiStrings.For(CultureInfo.GetCultureInfo("en")), R2));
+        var later = HtmlAttributeMarker.Wrap("We are sorry for the trouble.", R2, HtmlAttributeMarker.Title(ProvenanceTexts.For(CultureInfo.GetCultureInfo("en")), R2));
         var written = split.Insert(at, later);
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(written, Id));
         Assert.Equal(ContentHash.TextSha256("We are sorry for the trouble."), ProvenanceReader.RecordTextSha256(written, R2));
