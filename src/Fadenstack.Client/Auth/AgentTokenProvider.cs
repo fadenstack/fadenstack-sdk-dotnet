@@ -162,13 +162,32 @@ public sealed class AgentTokenProvider : ITokenProvider
             {
                 return current.AccessToken; // another caller refreshed it
             }
-            return (await RefreshLockedAsync(current, cancellationToken).ConfigureAwait(false)).AccessToken;
+            // Other processes may keep the same sign-in (two Office applications; a desktop agent and an add-in). The
+            // refresh token changes on every renewal, and the server ends the whole sign-in when an old one comes back:
+            // so one renews at a time, and whoever comes second takes the renewed sign-in from the store.
+            using (await LockAcrossProcessesAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (await _store.LoadAsync(_key, cancellationToken).ConfigureAwait(false) is { } stored
+                    && stored.RefreshToken != current?.RefreshToken)
+                {
+                    _tokens = current = stored;
+                    if (stored.AccessExpiresAt - Early > _now())
+                    {
+                        return stored.AccessToken; // renewed by another process (or signed in again there)
+                    }
+                }
+                return (await RefreshLockedAsync(current, cancellationToken).ConfigureAwait(false)).AccessToken;
+            }
         }
         finally
         {
             _lock.Release();
         }
     }
+
+    /// <summary>The store's lock on this sign-in's renewal (<see cref="ITokenStoreLock"/>); none when the store has no such lock.</summary>
+    private async Task<IDisposable?> LockAcrossProcessesAsync(CancellationToken cancellationToken) =>
+        _store is ITokenStoreLock store ? await store.LockAsync(_key, cancellationToken).ConfigureAwait(false) : null;
 
     public async Task InvalidateAsync(string rejectedToken, CancellationToken cancellationToken = default)
     {

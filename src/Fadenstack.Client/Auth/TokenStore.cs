@@ -18,10 +18,47 @@ public interface ITokenStore
     Task DeleteAsync(string key, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// A token store that lets one holder at a time renew a sign-in, across processes where the store is shared (a file, a
+/// key store). The refresh token changes on every renewal, and the server ends the whole sign-in when an old one comes
+/// back; so <see cref="AgentTokenProvider"/> renews under this lock and, if another process renewed meanwhile, takes the
+/// renewed sign-in from the store instead. A store without it is renewed as before, per provider.
+/// </summary>
+public interface ITokenStoreLock
+{
+    /// <summary>Waits until nobody else renews the sign-in kept under <paramref name="key"/>, and holds it until disposed.</summary>
+    Task<IDisposable> LockAsync(string key, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Only in memory: a sign-in lasts as long as the process.</summary>
-public sealed class MemoryTokenStore : ITokenStore
+public sealed class MemoryTokenStore : ITokenStore, ITokenStoreLock
 {
     private readonly Dictionary<string, TokenSet> _tokens = new();
+    private readonly Dictionary<string, SemaphoreSlim> _renewals = new();
+
+    /// <summary>One renewal at a time per sign-in, for the providers in this process that share this store.</summary>
+    public async Task<IDisposable> LockAsync(string key, CancellationToken cancellationToken = default)
+    {
+        SemaphoreSlim gate;
+        lock (_renewals)
+        {
+            if (!_renewals.TryGetValue(key, out gate!))
+            {
+                _renewals[key] = gate = new SemaphoreSlim(1, 1);
+            }
+        }
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new Release(gate);
+    }
+
+    private sealed class Release : IDisposable
+    {
+        private SemaphoreSlim? _gate;
+
+        public Release(SemaphoreSlim gate) => _gate = gate;
+
+        public void Dispose() => Interlocked.Exchange(ref _gate, null)?.Release();
+    }
 
     public Task<TokenSet?> LoadAsync(string key, CancellationToken cancellationToken = default)
     {
@@ -54,7 +91,7 @@ public sealed class MemoryTokenStore : ITokenStore
 /// One file per server and agent, under the data root (<see cref="FadenstackPaths.DataRoot"/>), encrypted with DPAPI on Windows
 /// (<see cref="SecretProtection.Default"/>).
 /// </summary>
-public sealed class FileTokenStore : ITokenStore
+public sealed class FileTokenStore : ITokenStore, ITokenStoreLock
 {
     private readonly string _directory;
     private readonly ISecretProtector _protector;
@@ -88,6 +125,37 @@ public sealed class FileTokenStore : ITokenStore
             return null;
         }
     }
+
+    /// <summary>
+    /// One renewal at a time per sign-in, across every process that keeps it in this folder: the holder keeps
+    /// <c>&lt;file&gt;.lock</c> open and shared with nobody (a lock the OS releases if the process ends). The lock file is
+    /// empty and stays. Gives up after <see cref="LockWait"/>, when another process has held it that long.
+    /// </summary>
+    public async Task<IDisposable> LockAsync(string key, CancellationToken cancellationToken = default)
+    {
+        var path = PathOf(key) + ".lock";
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (waited.Elapsed < LockWait)
+            {
+                // Another process (or provider) renews this sign-in now.
+                await Task.Delay(Math.Min(25 * attempt, 250), cancellationToken).ConfigureAwait(false);
+            }
+            catch (IOException e)
+            {
+                throw new FadenstackException(
+                    $"Another process has been renewing this sign-in for {LockWait.TotalSeconds:0} s; try again.", e);
+            }
+        }
+    }
+
+    /// <summary>How long <see cref="LockAsync"/> waits for another process's renewal.</summary>
+    private static readonly TimeSpan LockWait = TimeSpan.FromSeconds(60);
 
     public Task SaveAsync(string key, TokenSet tokens, CancellationToken cancellationToken = default)
     {
