@@ -3,7 +3,7 @@ using Fadenstack.Models;
 
 namespace Fadenstack.Agents;
 
-/// <summary>What goes with a host command (<see cref="AgentSession.InvokeToolAsync"/>).</summary>
+/// <summary>What goes with a host command (<see cref="ChatSession.InvokeToolAsync"/>).</summary>
 public sealed record HostCommandOptions
 {
     /// <summary><see cref="HostToolOrigin.UserCommand"/> (a button, a view) or <see cref="HostToolOrigin.UserHistory"/> (an undo, a restore).</summary>

@@ -5,7 +5,7 @@ This page introduces the .NET SDK, its packages and target frameworks, and shows
 !!! note "Server version"
     SDK 0.3.0 is built and tested against Fadenstack server 0.7.1. Agents need a server 0.4.2 or later; where a
     server lacks a feature, the SDK says so and goes on without it: pairing throws
-    `FadenstackPairingUnsupportedException`, `ListToolsAsync` returns `null` and `agent.Grants.Available` is false. With
+    `FadenstackPairingUnsupportedException`, `ListServerToolsAsync` returns `null` and `agent.Grants.Available` is false. With
     0.4.1 and older, only [the plain client](plain-api.md) works, without tool modes, governance notices and the
     gateway's events.
 
@@ -124,7 +124,7 @@ public sealed class PageTools
 | `Fadenstack.Tools` | `ToolClass`, `ToolMode`, `ToolModes`, `EditKind` |
 | `Fadenstack.Models`, `Fadenstack.Resources` | The profile, manifest and server records; the REST resources |
 | `Fadenstack.Http` | `FadenstackTransport`, `FadenstackJson` |
-| `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `AgentSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
+| `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `ChatSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
 | `Fadenstack.Agents.Sessions` | `ISessionStore`, `FileSessionStore`, `MemorySessionStore`, `SessionRetention`, `TranscriptEntry` |
 | `Fadenstack.Agents.Registry` | `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence`, `AgentStatus`, `IProcessSource`, `SystemProcessSource` |
 | `Fadenstack.Secrets` | `FadenstackSecrets` |

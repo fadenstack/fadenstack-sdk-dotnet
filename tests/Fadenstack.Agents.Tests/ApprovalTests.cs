@@ -14,7 +14,7 @@ namespace Fadenstack.Agents.Tests;
 /// </summary>
 public class ApprovalTests
 {
-    internal static List<JsonElement> Decisions(AgentSession session) =>
+    internal static List<JsonElement> Decisions(ChatSession session) =>
         session.Transcript.Where(e => e.Type == EntryTypes.ApprovalDecision).Select(e => e.Data).ToList();
 
     internal static List<JsonElement> Decided(Gateway gateway) =>

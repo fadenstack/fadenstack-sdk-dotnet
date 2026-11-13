@@ -631,7 +631,7 @@ internal sealed class LiveCheck
         return LocalMcpServer.Stdio("time", parts[0], parts.Skip(1));
     }
 
-    private async Task<TurnLog> TurnAsync(AgentSession session, string prompt)
+    private async Task<TurnLog> TurnAsync(ChatSession session, string prompt)
     {
         var log = new TurnLog();
         var watch = Stopwatch.StartNew();

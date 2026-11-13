@@ -105,7 +105,7 @@ Two things keep the test small:
 - `UseEventReporting(false)` keeps the agent from posting its events and the app's manifest. With reporting on, those routes may answer 404; the agent ignores the failure and the turn goes on.
 - The stores are in memory, so the test leaves nothing on the disk and never touches the user's data folder.
 
-An agent reads other routes when a feature needs them, such as the skills list, the host-call check, grants or provenance. A fake answers only the routes a test uses. Where a route is optional, a 404 reads as a server without that feature: no skills, for example, or `null` from `ListToolsAsync`.
+An agent reads other routes when a feature needs them, such as the skills list, the host-call check, grants or provenance. A fake answers only the routes a test uses. Where a route is optional, a 404 reads as a server without that feature: no skills, for example, or `null` from `ListServerToolsAsync`.
 
 The SDK's own tests use a larger version of this fake: `FakeServer` in `tests/Fadenstack.Client.Tests` (routes, recorded requests, streamed answers) and `Gateway` in `tests/Fadenstack.Agents.Tests` (the agent's profile with its contract, modes, grants and provenance routes). They are test code and are not published as a package. You may copy them: the SDK is under the Apache-2.0 licence.
 

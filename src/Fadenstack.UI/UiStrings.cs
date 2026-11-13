@@ -624,6 +624,9 @@ public sealed class UiStrings
     /// <summary>"Server: https://ai.example.internal".</summary>
     public string AboutServer(string address) => Fill(address);
 
+    /// <summary>About's line for an agent on the person's own model endpoint (no server): its address.</summary>
+    public string AboutEndpoint(string address) => Fill(address);
+
     /// <summary>The organisation's own Help, on its server.</summary>
     public string Help => Text();
 

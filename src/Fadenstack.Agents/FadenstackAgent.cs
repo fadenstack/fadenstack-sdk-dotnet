@@ -39,7 +39,7 @@ public sealed class FadenstackAgent : IDisposable
     internal FadenstackAgent(AgentSettings settings)
     {
         _settings = settings;
-        Reporter = new EventReporter(settings.Client, settings.Report);
+        Reporter = new EventReporter(settings.Backend, settings.Report);
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
     }
@@ -57,7 +57,36 @@ public sealed class FadenstackAgent : IDisposable
 
     public string Slug => _settings.Agent;
 
-    public FadenstackClient Client => _settings.Client;
+    /// <summary>
+    /// The agent's Fadenstack client: the server's routes, its options, its transport for a module's own resources. An
+    /// agent without a server (on the person's own model endpoint) has none: this throws an
+    /// <see cref="InvalidOperationException"/> there; <see cref="ServerClient"/> is the way to ask.
+    /// </summary>
+    public FadenstackClient Client => _settings.Backend.ServerClient
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no server client (ServerClient is null).");
+
+    /// <summary>The agent's Fadenstack client; null for an agent without a server.</summary>
+    public FadenstackClient? ServerClient => _settings.Backend.ServerClient;
+
+    /// <summary>
+    /// How the agent is connected: <see cref="AgentConnection.Governed"/> to an organisation's Fadenstack server, or
+    /// <see cref="AgentConnection.Standalone"/> to the person's own model endpoint. For showing or hiding the server's parts.
+    /// </summary>
+    public AgentConnection Connection => _settings.Backend.Connection;
+
+    /// <summary>
+    /// The tools of the organisation's MCP servers that the user and this agent can have, with what the agent's tool rules
+    /// make of each (<c>GET /v1/agents/{agent}/tools</c>). Null when the server does not list them (an older one).
+    /// </summary>
+    public Task<IReadOnlyList<AgentToolInfo>?> ListServerToolsAsync(CancellationToken cancellationToken = default) =>
+        _settings.Backend.ListToolsAsync(cancellationToken);
+
+    /// <summary>What the agent talks to: the server, or later the person's own model endpoint (sdk/51 F02).</summary>
+    internal IAgentBackend Backend => _settings.Backend;
+
+    /// <summary>The server's provenance routes, for Fadenstack.Provenance's server backend; only a server has them.</summary>
+    internal IProvenanceRoutes ProvenanceRoutes => _settings.Backend as IProvenanceRoutes
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no provenance routes.");
 
     /// <summary>The app the agent runs in, as the host described it (<see cref="AgentBuilder.DescribeApp"/>); null when it did not.</summary>
     public AppDescription? App => _settings.AppDescribed ? _settings.App : null;
@@ -96,7 +125,7 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>
     /// The mode new sessions start in: the agent's default level from the server (Ask from an older one, or one this SDK
     /// does not know), no higher than the app's own default (<see cref="AgentBuilder.UseDefaultToolMode"/>).
-    /// <see cref="AgentSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>. Never Bypass (sdk/38 D2): a
+    /// <see cref="ChatSession.EffectiveToolMode"/> narrows it to the <see cref="Ceiling"/>. Never Bypass (sdk/38 D2): a
     /// default the server names as Bypass is Ask.
     /// </summary>
     public ToolMode DefaultToolMode => ToolModes.Narrowest(
@@ -205,7 +234,7 @@ public sealed class FadenstackAgent : IDisposable
 
     private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
     {
-        var profile = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var profile = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
         var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
         if (missing.Count > 0)
         {
@@ -257,7 +286,7 @@ public sealed class FadenstackAgent : IDisposable
     internal async Task RefreshPolicyAsync(CancellationToken cancellationToken)
     {
         var before = Profile;
-        var fresh = await Client.Agent!.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var fresh = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
         AssertHostPolicySupport(fresh);
         if (Binding(before) != Binding(fresh))
         {
@@ -450,7 +479,7 @@ public sealed class FadenstackAgent : IDisposable
     /// </summary>
     public async Task<string?> SetUserLanguageAsync(string? language, CancellationToken cancellationToken = default)
     {
-        var kept = await Client.Agent!.SetUserLanguageAsync(language, cancellationToken).ConfigureAwait(false);
+        var kept = await Backend.SetUserLanguageAsync(language, cancellationToken).ConfigureAwait(false);
         if (_profile is { } profile)
         {
             _profile = profile with { User = profile.User with { Language = kept } };
@@ -468,7 +497,7 @@ public sealed class FadenstackAgent : IDisposable
         {
             return Array.Empty<SkillOption>();
         }
-        var list = await Client.Agent!.ListSkillsAsync(query, 100, cancellationToken).ConfigureAwait(false);
+        var list = await Backend.ListSkillsAsync(query, 100, cancellationToken).ConfigureAwait(false);
         return list.Skills;
     }
 
@@ -503,7 +532,7 @@ public sealed class FadenstackAgent : IDisposable
         };
         try
         {
-            await Client.Agent!.ReportManifestAsync(manifest).ConfigureAwait(false);
+            await Backend.ReportManifestAsync(manifest, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception)
         {
@@ -512,17 +541,17 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>A new session, in the agent's default mode (<see cref="DefaultToolMode"/>) unless <paramref name="toolMode"/> says otherwise.</summary>
-    public async Task<AgentSession> StartSessionAsync(ToolMode? toolMode = null, CancellationToken cancellationToken = default)
+    public async Task<ChatSession> StartSessionAsync(ToolMode? toolMode = null, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
-        var session = new AgentSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
+        var session = new ChatSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
         await session.WriteStartAsync(cancellationToken).ConfigureAwait(false);
         return session;
     }
 
     /// <summary>A session from this device's store, to go on with.</summary>
-    public async Task<AgentSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
+    public async Task<ChatSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
@@ -546,8 +575,8 @@ public sealed class FadenstackAgent : IDisposable
         }
         // The grant decides, not the transcript: Bypass switched on before the chat's first message left no turn in it.
         var lives = Grants.Live.Any(g => g.Kind == GrantKinds.Bypass && g.ConversationId == sessionId);
-        var before = AgentSession.LastMode(entries) ?? DefaultToolMode;
-        var session = new AgentSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before);
+        var before = ChatSession.LastMode(entries) ?? DefaultToolMode;
+        var session = new ChatSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before);
         session.Reopened(before);
         return session;
     }
@@ -567,7 +596,7 @@ public sealed class FadenstackAgent : IDisposable
 
     /// <summary>
     /// Forgets what the user allowed always on this device for this agent: every tool, or <paramref name="tool"/> only.
-    /// (What a chat allowed ends with that chat: <see cref="AgentSession.ResetApprovals"/>.)
+    /// (What a chat allowed ends with that chat: <see cref="ChatSession.ResetApprovals"/>.)
     /// </summary>
     public async Task ResetApprovalsAsync(string? tool = null, CancellationToken cancellationToken = default)
     {
@@ -650,10 +679,7 @@ public sealed class FadenstackAgent : IDisposable
         {
             source.Dispose();
         }
-        if (_settings.OwnsClient)
-        {
-            _settings.Client.Dispose();
-        }
+        _settings.Backend.Dispose(); // the client, when the builder made it
         _starting.Dispose();
         _refreshing.Dispose();
     }
@@ -775,7 +801,7 @@ public sealed class FadenstackAgent : IDisposable
     }
 
     /// <summary>The tools the model gets in <paramref name="session"/> this round: the mode's, and those the tool's scope offers.</summary>
-    internal IList<AITool> Offer(ToolMode mode, AgentSession session) =>
+    internal IList<AITool> Offer(ToolMode mode, ChatSession session) =>
         _tools.Where(t => (t.Scope is null || t.Scope.Offers(t, session)) && ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden)
             .Select(t => (AITool)t.Function).ToList();
 

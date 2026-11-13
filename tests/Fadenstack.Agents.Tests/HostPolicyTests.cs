@@ -25,7 +25,7 @@ public class HostPolicyTests
     {
         public Gateway Gateway = null!;
         public FadenstackAgent Agent = null!;
-        public AgentSession Session = null!;
+        public ChatSession Session = null!;
         public PageTools Tools = null!;
         public List<ApprovalRequest> Asked = new();
 

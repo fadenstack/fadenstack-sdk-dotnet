@@ -45,7 +45,7 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | The server's cap, `ui.reasoning.max` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`; `minimal` caps at `none`, `max` sets no cap | the same scale and the same rules | `ReasoningEffort` has no `minimal`; TypeScript's `useReasoning` accepts it. |
 | Skills | `agent.ListSkillsAsync(query)`, `SendOptions.Skills` | `agent.listSkills(query)`, `skills` in the send options | |
 | The user's language | `agent.SetUserLanguageAsync(tag)` | `agent.setUserLanguage(tag)` | |
-| The organisation's tools | `agent.Client.Agent.ListToolsAsync()` returns `AgentToolInfo`, or `null` on an old server | `client.agent.listTools()` | |
+| The organisation's tools | `agent.ListServerToolsAsync()` returns `AgentToolInfo`, or `null` on an old server | `client.agent.listTools()` | |
 | Tool sources that change | `IChangingToolSource` and its `Changed` event | `ChangingToolSource` and `onChanged` | |
 | Tools in scope per conversation | `AgentTool.Scope`, `IToolScope` | `ToolScope` (`offers`, `beforeCall`) | |
 | Tools on request, `find_tool` | `LocalMcpModule` (`LocalMcpModule.FindToolName`, `MaxFound` 5, `MaxToolsInScope` 10) | `OnRequestTools` (`FIND_TOOL_NAME`, `MAX_FOUND`, `MAX_TOOLS_IN_SCOPE`) over the host's own tools | A browser has no local MCP process; the same seam works over the host's tools. |
