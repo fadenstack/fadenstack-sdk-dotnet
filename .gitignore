@@ -295,12 +295,12 @@ config.ps1
 # VS debug support files
 launchSettings.json
 
-# Snapcraft files
+# Snapcraft files (anchored: a case-insensitive checkout would match src/Fadenstack.UI/Parts/ and the like)
 .snapcraft
 *.snap
-parts/
-prime/
-stage/
+/parts/
+/prime/
+/stage/
 
 # Valid 'debug' folder, that contains CLR debugging code
 !src/coreclr/debug
