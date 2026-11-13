@@ -366,7 +366,7 @@ public sealed class FadenstackAgent : IDisposable
             // A transcript is personal data: it goes to disk only encrypted.
             if (SecretProtection.Default.Encrypts)
             {
-                _sessions = new FileSessionStore(Folder("sessions"), retention: retention);
+                _sessions = new FileSessionStore(Folder("sessions"), retention: retention, logger: Logger);
             }
             else
             {
@@ -374,7 +374,7 @@ public sealed class FadenstackAgent : IDisposable
                 Log.TranscriptsNotKept(Logger, Slug);
             }
         }
-        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals")) : null;
+        _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals"), logger: Logger) : null;
         if (_reasoningStore is null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
             // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.

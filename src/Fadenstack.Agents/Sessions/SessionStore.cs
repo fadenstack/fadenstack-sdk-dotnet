@@ -4,6 +4,8 @@ using Fadenstack.Auth;
 using Fadenstack.Http;
 using Fadenstack.Models;
 using Fadenstack.Storage;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Agents.Sessions;
 
@@ -104,13 +106,20 @@ public sealed class FileSessionStore : ISessionStore, IListsAgents
     private readonly ISecretProtector _protector;
     private readonly SessionRetention _retention;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ILogger _log;
 
-    public FileSessionStore(string? directory = null, ISecretProtector? protector = null, SessionRetention? retention = null)
+    /// <param name="directory">The folder; the data root's <c>sessions</c> by default.</param>
+    /// <param name="protector">How each line is encrypted; <see cref="SecretProtection.Default"/> by default.</param>
+    /// <param name="retention">How many chats, and how old, are kept.</param>
+    /// <param name="logger">Where lines and files that cannot be read are logged (counts and kinds only); nowhere if not given.</param>
+    public FileSessionStore(string? directory = null, ISecretProtector? protector = null, SessionRetention? retention = null,
+        ILogger? logger = null)
     {
         _root = directory ?? FadenstackPaths.Data("sessions");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
         _retention = retention ?? SessionRetention.Default;
+        _log = logger ?? NullLogger.Instance;
     }
 
     public async Task AppendAsync(string agent, string sessionId, TranscriptEntry entry, CancellationToken cancellationToken = default)
@@ -135,23 +144,55 @@ public sealed class FileSessionStore : ISessionStore, IListsAgents
         }
     }
 
-    public Task<IReadOnlyList<TranscriptEntry>> ReadAsync(string agent, string sessionId, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// The chat's entries. A line that cannot be read (torn by a crash while it was appended, another user's, damaged) is
+    /// skipped and the rest kept; a file another process holds for longer than a moment reads as empty for now. The log
+    /// gives counts and kinds only.
+    /// </summary>
+    public async Task<IReadOnlyList<TranscriptEntry>> ReadAsync(string agent, string sessionId, CancellationToken cancellationToken = default)
     {
-        var path = PathOf(agent, sessionId);
         var entries = new List<TranscriptEntry>();
-        if (File.Exists(path))
+        byte[]? bytes;
+        try
         {
-            foreach (var line in File.ReadAllLines(path, Encoding.ASCII))
+            bytes = await SecretProtection.ReadKeptAsync(PathOf(agent, sessionId), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.ChatUnreadable(_log, e.GetType().Name);
+            return entries;
+        }
+        if (bytes is null)
+        {
+            return entries;
+        }
+        var skipped = 0;
+        string? firstKind = null;
+        using var lines = new StringReader(Encoding.ASCII.GetString(bytes));
+        for (var line = lines.ReadLine(); line is not null; line = lines.ReadLine())
+        {
+            if (line.Length == 0)
             {
-                if (line.Length == 0)
-                {
-                    continue;
-                }
+                continue;
+            }
+            try
+            {
                 var json = _protector.Unprotect(Convert.FromBase64String(line));
-                entries.Add(JsonSerializer.Deserialize<TranscriptEntry>(json, FadenstackJson.Options)!);
+                entries.Add(JsonSerializer.Deserialize<TranscriptEntry>(json, FadenstackJson.Options)
+                    ?? throw new JsonException("The line holds no entry."));
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // Any failure to decode one line -- the host's protector may throw its own kind -- costs that line only.
+                skipped++;
+                firstKind ??= e.GetType().Name;
             }
         }
-        return Task.FromResult<IReadOnlyList<TranscriptEntry>>(entries);
+        if (skipped > 0)
+        {
+            Log.ChatLinesSkipped(_log, skipped, firstKind!);
+        }
+        return entries;
     }
 
     public async Task<IReadOnlyList<SessionInfo>> ListAsync(string agent, CancellationToken cancellationToken = default)

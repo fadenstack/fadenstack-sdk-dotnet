@@ -94,6 +94,18 @@ internal static partial class Log
         Message = "Agent {Agent} keeps session transcripts in memory only: no OS key store is available to encrypt them on disk")]
     internal static partial void TranscriptsNotKept(ILogger logger, string agent);
 
+    [LoggerMessage(EventId = 2050, Level = LogLevel.Warning,
+        Message = "Stored approvals could not be read ({Kind}); the user is asked again")]
+    internal static partial void ApprovalsUnreadable(ILogger logger, string kind);
+
+    [LoggerMessage(EventId = 2051, Level = LogLevel.Warning,
+        Message = "{Count} lines of a saved chat could not be read (the first: {Kind}); they are skipped")]
+    internal static partial void ChatLinesSkipped(ILogger logger, int count, string kind);
+
+    [LoggerMessage(EventId = 2052, Level = LogLevel.Warning,
+        Message = "A saved chat could not be read ({Kind}); it is left out for now")]
+    internal static partial void ChatUnreadable(ILogger logger, string kind);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);

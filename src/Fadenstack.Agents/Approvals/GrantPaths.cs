@@ -44,7 +44,13 @@ internal static class GrantPaths
     }
 
     /// <summary>Where <paramref name="path"/> really leads, every link resolved; null when that cannot be told.</summary>
-    public static string? Real(string path)
+    public static string? Real(string path) => Real(path, Windows ? FinalPath : RealPath);
+
+    /// <summary>Asks the system where one path leads (<c>GetFinalPathNameByHandleW</c>, <c>realpath</c>).</summary>
+    internal delegate string? Resolver(string path, out bool absent);
+
+    /// <summary>The same, with the system call given (tests simulate a system without <c>libc</c>).</summary>
+    internal static string? Real(string path, Resolver resolve)
     {
         string at;
         try
@@ -58,7 +64,16 @@ internal static class GrantPaths
         var missing = new Stack<string>();
         for (var step = 0; step < MaxSteps; step++)
         {
-            var real = Windows ? FinalPath(at, out var absent) : RealPath(at, out absent);
+            string? real;
+            bool absent;
+            try
+            {
+                real = resolve(at, out absent);
+            }
+            catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
+            {
+                return null; // no libc to ask (a minimal container): what cannot be resolved covers nothing, so the call asks
+            }
             if (real is not null)
             {
                 return missing.Count == 0 ? real : Path.Combine(new[] { real }.Concat(missing).ToArray());

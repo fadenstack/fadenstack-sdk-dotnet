@@ -25,7 +25,7 @@ public class FadenstackApiException : FadenstackException
 
     public HttpStatusCode Status { get; }
 
-    /// <summary>The error code, e.g. <c>agent_not_granted</c>, <c>tool_not_in_contract</c>.</summary>
+    /// <summary>The error code, e.g. <c>agent_not_granted</c>, <c>bypass_step_up_required</c>.</summary>
     public string? Code { get; }
 
     public string? Type { get; }

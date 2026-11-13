@@ -184,6 +184,10 @@ public sealed class AgentPairing
     /// <param name="cancellationToken">Stops the wait; the pairing stays valid at the server until it expires.</param>
     /// <exception cref="FadenstackPairingDeniedException">The person denied the pairing in the console.</exception>
     /// <exception cref="FadenstackPairingExpiredException">The code expired, or the server no longer knows it.</exception>
+    /// <exception cref="FadenstackPairingAgentException">
+    /// In a pairing for several agents: the person approved others but not this first agent. The first approved other agent
+    /// was collected to tell this from an unknown code; it is signed in, and <see cref="PairingStart.AgentsLeft"/> lists the rest.
+    /// </exception>
     /// <exception cref="FadenstackPairingUnsupportedException">The server does not have the pairing routes.</exception>
     /// <exception cref="OperationCanceledException">The wait was cancelled.</exception>
     public Task<PairingResult> WaitAsync(PairingStart start, IProgress<PairingProgress>? progress = null,
@@ -272,6 +276,12 @@ public sealed class AgentPairing
                         {
                             throw NotRedeemable(agent);
                         }
+                        // For the first agent this is either "not approved" or "a code the server does not know". When
+                        // the person approved another agent of the pairing, the code is good: the first was refused.
+                        if (await CollectAnotherAsync(start, cancellationToken).ConfigureAwait(false))
+                        {
+                            throw NotRedeemable(agent);
+                        }
                         throw Expired(start, "The server no longer knows this code. Get a new one.");
                     default:
                         if (TooOld(status))
@@ -331,6 +341,33 @@ public sealed class AgentPairing
                     throw ErrorReader.ToException(response, text);
             }
         }
+    }
+
+    /// <summary>
+    /// Collects the first other agent of the pairing that the person approved, and says whether there was one: that tells a
+    /// refused first agent from a code the server does not know (both are <c>invalid_grant</c> for the first agent). Only
+    /// for a server that stored several agents; the collected agent is signed in and leaves <see cref="PairingStart.AgentsLeft"/>.
+    /// </summary>
+    private async Task<bool> CollectAnotherAsync(PairingStart start, CancellationToken cancellationToken)
+    {
+        var left = start.AgentsLeft;
+        foreach (var other in start.Agents.Where(a => !IsFirst(start, a) && left.Contains(a, StringComparer.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                await RedeemAsync(start, other, cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+            catch (FadenstackPairingAgentException)
+            {
+                // not approved either: the next one
+            }
+            catch (FadenstackException e) when (e is not FadenstackPairingDeniedException)
+            {
+                return false; // unreachable, expired, not approved yet: it cannot tell
+            }
+        }
+        return false;
     }
 
     private static bool IsFirst(PairingStart start, string agent) =>
@@ -413,6 +450,11 @@ public sealed class AgentPairing
             // The message of a network error can carry the address; the caller sees it, the log does not.
             throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
         }
+        if (FadenstackTransport.Redirected(response, request.RequestUri!) is { } redirected)
+        {
+            response.Dispose(); // the pairing code is not sent on
+            throw redirected;
+        }
         try
         {
             var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -462,7 +504,9 @@ public sealed class AgentPairing
 
     private Uri Web(string address)
     {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri))
+        // A path is a page of the server's own. Checked first: on macOS and Linux "/pair" parses as an absolute file: URI.
+        var path = address.StartsWith("/", StringComparison.Ordinal) && !address.StartsWith("//", StringComparison.Ordinal);
+        if (path || !Uri.TryCreate(address, UriKind.Absolute, out var uri))
         {
             uri = new Uri(_server, address);
         }

@@ -66,11 +66,9 @@ public sealed class FadenstackTransport : IDisposable
                 token = await _tokens.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
+            // The whole request, or for a stream the wait for its headers; a stream's body has its own idle timeout.
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            if (completion == HttpCompletionOption.ResponseContentRead)
-            {
-                timeout.CancelAfter(Timeout);
-            }
+            timeout.CancelAfter(Timeout);
             var (method, route) = (request.Method.Method, RouteTemplate.Of(request.RequestUri!));
             using var activity = FadenstackTelemetry.Client.StartActivity("HTTP " + method, ActivityKind.Client);
             activity?.SetTag("http.request.method", method);
@@ -81,6 +79,7 @@ public sealed class FadenstackTransport : IDisposable
             try
             {
                 response = await _http.SendAsync(request, completion, timeout.Token).ConfigureAwait(false);
+                timeout.CancelAfter(System.Threading.Timeout.InfiniteTimeSpan); // the headers are in: a stream reads on
             }
             catch (TaskCanceledException e) when (!cancellationToken.IsCancellationRequested)
             {
@@ -103,8 +102,35 @@ public sealed class FadenstackTransport : IDisposable
                 await _tokens!.InvalidateAsync(token, cancellationToken).ConfigureAwait(false);
                 continue;
             }
+            if (Redirected(response, request.RequestUri!) is { } redirected)
+            {
+                response.Dispose();
+                throw redirected;
+            }
             return response;
         }
+    }
+
+    /// <summary>
+    /// A redirect is refused, never followed (<see cref="CreateHandler"/> follows none): an API or token request carries a
+    /// bearer token or a body -- chat text, a refresh token, a pairing code -- that a 307 or 308 would send again to
+    /// wherever it points, and a Fadenstack server does not redirect them. The error names where it pointed (without
+    /// user info or query), so the address can be corrected: https, or the right path. Null when it is no redirect.
+    /// OWASP ASVS 5.0 V12 (secure communication).
+    /// </summary>
+    internal static FadenstackApiException? Redirected(HttpResponseMessage response, Uri requested)
+    {
+        var status = (int)response.StatusCode;
+        if (status < 300 || status > 399)
+        {
+            return null;
+        }
+        var location = response.Headers.Location is { } l && (l.IsAbsoluteUri ? l : new Uri(requested, l)) is var to
+            ? $"{to.Scheme}://{to.Authority}{to.AbsolutePath}"
+            : "another address";
+        return new FadenstackApiException(response.StatusCode,
+            $"The server redirected the request to {location}. Fadenstack does not follow redirects: check the server address (https, the right path).",
+            code: "redirect");
     }
 
     /// <summary>A request that got no answer: the span and the log say what kind of failure, never its message.</summary>
@@ -116,7 +142,10 @@ public sealed class FadenstackTransport : IDisposable
         Log.RequestFailed(_log, method, route, type, watch.ElapsedMilliseconds, attempt);
     }
 
-    /// <summary>JSON in, JSON out; errors as typed exceptions.</summary>
+    /// <summary>
+    /// JSON in, JSON out; errors as typed exceptions. The answer is required: an empty one or JSON <c>null</c> is a
+    /// <see cref="FadenstackException"/> naming the route. With <c>bool</c> as <typeparamref name="T"/> the body is not read.
+    /// </summary>
     public async Task<T> SendJsonAsync<T>(HttpMethod method, Uri url, object? body, CancellationToken cancellationToken) =>
         (await SendJsonAsync<T>(method, url, body, null, cancellationToken).ConfigureAwait(false)).Value;
 
@@ -135,11 +164,25 @@ public sealed class FadenstackTransport : IDisposable
             throw ErrorReader.ToException(response, text);
         }
         var value = header is null ? null : HeaderValue(response, header);
-        if (typeof(T) == typeof(bool) || string.IsNullOrWhiteSpace(text))
+        return (Answer<T>(text, method, url), value);
+    }
+
+    /// <summary>
+    /// The answer as <typeparamref name="T"/>: a value, or a <see cref="FadenstackException"/> naming the route when the
+    /// server sent nothing or JSON <c>null</c> -- never a null behind a non-null type. <c>bool</c> means "no body expected".
+    /// </summary>
+    private static T Answer<T>(string text, HttpMethod method, Uri url)
+    {
+        if (typeof(T) == typeof(bool))
         {
-            return (default!, value);
+            return default!;
         }
-        return (JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!, value);
+        var answer = string.IsNullOrWhiteSpace(text) ? default : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options);
+        if (answer is null || answer is JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined })
+        {
+            throw new FadenstackException($"The server sent no answer to {method.Method} {RouteTemplate.Of(url)}.");
+        }
+        return answer;
     }
 
     /// <summary>A response header's values, joined by commas, from the headers or the content's headers; null when absent.</summary>
@@ -172,7 +215,7 @@ public sealed class FadenstackTransport : IDisposable
         {
             throw ErrorReader.ToException(response, text);
         }
-        return string.IsNullOrWhiteSpace(text) ? default! : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!;
+        return Answer<T>(text, HttpMethod.Post, url);
     }
 
     public Task<T> PutAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
@@ -225,11 +268,14 @@ public sealed class FadenstackTransport : IDisposable
 
     /// <summary>
     /// A handler with the client's TLS settings (the trusted CA, <see cref="FadenstackClientOptions.AllowInsecureHttp"/>),
-    /// for a host's own requests to the same server (e.g. its sign-in).
+    /// for a host's own requests to the same server (e.g. its sign-in). It follows no redirect: the SDK reports one as a
+    /// <see cref="FadenstackApiException"/> with the code <c>redirect</c>. A host that passes its own
+    /// <see cref="FadenstackClientOptions.HttpClient"/> decides that for itself.
     /// </summary>
     public static HttpMessageHandler CreateHandler(FadenstackClientOptions options)
     {
-        var handler = new HttpClientHandler();
+        // No redirect is followed: a 307 or 308 would send the request's body again, to wherever it points (see Redirected).
+        var handler = new HttpClientHandler { AllowAutoRedirect = false };
         if (IsNetFramework)
         {
             // A native host (Word, any native application) gives .NET Framework no target framework, so it keeps the

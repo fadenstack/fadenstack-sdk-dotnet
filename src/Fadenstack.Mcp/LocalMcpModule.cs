@@ -32,8 +32,9 @@ public sealed record SkippedMcpServer(string Label, string Reason, Exception? Er
 /// description lists the servers; a search switches the best matches on for the rest of that conversation (at most
 /// <see cref="MaxToolsInScope"/> at a time), and a tool called by name is switched on as well. Their tools are
 /// <see cref="ToolClass.Unknown"/> -- MCP servers describe themselves, and their word (annotations) is not trusted -- so every
-/// call asks unless the user approved the tool for the session. Results are fenced as untrusted data. Each attached server is
-/// reported (label, program or URL, tool names), never its arguments, environment or headers.
+/// call asks: such a tool cannot be approved for the conversation or always (only the conversation's Bypass grant runs it).
+/// Results are fenced as untrusted data. Each attached server is reported (label, program or URL, tool names), never its
+/// arguments, environment or headers.
 /// </para>
 /// <para>
 /// The module declares roots (the host's folders), form-mode elicitation (when the host gives <see cref="Ask"/>) and never

@@ -5,6 +5,8 @@ using Fadenstack.Auth;
 using Fadenstack.Http;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Agents;
 
@@ -82,12 +84,17 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
     private readonly string _root;
     private readonly ISecretProtector _protector;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ILogger _log;
 
-    public FileApprovalStore(string? directory = null, ISecretProtector? protector = null)
+    /// <param name="directory">The folder; the data root's <c>approvals</c> by default.</param>
+    /// <param name="protector">How the files are encrypted; <see cref="SecretProtection.Default"/> by default.</param>
+    /// <param name="logger">Where approvals that cannot be read are logged (the kind of failure only); nowhere if not given.</param>
+    public FileApprovalStore(string? directory = null, ISecretProtector? protector = null, ILogger? logger = null)
     {
         _root = directory ?? FadenstackPaths.Data("approvals");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
+        _log = logger ?? NullLogger.Instance;
     }
 
     public async Task<IReadOnlyList<StoredApproval>> ListAsync(string agent, CancellationToken cancellationToken = default)
@@ -95,7 +102,7 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return Read(agent);
+            return await ReadAsync(agent, forWrite: false, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -108,7 +115,7 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var kept = Read(agent).Where(a => a.Tool != approval.Tool).ToList();
+            var kept = (await ReadAsync(agent, forWrite: true, cancellationToken).ConfigureAwait(false)).Where(a => a.Tool != approval.Tool).ToList();
             kept.Add(approval);
             Write(agent, kept);
         }
@@ -123,7 +130,9 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
         await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            Write(agent, tool is null ? new List<StoredApproval>() : Read(agent).Where(a => a.Tool != tool).ToList());
+            Write(agent, tool is null
+                ? new List<StoredApproval>()
+                : (await ReadAsync(agent, forWrite: true, cancellationToken).ConfigureAwait(false)).Where(a => a.Tool != tool).ToList());
         }
         finally
         {
@@ -135,21 +144,25 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
         ? Directory.GetFiles(_root, "*.json").Select(f => Path.GetFileNameWithoutExtension(f)).ToList()
         : new List<string>();
 
-    private List<StoredApproval> Read(string agent)
+    /// <summary>
+    /// The agent's approvals; none when the file is another user's or damaged, or (to list them) is locked by another
+    /// process for longer than a moment: the user is then asked again, and the log names the kind of failure. Before a
+    /// write, a locked file stays an error, so the approvals in it are not written over.
+    /// </summary>
+    private async Task<List<StoredApproval>> ReadAsync(string agent, bool forWrite, CancellationToken cancellationToken)
     {
-        var path = PathOf(agent);
-        if (!File.Exists(path))
-        {
-            return new List<StoredApproval>();
-        }
         try
         {
-            var json = _protector.Unprotect(File.ReadAllBytes(path));
-            return JsonSerializer.Deserialize<List<StoredApproval>>(json, FadenstackJson.Options) ?? new List<StoredApproval>();
+            var bytes = await SecretProtection.ReadKeptAsync(PathOf(agent), cancellationToken).ConfigureAwait(false);
+            return bytes is null
+                ? new List<StoredApproval>()
+                : JsonSerializer.Deserialize<List<StoredApproval>>(_protector.Unprotect(bytes), FadenstackJson.Options) ?? new List<StoredApproval>();
         }
-        catch (Exception e) when (e is CryptographicException or JsonException)
+        catch (Exception e) when (e is CryptographicException or JsonException
+            || (!forWrite && e is IOException or UnauthorizedAccessException))
         {
-            return new List<StoredApproval>(); // another user's, or damaged: the user is asked again
+            Log.ApprovalsUnreadable(_log, e.GetType().Name);
+            return new List<StoredApproval>();
         }
     }
 

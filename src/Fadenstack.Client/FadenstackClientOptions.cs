@@ -53,8 +53,27 @@ public sealed class FadenstackClientOptions
     /// <summary>An <see cref="HttpClient"/> to use instead of the client's own (tests, proxies, handlers).</summary>
     public HttpClient? HttpClient { get; set; }
 
-    /// <summary>How long one request may take; streams are not cut by it once they started.</summary>
+    /// <summary>
+    /// How long one request may take. For a streamed answer it is the wait for the headers; once the answer has started it
+    /// is not cut by this, only by <see cref="StreamIdleTimeout"/>.
+    /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
+
+    private TimeSpan _streamIdleTimeout = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How long a streamed answer may send nothing at all before it is given up with a <see cref="FadenstackException"/>
+    /// (a dead connection after a laptop slept, a dropped network). Any byte counts, a keep-alive comment too. Default
+    /// 5 minutes, since a reasoning model may think a long time; <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>
+    /// turns it off.
+    /// </summary>
+    public TimeSpan StreamIdleTimeout
+    {
+        get => _streamIdleTimeout;
+        set => _streamIdleTimeout = value > TimeSpan.Zero || value == System.Threading.Timeout.InfiniteTimeSpan
+            ? value
+            : throw new ArgumentOutOfRangeException(nameof(value), "The idle timeout must be positive, or infinite.");
+    }
 
     private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 

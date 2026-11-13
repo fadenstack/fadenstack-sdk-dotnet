@@ -48,6 +48,10 @@ internal static partial class Log
     [LoggerMessage(EventId = 1033, Level = LogLevel.Information, Message = "Pairing for agent {Agent} ended: {Outcome}")]
     internal static partial void PairingEnded(ILogger logger, string agent, string outcome);
 
+    [LoggerMessage(EventId = 1040, Level = LogLevel.Warning,
+        Message = "A kept sign-in could not be read ({Kind}); it counts as signed out")]
+    internal static partial void KeptSignInUnreadable(ILogger logger, string kind);
+
     [LoggerMessage(EventId = 1020, Level = LogLevel.Warning, Message = "A faden event was skipped: it is {Reason}")]
     internal static partial void EventSkipped(ILogger logger, string reason);
 }

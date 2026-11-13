@@ -123,6 +123,15 @@ public sealed class GrantPathTests : IDisposable
     }
 
     [Fact]
+    public void Without_libc_a_path_cannot_be_resolved_so_it_covers_nothing_and_nothing_throws()
+    {
+        // A minimal container without libc, or without realpath in it (sdk/51 I00 #9, N8): resolving a path then covers
+        // nothing, as a link whose target is missing does (the test below: the call asks).
+        Assert.Null(GrantPaths.Real(At("granted"), (string _, out bool _) => throw new DllNotFoundException("libc")));
+        Assert.Null(GrantPaths.Real(At("granted"), (string _, out bool _) => throw new EntryPointNotFoundException("realpath")));
+    }
+
+    [Fact]
     public async Task A_link_whose_target_is_missing_asks_as_where_it_leads_cannot_be_told()
     {
         Link(At("granted", "dead"), At("gone"));

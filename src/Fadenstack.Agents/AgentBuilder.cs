@@ -229,7 +229,8 @@ public sealed class AgentBuilder
     /// <summary>
     /// The app the agent runs in. When the agent starts it tells the server what the app brings -- its host tools
     /// with their classes, this context and greeting, the versions -- so the server's admins take new tools in with a
-    /// click instead of typing them; until they do, the server holds them back.
+    /// click instead of typing them; until they do, the server holds them back. (An agent with no contract at all holds
+    /// nothing back: every tool is unclassified then, and asks every time.)
     /// </summary>
     public AgentBuilder DescribeApp(AppDescription app)
     {
