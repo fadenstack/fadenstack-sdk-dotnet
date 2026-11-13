@@ -84,6 +84,20 @@ internal interface IStepUp
 }
 
 /// <summary>
+/// The provenance routes of the agent's server: its marking policy, signed records and placement reports. Not part of
+/// <see cref="IAgentBackend"/>: Fadenstack.Provenance lies above this assembly, so its public <c>ServerProvenanceBackend</c>
+/// reads these through <see cref="FadenstackAgent.ProvenanceRoutes"/>; a backend without a server has none.
+/// </summary>
+internal interface IProvenanceRoutes
+{
+    Task<ProvenancePolicy> GetPolicyAsync(CancellationToken cancellationToken);
+
+    Task<SignedRecord> SignRecordAsync(RecordRequest request, CancellationToken cancellationToken);
+
+    Task ReportPlacementAsync(PlacementReport report, CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// What the agent talks to, behind one seam (sdk/51 F02, sdk/52 §8): a Fadenstack server (<see cref="ServerAgentBackend"/>)
 /// or, later, the person's own model endpoint. The agent, its sessions and the UI see the same contracts in both modes.
 /// A backend passes the server's exceptions through unchanged: the grant lifecycle, Bypass and the step-up catch them by
@@ -102,7 +116,7 @@ internal interface IAgentBackend : IProfileSource, IEventSink, IUserSettings, IS
 }
 
 /// <summary>The governed backend: every call goes to the agent's routes on the Fadenstack server, as it always did.</summary>
-internal sealed class ServerAgentBackend : IAgentBackend
+internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
 {
     private readonly FadenstackClient _client;
     private readonly bool _ownsClient;
@@ -170,6 +184,17 @@ internal sealed class ServerAgentBackend : IAgentBackend
 
     public Task<(StepUpProof? Proof, string? Error, int? Interval)> PollStepUpAsync(string stepUpCode, CancellationToken cancellationToken) =>
         Agent.PollStepUpAsync(stepUpCode, cancellationToken);
+
+    private AgentProvenanceResource Provenance =>
+        _client.Agent?.Provenance ?? throw new InvalidOperationException("The agent's client has no agent.");
+
+    public Task<ProvenancePolicy> GetPolicyAsync(CancellationToken cancellationToken) => Provenance.GetPolicyAsync(cancellationToken);
+
+    public Task<SignedRecord> SignRecordAsync(RecordRequest request, CancellationToken cancellationToken) =>
+        Provenance.SignRecordAsync(request, cancellationToken);
+
+    public Task ReportPlacementAsync(PlacementReport report, CancellationToken cancellationToken) =>
+        Provenance.ReportPlacementAsync(report, cancellationToken);
 
     public void Dispose()
     {

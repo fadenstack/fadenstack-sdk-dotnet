@@ -61,8 +61,7 @@ public sealed class ServerProvenanceBackend : IProvenanceBackend
 {
     public static ServerProvenanceBackend Instance { get; } = new();
 
-    private static Resources.AgentProvenanceResource Routes(FadenstackAgent agent) =>
-        agent.Client.Agent?.Provenance ?? throw new InvalidOperationException("The agent's client has no agent.");
+    private static IProvenanceRoutes Routes(FadenstackAgent agent) => agent.ProvenanceRoutes;
 
     public Task<ProvenancePolicy> GetPolicyAsync(FadenstackAgent agent, CancellationToken cancellationToken) =>
         Routes(agent).GetPolicyAsync(cancellationToken);

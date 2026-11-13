@@ -66,6 +66,10 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>What the agent talks to: the server, or later the person's own model endpoint (sdk/51 F02).</summary>
     internal IAgentBackend Backend => _settings.Backend;
 
+    /// <summary>The server's provenance routes, for Fadenstack.Provenance's server backend; only a server has them.</summary>
+    internal IProvenanceRoutes ProvenanceRoutes => _settings.Backend as IProvenanceRoutes
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no provenance routes.");
+
     /// <summary>The app the agent runs in, as the host described it (<see cref="AgentBuilder.DescribeApp"/>); null when it did not.</summary>
     public AppDescription? App => _settings.AppDescribed ? _settings.App : null;
 
