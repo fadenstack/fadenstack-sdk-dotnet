@@ -504,7 +504,9 @@ public sealed class AgentPairing
 
     private Uri Web(string address)
     {
-        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri))
+        // A path is a page of the server's own. Checked first: on macOS and Linux "/pair" parses as an absolute file: URI.
+        var path = address.StartsWith("/", StringComparison.Ordinal) && !address.StartsWith("//", StringComparison.Ordinal);
+        if (path || !Uri.TryCreate(address, UriKind.Absolute, out var uri))
         {
             uri = new Uri(_server, address);
         }

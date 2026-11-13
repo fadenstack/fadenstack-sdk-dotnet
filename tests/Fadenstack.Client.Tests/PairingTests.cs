@@ -138,6 +138,20 @@ public class PairingTests
         Assert.Equal("https://faden.test/pair", start.VerificationUri.AbsoluteUri);
     }
 
+    [Theory]
+    [InlineData("//elsewhere.example/pair")]
+    [InlineData("file:///pair")]
+    public async Task A_sign_in_page_that_is_not_a_web_page_of_the_server_is_refused_on_every_system(string page)
+    {
+        var rig = new Rig();
+        rig.Server.Json("POST", "/api/agent-tokens/pairings", new
+        {
+            pairing_code = Pairing, user_code = "BDWP-HTQX", verification_uri = page, expires_in = 600, interval = 5,
+        }, HttpStatusCode.Created);
+
+        await Assert.ThrowsAsync<FadenstackException>(() => rig.Pairing().StartAsync(Agent, "PC", App));
+    }
+
     [Fact]
     public async Task The_pairing_code_is_not_in_the_start_object_the_text_or_the_log()
     {
