@@ -66,11 +66,9 @@ public sealed class FadenstackTransport : IDisposable
                 token = await _tokens.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
+            // The whole request, or for a stream the wait for its headers; a stream's body has its own idle timeout.
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            if (completion == HttpCompletionOption.ResponseContentRead)
-            {
-                timeout.CancelAfter(Timeout);
-            }
+            timeout.CancelAfter(Timeout);
             var (method, route) = (request.Method.Method, RouteTemplate.Of(request.RequestUri!));
             using var activity = FadenstackTelemetry.Client.StartActivity("HTTP " + method, ActivityKind.Client);
             activity?.SetTag("http.request.method", method);
@@ -81,6 +79,7 @@ public sealed class FadenstackTransport : IDisposable
             try
             {
                 response = await _http.SendAsync(request, completion, timeout.Token).ConfigureAwait(false);
+                timeout.CancelAfter(System.Threading.Timeout.InfiniteTimeSpan); // the headers are in: a stream reads on
             }
             catch (TaskCanceledException e) when (!cancellationToken.IsCancellationRequested)
             {

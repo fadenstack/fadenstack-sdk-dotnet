@@ -91,7 +91,9 @@ public sealed class FadenstackChatClient : IChatClient
             }
             yield break;
         }
-        using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        // A read on a dead connection cannot be cancelled: the watchdog gives the stream up when it stays silent.
+        using var stream = new IdleTimeoutStream(await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+            _options.StreamIdleTimeout);
         using var closeOnCancel = cancellationToken.Register(() => stream.Dispose());
         var assembler = new StreamAssembler(_log);
         await foreach (var sse in SseReader.ReadAsync(stream, cancellationToken).ConfigureAwait(false))
