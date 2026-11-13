@@ -116,7 +116,10 @@ public sealed class FadenstackTransport : IDisposable
         Log.RequestFailed(_log, method, route, type, watch.ElapsedMilliseconds, attempt);
     }
 
-    /// <summary>JSON in, JSON out; errors as typed exceptions.</summary>
+    /// <summary>
+    /// JSON in, JSON out; errors as typed exceptions. The answer is required: an empty one or JSON <c>null</c> is a
+    /// <see cref="FadenstackException"/> naming the route. With <c>bool</c> as <typeparamref name="T"/> the body is not read.
+    /// </summary>
     public async Task<T> SendJsonAsync<T>(HttpMethod method, Uri url, object? body, CancellationToken cancellationToken) =>
         (await SendJsonAsync<T>(method, url, body, null, cancellationToken).ConfigureAwait(false)).Value;
 
@@ -135,11 +138,25 @@ public sealed class FadenstackTransport : IDisposable
             throw ErrorReader.ToException(response, text);
         }
         var value = header is null ? null : HeaderValue(response, header);
-        if (typeof(T) == typeof(bool) || string.IsNullOrWhiteSpace(text))
+        return (Answer<T>(text, method, url), value);
+    }
+
+    /// <summary>
+    /// The answer as <typeparamref name="T"/>: a value, or a <see cref="FadenstackException"/> naming the route when the
+    /// server sent nothing or JSON <c>null</c> -- never a null behind a non-null type. <c>bool</c> means "no body expected".
+    /// </summary>
+    private static T Answer<T>(string text, HttpMethod method, Uri url)
+    {
+        if (typeof(T) == typeof(bool))
         {
-            return (default!, value);
+            return default!;
         }
-        return (JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!, value);
+        var answer = string.IsNullOrWhiteSpace(text) ? default : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options);
+        if (answer is null || answer is JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined })
+        {
+            throw new FadenstackException($"The server sent no answer to {method.Method} {RouteTemplate.Of(url)}.");
+        }
+        return answer;
     }
 
     /// <summary>A response header's values, joined by commas, from the headers or the content's headers; null when absent.</summary>
@@ -172,7 +189,7 @@ public sealed class FadenstackTransport : IDisposable
         {
             throw ErrorReader.ToException(response, text);
         }
-        return string.IsNullOrWhiteSpace(text) ? default! : JsonSerializer.Deserialize<T>(text, FadenstackJson.Options)!;
+        return Answer<T>(text, HttpMethod.Post, url);
     }
 
     public Task<T> PutAsync<T>(Uri url, object? body, CancellationToken cancellationToken = default) =>
