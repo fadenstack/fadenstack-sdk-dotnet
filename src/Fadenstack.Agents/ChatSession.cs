@@ -827,7 +827,7 @@ public sealed class ChatSession
             {
                 throw new InvalidOperationException("Approval limits changed. Review a new host call.");
             }
-            var checkedAgain = await Agent.Client.Agent!.CheckHostToolAsync(
+            var checkedAgain = await Agent.Backend.CheckHostToolAsync(
                 CheckOf(invocation.Tool, policy.InputJson, HostToolOrigin.ModelTool, invocation.Call.CallId, HostToolPhase.Dispatch, policy.Decision),
                 cancellationToken).ConfigureAwait(false);
             if (HostCommands.Drifted(policy.Decision, checkedAgain, Agent.Profile.Principal))
@@ -862,8 +862,8 @@ public sealed class ChatSession
                 throw new InvalidOperationException(invalid);
             }
             var origin = _command!.Value;
-            var resource = Agent.Client.Agent!;
-            var prepared = await resource.CheckHostToolAsync(
+            var checks = Agent.Backend;
+            var prepared = await checks.CheckHostToolAsync(
                 CheckOf(tool, serialized, origin, null, HostToolPhase.Prepare, null), cancellationToken).ConfigureAwait(false);
             if (Agent.Profile.Principal is not { } principal || prepared.Principal != principal)
             {
@@ -908,7 +908,7 @@ public sealed class ChatSession
             {
                 throw new InvalidOperationException("The command changed after review.");
             }
-            var dispatched = await resource.CheckHostToolAsync(
+            var dispatched = await checks.CheckHostToolAsync(
                 CheckOf(tool, serialized, origin, null, HostToolPhase.Dispatch, prepared), cancellationToken).ConfigureAwait(false);
             if (HostCommands.Drifted(prepared, dispatched, principal))
             {
@@ -1347,7 +1347,7 @@ public sealed class ChatSession
             }
             // The gateway's own wait takes once, chat or always: an answer that also made a grant approves this call once.
             var scope = settled.Scope == ApprovalScopes.Grant ? ApprovalScopes.Once : settled.Scope;
-            await Agent.Client.Agent!.AnswerApprovalAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
+            await Agent.Backend.AnswerApprovalAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
@@ -1510,7 +1510,7 @@ public sealed class ChatSession
                 {
                     await Agent.RefreshPolicyAsync(cancellationToken).ConfigureAwait(false);
                     var inputJson = CommandJson.Of(arguments);
-                    var prepared = await Agent.Client.Agent!.CheckHostToolAsync(
+                    var prepared = await Agent.Backend.CheckHostToolAsync(
                         CheckOf(tool, inputJson, HostToolOrigin.ModelTool, call.CallId, HostToolPhase.Prepare, null), cancellationToken).ConfigureAwait(false);
                     if (Agent.Profile.Principal is not { } principal || prepared.Principal != principal)
                     {
