@@ -300,4 +300,54 @@ public class PairingSeveralAgentsTests
         Assert.DoesNotContain(rig.Logs.Texts, t => t.Contains(PairingCode) || t.Contains("SECRET") || t.Contains("BDWP"));
         Assert.DoesNotContain(PairingCode, start.ToString());
     }
+
+    // ---- the first agent refused (sdk/51 I00 #8, I-11) -----------------------------------------------------------
+
+    [Fact]
+    public async Task The_first_agent_refused_while_another_was_approved_is_reported_refused_not_expired()
+    {
+        // The person approved only the second and third agents. The server answers invalid_grant for the first, as it
+        // would for a code it does not know; another agent of the pairing tells the two apart.
+        var rig = new Rig(Suite) { Token = agent => agent == Suite[0] ? InvalidGrant() : FakeServer.Respond(HttpStatusCode.Created, Tokens(agent)) };
+        var pairing = rig.Pairing();
+        var start = await pairing.StartAsync(Suite[0], "PC", App, Suite.Skip(1));
+
+        var refused = await Assert.ThrowsAsync<FadenstackPairingAgentException>(() => pairing.WaitAsync(start));
+
+        Assert.Equal(Suite[0], refused.Agent);
+        Assert.Contains("approve", refused.Message);
+        Assert.Null(await rig.Store.LoadAsync(KeyOf(Suite[0])));
+        Assert.NotNull(await rig.Store.LoadAsync(KeyOf(Suite[1]))); // the approved agent that told them apart is signed in
+        Assert.Equal(new[] { Suite[0], Suite[2] }, start.AgentsLeft);
+        Assert.NotNull(await pairing.RedeemAsync(start, Suite[2])); // and the rest are collected as usual
+        Assert.DoesNotContain(rig.Logs.Texts, t => t.Contains(PairingCode));
+    }
+
+    [Fact]
+    public async Task The_first_agent_and_every_other_answering_invalid_grant_is_a_code_the_server_does_not_know()
+    {
+        var rig = new Rig(Suite) { Token = _ => InvalidGrant() };
+        var pairing = rig.Pairing();
+        var start = await pairing.StartAsync(Suite[0], "PC", App, Suite.Skip(1));
+
+        await Assert.ThrowsAsync<FadenstackPairingExpiredException>(() => pairing.WaitAsync(start));
+
+        Assert.Equal(Suite, start.AgentsLeft);
+        foreach (var agent in Suite)
+        {
+            Assert.Null(await rig.Store.LoadAsync(KeyOf(agent)));
+        }
+    }
+
+    [Fact]
+    public async Task An_older_server_that_stores_one_agent_reads_invalid_grant_as_before_and_asks_no_other_agent()
+    {
+        var rig = new Rig(null) { Token = _ => InvalidGrant() };
+        var pairing = rig.Pairing();
+        var start = await pairing.StartAsync(Suite[0], "PC", App, Suite.Skip(1));
+
+        await Assert.ThrowsAsync<FadenstackPairingExpiredException>(() => pairing.WaitAsync(start));
+
+        Assert.Single(rig.TokenRequests);
+    }
 }
