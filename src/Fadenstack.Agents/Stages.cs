@@ -28,7 +28,7 @@ public sealed class ToolInvocation
 
     internal ToolInvocation(AgentTool tool, FunctionCallContent call, AIFunctionArguments arguments, string sessionId, string turnId,
         FadenstackAgent? agent = null, Func<string, object, Task>? record = null, Func<Governance.GovernanceNotice, Task>? notice = null,
-        AgentSession? session = null)
+        ChatSession? session = null)
     {
         Tool = tool;
         Call = call;
@@ -61,7 +61,7 @@ public sealed class ToolInvocation
     public FadenstackAgent? Agent { get; }
 
     /// <summary>The session the call belongs to; null outside a session.</summary>
-    public AgentSession? Session { get; }
+    public ChatSession? Session { get; }
 
     /// <summary>A tool service of this call (<see cref="AgentBuilder.AddToolService{T}"/>): the same instance the tool gets; null when none is added.</summary>
     public T? GetService<T>() where T : class => Arguments.Services?.GetService(typeof(T)) as T;

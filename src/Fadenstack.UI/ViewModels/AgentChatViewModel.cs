@@ -30,7 +30,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private readonly object _reasoningKey = new();
     private readonly Dictionary<string, PendingApproval> _waitingForEvent = new();
     private readonly HashSet<string> _eventsWithoutRequest = new();
-    private AgentSession? _session;
+    private ChatSession? _session;
     private CancellationTokenSource? _stop;
     private bool _isWaitingForSlot;
     private TurnViewModel? _current;
@@ -354,10 +354,10 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// The session this chat shows; null before its first message and after "new chat". A host that offers a grant in this
-    /// chat (<see cref="AgentSession.OfferWorkAsync"/>, <see cref="AgentSession.StartBypassAsync"/>) uses this one, so the card
+    /// chat (<see cref="ChatSession.OfferWorkAsync"/>, <see cref="ChatSession.StartBypassAsync"/>) uses this one, so the card
     /// lands in this chat and the grant belongs to its conversation.
     /// </summary>
-    public AgentSession? Session => _session;
+    public ChatSession? Session => _session;
 
     /// <summary>The composer's text; a <c>$</c> at its end (or <c>/</c> as the whole of it) opens the skill picker, narrowed by what follows.</summary>
     public string Input
@@ -484,7 +484,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         _bypassAsk?.Cancel();
         var ask = _bypassAsk = new CancellationTokenSource();
-        AgentSession? made = null;
+        ChatSession? made = null;
         try
         {
             if (_session is null)
@@ -829,7 +829,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Starts a host tool the person chose (a button, a view of a module) in this chat: shown as a turn with its label, checked
     /// by the server and approved through the same cards as a model's call, run without a model request
-    /// (<see cref="AgentSession.InvokeToolAsync"/>). The host's <see cref="AgentChatOptions.BeforeCommand"/> runs first. The
+    /// (<see cref="ChatSession.InvokeToolAsync"/>). The host's <see cref="AgentChatOptions.BeforeCommand"/> runs first. The
     /// composer's draft and attachments are left alone, and the chat is busy until it ends (Stop cancels it). The arguments are
     /// copied before anything is awaited. Null when nothing was started: the chat is not ready or busy, or
     /// <see cref="AgentChatOptions.BeforeCommand"/> threw (<see cref="Error"/> says why); a bad <see cref="ChatCommandOptions.Label"/>
@@ -1211,7 +1211,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>A conversation made for a confirmation that came to nothing: gone again, as if never asked.</summary>
-    private async Task ForgetAsync(AgentSession made)
+    private async Task ForgetAsync(ChatSession made)
     {
         _session = null;
         OnPropertyChanged(nameof(CurrentSessionId));

@@ -20,6 +20,8 @@ this file says where it does.
 
 ### Changed
 
+- **Breaking:** `AgentSession` is now `ChatSession`. The Microsoft Agent Framework has an `AgentSession` of its own, and
+  the agent becomes an `AIAgent` in this release; only the name changes.
 - **Breaking:** `MarkableContent.Texts`, `ProvenanceOptions.UseTexts` and `HtmlAttributeMarker.Title` take
   `ProvenanceTexts` instead of `UiStrings`. `Fadenstack.Provenance` no longer references `Fadenstack.UI`.
 - **Breaking:** a typed answer (`FadenstackTransport.GetAsync<T>` and the other typed calls) that is empty or JSON

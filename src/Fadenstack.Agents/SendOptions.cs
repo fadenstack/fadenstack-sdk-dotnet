@@ -1,6 +1,6 @@
 namespace Fadenstack.Agents;
 
-/// <summary>What goes with a message besides its text (<see cref="AgentSession.SendAsync(string, SendOptions, CancellationToken)"/>).</summary>
+/// <summary>What goes with a message besides its text (<see cref="ChatSession.SendAsync(string, SendOptions, CancellationToken)"/>).</summary>
 public sealed record SendOptions
 {
     /// <summary>Context the user attached (a selection, a range, a picture).</summary>

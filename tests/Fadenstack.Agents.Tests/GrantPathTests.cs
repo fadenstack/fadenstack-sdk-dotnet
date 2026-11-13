@@ -67,7 +67,7 @@ public sealed class GrantPathTests : IDisposable
     private static string Comment(string path) => JsonSerializer.Serialize(new { page = 1, text = path });
 
     /// <summary>A work grant on <paramref name="folder"/>, and one covered call per path, each in its own turn.</summary>
-    private static async Task<(List<ApprovalRequest> Asked, PageTools Tools, AgentSession Session)> RunAsync(string folder, params string[] paths)
+    private static async Task<(List<ApprovalRequest> Asked, PageTools Tools, ChatSession Session)> RunAsync(string folder, params string[] paths)
     {
         var gateway = new Gateway(contract: Contract);
         var grants = gateway.UseGrants();

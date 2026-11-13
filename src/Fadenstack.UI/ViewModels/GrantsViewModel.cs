@@ -50,7 +50,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     private readonly ApprovalBroker _broker;
     private readonly IUiDispatcher _dispatcher;
     private readonly Action _stopTurn;
-    private readonly Func<AgentSession?> _session;
+    private readonly Func<ChatSession?> _session;
     private readonly Func<Task>? _switchOnAgain;
     private readonly Timer _tick;
     private UiStrings _strings;
@@ -67,7 +67,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     private DateTimeOffset _lastRefresh = DateTimeOffset.MinValue;
 
     internal GrantsViewModel(FadenstackAgent agent, ApprovalBroker broker, IUiDispatcher dispatcher, UiStrings strings, Action stopTurn,
-        Func<AgentSession?>? session = null, Func<Task>? switchOnAgain = null)
+        Func<ChatSession?>? session = null, Func<Task>? switchOnAgain = null)
     {
         _agent = agent;
         _broker = broker;
@@ -255,7 +255,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
     /// card waits for the server and says when it gives no acknowledgement (L-59). True once the server confirmed it;
     /// false when declined, not offered, or not confirmed. An error with no card to say it on is returned.
     /// </summary>
-    internal async Task<(bool On, Exception? Unsaid)> StartBypassAsync(AgentSession session, CancellationToken cancellationToken)
+    internal async Task<(bool On, Exception? Unsaid)> StartBypassAsync(ChatSession session, CancellationToken cancellationToken)
     {
         BypassCard = null;
         SetBypassEnded(false, null);

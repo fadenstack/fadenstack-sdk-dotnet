@@ -84,8 +84,8 @@ public sealed class ApprovalBroker : IApprovalHandler, IGrantHandler, IStepUpHan
     public void Report(StepUpRequest request, StepUpStage stage) => StepUpChanged?.Invoke(request, stage);
 
     /// <summary>
-    /// A grant card to show (<see cref="AgentSession.OfferWorkAsync"/>, an extension), or the Bypass confirmation
-    /// (<see cref="GrantOffer.Bypass"/>, <see cref="AgentSession.StartBypassAsync"/>), which the chat of its conversation
+    /// A grant card to show (<see cref="ChatSession.OfferWorkAsync"/>, an extension), or the Bypass confirmation
+    /// (<see cref="GrantOffer.Bypass"/>, <see cref="ChatSession.StartBypassAsync"/>), which the chat of its conversation
     /// draws.
     /// </summary>
     public event Action<PendingGrant>? GrantRequested;

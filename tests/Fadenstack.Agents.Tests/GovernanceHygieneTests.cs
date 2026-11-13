@@ -13,7 +13,7 @@ namespace Fadenstack.Agents.Tests;
 /// </summary>
 public class GovernanceHygieneTests
 {
-    private static List<(string? Id, string? Outcome)> Completed(AgentSession session) =>
+    private static List<(string? Id, string? Outcome)> Completed(ChatSession session) =>
         session.Transcript.Where(e => e.Type == EntryTypes.ToolComplete)
             .Select(e => (ApprovalTests.Str(e.Data, "call_id"), ApprovalTests.Str(e.Data, "outcome"))).ToList();
 
@@ -160,7 +160,7 @@ public class GovernanceHygieneTests
         Assert.Equal(expected, agent.Ceiling);
     }
 
-    private static async Task<(PageTools Tools, List<ApprovalRequest> Asked, AgentSession Session)> RunWithMode(string tool, ToolMode start, object mode)
+    private static async Task<(PageTools Tools, List<ApprovalRequest> Asked, ChatSession Session)> RunWithMode(string tool, ToolMode start, object mode)
     {
         var gateway = new Gateway()
             .Then(Gateway.Custom("faden.tool_mode", mode), Gateway.ToolCalls(("call-1", tool, tool == "read_page" ? """{"page":1}""" : """{"page":1,"text":"x"}""")),

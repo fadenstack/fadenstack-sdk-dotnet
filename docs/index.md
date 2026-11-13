@@ -124,7 +124,7 @@ public sealed class PageTools
 | `Fadenstack.Tools` | `ToolClass`, `ToolMode`, `ToolModes`, `EditKind` |
 | `Fadenstack.Models`, `Fadenstack.Resources` | The profile, manifest and server records; the REST resources |
 | `Fadenstack.Http` | `FadenstackTransport`, `FadenstackJson` |
-| `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `AgentSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
+| `Fadenstack.Agents` | `FadenstackAgent`, `AgentBuilder`, `ChatSession`, the events, `AgentResult`, `AgentToolAttribute`, approvals, stages, `IFadenstackModule` |
 | `Fadenstack.Agents.Sessions` | `ISessionStore`, `FileSessionStore`, `MemorySessionStore`, `SessionRetention`, `TranscriptEntry` |
 | `Fadenstack.Agents.Registry` | `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence`, `AgentStatus`, `IProcessSource`, `SystemProcessSource` |
 | `Fadenstack.Secrets` | `FadenstackSecrets` |

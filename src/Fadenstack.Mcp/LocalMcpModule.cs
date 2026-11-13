@@ -63,7 +63,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDi
     private readonly object _gate = new();
     private readonly SemaphoreSlim _lifecycle = new(1, 1);
     private readonly List<ServerEntry> _entries = new();
-    private readonly ConditionalWeakTable<AgentSession, ConversationScope> _scopes = new();
+    private readonly ConditionalWeakTable<ChatSession, ConversationScope> _scopes = new();
     private readonly Scope _scope;
     private AgentContext? _context;
     private string _announced = "";
@@ -807,7 +807,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDi
     // ---- find_tool and the conversation's scope ---------------------------------------------------------------------------
 
     /// <summary>Runs a search for <c>find_tool</c>: switches the best matches on in the conversation and lists them.</summary>
-    private string Find(AgentSession? session, string query)
+    private string Find(ChatSession? session, string query)
     {
         if (session is null)
         {
@@ -837,7 +837,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDi
 
         public Scope(LocalMcpModule module) => _module = module;
 
-        public bool Offers(AgentTool tool, AgentSession session)
+        public bool Offers(AgentTool tool, ChatSession session)
         {
             if (tool.Function is FindToolFunction)
             {
@@ -850,7 +850,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDi
             return _module._scopes.TryGetValue(session, out var scope) && scope.IsOn(current);
         }
 
-        public string? BeforeCall(AgentTool tool, AgentSession session)
+        public string? BeforeCall(AgentTool tool, ChatSession session)
         {
             if (tool.Function is not McpFunction function)
             {

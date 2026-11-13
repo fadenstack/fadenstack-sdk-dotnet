@@ -114,13 +114,13 @@ public sealed record ToolOutput
 public interface IToolScope
 {
     /// <summary>Whether the model is offered <paramref name="tool"/> in <paramref name="session"/> now.</summary>
-    bool Offers(AgentTool tool, AgentSession session);
+    bool Offers(AgentTool tool, ChatSession session);
 
     /// <summary>
     /// Called before a call of <paramref name="tool"/> is approved or run. Returns the text that answers the call instead (the tool
     /// was not in scope and is now), or null to run it.
     /// </summary>
-    string? BeforeCall(AgentTool tool, AgentSession session);
+    string? BeforeCall(AgentTool tool, ChatSession session);
 }
 
 /// <summary>A tool the agent can run: the function, what it does, and where it runs.</summary>

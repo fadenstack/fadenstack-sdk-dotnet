@@ -218,7 +218,7 @@ public class BypassStepUpTests
         await session.SendAsync("Three.");
 
         var asked = gateway.Server.Requests.Where(r => r.Path.EndsWith("/chat/completions")).ToList();
-        Assert.Equal(new[] { false, true, false }, asked.Select(r => Mentions(r, AgentSession.BypassEndedNote)));
+        Assert.Equal(new[] { false, true, false }, asked.Select(r => Mentions(r, ChatSession.BypassEndedNote)));
     }
 
     private static bool Mentions(Recorded request, string text) =>

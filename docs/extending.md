@@ -161,8 +161,8 @@ A tool source can decide, per conversation, which of its tools the model is offe
 ```csharp
 public interface IToolScope
 {
-    bool Offers(AgentTool tool, AgentSession session);
-    string? BeforeCall(AgentTool tool, AgentSession session);
+    bool Offers(AgentTool tool, ChatSession session);
+    string? BeforeCall(AgentTool tool, ChatSession session);
 }
 ```
 
@@ -176,9 +176,9 @@ public sealed class AskedForScope : IToolScope
 {
     private readonly ConcurrentDictionary<(string Session, string Tool), bool> _on = new();
 
-    public bool Offers(AgentTool tool, AgentSession session) => _on.ContainsKey((session.Id, tool.Name));
+    public bool Offers(AgentTool tool, ChatSession session) => _on.ContainsKey((session.Id, tool.Name));
 
-    public string? BeforeCall(AgentTool tool, AgentSession session) =>
+    public string? BeforeCall(AgentTool tool, ChatSession session) =>
         _on.TryAdd((session.Id, tool.Name), true)
             ? $"{tool.Name} is now switched on. Call it again with its parameters."
             : null;

@@ -19,7 +19,7 @@ namespace Fadenstack.Agents;
 /// allows, streams the answer, runs the agent's tools under the session's tool mode -- asking the user where
 /// the mode says so -- and ends with a typed outcome. Refusals are outcomes; the session goes on.
 /// </summary>
-public sealed class AgentSession
+public sealed class ChatSession
 {
     private readonly FadenstackAgent _agent;
     private readonly List<TranscriptEntry> _entries;
@@ -28,7 +28,7 @@ public sealed class AgentSession
     private readonly ContextBuilder _context;
     private ReasoningLevel? _reasoning;
 
-    internal AgentSession(FadenstackAgent agent, string id, List<TranscriptEntry> entries, ToolMode toolMode)
+    internal ChatSession(FadenstackAgent agent, string id, List<TranscriptEntry> entries, ToolMode toolMode)
     {
         _agent = agent;
         Id = id;
@@ -696,7 +696,7 @@ public sealed class AgentSession
         private string? _commandJson;
         private TimeSpan _commandWaited;
 
-        private readonly AgentSession _session;
+        private readonly ChatSession _session;
         private readonly string _id;
         private readonly ChannelWriter<AgentEvent> _writer;
         private readonly List<GovernanceNotice> _notices = new();
@@ -742,7 +742,7 @@ public sealed class AgentSession
         private readonly Dictionary<string, IReadOnlyList<DataContent>> _pictures = new();
         private string? _newestPicture;
 
-        public Turn(AgentSession session, string id, ChannelWriter<AgentEvent> writer)
+        public Turn(ChatSession session, string id, ChannelWriter<AgentEvent> writer)
         {
             _session = session;
             _id = id;

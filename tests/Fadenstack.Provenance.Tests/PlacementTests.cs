@@ -18,10 +18,10 @@ public class PlacementTests
     private static Gateway NewGateway(string? policy = """{"on_missing":"record","short_text_tokens":200}""") =>
         new(contract: WritingTools.Contract, userLanguage: "en", provenancePolicy: policy);
 
-    private static List<JsonElement> Entries(AgentSession session, string type) =>
+    private static List<JsonElement> Entries(ChatSession session, string type) =>
         session.Transcript.Where(e => e.Type == type).Select(e => e.Data).ToList();
 
-    private static async Task<(AgentSession Session, AgentResult Result)> RunAsync(FadenstackAgent agent, string message = "Answer the customer.")
+    private static async Task<(ChatSession Session, AgentResult Result)> RunAsync(FadenstackAgent agent, string message = "Answer the customer.")
     {
         var session = await agent.StartSessionAsync(ToolMode.Auto);
         var result = await session.SendAsync(message);
