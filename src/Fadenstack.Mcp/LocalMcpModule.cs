@@ -41,10 +41,10 @@ public sealed record SkippedMcpServer(string Label, string Reason, Exception? Er
 /// sampling: a server cannot use the model.
 /// </para>
 /// </summary>
-public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, IDisposable
+public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICoreToolSource, IDisposable
 {
     /// <summary>The name of the tool that finds the other tools.</summary>
-    public const string FindToolName = "find_tool";
+    public const string FindToolName = AgentTool.ToolSearchName;
 
     /// <summary>The most local tools in scope in one conversation; a new pick pushes out the least recently used.</summary>
     public const int MaxToolsInScope = 10;

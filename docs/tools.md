@@ -39,6 +39,8 @@ The rules:
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.
 
+One name is the SDK's: `find_tool` (`AgentTool.ToolSearchName`), the local MCP module's tool search, which a Fadenstack gateway takes as read. `AddTool` and `AddTools` refuse a tool of that name (`ArgumentException`), and a tool source of the app's that brings one has it left out (logged, event 2016).
+
 A tool can say what a call acts on, for the approval card: `AddTool(new AgentTool(function, ToolClass.Destructive) { Describe = (args, ct) => ... })`, returning text such as `button "Send" on mail.example.com`. The agent calls it only when it asks the user, and the card shows it above the arguments (`ApprovalRequest.Target`), since `ref: e12` tells the user little. Null, empty, an exception or no answer within 3 seconds leaves the card with the arguments.
 
 ## Parameters and return values

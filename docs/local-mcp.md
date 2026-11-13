@@ -78,9 +78,10 @@ The model calls `find_tool` with a few words about what it needs (`query`). The 
 - A tool the model calls by name without having found it is switched on, and the call is answered "(name) is now switched on. Call it again with its parameters." instead of running.
 - A tool that went away is answered "(name) is no longer available." A tool whose definition changed since the model found it is switched off, and the model is told to search again.
 - `find_tool` itself has the class `Read`. It only switches tools on for the conversation; the tools it finds ask as described below.
-  Without a server (standalone) it runs without asking. Under a Fadenstack server it asks too: the gateway holds `unknown` for
-  every tool outside the agent's published host tool contract, the module's tools never are in it, and the SDK never takes a
-  tool looser than the gateway does. So a local tool takes two approvals there: the search, then the tool.
+  It runs without asking, standalone and under a Fadenstack server: from 0.7.1 the gateway takes `find_tool` as read unless an
+  admin's rule or the agent's contract says otherwise (an older gateway holds it `unknown`, and it asks there). The name is the
+  SDK's (`AgentTool.ToolSearchName`): an app's tool cannot take it, so that word reaches no tool with side effects. The tools it
+  finds ask on their own calls, every time.
 
 The list of found tools is fenced as untrusted data, like every result of these servers. What is switched on belongs to one conversation: another chat starts without it.
 

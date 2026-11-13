@@ -70,7 +70,10 @@ public sealed class AgentBuilder
     /// <summary>The public methods of <paramref name="target"/> marked <see cref="AgentToolAttribute"/>.</summary>
     public AgentBuilder AddTools(object target)
     {
-        _tools.AddRange(AgentTool.From(target));
+        foreach (var tool in AgentTool.From(target))
+        {
+            Add(tool);
+        }
         return this;
     }
 
@@ -79,14 +82,25 @@ public sealed class AgentBuilder
     /// <summary>A function as a host tool. Without a class it is <see cref="ToolClass.Unknown"/> and always asks.</summary>
     public AgentBuilder AddTool(AIFunction function, ToolClass toolClass = ToolClass.Unknown)
     {
-        _tools.Add(new AgentTool(function, toolClass));
+        Add(new AgentTool(function, toolClass));
         return this;
     }
 
     public AgentBuilder AddTool(AgentTool tool)
     {
-        _tools.Add(tool ?? throw new ArgumentNullException(nameof(tool)));
+        Add(tool ?? throw new ArgumentNullException(nameof(tool)));
         return this;
+    }
+
+    /// <summary>An app's tool: never under a name the SDK keeps for itself (<see cref="AgentTool.ToolSearchName"/>).</summary>
+    private void Add(AgentTool tool)
+    {
+        if (AgentTool.IsReserved(tool.Name))
+        {
+            throw new ArgumentException(
+                $"'{tool.Name}' is the SDK's own tool search, so an app's tool cannot take the name: name it differently.", nameof(tool));
+        }
+        _tools.Add(tool);
     }
 
     public AgentBuilder AddToolSource(IToolSource source)
