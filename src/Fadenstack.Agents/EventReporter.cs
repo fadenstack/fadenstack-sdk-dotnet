@@ -9,14 +9,14 @@ namespace Fadenstack.Agents;
 internal sealed class EventReporter
 {
     private const int Batch = 100; // the server takes at most 100 per request
-    private readonly FadenstackClient _client;
+    private readonly IEventSink _sink;
     private readonly bool _enabled;
     private readonly List<AgentClientEvent> _pending = new();
 
-    public EventReporter(FadenstackClient client, bool enabled)
+    public EventReporter(IEventSink sink, bool enabled)
     {
-        _client = client;
-        _enabled = enabled && client.Agent is not null;
+        _sink = sink;
+        _enabled = enabled && sink.AcceptsEvents;
     }
 
     /// <summary>The last report that failed, for diagnostics.</summary>
@@ -58,7 +58,7 @@ internal sealed class EventReporter
     {
         try
         {
-            await _client.Agent!.ReportAsync(events, cancellationToken).ConfigureAwait(false);
+            await _sink.ReportAsync(events, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {

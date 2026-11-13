@@ -39,7 +39,7 @@ public sealed class FadenstackAgent : IDisposable
     internal FadenstackAgent(AgentSettings settings)
     {
         _settings = settings;
-        Reporter = new EventReporter(Client, settings.Report);
+        Reporter = new EventReporter(settings.Backend, settings.Report);
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
     }
@@ -510,7 +510,7 @@ public sealed class FadenstackAgent : IDisposable
         };
         try
         {
-            await Client.Agent!.ReportManifestAsync(manifest).ConfigureAwait(false);
+            await Backend.ReportManifestAsync(manifest, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception)
         {
