@@ -215,7 +215,16 @@ public static class SecretProtection
 #if NET
                 File.Move(temporary, target, overwrite: true); // rename(2) on macOS and Linux; MoveFileEx on Windows
 #else
-                if (File.Exists(target))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // The atomic rename .NET 8's File.Move(..., overwrite: true) makes: a reader that shares delete is never
+                    // held up and never finds the file gone. File.Replace (ReplaceFile) holds the target while it swaps.
+                    if (!MoveFileEx(temporary, target, MoveFileReplaceExisting | MoveFileWriteThrough))
+                    {
+                        throw new IOException($"The file could not be replaced (Windows error {Marshal.GetLastWin32Error()}).");
+                    }
+                }
+                else if (File.Exists(target))
                 {
                     File.Replace(temporary, target, destinationBackupFileName: null, ignoreMetadataErrors: true);
                 }
@@ -312,4 +321,12 @@ public static class SecretProtection
 
     [DllImport("libc", SetLastError = true)]
     private static extern int chmod(string path, int mode);
+
+#if !NET
+    private const uint MoveFileReplaceExisting = 0x1;
+    private const uint MoveFileWriteThrough = 0x8;
+
+    [DllImport("kernel32.dll", EntryPoint = "MoveFileExW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool MoveFileEx(string existingFileName, string newFileName, uint flags);
+#endif
 }
