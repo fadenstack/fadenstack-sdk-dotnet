@@ -43,7 +43,7 @@ public sealed class FadenstackChatClient : IChatClient
         var body = ChatWire.Request(messages, options, Model(options), stream: false).ToJsonString();
         using var response = await _transport.SendAsync(() => Build(body, options),
             HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var text = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             return Refused(response, text) ?? throw ErrorReader.ToException(response, text);
@@ -83,7 +83,7 @@ public sealed class FadenstackChatClient : IChatClient
             HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            var error = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var error = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
             var refused = Refused(response, error) ?? throw ErrorReader.ToException(response, error);
             foreach (var update in refused.ToChatResponseUpdates())
             {
@@ -92,7 +92,7 @@ public sealed class FadenstackChatClient : IChatClient
             yield break;
         }
         // A read on a dead connection cannot be cancelled: the watchdog gives the stream up when it stays silent.
-        using var stream = new IdleTimeoutStream(await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
+        using var stream = new IdleTimeoutStream(response.Content is null ? Stream.Null : await response.Content.ReadAsStreamAsync().ConfigureAwait(false),
             _options.StreamIdleTimeout);
         using var closeOnCancel = cancellationToken.Register(() => stream.Dispose());
         var assembler = new StreamAssembler(_log);

@@ -99,6 +99,7 @@ public sealed class SecretFileTests : IDisposable
         Assert.DoesNotContain(Path.DirectorySeparatorChar.ToString(), error.Message);
     }
 
+#if NET
     [Fact]
     public void On_macOS_and_Linux_the_file_is_the_owners_only()
     {
@@ -111,4 +112,5 @@ public sealed class SecretFileTests : IDisposable
         SecretProtection.WriteOwnerOnly(File_, "again"u8.ToArray()); // replacing keeps it so
         Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(File_));
     }
+#endif
 }

@@ -145,10 +145,12 @@ public class AuthTests
         Assert.Equal(tokens, await new FileTokenStore(directory).LoadAsync("https://faden.test/|docs"));
         var file = Directory.GetFiles(directory).Single();
         Assert.DoesNotContain("docs", Path.GetFileName(file));
+#if NET
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(file));
         }
+#endif
         await store.DeleteAsync("https://faden.test/|docs");
         Assert.Null(await store.LoadAsync("https://faden.test/|docs"));
         Directory.Delete(directory, true);

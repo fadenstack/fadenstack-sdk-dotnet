@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Fadenstack.Client.Tests;
 using Fadenstack.Tools;
@@ -34,7 +35,7 @@ public sealed class GrantPathTests : IDisposable
         foreach (var link in Directory.EnumerateFileSystemEntries(At("granted"))
                      .Where(p => File.GetAttributes(p).HasFlag(FileAttributes.ReparsePoint)).ToList())
         {
-            if (OperatingSystem.IsWindows())
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Directory.Delete(link);
             }
@@ -51,10 +52,14 @@ public sealed class GrantPathTests : IDisposable
     /// <summary>A junction on Windows (mklink /J, no window, no rights needed), a symbolic link elsewhere.</summary>
     private static void Link(string link, string target)
     {
-        if (!OperatingSystem.IsWindows())
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+#if NET
             Directory.CreateSymbolicLink(link, target);
             return;
+#else
+            throw new PlatformNotSupportedException("The net48 tests run on Windows.");
+#endif
         }
         using var mklink = Process.Start(new ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
         {

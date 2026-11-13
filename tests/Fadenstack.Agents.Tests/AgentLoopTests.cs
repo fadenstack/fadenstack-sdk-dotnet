@@ -496,7 +496,7 @@ public class AgentLoopTests
     {
         var gateway = new Gateway().Then(_ =>
         {
-            var r = FakeServer.Respond(HttpStatusCode.TooManyRequests, new { error = new { type = "rate_limit_error", code = "rate_limit_rpm", message = "Slow down." } });
+            var r = FakeServer.Respond((HttpStatusCode)429, new { error = new { type = "rate_limit_error", code = "rate_limit_rpm", message = "Slow down." } });
             r.Headers.Add("Retry-After", "12");
             return r;
         });

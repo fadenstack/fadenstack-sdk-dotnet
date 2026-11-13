@@ -192,7 +192,7 @@ public class PairingTests
         Assert.Equal(rig.Now.AddSeconds(600), saved.AccessExpiresAt);
 
         Assert.All(progress.Seen, p => Assert.Equal(PairingState.Waiting, p.State));
-        Assert.True(progress.Seen[0].TimeLeft > progress.Seen[^1].TimeLeft);
+        Assert.True(progress.Seen[0].TimeLeft > progress.Seen.Last().TimeLeft);
 
         // a provider for the same server, agent and store is signed in, and knows who
         var provider = new AgentTokenProvider(Server, Agent, rig.Store, new HttpClient(rig.Server), () => rig.Now);
@@ -224,7 +224,7 @@ public class PairingTests
         Assert.Equal(new[] { 5, 5, 10, 10, 15 }, rig.Waits.Select(w => (int)w.TotalSeconds));
         Assert.Equal(new[] { PairingState.Waiting, PairingState.Waiting, PairingState.SlowedDown, PairingState.Waiting, PairingState.SlowedDown },
             progress.Seen.Select(p => p.State));
-        Assert.Equal(15, (int)progress.Seen[^1].Interval.TotalSeconds);
+        Assert.Equal(15, (int)progress.Seen.Last().Interval.TotalSeconds);
     }
 
     [Fact]

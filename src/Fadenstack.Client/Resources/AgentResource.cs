@@ -301,7 +301,7 @@ public sealed class AgentResource
             () => FadenstackTransport.JsonRequest(System.Net.Http.HttpMethod.Post,
                 _transport.Api("api/agent-tokens/step-ups/token"), new { step_up_code = stepUpCode }),
             System.Net.Http.HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var text = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
         if (response.IsSuccessStatusCode)
         {
             return (JsonSerializer.Deserialize<StepUpProof>(text, FadenstackJson.Options), null, null);

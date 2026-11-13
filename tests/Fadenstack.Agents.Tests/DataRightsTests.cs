@@ -198,7 +198,7 @@ public class DataRightsTests : IDisposable
         Directory.CreateDirectory(Data("users"));
         var outside = Path.Combine(_temporary, "outside");
         Directory.CreateDirectory(outside);
-        await File.WriteAllTextAsync(Path.Combine(outside, "keep.txt"), "x");
+        File.WriteAllText(Path.Combine(outside, "keep.txt"), "x");
 
         Assert.Throws<ArgumentException>(() => FadenstackPaths.DeleteUnderData(outside));
         Assert.Throws<ArgumentException>(() => FadenstackPaths.DeleteUnderData(Data("..", "outside")));

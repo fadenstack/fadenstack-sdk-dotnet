@@ -28,7 +28,9 @@ var run = new LiveCheck(
     email: Environment.GetEnvironmentVariable("FADEN_USER_EMAIL") ?? throw new ArgumentException("FADEN_USER_EMAIL"),
     password: Environment.GetEnvironmentVariable("FADEN_USER_PASSWORD") ?? throw new ArgumentException("FADEN_USER_PASSWORD"),
     data: arguments.Get("data", null) ?? Path.Combine(Path.GetTempPath(), "faden-livecheck"),
-    mcpCommand: arguments.Get("mcp", null) ?? "uvx mcp-server-time --local-timezone Europe/Berlin",
+    // Pinned: 2026.10.10 is the newest build whose handshake with the SDK's MCP client is 2025-11-25 (later ones move
+    // to 2026-07-28); unpinned, uvx took whatever was newest that day.
+    mcpCommand: arguments.Get("mcp", null) ?? "uvx mcp-server-time==2026.10.10 --local-timezone Europe/Berlin",
     thinking: !arguments.Has("no-thinking"),
     expectModel: arguments.Get("expect-model", null));
 var checks = (arguments.Get("checks", null) ?? "signin,profile,chat").Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -430,10 +432,15 @@ internal sealed class LiveCheck
         Expect(mcpTools.Count > 0 && mcpTools.All(t => t.Class == ToolClass.Unknown), "MCP tools are not unclassified");
         var session = await agent.StartSessionAsync();
         _approvals.Decide = _ => ApprovalDecision.Approve();
-        var turn = await TurnAsync(session, "Use the get_current_time tool to find out the current time in the timezone Europe/Berlin and tell me the hour.");
-        var asked = _approvals.Asked.FirstOrDefault(a => a.Source == "mcp")
+        // convert_time: only the local server has it (with get_current_time the model took the gateway's current_time). The
+        // module offers local tools on request, so the model sees find_tool and not convert_time; the prompt names the search,
+        // or the model answers that it cannot (rc10 on .22, both builds).
+        var turn = await TurnAsync(session, "Use find_tool to switch on the convert_time tool, then use convert_time to convert 14:30 from the timezone Europe/Berlin to America/New_York and tell me the result.");
+        // The server's tool itself, not find_tool, must ask and run (find_tool asks too, as unclassified).
+        var asked = _approvals.Asked.FirstOrDefault(a => a.Source == "mcp" && a.ToolName == "convert_time")
             ?? throw new CheckFailed($"the MCP tool did not ask (started: {string.Join(",", turn.Started.Select(s => $"{s.Source}:{s.Name}"))}; outcome {turn.Result?.Outcome}; {Short(turn.Text)})");
-        var done = turn.Completed.FirstOrDefault(c => c.Source == "mcp") ?? throw new CheckFailed("no MCP tool completed");
+        var done = turn.Completed.FirstOrDefault(c => c.Source == "mcp" && c.Name == "convert_time")
+            ?? throw new CheckFailed("convert_time did not complete");
         Expect(done.Outcome == "ok", $"MCP tool {done.Name}: {done.Outcome}");
         return $"'{attached.Label}' attached with {string.Join(", ", attached.Tools)}; {asked.ToolName} asked (unclassified), approved, ran "
             + $"in {done.Duration.TotalMilliseconds:0} ms; \"{Short(turn.Text)}\"";
@@ -697,7 +704,11 @@ internal sealed class LiveCheck
 
     private HttpClient Http(string? bearer = null)
     {
-        var http = new HttpClient(FadenstackTransport.CreateHandler(new FadenstackClientOptions { ServerUrl = _server, TrustedCaCertificate = _ca }));
+        // The SDK's own request timeout (5 minutes), not HttpClient's 100 s, which cut a slow model in the raw checks.
+        var http = new HttpClient(FadenstackTransport.CreateHandler(new FadenstackClientOptions { ServerUrl = _server, TrustedCaCertificate = _ca }))
+        {
+            Timeout = new FadenstackClientOptions().Timeout,
+        };
         if (bearer is not null)
         {
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearer);

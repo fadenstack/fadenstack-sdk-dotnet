@@ -103,14 +103,25 @@ public class StreamTimeoutTests
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             var read = _first.Read(buffer, offset, count);
-            return read > 0 ? read : await _closed.Task.WaitAsync(cancellationToken);
+            if (read > 0)
+            {
+                return read;
+            }
+            using (cancellationToken.Register(() => _closed.TrySetCanceled()))
+            {
+                return await _closed.Task;
+            }
         }
 
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+#if NET
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            var read = _first.Read(buffer.Span);
-            return read > 0 ? new ValueTask<int>(read) : new ValueTask<int>(_closed.Task.WaitAsync(cancellationToken));
+            var bytes = new byte[buffer.Length];
+            var read = await ReadAsync(bytes, 0, bytes.Length, cancellationToken);
+            bytes.AsSpan(0, read).CopyTo(buffer.Span);
+            return read;
         }
+#endif
 
         public override int Read(byte[] buffer, int offset, int count) => ReadAsync(buffer, offset, count).GetAwaiter().GetResult();
 
@@ -138,25 +149,33 @@ public class StreamTimeoutTests
         private byte[]? _current;
         private int _at;
 
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (_current is null || _at == _current.Length)
             {
-                if (!_events.TryDequeue(out _current))
+                if (_events.Count == 0)
                 {
                     return 0;
                 }
+                _current = _events.Dequeue();
                 _at = 0;
                 await Task.Delay(pause, cancellationToken);
             }
-            var count = Math.Min(buffer.Length, _current.Length - _at);
-            _current.AsMemory(_at, count).CopyTo(buffer);
-            _at += count;
-            return count;
+            var n = Math.Min(count, _current.Length - _at);
+            Array.Copy(_current, _at, buffer, offset, n);
+            _at += n;
+            return n;
         }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
-            ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+#if NET
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            var bytes = new byte[buffer.Length];
+            var n = await ReadAsync(bytes, 0, bytes.Length, cancellationToken);
+            bytes.AsSpan(0, n).CopyTo(buffer.Span);
+            return n;
+        }
+#endif
 
         public override int Read(byte[] buffer, int offset, int count) => ReadAsync(buffer, offset, count, default).GetAwaiter().GetResult();
 

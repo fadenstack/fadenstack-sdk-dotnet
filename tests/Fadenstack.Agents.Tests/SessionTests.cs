@@ -41,10 +41,12 @@ public class SessionTests : IDisposable
         var listed = Assert.Single(await again.ListSessionsAsync());
         Assert.Equal((session.Id, "One"), (listed.Id, listed.Title));
         var file = Directory.GetFiles(Path.Combine(_directory, Gateway.Slug)).Single();
+#if NET
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(file));
         }
+#endif
         await again.DeleteSessionAsync(session.Id);
         Assert.Empty(await again.ListSessionsAsync());
     }

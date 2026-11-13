@@ -174,7 +174,7 @@ public sealed class AttachmentsResource
             form.Add(file, "file", fileName);
             return new HttpRequestMessage(HttpMethod.Post, url) { Content = form };
         }, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
-        var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var text = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
             throw ErrorReader.ToException(response, text);

@@ -275,7 +275,7 @@ public sealed class AgentTokenProvider : ITokenProvider
             {
                 throw redirected;
             }
-            var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var text = await FadenstackTransport.TextOf(response).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 throw ErrorReader.ToException(response, text);
