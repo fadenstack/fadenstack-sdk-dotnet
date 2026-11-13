@@ -369,7 +369,9 @@ internal sealed class LiveCheck
             await agent.StartAsync();
             var session = await agent.StartSessionAsync();
             id = session.Id;
-            await TurnAsync(session, "Remember the code word PELICAN-42 for later. Just reply OK.");
+            // An everyday fact: asked to recall a "code word", the model sometimes declined as if it were a secret
+            // ("I can't recall information from earlier in the conversation"), with the history sent (rc10 on .22).
+            await TurnAsync(session, "My favourite colour is periwinkle. Just reply OK.");
             await session.CloseAsync();
         }
         // A new agent object, as after the host application restarted.
@@ -378,10 +380,13 @@ internal sealed class LiveCheck
         var listed = await again.ListSessionsAsync();
         Expect(listed.Any(s => s.Id == id), "the session is not listed");
         var reopened = await again.OpenSessionAsync(id);
-        var turn = await TurnAsync(reopened, "What was the code word I asked you to remember?");
-        Expect(turn.Text.Contains("PELICAN-42", StringComparison.OrdinalIgnoreCase), $"the reopened session forgot: \"{Short(turn.Text)}\"");
+        // The SDK's part, apart from the model's: the reopened session holds the earlier turn, so its next request carries it.
+        Expect(JsonSerializer.Serialize(reopened.Transcript).Contains("periwinkle", StringComparison.Ordinal),
+            "the reopened session has lost the earlier turn");
+        var turn = await TurnAsync(reopened, "What is my favourite colour?");
+        Expect(turn.Text.Contains("periwinkle", StringComparison.OrdinalIgnoreCase), $"the reopened session forgot: \"{Short(turn.Text)}\"");
         var files = Directory.GetFiles(Path.Combine(_data, "sessions"), "*", SearchOption.AllDirectories);
-        var plain = files.Any(f => File.ReadAllText(f).Contains("PELICAN", StringComparison.Ordinal));
+        var plain = files.Any(f => File.ReadAllText(f).Contains("periwinkle", StringComparison.Ordinal));
         Expect(!plain, "the transcript is stored in plain text");
         return $"{listed.Count} session(s) on the device; reopened {id} and the model remembered; {files.Length} transcript file(s), encrypted";
     }
