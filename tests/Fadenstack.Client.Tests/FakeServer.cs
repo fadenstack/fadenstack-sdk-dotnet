@@ -58,7 +58,7 @@ public sealed class FakeServer : HttpMessageHandler
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken);
+        var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync();
         var recorded = new Recorded(request.Method.Method, request.RequestUri!.AbsolutePath, request.RequestUri.Query,
             request.Headers.ToDictionary(h => h.Key.ToLowerInvariant(), h => string.Join(",", h.Value)), body);
         Requests.Add(recorded);
@@ -76,8 +76,8 @@ public sealed record Recorded(string Method, string Path, string Query, Dictiona
     public string? Header(string name) => Headers.TryGetValue(name.ToLowerInvariant(), out var v) ? v : null;
 
     /// <summary>A query parameter, decoded; null when the request has none of that name.</summary>
-    public string? QueryValue(string name) => Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
-        .Select(p => p.Split('=', 2))
+    public string? QueryValue(string name) => Query.TrimStart('?').Split(new[] { '&' }, StringSplitOptions.RemoveEmptyEntries)
+        .Select(p => p.Split(new[] { '=' }, 2))
         .Where(p => Uri.UnescapeDataString(p[0]) == name)
         .Select(p => p.Length > 1 ? Uri.UnescapeDataString(p[1].Replace('+', ' ')) : "")
         .FirstOrDefault();

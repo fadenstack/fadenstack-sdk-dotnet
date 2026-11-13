@@ -118,7 +118,7 @@ public sealed class TokenRenewalAcrossProcessesTests : IDisposable
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.Equal("/api/agent-tokens/refresh", request.RequestUri!.AbsolutePath);
-            var presented = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))
+            var presented = JsonDocument.Parse(await request.Content!.ReadAsStringAsync())
                 .RootElement.GetProperty("refresh_token").GetString();
             await Task.Delay(_takes, cancellationToken); // long enough for the other process to try meanwhile
             lock (_gate)

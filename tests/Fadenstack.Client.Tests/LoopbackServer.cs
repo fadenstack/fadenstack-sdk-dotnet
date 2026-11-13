@@ -51,7 +51,7 @@ public sealed class LoopbackServer : IDisposable
             TcpClient client;
             try
             {
-                client = await _listener.AcceptTcpClientAsync(_stop.Token);
+                client = await _listener.AcceptTcpClientAsync(); // Stop() ends the wait
             }
             catch (Exception e) when (e is OperationCanceledException or ObjectDisposedException or SocketException)
             {
@@ -70,27 +70,27 @@ public sealed class LoopbackServer : IDisposable
             var one = new byte[1];
             while (!head.ToString().EndsWith("\r\n\r\n", StringComparison.Ordinal))
             {
-                if (await stream.ReadAsync(one, _stop.Token) == 0)
+                if (await stream.ReadAsync(one, 0, 1, _stop.Token) == 0)
                 {
                     return;
                 }
                 head.Append((char)one[0]);
             }
-            var lines = head.ToString().Split("\r\n");
+            var lines = head.ToString().Split(new[] { "\r\n" }, StringSplitOptions.None);
             var parts = lines[0].Split(' ');
-            var length = lines.Select(l => l.Split(':', 2)).Where(p => p.Length == 2 && p[0].Trim().Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+            var length = lines.Select(l => l.Split(new[] { ':' }, 2)).Where(p => p.Length == 2 && p[0].Trim().Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
                 .Select(p => int.Parse(p[1].Trim())).FirstOrDefault();
             var body = new byte[length];
             for (var read = 0; read < length;)
             {
-                read += await stream.ReadAsync(body.AsMemory(read), _stop.Token);
+                read += await stream.ReadAsync(body, read, length - read, _stop.Token);
             }
             lock (_requests)
             {
                 _requests.Add((parts[0], parts[1], Encoding.UTF8.GetString(body)));
             }
             var answer = Encoding.UTF8.GetBytes(Answer(parts[0], parts[1]));
-            await stream.WriteAsync(answer, _stop.Token);
+            await stream.WriteAsync(answer, 0, answer.Length, _stop.Token);
         }
     }
 

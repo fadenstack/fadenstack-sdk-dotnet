@@ -90,7 +90,7 @@ public class ClientHardeningTests
 
     // -- the error's detail --------------------------------------------------------------------------------------------------
 
-    private static async Task<FadenstackApiException> Failed(string body, HttpStatusCode status = HttpStatusCode.UnprocessableEntity)
+    private static async Task<FadenstackApiException> Failed(string body, HttpStatusCode status = (HttpStatusCode)422)
     {
         var server = new FakeServer().Json("GET", "/v1/agents/docs-assistant/profile", body, status);
         using var client = Client(server);
@@ -102,7 +102,7 @@ public class ClientHardeningTests
     {
         var error = await Failed("""{"detail":[{"loc":["body","minutes"],"msg":"Input should be greater than 0","type":"greater_than"},{"loc":["body","tools"],"msg":"Field required","type":"missing"}]}""");
 
-        Assert.Equal(("Input should be greater than 0; Field required", "validation_error", HttpStatusCode.UnprocessableEntity),
+        Assert.Equal(("Input should be greater than 0; Field required", "validation_error", (HttpStatusCode)422),
             (error.Message, error.Code, error.Status));
     }
 
