@@ -144,7 +144,7 @@ public sealed class FileApprovalStore : IApprovalStore, IListsAgents
         }
         try
         {
-            var json = _protector.Unprotect(File.ReadAllBytes(path));
+            var json = _protector.Unprotect(SecretProtection.ReadShared(path));
             return JsonSerializer.Deserialize<List<StoredApproval>>(json, FadenstackJson.Options) ?? new List<StoredApproval>();
         }
         catch (Exception e) when (e is CryptographicException or JsonException)

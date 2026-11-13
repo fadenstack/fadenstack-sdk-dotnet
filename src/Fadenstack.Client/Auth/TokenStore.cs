@@ -73,7 +73,7 @@ public sealed class FileTokenStore : ITokenStore
         }
         try
         {
-            var json = _protector.Unprotect(File.ReadAllBytes(path));
+            var json = _protector.Unprotect(SecretProtection.ReadShared(path));
             return Task.FromResult(JsonSerializer.Deserialize<TokenSet>(json, FadenstackJson.Options));
         }
         catch (Exception e) when (e is CryptographicException or JsonException)
