@@ -325,7 +325,7 @@ public sealed class AgentBuilder
         {
             throw new InvalidOperationException($"Two tools are named '{duplicate.Key}'.");
         }
-        IChatClient chat = client.Chat;
+        IChatClient chat = backend.ChatClient; // the model, under the chat stages
         foreach (var stage in _chatStages.OrderByDescending(s => s.Order))
         {
             chat = stage.Wrap(chat);
