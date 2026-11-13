@@ -318,6 +318,8 @@ public sealed class AgentBuilder
             throw new InvalidOperationException(
                 $"The client is for '{client.Options.Agent ?? "(no agent)"}', not '{agent}': one agent per client.");
         }
+        // The backend owns the client it was given when the builder made it (disposed with the agent).
+        var backend = new ServerAgentBackend(client, ownsClient);
         var duplicate = _tools.GroupBy(t => t.Name).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
         {
@@ -330,8 +332,7 @@ public sealed class AgentBuilder
         }
         return new FadenstackAgent(new AgentSettings
         {
-            Client = client,
-            OwnsClient = ownsClient,
+            Backend = backend,
             Agent = agent,
             Chat = chat,
             LoggerFactory = _loggerFactory ?? client.Options.LoggerFactory,
@@ -376,8 +377,8 @@ public sealed record AppDescription
 
 internal sealed class AgentSettings
 {
-    public FadenstackClient Client { get; init; } = null!;
-    public bool OwnsClient { get; init; }
+    /// <summary>What the agent talks to (sdk/51 F02); it owns the client it connects with.</summary>
+    public IAgentBackend Backend { get; init; } = null!;
     public string Agent { get; init; } = "";
     public IChatClient Chat { get; init; } = null!;
 

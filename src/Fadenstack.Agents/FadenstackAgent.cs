@@ -39,7 +39,7 @@ public sealed class FadenstackAgent : IDisposable
     internal FadenstackAgent(AgentSettings settings)
     {
         _settings = settings;
-        Reporter = new EventReporter(settings.Client, settings.Report);
+        Reporter = new EventReporter(Client, settings.Report);
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
     }
@@ -57,7 +57,14 @@ public sealed class FadenstackAgent : IDisposable
 
     public string Slug => _settings.Agent;
 
-    public FadenstackClient Client => _settings.Client;
+    /// <summary>
+    /// The agent's Fadenstack client: the server's routes, its options, its transport for a module's own resources.
+    /// </summary>
+    public FadenstackClient Client => _settings.Backend.ServerClient
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no server client.");
+
+    /// <summary>What the agent talks to: the server, or later the person's own model endpoint (sdk/51 F02).</summary>
+    internal IAgentBackend Backend => _settings.Backend;
 
     /// <summary>The app the agent runs in, as the host described it (<see cref="AgentBuilder.DescribeApp"/>); null when it did not.</summary>
     public AppDescription? App => _settings.AppDescribed ? _settings.App : null;
@@ -650,10 +657,7 @@ public sealed class FadenstackAgent : IDisposable
         {
             source.Dispose();
         }
-        if (_settings.OwnsClient)
-        {
-            _settings.Client.Dispose();
-        }
+        _settings.Backend.Dispose(); // the client, when the builder made it
         _starting.Dispose();
         _refreshing.Dispose();
     }
