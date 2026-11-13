@@ -598,18 +598,6 @@ public sealed class UiStrings
 
     public string PictureNotRead(string name) => Fill(name);
 
-    // -- content marking (Fadenstack.Provenance) -------------------------------------------------------
-
-    /// <summary>"AI-generated": a visible label on content made with AI, where the organisation asks for one.</summary>
-    public string AiGenerated => Text();
-
-    /// <summary>
-    /// The tooltip (<c>title</c>) on content made with AI that an agent put into a page or a mail: <see cref="AiGenerated"/>,
-    /// a space, the record's id, in every language (the TypeScript SDK and the host agents write the same, and readers
-    /// find the id so).
-    /// </summary>
-    public string AiGeneratedTitle(string record) => Fill(record);
-
     // -- About (the settings' last item) --------------------------------------------------------------
 
     /// <summary>The settings' last item, and the heading of what it opens.</summary>

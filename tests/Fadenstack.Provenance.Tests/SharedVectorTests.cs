@@ -3,7 +3,6 @@ using System.Net;
 using System.Text.Json;
 using Fadenstack.Models;
 using Fadenstack.Tools;
-using Fadenstack.UI;
 using Xunit;
 
 namespace Fadenstack.Provenance.Tests;
@@ -19,14 +18,14 @@ public class SharedVectorTests
     [Fact]
     public void Invisible_text_is_FEFF_then_FDNP_01_and_the_ids_bytes_as_variation_selectors()
     {
-        const string expected = "﻿\U000E0136\U000E0134\U000E013E\U000E0140︁\U000E0125\U000E0151\U000E0120\U000E0155\U000E0122\U000E0152"
+        const string expected = "\uFEFF\U000E0136\U000E0134\U000E013E\U000E0140\uFE01\U000E0125\U000E0151\U000E0120\U000E0155\U000E0122\U000E0152"
             + "\U000E0125\U000E0153\U000E011D\U000E0127\U000E0156\U000E0123\U000E0155\U000E011D\U000E0124\U000E0151\U000E0125\U000E0121\U000E011D"
             + "\U000E0129\U000E0151\U000E0124\U000E0120\U000E011D\U000E0126\U000E0151\U000E0121\U000E0153\U000E0125\U000E0125\U000E0155\U000E0121"
             + "\U000E0154\U000E0123\U000E0156\U000E0121";
         Assert.Equal(expected, UnicodeTextMarker.Encode(Id));
         Assert.Equal(42, CodePoints(expected));
         // An emoji's own variation selector just before the mark does not run into it.
-        Assert.Equal(new[] { Id }, UnicodeTextMarker.Decode("Thanks ❤️" + expected));
+        Assert.Equal(new[] { Id }, UnicodeTextMarker.Decode("Thanks ❤\uFE0F" + expected));
     }
 
     private static int CodePoints(string text) => text.Count(c => !char.IsLowSurrogate(c));
@@ -34,8 +33,8 @@ public class SharedVectorTests
     [Fact]
     public void Html_is_one_element_with_data_ai_generated_and_the_title_the_label_and_the_id_and_one_paragraph_is_marked_inside_it()
     {
-        var english = UiStrings.For(CultureInfo.GetCultureInfo("en"));
-        var german = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+        var english = ProvenanceTexts.For(CultureInfo.GetCultureInfo("en"));
+        var german = ProvenanceTexts.For(CultureInfo.GetCultureInfo("de"));
         var en = HtmlAttributeMarker.Title(english, Id);
         Assert.Equal($"<span data-ai-generated=\"{Id}\" title=\"AI-generated {Id}\">Hello</span>", HtmlAttributeMarker.Wrap("Hello", Id, en));
         Assert.Equal($"<p><span data-ai-generated=\"{Id}\" title=\"KI-generiert {Id}\">Hallo</span></p>",
@@ -149,7 +148,7 @@ public class SharedVectorTests
         var recorded = ReaderText.Sha256(vector.Record, "text/html");
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(html, Id));
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(split, Id));
-        var later = HtmlAttributeMarker.Wrap("We are sorry for the trouble.", R2, HtmlAttributeMarker.Title(UiStrings.For(CultureInfo.GetCultureInfo("en")), R2));
+        var later = HtmlAttributeMarker.Wrap("We are sorry for the trouble.", R2, HtmlAttributeMarker.Title(ProvenanceTexts.For(CultureInfo.GetCultureInfo("en")), R2));
         var written = split.Insert(at, later);
         Assert.Equal(recorded, ProvenanceReader.RecordTextSha256(written, Id));
         Assert.Equal(ContentHash.TextSha256("We are sorry for the trouble."), ProvenanceReader.RecordTextSha256(written, R2));

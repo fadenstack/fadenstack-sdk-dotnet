@@ -36,9 +36,54 @@ public class RepositoryTests
         var (code, ignored, error) = Git(root, "-c core.ignorecase=true check-ignore --no-index -v --stdin",
             string.Join("\n", paths) + "\n");
 
-        // check-ignore exits 1 when nothing matches, 0 when something does.
+        // check-ignore exits 1 when nothing matches, 0 when something does. Each line is "<file>:<line>:<pattern>\t<path>".
+        // A blank pattern is no rule: with --no-index, a checkout's CRLF .gitignore makes a blank line the "pattern" "\r",
+        // which git status itself does not apply.
         Assert.True(code is 0 or 1, error);
-        Assert.True(ignored.Trim().Length == 0, "Ignored by a .gitignore rule:\n" + ignored);
+        var rules = ignored.Split('\n').Where(line => line.Contains('\t'))
+            .Where(line => line.Substring(0, line.IndexOf('\t')).Split(new[] { ':' }, 3).ElementAtOrDefault(2)?.Trim().Length > 0)
+            .ToList();
+        Assert.True(rules.Count == 0, "Ignored by a .gitignore rule:\n" + string.Join("\n", rules));
+    }
+
+    /// <summary>
+    /// No source holds an invisible character as itself: a zero-width space, a BOM inside a file, a variation selector, a tag
+    /// character or any other format character is unreviewable there -- and U+FEFF and the variation selectors are what the
+    /// SDK's own invisible text mark is made of, so a stray one could pass for a mark. Write them as escapes (<c>\uFEFF</c>).
+    /// </summary>
+    [Fact]
+    public void No_source_file_holds_an_invisible_character_as_itself()
+    {
+        var root = RepositoryRoot();
+        if (root is null)
+        {
+            return; // a source archive without git: nothing to check
+        }
+        var found = new List<string>();
+        foreach (var file in Git(root, "ls-files", input: null).Output.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(f => Path.GetExtension(f) is ".cs" or ".xaml" or ".axaml" or ".resx" or ".json" or ".md" or ".csproj" or ".props" or ".targets"))
+        {
+            var text = File.ReadAllText(Path.Combine(root, file));
+            if (text.Length > 0 && text[0] == '\uFEFF')
+            {
+                text = text.Substring(1); // a BOM at the very start is the file's encoding, not content
+            }
+            var lines = text.Split('\n');
+            for (var i = 0; i < lines.Length; i++)
+            {
+                for (var j = 0; j < lines[i].Length; j++)
+                {
+                    var c = lines[i][j];
+                    var code = char.IsSurrogatePair(lines[i], j) ? char.ConvertToUtf32(lines[i], j) : c;
+                    if (code is 0x200B or 0x200C or 0x200D or 0x2060 or 0xFEFF or (>= 0xFE00 and <= 0xFE0F)
+                        or (>= 0xE0000 and <= 0xE01EF) || (code < 0x10000 && char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format))
+                    {
+                        found.Add($"{file}:{i + 1}:{j + 1}: U+{code:X4}");
+                    }
+                }
+            }
+        }
+        Assert.True(found.Count == 0, "Invisible characters written as themselves:\n" + string.Join("\n", found));
     }
 
     private static string? RepositoryRoot()

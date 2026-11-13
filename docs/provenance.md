@@ -76,7 +76,7 @@ A `SinkInfo` describes once what a place content lands can carry:
 | `VisibleLabelMarker` (`visible-label`) | label | A visible "AI-generated" above the content; on when the policy's `visible_label` is, with `UseVisibleLabel()`, or when you add it as a marker |
 | `UnicodeTextMarker` (`unicode-text`) | metadata | The id in invisible characters at the end of the text; opt-in only (`AddMarker(new UnicodeTextMarker())`, on a sink that carries `Carriers.UnicodeText`): filters strip them |
 
-The texts marks show people come from the SDK's texts (`UiStrings.AiGenerated`, `UiStrings.AiGeneratedTitle`), in the user's language. Readers recognise the titles of every built-in language.
+The texts marks show people are the module's own (`ProvenanceTexts`: `AiGenerated`, and `AiGeneratedTitle`, the label, a space and the record id), in the user's language, in English, German, French, Spanish and Simplified Chinese. A host with its own words passes them with `ProvenanceOptions.UseTexts`. Readers recognise the titles of every built-in language.
 
 ## The policy
 

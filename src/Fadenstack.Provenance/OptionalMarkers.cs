@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using Fadenstack.Models;
-using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
 
@@ -37,7 +36,7 @@ public sealed class VisibleLabelMarker : ContentMarker
 
     public override Task<MarkableContent> PrepareAsync(MarkableContent content, SignedRecord record, CancellationToken cancellationToken)
     {
-        var label = (content.Texts ?? UiStrings.Current).AiGenerated;
+        var label = (content.Texts ?? ProvenanceTexts.Current).AiGenerated;
         var text = content.Text ?? "";
         var newline = text.Contains("\r\n") ? "\r\n" : "\n";
         if (Is(content.MediaType, "text/html"))
@@ -46,7 +45,7 @@ public sealed class VisibleLabelMarker : ContentMarker
                 $"<p {Attribute}=\"{HtmlText.Attribute(record.Record.Id)}\">{IconHtml}{HtmlText.Escape(label)}</p>{text}"));
         }
         var line = Is(content.MediaType, "text/markdown") ? $"*{label}*" : label;
-        var bom = text.Length > 0 && text[0] == '﻿' ? 1 : 0;
+        var bom = text.Length > 0 && text[0] == '\uFEFF' ? 1 : 0;
         if (Is(content.MediaType, "text/markdown") && FrontMatter.Split(text.Substring(bom)) is { } front)
         {
             // After the front matter, which must stay first.
@@ -63,7 +62,7 @@ public sealed class VisibleLabelMarker : ContentMarker
         {
             return MarkOutcome.Written(MarkLayer.Label, MarkerName, "not read back");
         }
-        var label = (placed.Content.Texts ?? UiStrings.Current).AiGenerated;
+        var label = (placed.Content.Texts ?? ProvenanceTexts.Current).AiGenerated;
         return text.Contains(label) || text.Contains(HtmlText.Escape(label))
             ? MarkOutcome.Held(MarkLayer.Label, MarkerName)
             : MarkOutcome.Missing(MarkLayer.Label, MarkerName, ProvenanceReasons.StrippedByHost);
@@ -83,7 +82,7 @@ public sealed class UnicodeTextMarker : ContentMarker
     public const string MarkerName = "unicode-text";
 
     /// <summary>Starts the mark, as C2PA's text wrapper does: U+FEFF, zero width no-break space.</summary>
-    private const char Start = '﻿';
+    private const char Start = '\uFEFF';
 
     // "FDNP" and version 1: ours, not a C2PA manifest store, which C2PA readers would look for.
     private static readonly byte[] Magic = { 0x46, 0x44, 0x4E, 0x50, 0x01 };
@@ -135,7 +134,7 @@ public sealed class UnicodeTextMarker : ContentMarker
             for (var i = start + 1; i < text.Length; i++)
             {
                 var c = text[i];
-                if (c is >= '︀' and <= '️')
+                if (c is >= '\uFE00' and <= '\uFE0F')
                 {
                     bytes.Add((byte)(c - 0xFE00));
                 }

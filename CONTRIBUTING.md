@@ -50,6 +50,32 @@ three sentences long: you let Emagin8 UG (haftungsbeschränkt), Fadenstack's ste
 any terms, and you give it without warranty. If your employer or a client has rights in your work, make sure you
 may sign.
 
+## Architecture rules
+
+The SDK is built in layers. The tests in `tests/Fadenstack.Architecture.Tests` fail when a change breaks one of these
+rules, so they show up in `dotnet test`:
+
+| Layer | Libraries | May reference |
+|---|---|---|
+| 1 · Connection | `Fadenstack.Client`, `Fadenstack.Secrets` | Client: no other library of the SDK. Secrets: Client |
+| 2 · Agent runtime | `Fadenstack.Agents` | Client; of the Microsoft Agent Framework only its Abstractions |
+| 3 · Modules | `Fadenstack.Mcp`, `Fadenstack.Provenance`, `Fadenstack.Workspaces` | Agents and Client, never another module or the UI |
+| 4 · UI logic | `Fadenstack.UI` | Agents and Client, and no UI framework |
+| 5 · Skins | `Fadenstack.UI.Wpf`, `Fadenstack.UI.Avalonia` | the UI layer and below, and their own framework |
+
+- **References point down only.** A module brings its own heavy dependency, so the core stays light: it runs inside
+  Outlook. A new library needs its row in `LayerTests`.
+- **A module owns its texts**, in its own resources and in the SDK's five languages (English, German, French, Spanish,
+  Simplified Chinese), never in the UI layer.
+- **Strict MVVM.** View models live in `Fadenstack.UI` and show no UI type in their API (`Brush`, `Visibility`, ...).
+  A skin's code-behind holds view-only behaviour (focus, scrolling, animation); its members are listed in
+  `codebehind-allowlist.json`, and a change is reviewed there (`FADENSTACK_ARCH_ALLOWLIST=write dotnet test`
+  rewrites the list). No text is written in a skin's XAML: every text comes from `UiStrings`.
+- **Invisible characters** (zero-width characters, a BOM, variation selectors) are written as escapes (`\uFEFF`),
+  never as themselves.
+
+The rules come from the maintainers' SDK architecture note (sdk/52).
+
 ## Setting up for development
 
 You need the [.NET 10 SDK](https://dotnet.microsoft.com/download). Everything builds and runs on Windows. On Linux

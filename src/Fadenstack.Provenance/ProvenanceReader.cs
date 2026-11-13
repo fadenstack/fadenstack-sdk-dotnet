@@ -3,7 +3,6 @@ using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Fadenstack.Models;
-using Fadenstack.UI;
 
 namespace Fadenstack.Provenance;
 
@@ -35,8 +34,8 @@ public static class ProvenanceReader
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>The label in every language the SDK ships: a title is ours only when it starts with one of them.</summary>
-    private static readonly IReadOnlyList<string> Labels = UiStrings.BuiltInLanguages
-        .Select(l => UiStrings.For(CultureInfo.GetCultureInfo(l)).AiGenerated).Distinct().ToList();
+    private static readonly IReadOnlyList<string> Labels = ProvenanceTexts.BuiltInLanguages
+        .Select(l => ProvenanceTexts.For(l).AiGenerated).Distinct().ToList();
 
     /// <summary>The marks in a text of <paramref name="mediaType"/> (HTML, Markdown, plain text).</summary>
     public static IReadOnlyList<FoundMark> Read(string content, string mediaType)
@@ -61,7 +60,7 @@ public static class ProvenanceReader
                 Add(found, WebUtility.HtmlDecode(m.Groups["v"].Value), VisibleLabelMarker.MarkerName);
             }
         }
-        if (MediaTypes.Is(mediaType, "text/markdown") && FrontMatter.Split(content.TrimStart('﻿')) is { } front
+        if (MediaTypes.Is(mediaType, "text/markdown") && FrontMatter.Split(content.TrimStart('\uFEFF')) is { } front
             && string.Equals(front.Value(MarkdownFrontMatterMarker.GeneratedKey), "true", StringComparison.OrdinalIgnoreCase))
         {
             Add(found, front.Value(MarkdownFrontMatterMarker.RecordKey), MarkdownFrontMatterMarker.MarkerName);

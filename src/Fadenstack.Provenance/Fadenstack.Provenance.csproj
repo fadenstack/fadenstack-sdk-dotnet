@@ -7,9 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
-    <!-- The texts a mark shows people (UiStrings), in the SDK's five languages. -->
-    <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />
   </ItemGroup>
+  <!-- The words a mark shows people are the module's own: Resources/ProvenanceText.resx (English) and its translations,
+       built into satellite assemblies (sdk/52 P1: a module owns its texts). -->
   <ItemGroup>
     <InternalsVisibleTo Include="Fadenstack.Provenance.Tests" />
   </ItemGroup>

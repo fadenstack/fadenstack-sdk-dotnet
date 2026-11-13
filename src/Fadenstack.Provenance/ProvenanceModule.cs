@@ -2,7 +2,6 @@ using System.Globalization;
 using Fadenstack.Agents;
 using Fadenstack.Models;
 using Fadenstack.Tools;
-using Fadenstack.UI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -57,7 +56,7 @@ public sealed class ProvenanceOptions
     private bool _refuse;
     private int? _shortTextTokens;
     private VisibleLabelMarker? _label;
-    private Func<string?, UiStrings>? _texts;
+    private Func<string?, ProvenanceTexts>? _texts;
 
     /// <summary>The markers, in the order they were added: the built-ins first.</summary>
     public IReadOnlyList<IContentMarker> Markers => _markers;
@@ -165,8 +164,11 @@ public sealed class ProvenanceOptions
         return this;
     }
 
-    /// <summary>The texts marks show people, by the user's language (null: the host's); with a host's own words.</summary>
-    public ProvenanceOptions UseTexts(Func<string?, UiStrings> forLanguage)
+    /// <summary>
+    /// The words marks show people, by the user's language (null: the host's), for a host with its own words or languages;
+    /// <see cref="ProvenanceTexts.For(string?)"/> by default.
+    /// </summary>
+    public ProvenanceOptions UseTexts(Func<string?, ProvenanceTexts> forLanguage)
     {
         _texts = forLanguage ?? throw new ArgumentNullException(nameof(forLanguage));
         return this;
@@ -211,25 +213,8 @@ public sealed class ProvenanceOptions
         return _markers.Concat(new[] { _label ?? new VisibleLabelMarker() }).ToList();
     }
 
-    internal UiStrings TextsFor(string? language)
-    {
-        if (_texts is not null)
-        {
-            return _texts(language);
-        }
-        if (string.IsNullOrWhiteSpace(language))
-        {
-            return UiStrings.Current;
-        }
-        try
-        {
-            return UiStrings.For(CultureInfo.GetCultureInfo(language));
-        }
-        catch (CultureNotFoundException)
-        {
-            return UiStrings.Current;
-        }
-    }
+    /// <summary>The words in the user's language: the host's own, or the module's.</summary>
+    internal ProvenanceTexts TextsFor(string? language) => _texts is not null ? _texts(language) : ProvenanceTexts.For(language);
 
     private static bool IsDevelopment() =>
         string.Equals(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
