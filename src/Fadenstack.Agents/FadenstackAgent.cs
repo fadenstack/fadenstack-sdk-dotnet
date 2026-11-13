@@ -457,7 +457,7 @@ public sealed class FadenstackAgent : IDisposable
     /// </summary>
     public async Task<string?> SetUserLanguageAsync(string? language, CancellationToken cancellationToken = default)
     {
-        var kept = await Client.Agent!.SetUserLanguageAsync(language, cancellationToken).ConfigureAwait(false);
+        var kept = await Backend.SetUserLanguageAsync(language, cancellationToken).ConfigureAwait(false);
         if (_profile is { } profile)
         {
             _profile = profile with { User = profile.User with { Language = kept } };
@@ -475,7 +475,7 @@ public sealed class FadenstackAgent : IDisposable
         {
             return Array.Empty<SkillOption>();
         }
-        var list = await Client.Agent!.ListSkillsAsync(query, 100, cancellationToken).ConfigureAwait(false);
+        var list = await Backend.ListSkillsAsync(query, 100, cancellationToken).ConfigureAwait(false);
         return list.Skills;
     }
 
