@@ -159,7 +159,7 @@ internal sealed class StepUpProofs
     private async Task<string> SignInAgainAsync(IStepUpHandler handler, string? conversationId, int? longestMinutes,
         CancellationToken cancellationToken)
     {
-        var agent = _agent.Client.Agent!;
+        var agent = _agent.Backend;
         StepUpStarted started;
         try
         {

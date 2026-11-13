@@ -94,11 +94,11 @@ public sealed class AgentGrants
         string? shownText = null, CancellationToken cancellationToken = default)
     {
         var minutes = Minutes(duration);
-        var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
+        var grant = await _agent.Backend.CreateGrantAsync(new GrantRequest
         {
             Kind = GrantKinds.Time, Tools = new List<string> { tool }, Minutes = minutes,
             Conversation = conversationId is not null, ShownTextSha256 = Hash(shownText),
-        }, conversationId, cancellationToken).ConfigureAwait(false);
+        }, conversationId, stepUpProof: null, cancellationToken).ConfigureAwait(false);
         if (!Answers(grant, GrantKinds.Time, minutes, conversationId) || grant.Scope.Tools is not { Count: 1 } tools || tools[0] != tool)
         {
             throw new InvalidOperationException("The returned grant exceeds or differs from the confirmed request. Inspect active grants.");
@@ -117,10 +117,10 @@ public sealed class AgentGrants
         var classes = new List<string>(Settings?.GrantClasses ?? new List<string> { "read", "write" });
         var targets = Targets(places);
         var minutes = Minutes(duration);
-        var grant = await _agent.Client.Agent!.CreateGrantAsync(new GrantRequest
+        var grant = await _agent.Backend.CreateGrantAsync(new GrantRequest
         {
             Kind = GrantKinds.Work, Classes = classes, Targets = targets, Minutes = minutes, ShownTextSha256 = Hash(shownText),
-        }, conversationId, cancellationToken).ConfigureAwait(false);
+        }, conversationId, stepUpProof: null, cancellationToken).ConfigureAwait(false);
         // Nothing wider than what the card showed: classes, and each place with the actions it was given.
         if (!Answers(grant, GrantKinds.Work, minutes, conversationId) || grant.Scope.Classes is not { Count: > 0 } granted
             || granted.Any(c => !classes.Contains(c)) || grant.Scope.Targets is not { Count: > 0 } returned
@@ -162,7 +162,7 @@ public sealed class AgentGrants
             var proof = await _agent.StepUps.ObtainAsync(handler, conversationId, longest, cancellationToken).ConfigureAwait(false);
             try
             {
-                var grant = await _agent.Client.Agent!.CreateGrantAsync(request, conversationId, proof, cancellationToken)
+                var grant = await _agent.Backend.CreateGrantAsync(request, conversationId, proof, cancellationToken)
                     .ConfigureAwait(false);
                 if (!Answers(grant, GrantKinds.Bypass, request.Minutes, conversationId))
                 {
@@ -186,7 +186,7 @@ public sealed class AgentGrants
 
     /// <summary>The calls the device ran under a Bypass grant in the turn that just ended, for the gateway to compare (L-61).</summary>
     internal Task<GrantReport> ReportAsync(string grantId, IReadOnlyList<string> calls, CancellationToken cancellationToken) =>
-        _agent.Client.Agent!.ReportGrantAsync(grantId, calls, cancellationToken);
+        _agent.Backend.ReportGrantAsync(grantId, calls, cancellationToken);
 
     /// <summary>The copy's grant <paramref name="grantId"/>, live or not; null when it does not know it.</summary>
     internal AgentGrant? Find(string grantId)
@@ -217,7 +217,7 @@ public sealed class AgentGrants
         }
         try
         {
-            var found = await _agent.Client.Agent!.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false);
+            var found = await _agent.Backend.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false);
             lock (_gate)
             {
                 _seen[found.Id] = found;
@@ -265,7 +265,7 @@ public sealed class AgentGrants
         {
             throw new InvalidOperationException("A Bypass grant is not extended: more time is a new Bypass, confirmed again.");
         }
-        var grant = await _agent.Client.Agent!.ExtendGrantAsync(grantId, new GrantExtension
+        var grant = await _agent.Backend.ExtendGrantAsync(grantId, new GrantExtension
         {
             Minutes = more <= TimeSpan.Zero ? 0 : Minutes(more), Targets = Targets(places ?? Array.Empty<GrantPlace>()),
             ShownTextSha256 = Hash(shownText),
@@ -275,7 +275,7 @@ public sealed class AgentGrants
 
     /// <summary>Ends a grant from the next call on; a call already running finishes.</summary>
     public async Task RevokeAsync(string grantId, CancellationToken cancellationToken = default) =>
-        Keep(await _agent.Client.Agent!.RevokeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
+        Keep(await _agent.Backend.RevokeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
 
     /// <summary>Ends every grant this device holds for the agent: the marker's Stop.</summary>
     public async Task RevokeAllAsync(CancellationToken cancellationToken = default)
@@ -288,11 +288,11 @@ public sealed class AgentGrants
 
     /// <summary>Pauses a grant while the person is away (the screen locked); its time runs on.</summary>
     public async Task PauseAsync(string grantId, CancellationToken cancellationToken = default) =>
-        Keep(await _agent.Client.Agent!.PauseGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
+        Keep(await _agent.Backend.PauseGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
 
     /// <summary>Resumes a paused grant, unless it ended meanwhile.</summary>
     public async Task ResumeAsync(string grantId, CancellationToken cancellationToken = default) =>
-        Keep(await _agent.Client.Agent!.ResumeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
+        Keep(await _agent.Backend.ResumeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
 
     /// <summary>How long a Bypass paused at the app's end may wait for the next start to resume it (D5, as a work grant).</summary>
     public static readonly TimeSpan ResumeWithin = TimeSpan.FromMinutes(30);
@@ -358,7 +358,7 @@ public sealed class AgentGrants
         {
             return;
         }
-        var list = await _agent.Client.Agent!.ListGrantsAsync(cancellationToken).ConfigureAwait(false);
+        var list = await _agent.Backend.ListGrantsAsync(cancellationToken).ConfigureAwait(false);
         if (list.Data.Any(g => !Owned(g)))
         {
             Replace(Array.Empty<AgentGrant>(), null); // another agent version's or device's grant: nothing is held (fail closed)
