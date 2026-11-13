@@ -27,15 +27,23 @@ public sealed class AgentTokenProvider : ITokenProvider
     /// <param name="apiUrl">The backend (usually the server URL).</param>
     /// <param name="agent">The agent's slug or id.</param>
     /// <param name="store">Where the sign-in is kept; <see cref="FileTokenStore"/> for desktop apps.</param>
-    /// <param name="httpClient">The client to reach the backend with; the provider's own if not given.</param>
+    /// <param name="httpClient">
+    /// The client to reach the backend with. If not given, the provider's own, on <see cref="FadenstackTransport.CreateHandler"/>:
+    /// TLS 1.2 or later, no redirect followed, and <paramref name="trustedCaCertificate"/> trusted.
+    /// </param>
     /// <param name="clock">The time, for tests.</param>
     /// <param name="allowInsecureHttp">
     /// Allow <c>http://</c> to another machine, for a development server. Off: sign-ins go over https, or plain http
     /// only to this machine (localhost).
     /// </param>
     /// <param name="logger">Where renewals and their failures are logged (no token, ever); nowhere if not given.</param>
+    /// <param name="trustedCaCertificate">
+    /// A CA (PEM or DER) to trust for the server's certificate beside the OS store, for the provider's own client (as
+    /// <see cref="FadenstackClientOptions.TrustedCaCertificate"/>); a given <paramref name="httpClient"/> brings its own.
+    /// </param>
     public AgentTokenProvider(Uri apiUrl, string agent, ITokenStore? store = null, HttpClient? httpClient = null,
-        Func<DateTimeOffset>? clock = null, bool allowInsecureHttp = false, ILogger? logger = null)
+        Func<DateTimeOffset>? clock = null, bool allowInsecureHttp = false, ILogger? logger = null,
+        byte[]? trustedCaCertificate = null)
     {
         _log = logger ?? NullLogger.Instance;
         if (apiUrl.Scheme != Uri.UriSchemeHttps && !(apiUrl.Scheme == Uri.UriSchemeHttp && (allowInsecureHttp || apiUrl.IsLoopback)))
@@ -46,7 +54,8 @@ public sealed class AgentTokenProvider : ITokenProvider
         _apiUrl = new Uri(apiUrl.AbsoluteUri.TrimEnd('/') + "/");
         _agent = agent;
         _store = store ?? new MemoryTokenStore();
-        _http = httpClient ?? new HttpClient();
+        _http = httpClient ?? new HttpClient(FadenstackTransport.CreateHandler(
+            new FadenstackClientOptions { TrustedCaCertificate = trustedCaCertificate }));
         _now = clock ?? (() => DateTimeOffset.UtcNow);
         _key = KeyOf(_apiUrl, agent);
     }
@@ -262,6 +271,10 @@ public sealed class AgentTokenProvider : ITokenProvider
         }
         using (response)
         {
+            if (FadenstackTransport.Redirected(response, request.RequestUri!) is { } redirected)
+            {
+                throw redirected;
+            }
             var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {

@@ -413,6 +413,11 @@ public sealed class AgentPairing
             // The message of a network error can carry the address; the caller sees it, the log does not.
             throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
         }
+        if (FadenstackTransport.Redirected(response, request.RequestUri!) is { } redirected)
+        {
+            response.Dispose(); // the pairing code is not sent on
+            throw redirected;
+        }
         try
         {
             var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);

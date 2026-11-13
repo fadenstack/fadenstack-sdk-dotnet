@@ -102,8 +102,35 @@ public sealed class FadenstackTransport : IDisposable
                 await _tokens!.InvalidateAsync(token, cancellationToken).ConfigureAwait(false);
                 continue;
             }
+            if (Redirected(response, request.RequestUri!) is { } redirected)
+            {
+                response.Dispose();
+                throw redirected;
+            }
             return response;
         }
+    }
+
+    /// <summary>
+    /// A redirect is refused, never followed (<see cref="CreateHandler"/> follows none): an API or token request carries a
+    /// bearer token or a body -- chat text, a refresh token, a pairing code -- that a 307 or 308 would send again to
+    /// wherever it points, and a Fadenstack server does not redirect them. The error names where it pointed (without
+    /// user info or query), so the address can be corrected: https, or the right path. Null when it is no redirect.
+    /// OWASP ASVS 5.0 V12 (secure communication).
+    /// </summary>
+    internal static FadenstackApiException? Redirected(HttpResponseMessage response, Uri requested)
+    {
+        var status = (int)response.StatusCode;
+        if (status < 300 || status > 399)
+        {
+            return null;
+        }
+        var location = response.Headers.Location is { } l && (l.IsAbsoluteUri ? l : new Uri(requested, l)) is var to
+            ? $"{to.Scheme}://{to.Authority}{to.AbsolutePath}"
+            : "another address";
+        return new FadenstackApiException(response.StatusCode,
+            $"The server redirected the request to {location}. Fadenstack does not follow redirects: check the server address (https, the right path).",
+            code: "redirect");
     }
 
     /// <summary>A request that got no answer: the span and the log say what kind of failure, never its message.</summary>
@@ -241,11 +268,14 @@ public sealed class FadenstackTransport : IDisposable
 
     /// <summary>
     /// A handler with the client's TLS settings (the trusted CA, <see cref="FadenstackClientOptions.AllowInsecureHttp"/>),
-    /// for a host's own requests to the same server (e.g. its sign-in).
+    /// for a host's own requests to the same server (e.g. its sign-in). It follows no redirect: the SDK reports one as a
+    /// <see cref="FadenstackApiException"/> with the code <c>redirect</c>. A host that passes its own
+    /// <see cref="FadenstackClientOptions.HttpClient"/> decides that for itself.
     /// </summary>
     public static HttpMessageHandler CreateHandler(FadenstackClientOptions options)
     {
-        var handler = new HttpClientHandler();
+        // No redirect is followed: a 307 or 308 would send the request's body again, to wherever it points (see Redirected).
+        var handler = new HttpClientHandler { AllowAutoRedirect = false };
         if (IsNetFramework)
         {
             // A native host (Word, any native application) gives .NET Framework no target framework, so it keeps the
