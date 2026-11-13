@@ -37,8 +37,10 @@ public sealed class AboutInfo
     /// <summary>The product, as the links and the SDK line name it (a name: never translated).</summary>
     public const string Product = "Fadenstack";
 
-    private AboutInfo(AgentProfile? profile, AppDescription? app, string sdkVersion, Uri? server, string? refSource, UiStrings strings)
+    private AboutInfo(AgentProfile? profile, AppDescription? app, string sdkVersion, Uri? server, AgentConnection connection,
+        string? refSource, UiStrings strings)
     {
+        Connection = connection;
         AgentName = profile?.Name?.Trim() ?? "";
         IsDraft = profile?.Draft == true;
         VersionText = profile is null ? ""
@@ -53,10 +55,13 @@ public sealed class AboutInfo
         SdkVersion = sdkVersion ?? "";
         SdkText = SdkVersion.Length == 0 ? $"{Product} SDK (.NET)" : $"{Product} SDK {SdkVersion} (.NET)";
         Server = AboutLinks.ServerText(server);
-        ServerText = Server.Length == 0 ? "" : strings.AboutServer(Server);
+        ServerText = Server.Length == 0 ? ""
+            : connection == AgentConnection.Standalone ? strings.AboutEndpoint(Server)
+            : strings.AboutServer(Server);
 
         var links = new List<PanelLink>();
-        if (AboutLinks.Help(server) is { } help)
+        // A model endpoint has no Fadenstack Help: the organisation's Help is a server's.
+        if (connection == AgentConnection.Governed && AboutLinks.Help(server) is { } help)
         {
             links.Add(new PanelLink(strings.Help, help, strings));
         }
@@ -81,7 +86,25 @@ public sealed class AboutInfo
     /// <param name="refSource">The host's <c>&lt;app&gt;</c> for the links' <c>ref</c> (<see cref="AgentChatOptions.RefSource"/>).</param>
     /// <param name="strings">The panel's texts.</param>
     public static AboutInfo Create(AgentProfile? profile, AppDescription? app, string sdkVersion, Uri? server, string? refSource, UiStrings strings) =>
-        new(profile, app, sdkVersion, server, refSource, strings ?? throw new ArgumentNullException(nameof(strings)));
+        Create(profile, app, sdkVersion, server, AgentConnection.Governed, refSource, strings);
+
+    /// <summary>What About shows for an agent, in a language, by how it is connected.</summary>
+    /// <param name="profile">The agent's profile; null before it started.</param>
+    /// <param name="app">The app as the host described it (<see cref="FadenstackAgent.App"/>); null leaves its line out.</param>
+    /// <param name="sdkVersion">The SDK's version (<see cref="SdkInfo.Version"/>); the links carry its major.minor.</param>
+    /// <param name="address">
+    /// Governed: the agent's server, whose address About shows and whose Help it links to. Standalone: the person's model
+    /// endpoint, shown as such, with no Help link.
+    /// </param>
+    /// <param name="connection">How the agent is connected (<see cref="FadenstackAgent.Connection"/>).</param>
+    /// <param name="refSource">The host's <c>&lt;app&gt;</c> for the links' <c>ref</c> (<see cref="AgentChatOptions.RefSource"/>).</param>
+    /// <param name="strings">The panel's texts.</param>
+    public static AboutInfo Create(AgentProfile? profile, AppDescription? app, string sdkVersion, Uri? address, AgentConnection connection,
+        string? refSource, UiStrings strings) =>
+        new(profile, app, sdkVersion, address, connection, refSource, strings ?? throw new ArgumentNullException(nameof(strings)));
+
+    /// <summary>How the agent is connected: About names a server, or the person's own model endpoint.</summary>
+    public AgentConnection Connection { get; }
 
     /// <summary>The agent's name; empty before it started.</summary>
     public string AgentName { get; }

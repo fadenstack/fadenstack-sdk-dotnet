@@ -334,7 +334,7 @@ Every model call of the turn gets the skills, and the session keeps them with th
 The server lists the tools of the organisation's MCP servers that this user and this agent can have, with what the agent's tool rules make of each. An app can show them, for example on a Tools page:
 
 ```csharp
-var tools = await agent.Client.Agent!.ListToolsAsync();
+var tools = await agent.ListServerToolsAsync();
 if (tools is null)
 {
     // The server is too old to list them.
@@ -348,7 +348,7 @@ else
 }
 ```
 
-`ListToolsAsync` calls `GET /v1/agents/{agent}/tools` and returns `AgentToolInfo` values:
+`ListServerToolsAsync` calls `GET /v1/agents/{agent}/tools` (`AgentResource.ListToolsAsync` on `agent.ServerClient`) and returns `AgentToolInfo` values:
 
 | Property | Meaning |
 |---|---|

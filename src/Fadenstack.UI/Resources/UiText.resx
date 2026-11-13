@@ -594,6 +594,10 @@
     <value>Server: {0}</value>
     <comment>{0}: the server's address</comment>
   </data>
+  <data name="AboutEndpoint" xml:space="preserve">
+    <value>Model endpoint: {0}</value>
+    <comment>About: the address of the person's own model endpoint, for an agent without a server</comment>
+  </data>
   <data name="Help" xml:space="preserve">
     <value>Help</value>
     <comment>A link in About to the organisation's own Help, on its server</comment>

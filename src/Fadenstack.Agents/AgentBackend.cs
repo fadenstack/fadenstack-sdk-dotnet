@@ -4,8 +4,11 @@ using Microsoft.Extensions.AI;
 
 namespace Fadenstack.Agents;
 
-/// <summary>How an agent is connected: to an organisation's Fadenstack server, or to the person's own model endpoint.</summary>
-internal enum AgentConnection
+/// <summary>
+/// How an agent is connected (<see cref="FadenstackAgent.Connection"/>): to an organisation's Fadenstack server, or to the
+/// person's own model endpoint. Apps and the UI read it to show or hide the server's parts; nothing decides security by it.
+/// </summary>
+public enum AgentConnection
 {
     /// <summary>A Fadenstack server: its profile, policy, grants and audit govern the agent.</summary>
     Governed,
@@ -41,6 +44,13 @@ internal interface IUserSettings
 internal interface IServerSkills
 {
     Task<SkillList> ListSkillsAsync(string? query, int? limit, CancellationToken cancellationToken);
+}
+
+/// <summary>The tools of the organisation's MCP servers the server lists for the user and the agent.</summary>
+internal interface IServerTools
+{
+    /// <summary>The list; null when the server does not list them (an older one).</summary>
+    Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>Answers a tool approval the gateway holds.</summary>
@@ -103,8 +113,8 @@ internal interface IProvenanceRoutes
 /// A backend passes the server's exceptions through unchanged: the grant lifecycle, Bypass and the step-up catch them by
 /// type. It owns what it connects with and disposes it with the agent.
 /// </summary>
-internal interface IAgentBackend : IProfileSource, IEventSink, IUserSettings, IServerSkills, IGatewayApprovals, IHostToolChecks,
-    IGrantService, IStepUp, IDisposable
+internal interface IAgentBackend : IProfileSource, IEventSink, IUserSettings, IServerSkills, IServerTools, IGatewayApprovals,
+    IHostToolChecks, IGrantService, IStepUp, IDisposable
 {
     AgentConnection Connection { get; }
 
@@ -152,6 +162,8 @@ internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
 
     public Task<SkillList> ListSkillsAsync(string? query, int? limit, CancellationToken cancellationToken) =>
         Agent.ListSkillsAsync(query, limit, cancellationToken);
+
+    public Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken) => Agent.ListToolsAsync(cancellationToken);
 
     public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken) =>
         Agent.AnswerApprovalAsync(approvalId, approved, scope, cancellationToken);

@@ -1274,7 +1274,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>About and the footer's link, in the panel's language, for the agent as far as it is known.</summary>
     private (AboutInfo About, PanelLink? Branding) BuildAbout()
     {
-        var about = AboutInfo.Create(_profile, _agent.App, SdkInfo.Version, _agent.Client.Options.ServerUrl, _options.RefSource, Strings);
+        // ServerClient, not Client: an agent on the person's own endpoint has no server (its endpoint comes with F03).
+        var about = AboutInfo.Create(_profile, _agent.App, SdkInfo.Version, _agent.ServerClient?.Options.ServerUrl, _agent.Connection,
+            _options.RefSource, Strings);
         var branding = _options.Branding
             ? new PanelLink(AboutInfo.Product, AboutLinks.PanelWebsite(_options.RefSource, SdkInfo.Version), Strings)
             : null;

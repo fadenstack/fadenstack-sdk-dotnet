@@ -5,7 +5,7 @@ This page introduces the .NET SDK, its packages and target frameworks, and shows
 !!! note "Server version"
     SDK 0.3.0 is built and tested against Fadenstack server 0.7.1. Agents need a server 0.4.2 or later; where a
     server lacks a feature, the SDK says so and goes on without it: pairing throws
-    `FadenstackPairingUnsupportedException`, `ListToolsAsync` returns `null` and `agent.Grants.Available` is false. With
+    `FadenstackPairingUnsupportedException`, `ListServerToolsAsync` returns `null` and `agent.Grants.Available` is false. With
     0.4.1 and older, only [the plain client](plain-api.md) works, without tool modes, governance notices and the
     gateway's events.
 

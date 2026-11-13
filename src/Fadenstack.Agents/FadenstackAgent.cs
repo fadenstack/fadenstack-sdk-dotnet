@@ -58,10 +58,28 @@ public sealed class FadenstackAgent : IDisposable
     public string Slug => _settings.Agent;
 
     /// <summary>
-    /// The agent's Fadenstack client: the server's routes, its options, its transport for a module's own resources.
+    /// The agent's Fadenstack client: the server's routes, its options, its transport for a module's own resources. An
+    /// agent without a server (on the person's own model endpoint) has none: this throws an
+    /// <see cref="InvalidOperationException"/> there; <see cref="ServerClient"/> is the way to ask.
     /// </summary>
     public FadenstackClient Client => _settings.Backend.ServerClient
-        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no server client.");
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no server client (ServerClient is null).");
+
+    /// <summary>The agent's Fadenstack client; null for an agent without a server.</summary>
+    public FadenstackClient? ServerClient => _settings.Backend.ServerClient;
+
+    /// <summary>
+    /// How the agent is connected: <see cref="AgentConnection.Governed"/> to an organisation's Fadenstack server, or
+    /// <see cref="AgentConnection.Standalone"/> to the person's own model endpoint. For showing or hiding the server's parts.
+    /// </summary>
+    public AgentConnection Connection => _settings.Backend.Connection;
+
+    /// <summary>
+    /// The tools of the organisation's MCP servers that the user and this agent can have, with what the agent's tool rules
+    /// make of each (<c>GET /v1/agents/{agent}/tools</c>). Null when the server does not list them (an older one).
+    /// </summary>
+    public Task<IReadOnlyList<AgentToolInfo>?> ListServerToolsAsync(CancellationToken cancellationToken = default) =>
+        _settings.Backend.ListToolsAsync(cancellationToken);
 
     /// <summary>What the agent talks to: the server, or later the person's own model endpoint (sdk/51 F02).</summary>
     internal IAgentBackend Backend => _settings.Backend;

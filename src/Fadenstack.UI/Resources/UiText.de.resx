@@ -454,6 +454,9 @@
   <data name="AboutServer" xml:space="preserve">
     <value>Server: {0}</value>
   </data>
+  <data name="AboutEndpoint" xml:space="preserve">
+    <value>Modell-Endpunkt: {0}</value>
+  </data>
   <data name="Help" xml:space="preserve">
     <value>Hilfe</value>
   </data>

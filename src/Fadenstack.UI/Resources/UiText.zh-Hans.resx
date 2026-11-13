@@ -454,6 +454,9 @@
   <data name="AboutServer" xml:space="preserve">
     <value>服务器：{0}</value>
   </data>
+  <data name="AboutEndpoint" xml:space="preserve">
+    <value>模型端点：{0}</value>
+  </data>
   <data name="Help" xml:space="preserve">
     <value>帮助</value>
   </data>

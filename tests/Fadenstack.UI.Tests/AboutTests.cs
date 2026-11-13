@@ -261,4 +261,21 @@ public class AboutTests
         await chat.SetLanguageAsync("es");
         Assert.Equal("Borrador", AboutInfo.Create(new AgentProfile { Name = "Docs", Draft = true }, null, "", null, null, chat.Strings).VersionText);
     }
+
+    [Fact]
+    public void About_names_a_server_and_links_its_Help_or_names_the_persons_own_model_endpoint_and_links_no_Help()
+    {
+        var strings = UiStrings.For(CultureInfo.GetCultureInfo("en"));
+        var profile = new AgentProfile { Name = "Docs", Version = 4 };
+
+        var governed = AboutInfo.Create(profile, null, "0.3.0", new Uri("https://ai.example.internal"), AgentConnection.Governed, null, strings);
+        var standalone = AboutInfo.Create(profile, null, "0.3.0", new Uri("http://localhost:11434/v1"), AgentConnection.Standalone, null, strings);
+
+        Assert.Equal((AgentConnection.Governed, "Server: https://ai.example.internal"), (governed.Connection, governed.ServerText));
+        Assert.Contains(governed.Links, l => l.Label == "Help");
+        Assert.Equal(AgentConnection.Standalone, standalone.Connection);
+        Assert.StartsWith("Model endpoint: http://localhost:11434", standalone.ServerText);
+        Assert.DoesNotContain(standalone.Links, l => l.Label == "Help");
+        Assert.Equal("Modell-Endpunkt: x", UiStrings.For(CultureInfo.GetCultureInfo("de")).AboutEndpoint("x"));
+    }
 }

@@ -17,6 +17,11 @@ this file says where it does.
   (the kind of failure only).
 - `ProvenanceTexts`: the words content marks show people, owned by `Fadenstack.Provenance` in English, German, French,
   Spanish and Simplified Chinese.
+- `FadenstackAgent.Connection` (`AgentConnection.Governed` or `Standalone`), `FadenstackAgent.ServerClient` (null without
+  a server) and `FadenstackAgent.ListServerToolsAsync()` (null on a server that does not list its tools). `Client`
+  stays non-null with a server and throws `InvalidOperationException` without one.
+- `AboutInfo.Create` with an `AgentConnection`, and `UiStrings.AboutEndpoint`: About names the person's model endpoint
+  for an agent without a server.
 
 ### Changed
 
