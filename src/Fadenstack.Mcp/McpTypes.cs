@@ -37,6 +37,9 @@ public sealed record McpServerStatus(string Label, McpServerState State)
     /// <summary>The first line of the server's instructions: at most 80 characters, hidden characters removed. Null when it has none.</summary>
     public string? Instructions { get; init; }
 
+    /// <summary>The MCP revision the connection runs on (<c>2026-07-28</c>, or <c>2025-11-25</c> and older); null before it is attached.</summary>
+    public string? ProtocolVersion { get; init; }
+
     public IReadOnlyList<McpToolInfo> Tools { get; init; } = Array.Empty<McpToolInfo>();
 
     /// <summary>The server changed its tools after it was attached (<c>notifications/tools/list_changed</c>), and the new list differs.</summary>

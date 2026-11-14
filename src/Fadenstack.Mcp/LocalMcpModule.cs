@@ -95,6 +95,16 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     /// <summary>How long a server gets to start and list its tools (default 30 s).</summary>
     public TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// How long the client waits for a server to answer the 2026-07-28 probe (<c>server/discover</c>) before it tries the
+    /// <c>initialize</c> handshake of 2025-11-25 (default 5 s, the MCP SDK's own). A server that only speaks 2026-07-28 and
+    /// answers later than this is asked again with that revision (see <c>CreateClientAsync</c>).
+    /// </summary>
+    internal TimeSpan DiscoverProbeTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>The MCP revision without <c>initialize</c> and sessions (the MCP SDK keeps its constant internal).</summary>
+    private const string July2026 = "2026-07-28";
+
     /// <summary>The wait before a crashed server is started again (default 1 s).</summary>
     public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
 
@@ -383,6 +393,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     {
         Detail = e.Detail,
         Instructions = e.Instructions,
+        ProtocolVersion = e.ProtocolVersion,
         Tools = e.Tools.Select(t => t.Info).ToList(),
         ToolsChanged = e.ToolsChanged,
         Reconnects = e.Reconnects,
@@ -428,8 +439,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, entry.Stop.Token);
             limit.CancelAfter(ConnectTimeout);
-            var transport = await server.Connect(limit.Token).ConfigureAwait(false);
-            client = await McpClient.CreateAsync(transport, Options(entry), cancellationToken: limit.Token).ConfigureAwait(false);
+            client = await CreateClientAsync(server, entry, limit.Token).ConfigureAwait(false);
             var listed = await client.ListToolsAsync(cancellationToken: limit.Token).ConfigureAwait(false);
             var first = entry.Tools.Count == 0 && !entry.EverListed;
             lock (_gate)
@@ -442,6 +452,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 entry.Detail = null;
                 entry.Error = null;
                 entry.Instructions = McpText.FirstLine(client.ServerInstructions, McpText.MaxIndexChars);
+                entry.ProtocolVersion = client.NegotiatedProtocolVersion;
                 entry.ConnectedAt = DateTime.UtcNow;
             }
             _ = WatchAsync(entry, client);
@@ -595,6 +606,35 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         finally
         {
             _lifecycle.Release();
+        }
+    }
+
+    /// <summary>
+    /// Connects with the newest MCP revision first. The client leaves <c>ProtocolVersion</c> unset, so the MCP SDK asks for
+    /// 2026-07-28 (stateless: <c>server/discover</c>, no <c>initialize</c>, no session) and, when the server does not answer
+    /// that, falls back to the <c>initialize</c> handshake on 2025-11-25 (or older). Its probe waits only
+    /// <see cref="DiscoverProbeTimeout"/>, though, and a server that is still starting (<c>uvx</c> and <c>npx</c> resolve and
+    /// fetch packages on the first run) has not answered by then: the SDK takes it for an older server, sends
+    /// <c>initialize</c>, and a 2026-07-28-only server refuses that with <see cref="UnsupportedProtocolVersionException"/>.
+    /// That refusal names the server's revision, so it is asked once more, with the revision pinned and no probe deadline
+    /// (<see cref="ConnectTimeout"/> still ends it).
+    /// </summary>
+    private async Task<McpClient> CreateClientAsync(LocalMcpServer server, ServerEntry entry, CancellationToken cancellationToken)
+    {
+        var transport = await server.Connect(cancellationToken).ConfigureAwait(false);
+        var options = Options(entry);
+        options.DiscoverProbeTimeout = DiscoverProbeTimeout;
+        try
+        {
+            return await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (UnsupportedProtocolVersionException)
+        {
+            var again = await server.Connect(cancellationToken).ConfigureAwait(false);
+            var pinned = Options(entry);
+            pinned.ProtocolVersion = July2026;
+            pinned.DiscoverProbeTimeout = Timeout.InfiniteTimeSpan;
+            return await McpClient.CreateAsync(again, pinned, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -1316,6 +1356,8 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         public Exception? Error { get; set; }
 
         public string? Instructions { get; set; }
+
+        public string? ProtocolVersion { get; set; }
 
         public McpClient? Client { get; set; }
 
