@@ -137,6 +137,12 @@ public static class FadenstackChatOptions
     /// </summary>
     public const string CallIndex = "faden.call_index";
 
+    /// <summary>
+    /// Set by <see cref="Endpoints.DirectChatClient"/> on a whole answer, and on the last update of a stream: what the endpoint's
+    /// answer says about its text watermark, an <see cref="Endpoints.EndpointMarking"/> (sdk/51 F03, F10).
+    /// </summary>
+    public const string EndpointMarking = "faden.endpoint_marking";
+
     public static ChatOptions WithConversation(this ChatOptions options, string conversationId, string? turnId = null)
     {
         options.AdditionalProperties ??= new AdditionalPropertiesDictionary();

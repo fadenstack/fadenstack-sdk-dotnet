@@ -320,7 +320,7 @@ public sealed class FadenstackTransport : IDisposable
             : System.Security.Authentication.SslProtocols.Tls12;
     }
 
-    private static bool ChainsTo(X509Certificate2? certificate, X509Certificate2 authority,
+    internal static bool ChainsTo(X509Certificate2? certificate, X509Certificate2 authority,
         System.Net.Security.SslPolicyErrors errors)
     {
         if (certificate is null || (errors & ~System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors) != 0)
