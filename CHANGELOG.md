@@ -45,6 +45,15 @@ this file says where it does.
   `FadenstackPairingPageElsewhereException`, `FadenstackHttpsRequiredException` (an `ArgumentException`),
   `FadenstackBadCredentialsException`; and `PasswordLogin.LoginAsync`, the password sign-in of a server without pairing
   (TypeScript has `loginWithPassword`).
+- **The connection wizard's view model** (`Fadenstack.UI.Wizard`, sdk/51 F15, I15 step 2):
+  `ConnectionWizardViewModel`, one state machine for "Connect to my organisation" (the address rule, the server check,
+  pairing with one approval for all of the app's agents, the password fallback) and "Use my own AI" (the acceptance and
+  its record, the local search only with consent, presets and a typed address, plain http to the local network only after
+  confirming and never with a key, the key straight into the key store, the check, the model), and for Settings ›
+  Connection. The app gives `IConnectionStore`, `IEndpointKeyStore`, its own `IWizardStep`s and its `WizardOptions`; the
+  machine policy shapes the choices. `ServerSignIn` and `EndpointChecker` drive the SDK; `ServerCheck.CheckAsync` checks a
+  server's `/api/health`; `EndpointCheck.PlaceOfAsync` tells this computer, the local network and the internet apart on the
+  resolved address. The skins and the texts follow.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -67,6 +76,8 @@ this file says where it does.
 
 ### Changed
 
+- `EndpointCheck` probes with the first model `/models` lists when the endpoint names none, and its report names it (the
+  wizard checks before the person picks a model).
 - **Breaking (unlikely to matter):** `find_tool` is the SDK's own name, `AgentTool.ToolSearchName`: `AddTool` and `AddTools`
   refuse an app's tool of that name, and an app's tool source that brings one has it left out (log event 2016). A
   Fadenstack gateway from 0.7.1 takes `find_tool` as read, so the local MCP module's search no longer asks under a server;
