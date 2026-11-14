@@ -650,9 +650,10 @@ public sealed class ChatSession
 
     /// <summary>
     /// A call of the agent's own tool the gateway marked (<c>faden.approval_required</c> without an approvalId): an
-    /// admin's "Ask first" rule, or the class the gateway holds for the tool, never taken looser than the tool's own.
+    /// admin's "Ask first" rule, or the class the gateway holds for the tool, never taken looser than the tool's own; and
+    /// whether the gateway holds it open-world (taken with the tool's own mark: either makes it open-world).
     /// </summary>
-    private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message);
+    private sealed record GatewayMark(bool Rule, ToolClass? ToolClass, string Message, bool OpenWorld = false);
 
     /// <summary>
     /// Which call of a round a word of the gateway (<c>faden.tool_denied</c>, <c>faden.approval_required</c>) is about: the
@@ -871,7 +872,7 @@ public sealed class ChatSession
             }
             var toolClass = Stricter(invocation.Class, prepared.ToolClass);
             var mode = ToolModes.Narrowest(_mode, prepared.EffectiveToolMode);
-            var local = ToolModes.Decide(mode, toolClass);
+            var local = ToolModes.Decide(mode, toolClass, tool.OpenWorld);
             if (prepared.Decision == HostToolVerdict.Deny || local == ToolModeDecision.Hidden)
             {
                 _toolDenied = true;
@@ -1193,9 +1194,10 @@ public sealed class ChatSession
         private static List<int> Where(IReadOnlyList<RoundCall> round, Func<RoundCall, bool> match) =>
             Enumerable.Range(0, round.Count).Where(i => match(round[i])).ToList();
 
-        /// <summary>Two marks on one call: a rule wins, the stricter class wins.</summary>
+        /// <summary>Two marks on one call: a rule wins, the stricter class wins, open-world wins.</summary>
         private static GatewayMark Merge(GatewayMark a, GatewayMark b) => new(a.Rule || b.Rule,
-            a.ToolClass is { } own ? Stricter(own, b.ToolClass) : b.ToolClass, b.Rule && !a.Rule ? b.Message : a.Message);
+            a.ToolClass is { } own ? Stricter(own, b.ToolClass) : b.ToolClass, b.Rule && !a.Rule ? b.Message : a.Message,
+            a.OpenWorld || b.OpenWorld);
 
         /// <summary>
         /// The notice for a model call that ended with no text and no tool call (<c>empty_answer</c>); <c>length</c> when
@@ -1337,6 +1339,7 @@ public sealed class ChatSession
                 ToolClass = ToolModes.ParseClass(ChatWire.Str(value, "toolClass")),
                 Source = "gateway",
                 Reason = ChatWire.Str(value, "message") ?? "",
+                OpenWorld = OpenWorld(value),
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
@@ -1359,8 +1362,12 @@ public sealed class ChatSession
         {
             var toolClass = ChatWire.Str(value, "toolClass");
             _marks.Add((Aim.From(value), new GatewayMark(Rule(value), toolClass is null ? null : ToolModes.ParseClass(toolClass),
-                ChatWire.Str(value, "message") ?? "")));
+                ChatWire.Str(value, "message") ?? "", OpenWorld(value))));
         }
+
+        /// <summary>Whether the gateway's word says it holds the tool open-world (<c>openWorld: true</c>; from 0.7.1).</summary>
+        private static bool OpenWorld(JsonElement value) =>
+            value.ValueKind == JsonValueKind.Object && value.TryGetProperty("openWorld", out var o) && o.ValueKind == JsonValueKind.True;
 
         /// <summary>
         /// The gateway's tool mode for this turn: the turn's mode is never widened by it, an unknown mode is ignored, and the
@@ -1491,7 +1498,8 @@ public sealed class ChatSession
         /// <summary>
         /// Asks if the mode, an admin's rule or the agent's contract says so, then runs the tool; also returns how long the
         /// asking took and what let the call through (null: nothing needed approval, or it was declined).
-        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's. The contract's
+        /// <paramref name="toolClass"/> is the stricter of the tool's own and the gateway's, and so is the open-world mark (either
+        /// makes the call open-world, which asks below Auto: <see cref="ToolModes.Decide"/>). The contract's
         /// <see cref="AgentTool.Approval"/> goes on top of the mode, as the gateway puts it: <c>always</c> asks every time,
         /// like a rule; <c>ask</c> asks where the mode would run; <c>never</c> runs a read or write tool the mode would ask
         /// about, unless a rule asks. None of them shows a tool the mode hides.
@@ -1535,7 +1543,8 @@ public sealed class ChatSession
                     return ($"Error: {e.Message}", "error", TimeSpan.Zero, Array.Empty<DataContent>(), null);
                 }
             }
-            var decided = ToolModes.Decide(_mode, toolClass);
+            var openWorld = tool.OpenWorld == true || mark is { OpenWorld: true };
+            var decided = ToolModes.Decide(_mode, toolClass, openWorld);
             if (decided == ToolModeDecision.Hidden)
             {
                 _toolDenied = true;
@@ -1583,9 +1592,11 @@ public sealed class ChatSession
                         : always ? $"This agent asks every time before it uses '{tool.Name}'."
                         : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
                         : toolClass == ToolClass.Unknown ? "Nobody has said what this tool does."
+                        : openWorld && ToolModes.Decide(_mode, toolClass) == ToolModeDecision.Run
+                            ? $"What '{tool.Name}' is given leaves the organisation; the tool mode is {_mode.ToWire()}."
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
-                    OpenWorld = tool.OpenWorld == true,
+                    OpenWorld = openWorld,
                 }, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
                 if (!settled.Approved)
@@ -1736,11 +1747,14 @@ public sealed class ChatSession
             var (name, toolClass) = (request.ToolName, request.ToolClass);
             // An individual call (a person's own command) is asked about on its own: no grant, no standing approval, none offered.
             var open = !rule && !individual && !AsksEveryTime(toolClass);
+            // An open-world call below Auto is approved for this conversation at most: "always" and a time grant do not answer it
+            // and are not offered (F08 §4). A grant the server says covers it still does: the grant is the server's.
+            var always = open && !ToolModes.ConversationOnly(_mode, request.OpenWorld) && Offers(ApprovalScopes.Always);
             var (granted, leadsOutside) = rule || individual ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
             var standing = rule || individual ? null
                 : granted is not null ? ApprovalScopes.Grant
                 : !open ? null
-                : Offers(ApprovalScopes.Always) && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
+                : always && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
                 : Offers(ApprovalScopes.Chat) && _session.ApprovedForChat(name) ? ApprovalScopes.Chat
                 : null;
             if (standing is not null)
@@ -1751,10 +1765,10 @@ public sealed class ChatSession
             var described = target is null ? null : await target().ConfigureAwait(false);
             var grants = Agent.Grants;
             var durations = open && toolClass is ToolClass.Read or ToolClass.Write && grants.Offers("time")
-                ? grants.Choices : Array.Empty<TimeSpan>();
+                && !ToolModes.ConversationOnly(_mode, request.OpenWorld) ? grants.Choices : Array.Empty<TimeSpan>();
             request = request with
             {
-                CanAllowForSession = open && Offers(ApprovalScopes.Chat), CanAllowAlways = open && Offers(ApprovalScopes.Always),
+                CanAllowForSession = open && Offers(ApprovalScopes.Chat), CanAllowAlways = always,
                 GrantDurations = durations, RequiredByRule = rule, Target = described, LeadsOutside = leadsOutside,
             };
             Emit(new ApprovalRequested(request));

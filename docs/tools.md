@@ -34,7 +34,7 @@ The rules:
 - The tool's name is the method's name in snake_case, without an `Async` suffix: `ReadPageAsync` becomes `read_page`. Set `Name` on the attribute to choose another.
 - The description comes from `[Description]` on the method. The model reads it to decide when to call the tool, so say what the tool does and what it returns.
 - `[AgentTool(ToolClass.Read)]` gives the tool its class. Without a class, the tool is `Unknown`.
-- `OpenWorld = true` marks a tool that reaches outside the organisation, such as a web search. It is recorded, and its approval request says so (`ApprovalRequest.OpenWorld`): the chat panel's card says that what it is given leaves the organisation. No tool mode acts on it yet.
+- `OpenWorld = true` marks a tool that reaches outside the organisation, such as a web search. It is recorded, and its approval request says so (`ApprovalRequest.OpenWorld`): the chat panel's card says that what it is given leaves the organisation. Below `Auto`, a call to such a tool asks ([Open-world tools](#open-world-tools)).
 - Tool names must be unique. `Build()` throws when two tools share a name.
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.
@@ -149,7 +149,7 @@ A hidden tool is not offered to the model. If the model calls it anyway, the cal
 
 Each request carries the session's mode to the gateway, which applies the same rules to the server's own tools.
 
-`ToolModes.Decide(mode, toolClass)` returns what a mode does with a class (`Run`, `Ask` or `Hidden`), if you want to show it in your UI. `ToolModes.ToWire` and `ToolModes.ParseMode` convert modes to and from their wire names (`off`, `read_only`, `ask`, `auto`).
+`ToolModes.Decide(mode, toolClass, openWorld)` returns what a mode does with a class (`Run`, `Ask` or `Hidden`), if you want to show it in your UI. `ToolModes.ToWire` and `ToolModes.ParseMode` convert modes to and from their wire names (`off`, `read_only`, `ask`, `auto`).
 
 ## Approvals
 
@@ -231,6 +231,23 @@ For a tool the gateway runs, the gateway waits while your app asks, and the agen
 An administrator can set an "Ask first" rule on the server for a tool. The gateway then marks the call before your app runs it, and the agent asks the user even where the mode would run the call without asking, even when the user allowed the tool for the chat or always, and even in bypass mode. `RequiredByRule` is set, and `Reason` holds the administrator's message. A call the server refuses outright is not run and not asked about: the turn gets a `tool_denied` notice.
 
 The gateway may also hold a stricter class for a tool than your app has. The agent then uses the stricter one.
+
+### Open-world tools
+
+A tool that reaches outside the organisation (`OpenWorld`, such as a web search) is open-world. What it is given leaves
+the organisation, and text the model read (a page, a mail, a file) can try to put private data into it (OWASP Top 10
+for LLM Applications 2025, LLM02 and LLM06). So:
+
+- In `ReadOnly` and `Ask`, a call to an open-world tool asks, a read one too. `Auto` and `Bypass` run it as its class
+  says.
+- The person may allow it for the rest of the conversation (*Allow for this chat*). Below `Auto`, *Allow always* and a
+  time grant are not offered for it, and an "always" saved before does not answer it: the next conversation asks again.
+  A server grant that covers the call still covers it.
+- The mark is the stricter of the tool's own (`AgentTool.OpenWorld`, a local MCP tool's `openWorldHint: true`) and the
+  gateway's: a Fadenstack gateway from 0.7.1 says `openWorld` when an administrator's class rule marks a tool, and for
+  the SDK's `web_search`.
+- An agent's contract that sets `approval: never` for a read or write tool still runs it unasked, as for any tool the
+  mode would ask about.
 
 ### Allow always
 

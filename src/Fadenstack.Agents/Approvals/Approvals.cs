@@ -64,7 +64,8 @@ public sealed record ApprovalRequest
 
     /// <summary>
     /// The tool reaches outside the organisation (a web search, opening a page; <see cref="AgentTool.OpenWorld"/>): what it
-    /// is given goes to another site. The card says so instead of what its class means.
+    /// is given goes to another site. The card says so instead of what its class means. True when the tool's own mark or the
+    /// gateway's says so; below Auto such a call asks, and is offered for this chat at most (no "always", no time grant).
     /// </summary>
     public bool OpenWorld { get; init; }
 

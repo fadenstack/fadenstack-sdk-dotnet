@@ -52,6 +52,7 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | Tools on request, `find_tool` | `LocalMcpModule` (`LocalMcpModule.FindToolName`, `MaxFound` 5, `MaxToolsInScope` 10) | `OnRequestTools` (`FIND_TOOL_NAME`, `MAX_FOUND`, `MAX_TOOLS_IN_SCOPE`) over the host's own tools | A browser has no local MCP process; the same seam works over the host's tools. |
 | The SDK's own tool names (`find_tool`, `load_skill`, `read_skill_resource`, `run_skill_script`, `web_search`) | `AgentTool.ReservedNames`; refused by `AddTool`/`AddTools` (`ArgumentException`); an app's source's left out (event 2016) | `RESERVED_TOOL_NAMES`; refused by `addTools` and `OnRequestTools` (`TypeError`); an app's source's left out (logged) | |
 | A tool source's tool whose name is taken | Left out (the app's tool wins, then the first source) and logged (event 2017) | The same, logged | |
+| Open-world calls ask below Auto | `ToolModes.Decide(mode, class, openWorld)`, `ToolModes.ConversationOnly`, `OpenWorldEnforced` true | `decideTool(mode, class, approval, openWorld)`, `conversationOnly`, `OPEN_WORLD_ENFORCED` true | |
 | Host commands | `session.InvokeToolAsync`, `session.StreamToolAsync` | `session.invokeTool`, `session.streamTool` | |
 | Fresh policy for host calls | `RequireHostToolPolicyChecks()` | `requireHostToolPolicyChecks()` | |
 | Stages and modules | `AddChatStage`, `AddToolStage`, `Use(module)` | `addChatStage`, `addToolStage`, `use(module)` | |

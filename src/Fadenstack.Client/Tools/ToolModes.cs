@@ -48,10 +48,10 @@ public enum ToolModeDecision
 public static class ToolModes
 {
     /// <summary>
-    /// <c>open_world</c> (reaches outside the organisation) is carried and shown, and no mode acts on it
-    /// yet -- like the gateway's <c>OPEN_WORLD_ENFORCED</c>.
+    /// <c>open_world</c> (reaches outside the organisation) is acted on: below <see cref="ToolMode.Auto"/> a call to an
+    /// open-world tool asks (<see cref="Decide"/>), like the gateway's <c>OPEN_WORLD_ENFORCED</c> from 0.7.1.
     /// </summary>
-    public const bool OpenWorldEnforced = false;
+    public const bool OpenWorldEnforced = true;
 
     /// <summary>The header a request carries its session's mode in.</summary>
     public const string Header = "X-Faden-Tool-Mode";
@@ -63,11 +63,14 @@ public static class ToolModes
     ///     ask         run   ask     ask          ask
     ///     auto        run   run     ask          ask
     ///     bypass      run   run     ask*         ask*      * run under the conversation's Bypass grant
+    ///
+    /// An open-world tool (<paramref name="openWorld"/>: the stricter of the tool's own mark and the gateway's) asks below
+    /// Auto where the table says run: what it is given leaves the organisation, and injected text can put private data
+    /// into it (sdk/51 F08 §4; OWASP Top 10 for LLM Applications 2025, LLM02, LLM06). Auto and Bypass run it.
     /// </summary>
     public static ToolModeDecision Decide(ToolMode mode, ToolClass toolClass, bool? openWorld = null)
     {
-        // if (OpenWorldEnforced && openWorld == true) ...  -- a mode or a policy on external calls, later.
-        return mode switch
+        var decision = mode switch
         {
             ToolMode.Off => ToolModeDecision.Hidden,
             ToolMode.ReadOnly => toolClass == ToolClass.Read ? ToolModeDecision.Run : ToolModeDecision.Hidden,
@@ -75,7 +78,14 @@ public static class ToolModes
             ToolMode.Auto or ToolMode.Bypass => toolClass is ToolClass.Read or ToolClass.Write ? ToolModeDecision.Run : ToolModeDecision.Ask,
             _ => ToolModeDecision.Hidden,
         };
+        return openWorld == true && decision == ToolModeDecision.Run && mode < ToolMode.Auto ? ToolModeDecision.Ask : decision;
     }
+
+    /// <summary>
+    /// Whether an approval of an open-world call may stand only for the conversation: below Auto it asks because what it is
+    /// given leaves the organisation, so neither "always" nor a time grant answers it (sdk/51 F08 §4).
+    /// </summary>
+    public static bool ConversationOnly(ToolMode mode, bool openWorld) => openWorld && mode < ToolMode.Auto;
 
     /// <summary>The most restrictive of the modes given (a ceiling never widens).</summary>
     public static ToolMode Narrowest(ToolMode mode, ToolMode? ceiling) =>

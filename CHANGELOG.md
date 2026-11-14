@@ -43,6 +43,13 @@ this file says where it does.
   logged with what won (event 2017). Between two local MCP servers the first one's tool is kept, as before, and the
   other is logged by the servers' labels (event 3008); `find_tool` no longer finds the second one.
 
+- **Open-world calls ask below Auto** (`ToolModes.OpenWorldEnforced` is now true). In `ReadOnly` and `Ask`, a call to a
+  tool marked `OpenWorld` (or a local MCP tool with `openWorldHint: true`, or one the gateway marks `openWorld`) asks,
+  a read one too; `Auto` and `Bypass` run it. Its card offers *Allow for this chat* at most: *Allow always* and time
+  grants are not offered below `Auto`, and an "always" saved before no longer answers it. `ToolModes.Decide` takes
+  the mark (`openWorld`); `ToolModes.ConversationOnly` says when the rule applies. What such a tool is given leaves the
+  organisation, and injected text can put private data into it.
+
 - **Breaking:** `AgentSession` is now `ChatSession`. The Microsoft Agent Framework has an `AgentSession` of its own, and
   the agent becomes an `AIAgent` in this release; only the name changes.
 - **Breaking:** `MarkableContent.Texts`, `ProvenanceOptions.UseTexts` and `HtmlAttributeMarker.Title` take

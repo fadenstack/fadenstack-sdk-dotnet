@@ -26,7 +26,8 @@ public sealed class AgentToolAttribute : Attribute
 
     /// <summary>
     /// Reaches outside the organisation (a web search, opening a page): recorded, and an approval card says that what it
-    /// is given leaves the organisation (<see cref="ApprovalRequest.OpenWorld"/>); no mode acts on it yet.
+    /// is given leaves the organisation (<see cref="ApprovalRequest.OpenWorld"/>). Below Auto a call to it asks, and an approval
+    /// of it stands for the conversation at most (<see cref="ToolModes.Decide"/>).
     /// </summary>
     public bool OpenWorld { get; set; }
 }
@@ -149,7 +150,7 @@ public sealed class AgentTool
     /// <summary>The MCP server's label, for an MCP tool.</summary>
     public string? Server { get; }
 
-    /// <summary>Reaches outside the organisation (a web search, opening a page); null when nobody said.</summary>
+    /// <summary>Reaches outside the organisation (a web search, opening a page): below Auto a call to it asks. Null when nobody said.</summary>
     public bool? OpenWorld { get; }
 
     /// <summary>What the MCP server's annotations say: the tool only reads. Null when the server did not say; the card shows it, no mode acts on it.</summary>
