@@ -89,6 +89,7 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | The person's own endpoint | `UseEndpoint(ModelEndpoint, EndpointReport?)` | `useEndpoint(endpoint, report?)` | |
 | Any chat client as the model | `UseChatClient(IChatClient)` | `useChatStreamer(streamer)` | |
 | The agent's definition | `UseLocalProfile(AgentDefinition.FromJson(json), ownInstructions, LocalProfileOptions?)` | `useLocalProfile(AgentDefinition.fromJson(json), ownInstructions?, options?)` | |
+| The agent as a Microsoft Agent Framework `AIAgent` | `FadenstackAgent : AIAgent`; `FadenstackAgentSession`; `RunAsync`, `RunStreamingAsync`, workflows | — | The Agent Framework is .NET's. |
 | How the agent is connected | `agent.Connection`, `agent.ServerClient`, `agent.EndpointUrl`; `context.Connection`, `context.ServerClient` | `agent.connection`, `agent.serverClient`, `agent.endpointUrl` | |
 | The endpoint and its dialect | `ModelEndpoint`, `EndpointDialect`, `EndpointPreset` | the same names | |
 | The endpoint as a chat client | `DirectChatClient : IChatClient` | `DirectChatClient`, a `ChatStreamer` | |

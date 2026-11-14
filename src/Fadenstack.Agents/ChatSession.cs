@@ -39,6 +39,9 @@ public sealed class ChatSession
 
     public string Id { get; }
 
+    /// <summary>The agent the session belongs to.</summary>
+    internal FadenstackAgent Agent => _agent;
+
     /// <summary>The mode the user picked for this session. New sessions start in Ask.</summary>
     public ToolMode ToolMode { get; set; }
 

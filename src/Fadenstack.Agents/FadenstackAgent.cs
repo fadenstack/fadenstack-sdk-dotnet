@@ -4,6 +4,7 @@ using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ namespace Fadenstack.Agents;
 /// An agent served by a Fadenstack server and run on this device: its profile, its tools, and its sessions.
 /// The loop runs here; every model call goes through the gateway.
 /// </summary>
-public sealed class FadenstackAgent : IDisposable
+public sealed partial class FadenstackAgent : AIAgent, IDisposable
 {
     private readonly AgentSettings _settings;
     private readonly SemaphoreSlim _starting = new(1, 1);

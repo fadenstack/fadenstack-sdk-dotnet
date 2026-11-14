@@ -24,6 +24,9 @@ this file says where it does.
   - `FadenstackAgent.EndpointUrl`, `AgentContext.ServerClient` and `AgentContext.Connection`, `LocalProfileOptions`.
   - `AgentProfile.LocalSkills` reads the profile's `local_skills` (a Fadenstack server from 0.7.1).
   - `ContextBuilder.Build(entries, reservedTokens)`: room in the history budget for what goes with every request.
+- **The agent is a Microsoft Agent Framework `AIAgent`** (`Microsoft.Agents.AI.Abstractions` 1.28): MAF's `RunAsync`,
+  `RunStreamingAsync`, sessions (`FadenstackAgentSession`, which serializes only the session's id) and workflows run it as a
+  turn of a `ChatSession`. A run needs an approval handler. `Microsoft.Extensions.AI` is 10.11.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork

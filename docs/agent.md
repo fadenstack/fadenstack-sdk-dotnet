@@ -360,6 +360,31 @@ else
 
 It returns names and descriptions only, never how a server is reached. The list is empty when the user has no such tools, and `null` when the server has no route for it (404). An unknown agent (`agent_not_found`) is an error, as is a user who may not use the agent (`FadenstackPermissionException`). The MCP servers on the device are another thing: see [Local MCP servers](local-mcp.md).
 
+## In the Microsoft Agent Framework
+
+`FadenstackAgent` is also a Microsoft Agent Framework `AIAgent`, so MAF's workflows and hosting can run it. It is another way
+in, not another loop: a run is a turn of a `ChatSession`, with the same tools, approvals, policy and local transcript.
+
+```csharp
+AIAgent asMaf = agent;                                        // needs an approval handler (UseApprovals)
+var session = await asMaf.CreateSessionAsync();               // a FadenstackAgentSession around a ChatSession
+var response = await asMaf.RunAsync("Summarise page 3.", session);
+var outcome = response.AdditionalProperties![FadenstackAgent.OutcomeProperty]; // "Completed", "ToolDenied", ...
+
+var workflow = AgentWorkflowBuilder.BuildSequential(agent);   // Microsoft.Agents.AI.Workflows
+```
+
+- **Sessions:** `SerializeSessionAsync` keeps only the session's id; the transcript stays encrypted on the device, and
+  `DeserializeSessionAsync` reopens it from this device's store. `session.GetService<ChatSession>()` gives our session.
+- **Input:** the text and pictures of the user messages. The agent keeps its own history and instructions, so other roles
+  are not taken.
+- **Streaming:** text and reasoning as updates; each tool call as a `FunctionCallContent` with `InformationalOnly` set (the
+  agent ran it, the caller must not), its result as a `FunctionResultContent`; the last update has the usage, the finish
+  reason and the outcome.
+- **Approvals:** a run without `UseApprovals` throws: every call that needs a person would otherwise be declined unseen.
+- `Fadenstack.Agents` references only `Microsoft.Agents.AI.Abstractions`; add `Microsoft.Agents.AI` or its workflows in
+  your app.
+
 ## Logging
 
 The agent logs through the `ILoggerFactory` you give the builder, and so do its client, its local MCP servers and the provenance module. Without one, nothing is logged:
