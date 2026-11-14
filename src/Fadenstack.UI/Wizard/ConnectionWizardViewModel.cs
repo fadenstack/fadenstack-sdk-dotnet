@@ -1192,19 +1192,11 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
             return;
         }
         var run = NewRun();
-        ITokenProvider provider;
-        try
+        ITokenProvider? provider = null;
+        var pending = _pending;
+        if (!await StoreAsync(async ct => provider = await _keys!.SaveAsync(pending.BaseUrl, key!.Trim(), ct).ConfigureAwait(false), run))
         {
-            provider = await _keys!.SaveAsync(_pending.BaseUrl, key!.Trim(), run.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (run.IsCancellationRequested)
-        {
-            return;
-        }
-        await ToUi();
-        if (!IsCurrent(run))
-        {
-            return;
+            return; // stays at the key, with StoreFailed when the key store failed
         }
         _keyProvider = provider;
         KeySet = true;
@@ -1554,6 +1546,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         var run = _run;
         _run = null;
         run?.Cancel();
+        AppStep = null; // an app's step of a cancelled run is no longer running
     }
 
     private bool IsCurrent(CancellationTokenSource run) => ReferenceEquals(run, _run) && !run.IsCancellationRequested;

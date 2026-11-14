@@ -2930,4 +2930,61 @@ public class ConnectionWizardTests
 
         Assert.Equal("Angemeldet als Ana.", server.Wizard.SignedInText);
     }
+
+    // ===================================================================================================================
+    // The key store failing, and the arrows the first pass left out (found by the TypeScript port)
+    // ===================================================================================================================
+
+    [Fact]
+    public void A_key_store_that_fails_keeps_the_person_at_the_key_with_StoreFailed_and_checks_nothing()
+    {
+        using var rig = OwnPick();
+        Pick(rig, EndpointPreset.OpenAI);
+        UseEndpoint(rig);
+        Assert.Equal(WizardStep.OwnKey, rig.Wizard.Step);
+        rig.Keys.Failure = new InvalidOperationException("The key store is locked.");
+
+        rig.Press(rig.Wizard.SubmitKeyCommand, "sk-test");
+
+        Assert.Equal(WizardStep.OwnKey, rig.Wizard.Step);
+        Assert.True(rig.Wizard.StoreFailed);
+        Assert.False(rig.Wizard.KeySet);
+        Assert.Empty(rig.Checker.Checked);
+    }
+
+    [Fact]
+    public void OwnPick_to_OwnAccept_on_Back_and_OwnHelp_to_OwnPick_on_Back()
+    {
+        var url = new Uri("http://localhost:11434/v1");
+        using var rig = OwnPick(before: r => r.Checker.Report.Returns(Reports.Failing(url, EndpointProblem.OriginRefused)));
+        Pick(rig, EndpointPreset.Ollama);
+        UseEndpoint(rig);
+        rig.Press(rig.Wizard.ShowHelpCommand);
+        Assert.Equal(WizardStep.OwnHelp, rig.Wizard.Step);
+
+        rig.Press(rig.Wizard.BackCommand);
+        Assert.Equal(WizardStep.OwnPick, rig.Wizard.Step);
+
+        rig.Press(rig.Wizard.BackCommand);
+        Assert.Equal(WizardStep.OwnAccept, rig.Wizard.Step);
+        Assert.False(rig.Wizard.Accepted); // accepted again, from an unticked box
+    }
+
+    [Fact]
+    public void Cancel_while_the_apps_step_before_the_check_runs_goes_back_to_the_pick_and_checks_nothing()
+    {
+        var step = new FakeStep(WizardPoint.BeforeEndpointCheck);
+        var asked = step.Script.Pending();
+        using var rig = OwnPick(o => o with { Steps = new[] { step } });
+        Type(rig, "https://api.example.test/v1");
+        UseEndpoint(rig);
+        Assert.Equal(WizardStep.BeforeCheck, rig.Wizard.Step);
+        Assert.Same(step, rig.Wizard.AppStep);
+
+        rig.Press(rig.Wizard.CancelCommand);
+
+        Assert.Equal(WizardStep.OwnPick, rig.Wizard.Step);
+        Assert.Null(rig.Wizard.AppStep);
+        Assert.Empty(rig.Checker.Checked);
+    }
 }
