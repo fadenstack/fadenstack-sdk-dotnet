@@ -122,8 +122,10 @@ public interface IChangingToolSource : IToolSource
 public sealed class AgentContext
 {
     internal AgentContext(FadenstackClient? client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory, MachinePolicy? machinePolicy = null, FadenstackAgent? agent = null)
     {
+        MachinePolicy = machinePolicy ?? MachinePolicy.None;
+        Agent = agent;
         ServerClient = client;
         Profile = profile;
         _report = report;
@@ -146,6 +148,12 @@ public sealed class AgentContext
     public AgentConnection Connection => ServerClient is null ? AgentConnection.Standalone : AgentConnection.Governed;
 
     public Models.AgentProfile Profile { get; }
+
+    /// <summary>What IT set for this machine (<see cref="AgentBuilder.UseMachinePolicy"/>): a module reads its lists, such as the skill folders.</summary>
+    public MachinePolicy MachinePolicy { get; }
+
+    /// <summary>The agent itself, for the SDK's own modules that run a Microsoft Agent Framework part for it.</summary>
+    internal FadenstackAgent? Agent { get; }
 
     /// <summary>The agent's logger factory (<see cref="AgentBuilder.UseLogging"/>); a tool source logs through it, content-free.</summary>
     public ILoggerFactory LoggerFactory { get; }

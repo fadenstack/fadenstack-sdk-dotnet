@@ -39,6 +39,8 @@ public class LayerTests
         // 3 · modules: the core below them, never another module or the UI; each brings its own heavy dependency
         ["Fadenstack.Mcp"] = Module("ModelContextProtocol"),
         ["Fadenstack.Provenance"] = Module(),
+        // Agent Skills on the device, over Microsoft Agent Framework's AgentSkillsProvider (the one module that takes MAF's full package on)
+        ["Fadenstack.Skills"] = Module("Microsoft.Agents.AI"),
         ["Fadenstack.Workspaces"] = Module(),
         // delegation between agents on one device, over the A2A library (apps only; on the private feed, not nuget.org)
         ["Fadenstack.Agents.Delegation"] = Module("A2A"),

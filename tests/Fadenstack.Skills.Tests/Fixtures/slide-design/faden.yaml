@@ -1,0 +1,8 @@
+# Copied unchanged from faden-agent-msoffice/skills/slide-design/faden.yaml (the Office agent's real skill); only this comment is added.
+title: Slide design
+tags: [powerpoint, presentations, design]
+activation: auto
+priority: 60
+trigger_rules:
+  keywords: [slide, slides, presentation, deck, powerpoint, pitch]
+preferred_tools: [get_design, add_slide, check_slide, render_slide]
