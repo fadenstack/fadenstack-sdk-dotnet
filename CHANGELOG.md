@@ -8,6 +8,22 @@ this file says where it does.
 
 ### Added
 
+- **Standalone mode** ([Standalone mode](docs/standalone.md)): an agent on the person's own OpenAI-compatible model
+  endpoint, with no Fadenstack server. `AgentBuilder.UseEndpoint(ModelEndpoint)` or `UseChatClient(IChatClient)`, with
+  `UseLocalProfile(AgentDefinition, ownInstructions)`; `Build()` refuses a server and a model together.
+  - `AgentDefinition.FromJson`: the agent's definition as an app ships it; an unknown risk asks.
+  - `ModelEndpoint`, `EndpointDialect` (OpenAI, Azure OpenAI, Ollama, LM Studio, vLLM, SGLang, llama.cpp, LiteLLM,
+    OpenRouter, Mistral), `EndpointPreset`, and `DirectChatClient`, the endpoint as an `IChatClient`.
+  - `EndpointCheck` and its serialisable `EndpointReport`: reachable, the key, the models, usage figures, tool calls,
+    vision, the context length, and the text watermark status from a sourced table (`TextWatermark`, `WatermarkStatus`);
+    `FindLocalAsync` looks for local servers only with the person's consent.
+  - Typed errors: `EndpointKeyRejectedException`, `EndpointOriginRefusedException`, `EndpointModelNotFoundException`,
+    `EndpointContextLengthException`, `EndpointNotCompatibleException`, `EndpointUnreachableException`,
+    `ServerCertificateException`, `EndpointPlainHttpRefusedException`.
+  - `EndpointMarking` on each endpoint answer (`FadenstackChatOptions.EndpointMarking`).
+  - `FadenstackAgent.EndpointUrl`, `AgentContext.ServerClient` and `AgentContext.Connection`, `LocalProfileOptions`.
+  - `AgentProfile.LocalSkills` reads the profile's `local_skills` (a Fadenstack server from 0.7.1).
+  - `ContextBuilder.Build(entries, reservedTokens)`: room in the history budget for what goes with every request.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -61,6 +77,11 @@ this file says where it does.
 - `AgentPairing.WaitAsync`: in a pairing for several agents, a first agent the person did not approve is reported with
   `FadenstackPairingAgentException` (it was "expired"); the first approved other agent is signed in on the way.
 - The request timeout (`FadenstackClientOptions.Timeout`) also covers a stream's wait for its headers.
+- `AgentContext.Client` throws `InvalidOperationException` for an agent without a server (it is unchanged with one);
+  `AgentContext.ServerClient` is the way to ask.
+- A stream whose data is not JSON breaks off with a `FadenstackStreamException` (code `invalid_stream`) instead of a
+  parser's exception. Streamed tool calls without an `index`, or a new call id under an index already used, are kept
+  apart instead of merged into one call.
 
 ### Removed
 
@@ -82,6 +103,11 @@ this file says where it does.
 
 ### Security
 
+- A model endpoint (standalone mode) is reached under transport rules: https, or plain http only to this computer or, with
+  the person's opt-in, the local network; a key never over plain http; no redirect to another origin; limits on what a
+  stream may send, so an endpoint cannot exhaust the device's memory (OWASP ASVS 5.0 V12, V13).
+- An endpoint cannot speak the gateway's protocol: its named events and its answer's `faden` block are not read, so it
+  cannot forge a refusal, an approval or a provenance receipt.
 - No request follows a redirect, so a 307 or 308 can no longer send a request's body (chat text, a refresh token, a
   pairing code) to another address (OWASP ASVS 5.0 V12).
 - Files that hold secrets are written owner-only (0600) before anything goes into them, replaced atomically, and not

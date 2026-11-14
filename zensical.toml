@@ -6,6 +6,7 @@ docs_dir = "docs"
 nav = [
   { "Overview" = "index.md" },
   { "Build an agent" = "agent.md" },
+  { "Standalone mode" = "standalone.md" },
   { "Host tools" = "tools.md" },
   { "Server-held grants and Bypass" = "server-grants.md" },
   { "Host commands and policy" = "host-commands.md" },
