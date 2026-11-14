@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
+    <InternalsVisibleTo Include="Fadenstack.Mcp.Tests" />
   </ItemGroup>
 </Project>

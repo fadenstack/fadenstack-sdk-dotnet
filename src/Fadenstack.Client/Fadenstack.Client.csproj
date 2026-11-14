@@ -17,5 +17,6 @@
     <InternalsVisibleTo Include="Fadenstack.Secrets.Tests" />
     <InternalsVisibleTo Include="Fadenstack.Agents" />
     <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
+    <InternalsVisibleTo Include="Fadenstack.Mcp.Tests" />
   </ItemGroup>
 </Project>

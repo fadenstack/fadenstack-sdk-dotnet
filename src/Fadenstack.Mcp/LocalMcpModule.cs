@@ -418,6 +418,11 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         var log = context.LoggerFactory.CreateLogger(Log.Category);
         var server = entry.Server;
         var decision = Policy.Decide(server, context.Profile);
+        if (decision.Allowed)
+        {
+            // The machine policy wins over the profile and over the person: a list of sources names the only ones allowed.
+            decision = McpSources.Decide(context.MachinePolicy.Mcp, server);
+        }
         if (!decision.Allowed)
         {
             lock (_gate)
@@ -770,6 +775,33 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     }
 
     /// <summary>What the module offers now: the running servers' index and tool names with versions. A change means a new list.</summary>
+    /// <summary>The tool's class under the hint rule (H4): unclassified unless a destructive hint or the host's trust and raises say more.</summary>
+    private static ToolClass ClassOf(ServerEntry entry, ToolEntry tool) =>
+        McpToolClasses.Classify(entry.Server, tool.ServerName, tool.Info.Hints);
+
+    /// <summary>
+    /// The host changed a server's <see cref="LocalMcpServer.Trusted"/> mark or <see cref="LocalMcpServer.ToolClasses"/>: the tools
+    /// are offered again with their new classes at the next turn (the module raises <see cref="Changed"/> when a class differs).
+    /// </summary>
+    public void ClassesChanged() => AnnounceIfChanged();
+
+    /// <summary>Gives the server <paramref name="label"/> new trust marks and raises (the person's, or the administrator's) and offers its tools again.</summary>
+    public void UpdateClasses(string label, McpServerMarks marks)
+    {
+        if (marks is null)
+        {
+            throw new ArgumentNullException(nameof(marks));
+        }
+        var entry = Find(label);
+        if (entry is null)
+        {
+            return;
+        }
+        entry.Server.Trusted = marks.Trusted;
+        entry.Server.ToolClasses = marks.ToolClasses;
+        AnnounceIfChanged();
+    }
+
     private string Signature()
     {
         var builder = new StringBuilder();
@@ -780,7 +812,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 builder.Append(e.Server.Label).Append('\u0001').Append(e.Instructions).Append('\u0001');
                 foreach (var t in e.Tools)
                 {
-                    builder.Append(t.Name).Append(':').Append(t.Version).Append(',');
+                    builder.Append(t.Name).Append(':').Append(t.Version).Append(':').Append((int)ClassOf(e, t)).Append(',');
                 }
                 builder.Append('\n');
             }
@@ -836,7 +868,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                     else
                     {
                         owners[tool.Name] = entry.Server.Label;
-                        tools.Add(new AgentTool(tool.Function, ToolClass.Unknown, "mcp", entry.Server.Label, tool.OpenWorld)
+                        tools.Add(new AgentTool(tool.Function, ClassOf(entry, tool), "mcp", entry.Server.Label, tool.OpenWorld)
                         {
                             Scope = _scope, ReadOnlyHint = tool.Info.Hints.ReadOnly, DestructiveHint = tool.Info.Hints.Destructive,
                         });

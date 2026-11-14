@@ -1,3 +1,4 @@
+using Fadenstack.Tools;
 using ModelContextProtocol.Client;
 
 namespace Fadenstack.Mcp;
@@ -25,6 +26,20 @@ public sealed class LocalMcpServer
     public Uri? Url { get; private set; }
 
     internal Func<CancellationToken, Task<IClientTransport>> Connect { get; }
+
+    /// <summary>
+    /// Whether the host trusts this server's annotations (sdk/51 F05, H4): the person in standalone mode, the administrator in
+    /// governed mode, never the server itself. Only a trusted server's <c>readOnlyHint</c> raises a tool to <see cref="ToolClass.Read"/>;
+    /// a <c>destructiveHint</c> from any server makes the tool destructive. See <see cref="McpToolClasses"/>. Changes take effect
+    /// at the next turn once <see cref="LocalMcpModule.ClassesChanged"/> is called.
+    /// </summary>
+    public bool Trusted { get; set; }
+
+    /// <summary>
+    /// The tools the person (standalone) or the administrator (governed) raised, by the server's own tool name: only
+    /// <see cref="ToolClass.Read"/> and <see cref="ToolClass.Write"/> count. A destructive hint is a floor they cannot lower.
+    /// </summary>
+    public IReadOnlyDictionary<string, ToolClass> ToolClasses { get; set; } = new Dictionary<string, ToolClass>();
 
     /// <summary>The longest a call may take when the server does not say otherwise.</summary>
     public static readonly TimeSpan DefaultCallTimeout = TimeSpan.FromMinutes(2);
