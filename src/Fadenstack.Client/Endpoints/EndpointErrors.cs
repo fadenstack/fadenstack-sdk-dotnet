@@ -51,20 +51,9 @@ public sealed class EndpointContextLengthException : FadenstackApiException
 }
 
 /// <summary>Nothing answered at the endpoint's address (refused, not found, or no answer in time).</summary>
-public sealed class EndpointUnreachableException : FadenstackException
+public sealed class EndpointUnreachableException : FadenstackUnreachableException
 {
     public EndpointUnreachableException(string message, Exception? inner = null) : base(message, inner)
-    {
-    }
-}
-
-/// <summary>
-/// The server's certificate is not trusted (an unknown CA, a name that does not match, expired). A CA of one's own is
-/// trusted through the connection's settings or the machine policy, never by a click.
-/// </summary>
-public sealed class ServerCertificateException : FadenstackException
-{
-    public ServerCertificateException(string message, Exception? inner = null) : base(message, inner)
     {
     }
 }

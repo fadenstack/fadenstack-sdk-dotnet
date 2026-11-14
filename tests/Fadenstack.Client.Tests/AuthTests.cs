@@ -120,7 +120,7 @@ public class AuthTests
         }
         else
         {
-            var refused = Assert.Throws<ArgumentException>(Create);
+            var refused = Assert.Throws<FadenstackHttpsRequiredException>(Create);
             Assert.Contains("must be https unless allowInsecureHttp is set", refused.Message);
         }
     }
@@ -131,7 +131,7 @@ public class AuthTests
         using var client = FadenstackClient.ForAgent(new Uri("http://ai.example.internal"), "docs-assistant", out var tokens,
             new MemoryTokenStore(), o => o.AllowInsecureHttp = true);
         Assert.NotNull(tokens);
-        Assert.Throws<ArgumentException>(() => FadenstackClient.ForAgent(new Uri("http://ai.example.internal"), "docs-assistant", out _,
+        Assert.Throws<FadenstackHttpsRequiredException>(() => FadenstackClient.ForAgent(new Uri("http://ai.example.internal"), "docs-assistant", out _,
             new MemoryTokenStore()));
     }
 

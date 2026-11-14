@@ -48,7 +48,7 @@ public sealed class AgentTokenProvider : ITokenProvider
         _log = logger ?? NullLogger.Instance;
         if (apiUrl.Scheme != Uri.UriSchemeHttps && !(apiUrl.Scheme == Uri.UriSchemeHttp && (allowInsecureHttp || apiUrl.IsLoopback)))
         {
-            throw new ArgumentException(
+            throw new FadenstackHttpsRequiredException(
                 "The API URL must be https unless allowInsecureHttp is set or it is this machine (localhost).", nameof(apiUrl));
         }
         _apiUrl = new Uri(apiUrl.AbsoluteUri.TrimEnd('/') + "/");
@@ -267,7 +267,7 @@ public sealed class AgentTokenProvider : ITokenProvider
         }
         catch (HttpRequestException e)
         {
-            throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
+            throw FadenstackUnreachableException.Of(e, $"Fadenstack could not be reached: {e.Message}");
         }
         using (response)
         {

@@ -65,8 +65,8 @@ public class BackendExceptionTests
         gateway.Server.On("GET", Grants, _ => throw new HttpRequestException("connection refused"))
             .On("POST", "/api/agent-tokens/step-ups", _ => throw new HttpRequestException("connection refused"));
 
-        var listing = await Assert.ThrowsAsync<FadenstackException>(() => agent.Backend.ListGrantsAsync(default));
-        var stepUp = await Assert.ThrowsAsync<FadenstackException>(() => agent.Backend.StartStepUpAsync(30, "1.0", default));
+        var listing = await Assert.ThrowsAsync<FadenstackUnreachableException>(() => agent.Backend.ListGrantsAsync(default));
+        var stepUp = await Assert.ThrowsAsync<FadenstackUnreachableException>(() => agent.Backend.StartStepUpAsync(30, "1.0", default));
 
         Assert.IsType<HttpRequestException>(listing.InnerException);
         Assert.IsType<HttpRequestException>(stepUp.InnerException);

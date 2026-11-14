@@ -80,6 +80,69 @@ public sealed class FadenstackStreamException : FadenstackException
     public string? Code { get; }
 }
 
+/// <summary>Nothing answered at the server's address: refused, not found, no answer in time (sdk/51 I15).</summary>
+public class FadenstackUnreachableException : FadenstackException
+{
+    public FadenstackUnreachableException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
+
+    /// <summary>
+    /// The typed error for a request that got no answer: <see cref="ServerCertificateException"/> when TLS refused the
+    /// server's certificate, else unreachable with <paramref name="message"/>.
+    /// </summary>
+    internal static FadenstackException Of(Exception error, string message)
+    {
+        for (var inner = error; inner is not null; inner = inner.InnerException)
+        {
+            if (inner is System.Security.Authentication.AuthenticationException)
+            {
+                return new ServerCertificateException(
+                    "The server's certificate is not trusted (an unknown CA, a name that does not match, or expired). Ask IT: a CA of your own comes from the machine policy or the app's settings.", error);
+            }
+        }
+        return new FadenstackUnreachableException(message, error);
+    }
+}
+
+/// <summary>
+/// The server's certificate is not trusted (an unknown CA, a name that does not match, expired). A CA of one's own is
+/// trusted through the connection's settings or the machine policy, never by a click (ASVS 5.0 V12).
+/// </summary>
+public sealed class ServerCertificateException : FadenstackException
+{
+    public ServerCertificateException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
+}
+
+/// <summary>
+/// The server named a sign-in page on another address than its own, and the SDK did not use it. A server builds the page
+/// from the request's <c>Host</c> and <c>X-Forwarded-Proto</c>: use the address the console uses (https, the public name).
+/// </summary>
+public sealed class FadenstackPairingPageElsewhereException : FadenstackException
+{
+    public FadenstackPairingPageElsewhereException(string message) : base(message)
+    {
+    }
+}
+
+/// <summary>An address that must be https is not (plain http only to this machine, or where a setting allows it).</summary>
+public sealed class FadenstackHttpsRequiredException : ArgumentException
+{
+    public FadenstackHttpsRequiredException(string message, string? paramName = null) : base(message, paramName)
+    {
+    }
+}
+
+/// <summary>The e-mail or password is not right (the password sign-in of a server without pairing).</summary>
+public sealed class FadenstackBadCredentialsException : FadenstackApiException
+{
+    public FadenstackBadCredentialsException(HttpStatusCode status, string message) : base(status, message, "LOGIN_BAD_CREDENTIALS")
+    {
+    }
+}
+
 /// <summary>The agent's sign-in is gone (never made, expired, or revoked): sign in again.</summary>
 public sealed class FadenstackSignInRequiredException : FadenstackException
 {

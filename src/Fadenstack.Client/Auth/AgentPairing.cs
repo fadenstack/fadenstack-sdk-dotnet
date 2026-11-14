@@ -60,7 +60,7 @@ public sealed class AgentPairing
     {
         if (server.Scheme != Uri.UriSchemeHttps && !(server.Scheme == Uri.UriSchemeHttp && (allowInsecureHttp || server.IsLoopback)))
         {
-            throw new ArgumentException(
+            throw new FadenstackHttpsRequiredException(
                 "The server URL must be https unless allowInsecureHttp is set or it is this machine (localhost).", nameof(server));
         }
         _server = new Uri(server.AbsoluteUri.TrimEnd('/') + "/");
@@ -448,7 +448,7 @@ public sealed class AgentPairing
             || (e is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // The message of a network error can carry the address; the caller sees it, the log does not.
-            throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
+            throw FadenstackUnreachableException.Of(e, $"Fadenstack could not be reached: {e.Message}");
         }
         if (FadenstackTransport.Redirected(response, request.RequestUri!) is { } redirected)
         {
@@ -463,7 +463,7 @@ public sealed class AgentPairing
         catch (Exception e) when (e is HttpRequestException or System.IO.IOException)
         {
             response.Dispose();
-            throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
+            throw FadenstackUnreachableException.Of(e, $"Fadenstack could not be reached: {e.Message}");
         }
     }
 
@@ -519,7 +519,8 @@ public sealed class AgentPairing
         if (uri.UserInfo.Length > 0
             || !string.Equals(uri.GetLeftPart(UriPartial.Authority), _server.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase))
         {
-            throw new FadenstackException("The server named a sign-in page on another address than its own; it was not used.");
+            throw new FadenstackPairingPageElsewhereException(
+                "The server named a sign-in page on another address than its own; it was not used. Use the address the console uses (https, its public name): a proxy in front of the server may pass on another one.");
         }
         return uri;
     }

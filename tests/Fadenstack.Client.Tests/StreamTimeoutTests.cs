@@ -49,7 +49,7 @@ public class StreamTimeoutTests
         }), timeout: TimeSpan.FromMilliseconds(300), idle: TimeSpan.FromMinutes(5));
         using var guard = new CancellationTokenSource(TimeSpan.FromSeconds(20)); // the test's own limit, not the SDK's
 
-        var error = await Assert.ThrowsAsync<FadenstackException>(() => ReadAllAsync(client, guard.Token));
+        var error = await Assert.ThrowsAsync<FadenstackUnreachableException>(() => ReadAllAsync(client, guard.Token));
 
         Assert.Contains("did not answer within", error.Message);
         Assert.False(guard.IsCancellationRequested);

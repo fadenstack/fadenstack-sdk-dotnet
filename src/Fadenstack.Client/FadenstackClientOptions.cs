@@ -95,7 +95,7 @@ public sealed class FadenstackClientOptions
         }
         if (ServerUrl.Scheme == Uri.UriSchemeHttp && !AllowInsecureHttp)
         {
-            throw new ArgumentException(
+            throw new FadenstackHttpsRequiredException(
                 "Fadenstack is reached over https. Set AllowInsecureHttp only for a development server.");
         }
         return ServerUrl;

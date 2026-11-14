@@ -28,7 +28,7 @@ public sealed class FadenstackTransport : IDisposable
         ApiUrl = WithSlash(options.ApiUrl ?? ServerUrl);
         if (ApiUrl.Scheme == Uri.UriSchemeHttp && !options.AllowInsecureHttp)
         {
-            throw new ArgumentException("The API URL must be https unless AllowInsecureHttp is set.");
+            throw new FadenstackHttpsRequiredException("The API URL must be https unless AllowInsecureHttp is set.");
         }
         _tokens = options.Credentials;
         if (options.HttpClient is not null)
@@ -84,12 +84,12 @@ public sealed class FadenstackTransport : IDisposable
             catch (TaskCanceledException e) when (!cancellationToken.IsCancellationRequested)
             {
                 Failed(activity, method, route, e, attempt, watch);
-                throw new FadenstackException($"Fadenstack did not answer within {Timeout.TotalSeconds:0} s.", e);
+                throw new FadenstackUnreachableException($"Fadenstack did not answer within {Timeout.TotalSeconds:0} s.", e);
             }
             catch (HttpRequestException e)
             {
                 Failed(activity, method, route, e, attempt, watch);
-                throw new FadenstackException($"Fadenstack could not be reached: {e.Message}", e);
+                throw FadenstackUnreachableException.Of(e, $"Fadenstack could not be reached: {e.Message}");
             }
             activity?.SetTag("http.response.status_code", (int)response.StatusCode);
             Log.Request(_log, method, route, (int)response.StatusCode, watch.ElapsedMilliseconds, attempt);

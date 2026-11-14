@@ -119,7 +119,7 @@ public class PairingTests
             verification_uri_complete = complete ?? page + "?code=BDWP-HTQX", expires_in = 600, interval = 5,
         }, HttpStatusCode.Created);
 
-        var e = await Assert.ThrowsAsync<FadenstackException>(() => rig.Pairing().StartAsync(Agent, "PC", App));
+        var e = await Assert.ThrowsAsync<FadenstackPairingPageElsewhereException>(() => rig.Pairing().StartAsync(Agent, "PC", App));
 
         Assert.Contains("another address", e.Message);
     }
@@ -331,7 +331,7 @@ public class PairingTests
         await Assert.ThrowsAsync<FadenstackRateLimitedException>(() =>
             new AgentPairing(Server, new HttpClient(limited), new MemoryTokenStore()).StartAsync(Agent, "PC", App));
         var down = new FakeServer().On("POST", "/api/agent-tokens/pairings", _ => throw new HttpRequestException("no route"));
-        await Assert.ThrowsAsync<FadenstackException>(() =>
+        await Assert.ThrowsAsync<FadenstackUnreachableException>(() =>
             new AgentPairing(Server, new HttpClient(down), new MemoryTokenStore()).StartAsync(Agent, "PC", App));
     }
 
@@ -370,7 +370,7 @@ public class PairingTests
     [Fact]
     public void Plain_http_to_another_machine_is_refused()
     {
-        Assert.Throws<ArgumentException>(() => new AgentPairing(new Uri("http://ai.example.internal"), new HttpClient(), new MemoryTokenStore()));
+        Assert.Throws<FadenstackHttpsRequiredException>(() => new AgentPairing(new Uri("http://ai.example.internal"), new HttpClient(), new MemoryTokenStore()));
         _ = new AgentPairing(new Uri("http://localhost:8000"), new HttpClient(), new MemoryTokenStore());
     }
 

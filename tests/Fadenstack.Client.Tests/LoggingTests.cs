@@ -68,7 +68,7 @@ public class LoggingTests
         var server = new FakeServer().On("GET", "/v1/features", _ => throw new HttpRequestException($"no route to {Sentinel}"));
         using var client = Make(server, logs);
 
-        await Assert.ThrowsAsync<FadenstackException>(() => client.GetFeaturesAsync());
+        await Assert.ThrowsAsync<FadenstackUnreachableException>(() => client.GetFeaturesAsync());
 
         Assert.Contains(logs.Entries, e => e.EventId == 1001 && e.Level == LogLevel.Warning && e.Message.Contains("HttpRequestException"));
         Assert.DoesNotContain(logs.Texts, t => t.Contains(Sentinel));

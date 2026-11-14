@@ -144,7 +144,7 @@ public class ApprovalAnswerRetryTests
         using var agent = Build(gateway, (_, _) => throw new HttpRequestException("down"));
         gateway.Server.On("POST", Answer, _ => throw new HttpRequestException("still down"));
 
-        await Assert.ThrowsAsync<FadenstackException>(async () => await (await agent.StartSessionAsync()).SendAsync("Comment."));
+        await Assert.ThrowsAsync<FadenstackUnreachableException>(async () => await (await agent.StartSessionAsync()).SendAsync("Comment."));
     }
 
     /// <summary>Does what a test says to the first approval answer; everything else, and later answers, go to the fake.</summary>
