@@ -314,4 +314,58 @@ public class EndpointCheckTests
         }
         Assert.Equal(new Version(major, minor, patch), v);
     }
+
+    [Fact]
+    public async Task An_endpoint_with_no_model_is_probed_with_the_first_model_the_server_lists()
+    {
+        var (check, fake) = Make(model: "");
+        fake.Models = ["llama3.2:3b", "qwen3:14b"];
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+
+        var report = await check.RunAsync();
+
+        Assert.Equal("llama3.2:3b", report.Model);
+        Assert.Equal(new[] { "llama3.2:3b", "qwen3:14b" }, report.Models);
+        Assert.True(report.Usable);
+        Assert.True(report.ToolCalls);
+        var chats = fake.Requests.Where(r => r.Url.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal)).ToList();
+        Assert.True(chats.Count >= 2, "the chat probe and the tool-call probe both ask");
+        Assert.All(chats, r => Assert.Equal("llama3.2:3b", r.Json.GetProperty("model").GetString()));
+    }
+
+    [Fact]
+    public async Task An_endpoint_with_a_model_keeps_it_whatever_the_server_lists_first()
+    {
+        var (check, fake) = Make(model: "qwen3:14b");
+        fake.Models = ["llama3.2:3b", "qwen3:14b"];
+
+        var report = await check.RunAsync();
+
+        Assert.Equal("qwen3:14b", report.Model);
+        Assert.Equal(new[] { "llama3.2:3b", "qwen3:14b" }, report.Models);
+        var chats = fake.Requests.Where(r => r.Url.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal)).ToList();
+        Assert.NotEmpty(chats);
+        Assert.All(chats, r => Assert.Equal("qwen3:14b", r.Json.GetProperty("model").GetString()));
+    }
+
+    [Theory]
+    [InlineData("http://127.0.0.1:11434/v1", EndpointPlace.ThisComputer)]
+    [InlineData("http://[::1]:1234", EndpointPlace.ThisComputer)]
+    [InlineData("http://localhost:8000", EndpointPlace.ThisComputer)]
+    [InlineData("http://192.168.1.20", EndpointPlace.LocalNetwork)]
+    [InlineData("http://10.0.0.5", EndpointPlace.LocalNetwork)]
+    [InlineData("http://[fe80::1]", EndpointPlace.LocalNetwork)]
+    [InlineData("http://8.8.8.8", EndpointPlace.Internet)]
+    [InlineData("http://100.64.0.1", EndpointPlace.Internet)]
+    public async Task PlaceOf_decides_on_the_address(string address, EndpointPlace expected)
+    {
+        Assert.Equal(expected, await EndpointCheck.PlaceOfAsync(new Uri(address)));
+    }
+
+    [Fact]
+    public async Task PlaceOf_needs_an_address()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() => EndpointCheck.PlaceOfAsync(null!));
+    }
 }

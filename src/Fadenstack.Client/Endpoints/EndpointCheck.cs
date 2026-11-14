@@ -41,6 +41,19 @@ public enum EndpointProblem
     Failed,
 }
 
+/// <summary>Where an endpoint's address points (<see cref="EndpointCheck.PlaceOfAsync"/>).</summary>
+public enum EndpointPlace
+{
+    /// <summary>Loopback: 127.0.0.0/8, ::1, <c>localhost</c>.</summary>
+    ThisComputer,
+
+    /// <summary>A private range: RFC 1918, link-local, fc00::/7.</summary>
+    LocalNetwork,
+
+    /// <summary>Anything else, CGNAT included, or an address that cannot be resolved.</summary>
+    Internet,
+}
+
 /// <summary>What the check is to do.</summary>
 public sealed record EndpointCheckOptions
 {
@@ -192,7 +205,8 @@ public sealed class EndpointCheck
             BaseUrl = _endpoint.BaseUrl, Model = _endpoint.Model, CheckedAt = DateTimeOffset.UtcNow, Server = server,
             Dialect = _endpoint.Dialect.Name, Watermark = TextWatermarks.For(server, null, _endpoint.Dialect.RequestWatermark, null),
         };
-        using var transport = new EndpointTransport(_endpoint);
+        using var listed = new EndpointTransport(_endpoint);
+        var transport = listed;
         if (_endpoint.Key is not null && _endpoint.BaseUrl.Scheme == Uri.UriSchemeHttp)
         {
             problems.Add(EndpointProblem.KeyUnencryptedOnThisComputer); // said, even where it is allowed
@@ -220,6 +234,18 @@ public sealed class EndpointCheck
             return Finish(report with { Reachable = stop.Reachable, KeyAccepted = stop.KeyAccepted }, problems);
         }
 
+        // No model named yet (the wizard checks before the person picks one, F15): the first listed model stands in for the
+        // probes, and the report names it.
+        var endpoint = _endpoint;
+        EndpointTransport? chosen = null;
+        if (endpoint.Model.Length == 0 && report.Models.Count > 0)
+        {
+            endpoint = endpoint with { Model = report.Models[0] };
+            report = report with { Model = endpoint.Model };
+            transport = chosen = new EndpointTransport(endpoint);
+        }
+        using var chosenTransport = chosen;
+
         // The server's version where it says (vLLM's and SGLang's /version), for the watermark table.
         string? version = null;
         if (server is EndpointServer.Vllm or EndpointServer.Sglang)
@@ -246,7 +272,7 @@ public sealed class EndpointCheck
             // The server refused the request for its mark (not configured): requests go without it, the report says so.
             watermarkRequested = false;
             problems.Add(EndpointProblem.WatermarkRequestRefused);
-            client = new DirectChatClient(new EndpointTransport(_endpoint with { Dialect = _endpoint.Dialect with { RequestWatermark = false } }),
+            client = new DirectChatClient(new EndpointTransport(endpoint with { Dialect = endpoint.Dialect with { RequestWatermark = false } }),
                 ownsTransport: true);
             try
             {
@@ -309,7 +335,7 @@ public sealed class EndpointCheck
         {
             problems.Add(EndpointProblem.ContextTooShort);
         }
-        if (client.Endpoint != _endpoint)
+        if (client.Endpoint != endpoint)
         {
             client.Dispose();
         }
@@ -486,7 +512,7 @@ public sealed class EndpointCheck
                 case EndpointServer.Ollama:
                 {
                     var show = await GetJsonAsync(transport, EndpointUrl.Root(transport.Base, "api/show"), cancellationToken,
-                        new { model = _endpoint.Model }).ConfigureAwait(false);
+                        new { model = transport.Endpoint.Model }).ConfigureAwait(false);
                     if (show is not { ValueKind: JsonValueKind.Object } s)
                     {
                         return (null, null);
@@ -520,7 +546,7 @@ public sealed class EndpointCheck
                 {
                     foreach (var model in l.GetProperty("data").EnumerateArray())
                     {
-                        if (model.TryGetProperty("id", out var id) && id.GetString() == _endpoint.Model
+                        if (model.TryGetProperty("id", out var id) && id.GetString() == transport.Endpoint.Model
                             && model.TryGetProperty("max_model_len", out var max) && max.TryGetInt32(out var n))
                         {
                             return (n, n); // the server runs with it
@@ -531,7 +557,7 @@ public sealed class EndpointCheck
                 case EndpointServer.LMStudio:
                 {
                     var model = await GetJsonAsync(transport, EndpointUrl.Root(transport.Base,
-                        "api/v0/models/" + Uri.EscapeDataString(_endpoint.Model)), cancellationToken).ConfigureAwait(false);
+                        "api/v0/models/" + Uri.EscapeDataString(transport.Endpoint.Model)), cancellationToken).ConfigureAwait(false);
                     int? Read(string name) => model is { ValueKind: JsonValueKind.Object } m && m.TryGetProperty(name, out var v)
                         && v.TryGetInt32(out var n) ? n : null;
                     return (Read("loaded_context_length"), Read("max_context_length"));
@@ -557,6 +583,25 @@ public sealed class EndpointCheck
             throw new ArgumentNullException(nameof(endpoint));
         }
         return TextWatermarks.For(ServerOf(endpoint), null, endpoint.Dialect.RequestWatermark, null);
+    }
+
+    /// <summary>
+    /// Where an endpoint's address points, for the wizard's plain-http step (sdk/51 I15 §3, D3): decided on the resolved
+    /// addresses, not the name, so a name that resolves to one public address is the internet. An address that cannot be
+    /// resolved is the internet too. The transport decides again on the address it connects to.
+    /// </summary>
+    public static async Task<EndpointPlace> PlaceOfAsync(Uri baseUrl, CancellationToken cancellationToken = default)
+    {
+        if (baseUrl is null)
+        {
+            throw new ArgumentNullException(nameof(baseUrl));
+        }
+        return await NetworkAddress.OfHostAsync(baseUrl.Host, cancellationToken).ConfigureAwait(false) switch
+        {
+            AddressScope.Loopback => EndpointPlace.ThisComputer,
+            AddressScope.Private => EndpointPlace.LocalNetwork,
+            _ => EndpointPlace.Internet,
+        };
     }
 
     /// <summary>The kind of server behind an endpoint by its host and dialect alone, with no request.</summary>
