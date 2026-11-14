@@ -1,5 +1,6 @@
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
+using Fadenstack.Endpoints;
 using Fadenstack.Models;
 using Fadenstack.Tools;
 using Microsoft.Extensions.AI;
@@ -22,6 +23,13 @@ public sealed class AgentBuilder
     private readonly List<string> _modules = new();
     private FadenstackClient? _client;
     private FadenstackClientOptions? _options;
+    private ModelEndpoint? _endpoint;
+    private EndpointReport? _endpointReport;
+    private IChatClient? _chatClient;
+    private AgentDefinition? _definition;
+    private string? _ownInstructions;
+    private LocalProfileOptions? _localOptions;
+    private MachinePolicy _policy = MachinePolicy.None;
     private string? _agent;
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
@@ -58,6 +66,52 @@ public sealed class AgentBuilder
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _agent ??= client.Options.Agent;
         _options = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Standalone mode (sdk/51 F03): the person's own OpenAI-compatible endpoint, with no Fadenstack server. Needs
+    /// <see cref="UseLocalProfile"/>; never together with <see cref="UseServer"/> or <see cref="UseClient"/>. The endpoint
+    /// check's <paramref name="report"/>, if the app kept one, says whether the model sees pictures.
+    /// </summary>
+    public AgentBuilder UseEndpoint(ModelEndpoint endpoint, EndpointReport? report = null)
+    {
+        _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        _endpointReport = report;
+        return this;
+    }
+
+    /// <summary>
+    /// Standalone mode with any <see cref="IChatClient"/> as the model, instead of <see cref="UseEndpoint"/>: the host's own
+    /// client (an SDK of a provider, a test's), which stays the host's. Needs <see cref="UseLocalProfile"/>.
+    /// </summary>
+    public AgentBuilder UseChatClient(IChatClient chatClient)
+    {
+        _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
+        return this;
+    }
+
+    /// <summary>
+    /// The agent's definition for standalone mode (the app's own <c>contracts/*.json</c>): its slug, instructions, host tool
+    /// contract and greeting. The person's own instructions, if any, come after the definition's (D7). The person's settings
+    /// (<paramref name="options"/>) say whether local MCP servers and skills are on.
+    /// </summary>
+    public AgentBuilder UseLocalProfile(AgentDefinition definition, string? ownInstructions = null, LocalProfileOptions? options = null)
+    {
+        _definition = definition ?? throw new ArgumentNullException(nameof(definition));
+        _ownInstructions = ownInstructions;
+        _localOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// What IT set for this machine (sdk/51 F09): <c>Build()</c> refuses an endpoint the policy forbids or does not list, takes
+    /// away the plain-http opt-in where it forbids plain http, and narrows local MCP and skills, with a server too. The app
+    /// reads the policy from its managed location (<see cref="MachinePolicy.Load"/>) and locks what it sets.
+    /// </summary>
+    public AgentBuilder UseMachinePolicy(MachinePolicy policy)
+    {
+        _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         return this;
     }
 
@@ -314,31 +368,93 @@ public sealed class AgentBuilder
 
     public FadenstackAgent Build()
     {
-        var agent = _agent ?? throw new InvalidOperationException("Call UseAgent(slug).");
-        var client = _client;
-        var ownsClient = false;
-        if (client is null)
-        {
-            var options = _options ?? throw new InvalidOperationException("Call UseServer(...) or UseClient(...).");
-            options.Agent = agent;
-            if (_loggerFactory is not null)
-            {
-                options.LoggerFactory = _loggerFactory;
-            }
-            client = new FadenstackClient(options);
-            ownsClient = true;
-        }
-        else if (!string.Equals(client.Options.Agent, agent, StringComparison.Ordinal))
+        var standalone = _endpoint is not null || _chatClient is not null;
+        if (standalone && (_client is not null || _options is not null))
         {
             throw new InvalidOperationException(
-                $"The client is for '{client.Options.Agent ?? "(no agent)"}', not '{agent}': one agent per client.");
+                "An agent talks to a Fadenstack server (UseServer, UseClient) or to an endpoint (UseEndpoint, UseChatClient), never both.");
         }
-        // The backend owns the client it was given when the builder made it (disposed with the agent).
-        var backend = new ServerAgentBackend(client, ownsClient);
-        var duplicate = _tools.GroupBy(t => t.Name).FirstOrDefault(g => g.Count() > 1);
-        if (duplicate is not null)
+        IAgentBackend backend;
+        string agent;
+        string? instructions = null;
+        ILoggerFactory? clientLogging = null;
+        if (standalone)
         {
-            throw new InvalidOperationException($"Two tools are named '{duplicate.Key}'.");
+            if (_endpoint is not null && _chatClient is not null)
+            {
+                throw new InvalidOperationException("Give the agent one model: UseEndpoint or UseChatClient, not both.");
+            }
+            var definition = _definition ?? throw new InvalidOperationException(
+                "An agent on an endpoint needs its definition: call UseLocalProfile(AgentDefinition.FromJson(...)).");
+            if (_agent is not null && !string.Equals(_agent, definition.Slug, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"The definition is for '{definition.Slug}', not '{_agent}': in standalone mode the slug comes from the definition.");
+            }
+            agent = definition.Slug;
+            if (_policy.Standalone != PolicyAccess.Allowed)
+            {
+                throw new MachinePolicyException("standalone",
+                    "This computer's policy does not allow an agent on its own model endpoint: connect to the organisation's server.");
+            }
+            if (_endpoint is not null && !_policy.AllowsEndpoint(_endpoint.BaseUrl))
+            {
+                throw new MachinePolicyException("endpoints", "This computer's policy does not list this endpoint.");
+            }
+            if (_chatClient is not null && _policy.Endpoints is not null)
+            {
+                throw new MachinePolicyException("endpoints",
+                    "This computer's policy allows only listed endpoints, and a host's own chat client names none.");
+            }
+            AssertNoDuplicateTools();
+            var endpoint = _endpoint is null || _loggerFactory is null || _endpoint.LoggerFactory is not null
+                ? _endpoint : _endpoint with { LoggerFactory = _loggerFactory };
+            if (endpoint is not null && _policy.PlainHttp != PolicyAccess.Allowed)
+            {
+                endpoint = endpoint with { AllowPlainHttpInLan = false, PlainHttpForbidden = true };
+            }
+            var local = _localOptions ?? new LocalProfileOptions();
+            local = local with
+            {
+                LocalMcp = local.LocalMcp && _policy.Mcp.AllowsAny,
+                LocalSkills = local.LocalSkills && _policy.Skills.AllowsAny,
+            };
+            // An endpoint's client is the agent's (disposed with it); a host's own chat client stays the host's.
+            backend = new LocalAgentBackend(definition, _chatClient ?? new DirectChatClient(endpoint!), ownsChat: _chatClient is null,
+                endpoint, _endpointReport, local);
+            // D7: the person's own instructions come after the definition's.
+            instructions = string.Join("\n\n", new[] { definition.Instructions, _ownInstructions?.Trim() }.Where(s => !string.IsNullOrEmpty(s)));
+        }
+        else
+        {
+            if (_definition is not null)
+            {
+                throw new InvalidOperationException(
+                    "UseLocalProfile is for an agent on an endpoint: with a server the agent's definition is the server's.");
+            }
+            agent = _agent ?? throw new InvalidOperationException("Call UseAgent(slug).");
+            var client = _client;
+            var ownsClient = false;
+            if (client is null)
+            {
+                var options = _options ?? throw new InvalidOperationException("Call UseServer(...) or UseClient(...).");
+                options.Agent = agent;
+                if (_loggerFactory is not null)
+                {
+                    options.LoggerFactory = _loggerFactory;
+                }
+                client = new FadenstackClient(options);
+                ownsClient = true;
+            }
+            else if (!string.Equals(client.Options.Agent, agent, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"The client is for '{client.Options.Agent ?? "(no agent)"}', not '{agent}': one agent per client.");
+            }
+            // The backend owns the client it was given when the builder made it (disposed with the agent).
+            backend = new ServerAgentBackend(client, ownsClient);
+            clientLogging = client.Options.LoggerFactory;
+            AssertNoDuplicateTools();
         }
         IChatClient chat = backend.ChatClient; // the model, under the chat stages
         foreach (var stage in _chatStages.OrderByDescending(s => s.Order))
@@ -350,7 +466,9 @@ public sealed class AgentBuilder
             Backend = backend,
             Agent = agent,
             Chat = chat,
-            LoggerFactory = _loggerFactory ?? client.Options.LoggerFactory,
+            Instructions = string.IsNullOrEmpty(instructions) ? null : instructions,
+            MachinePolicy = _policy,
+            LoggerFactory = _loggerFactory ?? clientLogging ?? NullLoggerFactory.Instance,
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
@@ -372,6 +490,15 @@ public sealed class AgentBuilder
             App = _app ?? new AppDescription { Name = "Fadenstack SDK app" },
             AppDescribed = _app is not null,
         });
+    }
+
+    private void AssertNoDuplicateTools()
+    {
+        var duplicate = _tools.GroupBy(t => t.Name).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+        {
+            throw new InvalidOperationException($"Two tools are named '{duplicate.Key}'.");
+        }
     }
 }
 
@@ -396,6 +523,18 @@ internal sealed class AgentSettings
     public IAgentBackend Backend { get; init; } = null!;
     public string Agent { get; init; } = "";
     public IChatClient Chat { get; init; } = null!;
+
+    /// <summary>
+    /// A standalone agent's instructions, its definition's then the person's own (D7); null with a server, whose gateway adds
+    /// the agent's own. The session sets them as the system message, above the chat stages.
+    /// </summary>
+    public string? Instructions { get; init; }
+
+    /// <summary>What IT set for this machine; <see cref="MachinePolicy.None"/> when the app gave none.</summary>
+    public MachinePolicy MachinePolicy { get; init; } = MachinePolicy.None;
+
+    /// <summary>About how many tokens <see cref="Instructions"/> take (4 characters a token): the history budget leaves room.</summary>
+    public int InstructionsTokens => Instructions is null ? 0 : (Instructions.Length + 3) / 4;
 
     /// <summary>The builder's, else the client's (a client made elsewhere logs to its own).</summary>
     public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;

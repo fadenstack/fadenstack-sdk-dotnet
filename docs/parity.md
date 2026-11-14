@@ -82,6 +82,26 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | Delete my data | `agent.DeleteMyDataAsync()` returns `DataDeletion` (`FoldersRemoved`, `HostSessionStoreLeft`, `HostApprovalStoreLeft`, `HostStoresLeft`) | `agent.deleteMyData()` returns `storesCleared`, `hostSessionStoreLeft`, `hostApprovalStoreLeft`, `hostStoresLeft` | It deletes the IndexedDB databases and their key. |
 | Allow always | `IApprovalStore`: `FileApprovalStore`, `MemoryApprovalStore`; `agent.ListApprovalsAsync()`, `ResetApprovalsAsync()` | `agent.listApprovals()`, `resetApprovals()` | |
 
+## Standalone mode
+
+| Feature | .NET | TypeScript | Where a browser differs |
+|---|---|---|---|
+| The person's own endpoint | `UseEndpoint(ModelEndpoint, EndpointReport?)` | `useEndpoint(endpoint, report?)` | |
+| Any chat client as the model | `UseChatClient(IChatClient)` | `useChatStreamer(streamer)` | |
+| The agent's definition | `UseLocalProfile(AgentDefinition.FromJson(json), ownInstructions, LocalProfileOptions?)` | `useLocalProfile(AgentDefinition.fromJson(json), ownInstructions?, options?)` | |
+| The agent as a Microsoft Agent Framework `AIAgent` | `FadenstackAgent : AIAgent`; `FadenstackAgentSession`; `RunAsync`, `RunStreamingAsync`, workflows | — | The Agent Framework is .NET's. |
+| The machine policy | `MachinePolicy.Load(path)`, `FromJson`; `UseMachinePolicy(policy)`; `MachinePolicyException` | `MachinePolicy.fromJson`; `useMachinePolicy(policy)`; `MachinePolicyError` | An extension reads `chrome.storage.managed`. |
+| How the agent is connected | `agent.Connection`, `agent.ServerClient`, `agent.EndpointUrl`; `context.Connection`, `context.ServerClient` | `agent.connection`, `agent.serverClient`, `agent.endpointUrl` | |
+| The endpoint and its dialect | `ModelEndpoint`, `EndpointDialect`, `EndpointPreset` | the same names | |
+| The endpoint as a chat client | `DirectChatClient : IChatClient` | `DirectChatClient`, a `ChatStreamer` | |
+| The endpoint check | `new EndpointCheck(endpoint).RunAsync(options)` | `new EndpointCheck(endpoint).run(options)` | |
+| Its report | `EndpointReport`, `ToJson()`, `FromJson(json)`; the same JSON in both | `EndpointReport`, `toJson()`, `fromJson(json)` | |
+| Looking for local servers | `EndpointCheck.FindLocalAsync(personConsented, ...)` | — | A page cannot scan the computer's ports: the check covers only the configured origin. |
+| The text watermark status | `report.Watermark` (`TextWatermark`, `EndpointWatermarkStatus`); `EndpointMarking` on each answer | `report.watermark`; `endpointMarking` on each answer | |
+| Plain http in the local network | `ModelEndpoint.AllowPlainHttpInLan`; the addresses a name resolves to decide | `allowPlainHttpInLan`; a name decides by its form (one label, `.local`, `.lan`, `.home.arpa`, `.internal`) | A page cannot resolve names. |
+| Redirects | one to the same origin is followed (at most three); any other is refused | the same in Node | A browser hides where a redirect points: none is followed, the typed `redirect` error results. |
+| Errors | `EndpointKeyRejectedException`, `EndpointOriginRefusedException`, `EndpointModelNotFoundException`, `EndpointContextLengthException`, `EndpointNotCompatibleException`, `EndpointUnreachableException`, `ServerCertificateException`, `EndpointPlainHttpRefusedException`; a 429 is `FadenstackRateLimitedException` | the same names ending in `Error`; a 429 is `FadenstackRateLimitedError` | A browser cannot tell an untrusted certificate from an unreachable server: both are `EndpointUnreachableError`. |
+
 ## Logging and telemetry
 
 | Feature | .NET | TypeScript | Where a browser differs |

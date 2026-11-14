@@ -34,7 +34,14 @@ public sealed class ContextBuilder
     /// <summary>About this many tokens of history (4 characters a token); the newest turns are kept.</summary>
     public int TokenBudget { get; set; } = 24_000;
 
-    public IList<ChatMessage> Build(IReadOnlyList<TranscriptEntry> entries)
+
+    public IList<ChatMessage> Build(IReadOnlyList<TranscriptEntry> entries) => Build(entries, 0);
+
+    /// <summary>
+    /// The history, within <see cref="TokenBudget"/> less <paramref name="reservedTokens"/>: what goes with it on every request
+    /// and is not in the transcript, such as a standalone agent's instructions (sdk/51 I03 commit 4a).
+    /// </summary>
+    public IList<ChatMessage> Build(IReadOnlyList<TranscriptEntry> entries, int reservedTokens)
     {
         var status = entries.Where(e => e.Type == EntryTypes.TurnEnd && e.TurnId is not null)
             .GroupBy(e => e.TurnId!).ToDictionary(g => g.Key, g => g.Last().Status ?? TurnStatus.Ok);
@@ -80,7 +87,7 @@ public sealed class ContextBuilder
             }
             turns[turns.Count - 1].Add(message);
         }
-        return Merge(Trim(turns));
+        return Merge(Trim(turns, Math.Max(0, reservedTokens)));
     }
 
     /// <summary>
@@ -113,10 +120,10 @@ public sealed class ContextBuilder
         return chosen;
     }
 
-    private IEnumerable<ChatMessage> Trim(List<List<ChatMessage>> turns)
+    private IEnumerable<ChatMessage> Trim(List<List<ChatMessage>> turns, int reservedTokens)
     {
         var kept = new List<List<ChatMessage>>();
-        var budget = TokenBudget * 4L;
+        var budget = Math.Max(0, TokenBudget - (long)reservedTokens) * 4L;
         for (var i = turns.Count - 1; i >= 0; i--)
         {
             var size = turns[i].Sum(Size);

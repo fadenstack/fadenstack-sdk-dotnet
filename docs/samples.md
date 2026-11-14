@@ -22,6 +22,22 @@ dotnet run --project samples/Fadenstack.Samples.Console -- --server https://ai.e
 | `--mcp label=command` | A local MCP server to add, started over stdio, for example `--mcp "notes-db=notes-mcp.exe"`. It is attached only if the agent allows it; see [Local MCP servers](local-mcp.md). |
 | `--session` | The id of a session to continue. |
 
+**On your own model, with no server** ([Standalone mode](standalone.md)):
+
+```bash
+dotnet run --project samples/Fadenstack.Samples.Console -- --endpoint http://localhost:11434/v1 --model qwen3:14b --dialect ollama --check
+```
+
+| Option | Meaning |
+|---|---|
+| `--endpoint` | The endpoint's base, including `/v1`. Or set `FADEN_ENDPOINT`. |
+| `--model` | The model's id on that server. Or set `FADEN_MODEL`. |
+| `--dialect` | A preset's id (`ollama`, `lm-studio`, `vllm`, `openai`, `azure-openai`, ...); the plain OpenAI-compatible one if not given. |
+| `--key-env` | The name of an environment variable that holds the key. A key never goes on the command line. |
+| `--definition` | An agent definition file (an app's `contracts/*.json`); a demo definition for the demo tools if not given. |
+| `--instructions` | Your own instructions, after the definition's. |
+| `--check` | Runs the endpoint check first and prints its report. |
+
 At the prompt, anything you type goes to the agent. Three commands control the sample:
 
 | Command | Effect |

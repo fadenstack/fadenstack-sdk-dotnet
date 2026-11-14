@@ -4,6 +4,7 @@ using Fadenstack.Auth;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -13,7 +14,7 @@ namespace Fadenstack.Agents;
 /// An agent served by a Fadenstack server and run on this device: its profile, its tools, and its sessions.
 /// The loop runs here; every model call goes through the gateway.
 /// </summary>
-public sealed class FadenstackAgent : IDisposable
+public sealed partial class FadenstackAgent : AIAgent, IDisposable
 {
     private readonly AgentSettings _settings;
     private readonly SemaphoreSlim _starting = new(1, 1);
@@ -67,6 +68,37 @@ public sealed class FadenstackAgent : IDisposable
 
     /// <summary>The agent's Fadenstack client; null for an agent without a server.</summary>
     public FadenstackClient? ServerClient => _settings.Backend.ServerClient;
+
+    /// <summary>
+    /// The person's own model endpoint (its base) for a standalone agent built with <see cref="AgentBuilder.UseEndpoint"/>;
+    /// null with a server, or with a host's own chat client (<see cref="AgentBuilder.UseChatClient"/>).
+    /// </summary>
+    public Uri? EndpointUrl => (_settings.Backend as LocalAgentBackend)?.EndpointUrl;
+
+    /// <summary>
+    /// For a standalone agent, whether its connection marks text with the server's watermark (sdk/51 F03 item 8, F10): the
+    /// endpoint check's report, else the sourced table. Null with a Fadenstack server, whose receipts say it per answer.
+    /// </summary>
+    public Endpoints.EndpointWatermarkStatus? EndpointWatermark => (_settings.Backend as LocalAgentBackend)?.Watermark;
+
+    /// <summary>
+    /// What IT set for this machine (<see cref="AgentBuilder.UseMachinePolicy"/>): modules read its lists (the MCP sources, the
+    /// skill folders); <see cref="MachinePolicy.None"/> when the app gave none.
+    /// </summary>
+    public MachinePolicy MachinePolicy => _settings.MachinePolicy;
+
+    /// <summary>
+    /// The profile under the machine policy: what it forbids is off whatever the server or the person says (R3-8); it never
+    /// turns on what they left off.
+    /// </summary>
+    private AgentProfile Narrowed(AgentProfile profile) => profile with
+    {
+        LocalMcp = _settings.MachinePolicy.Mcp.AllowsAny ? profile.LocalMcp : profile.LocalMcp with { Mode = "disable", DeveloperMode = false },
+        LocalSkills = _settings.MachinePolicy.Skills.AllowsAny ? profile.LocalSkills : profile.LocalSkills with { Mode = "disable", DeveloperMode = false },
+    };
+
+    /// <summary>For a standalone agent, the kind of server behind its endpoint; null with a Fadenstack server.</summary>
+    internal Endpoints.EndpointServer? EndpointServer => (_settings.Backend as LocalAgentBackend)?.Server;
 
     /// <summary>
     /// How the agent is connected: <see cref="AgentConnection.Governed"/> to an organisation's Fadenstack server, or
@@ -135,6 +167,9 @@ public sealed class FadenstackAgent : IDisposable
     /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
     internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
 
+    /// <summary>How long one try at answering a gateway's approval may take before it is sent once more; tests shorten it.</summary>
+    internal TimeSpan ApprovalAnswerTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>The time, for the profile's age and the grants' remaining time (<see cref="AgentGrants.ServerNow"/>); tests set it.</summary>
     internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
 
@@ -184,7 +219,7 @@ public sealed class FadenstackAgent : IDisposable
                 Log.ToolDropped(Logger, name);
             }
             var hostTools = tools.Count;
-            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            var context = new AgentContext(ServerClient, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
             var fromSources = new List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)>();
             foreach (var source in _settings.Sources)
             {
@@ -234,7 +269,7 @@ public sealed class FadenstackAgent : IDisposable
 
     private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
     {
-        var profile = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var profile = Narrowed(await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false));
         var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
         if (missing.Count > 0)
         {
@@ -286,7 +321,7 @@ public sealed class FadenstackAgent : IDisposable
     internal async Task RefreshPolicyAsync(CancellationToken cancellationToken)
     {
         var before = Profile;
-        var fresh = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var fresh = Narrowed(await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false));
         AssertHostPolicySupport(fresh);
         if (Binding(before) != Binding(fresh))
         {
@@ -296,7 +331,7 @@ public sealed class FadenstackAgent : IDisposable
         _profileRead = Clock();
         if (_context is not null)
         {
-            _context = new AgentContext(Client, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            _context = new AgentContext(ServerClient, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
         }
     }
 

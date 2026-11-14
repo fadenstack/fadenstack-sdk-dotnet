@@ -294,12 +294,16 @@ internal static class ChatWire
         return details;
     }
 
-    /// <summary>A whole answer.</summary>
-    public static ChatResponse Response(JsonElement root)
+    /// <summary>
+    /// A whole answer. With <paramref name="gateway"/> false (a person's own endpoint, which may be anything) its
+    /// <c>faden</c> block is not read: an endpoint cannot hand the session a refusal, an event or a receipt.
+    /// </summary>
+    public static ChatResponse Response(JsonElement root, bool gateway = true)
     {
         var message = new ChatMessage(ChatRole.Assistant, new List<AIContent>());
         ChatFinishReason? finish = null;
-        if (root.TryGetProperty("faden", out var faden) && faden.ValueKind == JsonValueKind.Object
+        var faden = default(JsonElement);
+        if (gateway && root.TryGetProperty("faden", out faden) && faden.ValueKind == JsonValueKind.Object
             && faden.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array)
         {
             foreach (var e in events.EnumerateArray())

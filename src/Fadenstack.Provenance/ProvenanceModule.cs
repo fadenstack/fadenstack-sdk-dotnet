@@ -67,7 +67,22 @@ public sealed class ProvenanceOptions
 
     public IReadOnlyList<IPlacementObserver> Observers => _observers;
 
-    public IProvenanceBackend Backend { get; private set; } = ServerProvenanceBackend.Instance;
+    /// <summary>
+    /// The backend the app set (<see cref="UseBackend"/>); null: chosen by the agent's connection, the agent's Fadenstack server
+    /// (<see cref="ServerProvenanceBackend"/>) or, for an agent on the person's own endpoint, the device's own
+    /// (<see cref="LocalBackend"/>, sdk/51 F10).
+    /// </summary>
+    public IProvenanceBackend? Backend { get; private set; }
+
+    private LocalProvenanceOptions _localOptions = new();
+    private LocalProvenanceBackend? _local;
+
+    /// <summary>The device's own backend, for an agent without a server: records signed on the device, a local log.</summary>
+    public LocalProvenanceBackend LocalBackend => _local ??= new LocalProvenanceBackend(_localOptions);
+
+    /// <summary>The backend for <paramref name="agent"/>: the app's, else by the agent's connection.</summary>
+    internal IProvenanceBackend BackendFor(FadenstackAgent agent) =>
+        Backend ?? (agent.Connection == AgentConnection.Standalone ? LocalBackend : ServerProvenanceBackend.Instance);
 
     /// <summary>Counts a text's tokens; about four characters a token (one per CJK character) unless a tokenizer is given.</summary>
     public Func<string, int> CountTokens { get; private set; } = TokenEstimate.Of;
@@ -116,7 +131,18 @@ public sealed class ProvenanceOptions
         return this;
     }
 
-    /// <summary>Where policies, signatures and reports go; the agent's Fadenstack server by default.</summary>
+    /// <summary>
+    /// How the device's own backend works for an agent without a server: the time-stamp authority, or none; where its log
+    /// goes. The machine policy may switch time-stamping off (F09).
+    /// </summary>
+    public ProvenanceOptions UseLocalBackend(LocalProvenanceOptions options)
+    {
+        _localOptions = options ?? throw new ArgumentNullException(nameof(options));
+        _local = null;
+        return this;
+    }
+
+    /// <summary>Where policies, signatures and reports go; by default the agent's server, or the device for an agent without one.</summary>
     public ProvenanceOptions UseBackend(IProvenanceBackend backend)
     {
         Backend = backend ?? throw new ArgumentNullException(nameof(backend));

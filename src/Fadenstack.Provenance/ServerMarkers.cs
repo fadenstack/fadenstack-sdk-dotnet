@@ -46,6 +46,38 @@ public sealed class WatermarkStatus : ContentMarker
     public override Task<MarkOutcome> AttachAsync(PlacedContent placed, SignedRecord record, CancellationToken cancellationToken) =>
         Task.FromResult(Of(placed.Content));
 
+    /// <summary>
+    /// Without a server (sdk/51 F10): the person's endpoint's watermark, which the agent relies on and never claims. Applied only
+    /// where the provider marks by default or the server said so for this answer (<c>x-watermark</c>); not possible where the
+    /// runtime has none or the sampling was deterministic; otherwise not claimed, with why.
+    /// </summary>
+    private static MarkOutcome OfEndpoint(EndpointLayer endpoint)
+    {
+        var method = "endpoint-" + endpoint.Server;
+        var answer = endpoint.Answer;
+        if (answer?.Deterministic == true)
+        {
+            return MarkOutcome.Missing(MarkLayer.Watermark, method, ProvenanceReasons.NoWatermarkGreedy, "deterministic sampling");
+        }
+        if (answer?.Confirmed == true)
+        {
+            return MarkOutcome.Recorded(MarkLayer.Watermark, method, "the endpoint said this answer is watermarked");
+        }
+        return endpoint.Connection.Status switch
+        {
+            Endpoints.TextWatermark.Marks when answer?.Confirmed != false =>
+                MarkOutcome.Recorded(MarkLayer.Watermark, method, "relied on: the provider marks text by default"),
+            Endpoints.TextWatermark.Never => MarkOutcome.Missing(MarkLayer.Watermark, method, ProvenanceReasons.RuntimeWithoutWatermark),
+            _ when answer?.Confirmed == false =>
+                MarkOutcome.Missing(MarkLayer.Watermark, method, ProvenanceReasons.NoWatermarkRemoteModel, "the endpoint said this answer is not watermarked"),
+            Endpoints.TextWatermark.IfOperatorConfigured =>
+                MarkOutcome.Missing(MarkLayer.Watermark, method, null, "not claimed: only if the server's operator configured it"),
+            Endpoints.TextWatermark.IfAccountEnabled =>
+                MarkOutcome.Missing(MarkLayer.Watermark, method, null, "not claimed: only if the account turned it on"),
+            _ => MarkOutcome.Missing(MarkLayer.Watermark, method, null, "not claimed: not known for this endpoint"),
+        };
+    }
+
     /// <summary>The watermark layer of <paramref name="content"/>, from its receipt and its length.</summary>
     public static MarkOutcome Of(MarkableContent content)
     {
@@ -59,7 +91,11 @@ public sealed class WatermarkStatus : ContentMarker
         }
         if (content.IsShort)
         {
-            return MarkOutcome.Missing(MarkLayer.Watermark, "model", ProvenanceReasons.ShortText);
+            return MarkOutcome.Missing(MarkLayer.Watermark, content.Endpoint is null ? "model" : "endpoint", ProvenanceReasons.ShortText);
+        }
+        if (content.Endpoint is { } endpoint)
+        {
+            return OfEndpoint(endpoint);
         }
         if (receipt is { Signed: null, Reason: { } unsigned })
         {

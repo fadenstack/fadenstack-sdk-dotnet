@@ -35,6 +35,13 @@ public sealed record AgentProfile
 
     public List<string>? ServerTools { get; init; }
     public LocalMcpSettings LocalMcp { get; init; } = new();
+
+    /// <summary>
+    /// Whether the agent may load skills kept on this device (<c>local_skills</c>, core 0.7.1 F01): <c>disable</c> unless the
+    /// administrator allowed them.
+    /// </summary>
+    public LocalSkillsSettings LocalSkills { get; init; } = new();
+
     public ToolModeSettings ToolModes { get; init; } = new();
 
     /// <summary>
@@ -256,6 +263,16 @@ public sealed record LocalMcpSettings
     public string Mode { get; init; } = "disable";
 
     /// <summary>The user's developer mode: any local MCP server, for themselves.</summary>
+    public bool DeveloperMode { get; init; }
+}
+
+/// <summary>The profile's <c>local_skills</c>: the same shape as <c>local_mcp</c>.</summary>
+public sealed record LocalSkillsSettings
+{
+    /// <summary><c>disable</c> (default) or <c>allow</c>; anything else is <c>disable</c>.</summary>
+    public string Mode { get; init; } = "disable";
+
+    /// <summary>The user's developer mode: any local skill, for themselves.</summary>
     public bool DeveloperMode { get; init; }
 }
 

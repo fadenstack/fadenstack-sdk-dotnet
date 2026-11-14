@@ -112,7 +112,13 @@ internal sealed class ProvenanceCall : IProvenance
         var receipt = content.ReceiptId is { Length: > 0 } id ? new ProvenanceReceiptContent(null, id)
             : isImage ? null : Receipt;
         var (facts, dropped) = Enrich(content, kind);
-        var given = content with { Receipt = receipt, IsShort = isShort, Texts = Options.TextsFor(Language()), Facts = facts };
+        var endpoint = _call.Agent?.EndpointWatermark is { } connection && !isImage
+            ? new EndpointLayer(connection, _state.Receipts.LatestMarking(_call.TurnId), ServerName(_call.Agent!))
+            : null;
+        var given = content with
+        {
+            Receipt = receipt, IsShort = isShort, Texts = Options.TextsFor(Language()), Facts = facts, Endpoint = endpoint,
+        };
         var placement = new Placement
         {
             Tool = _call.Tool.Name, SinkKind = content.Sink.Kind, MediaType = content.MediaType, EditKind = kind, LengthClass = length,
@@ -427,7 +433,7 @@ internal sealed class ProvenanceCall : IProvenance
         };
         try
         {
-            var signed = await Options.Backend.SignRecordAsync(agent, request, cancellationToken).ConfigureAwait(false);
+            var signed = await Options.BackendFor(agent).SignRecordAsync(agent, request, cancellationToken).ConfigureAwait(false);
             // Marks carry the id: one that is not the server's kind of id is no record to carry.
             return ProvenanceJson.IsRecordId(signed?.Record.Id) ? signed : null;
         }
@@ -436,6 +442,13 @@ internal sealed class ProvenanceCall : IProvenance
             Log.RecordNotSigned(Logger, _call.Tool.Name, e.GetType().Name);
             return null;
         }
+    }
+
+    /// <summary>The kind of server behind a standalone agent's endpoint, lower case, for the layer's method (<c>endpoint-ollama</c>).</summary>
+    private static string ServerName(FadenstackAgent agent)
+    {
+        var server = agent.EndpointServer ?? Endpoints.EndpointServer.Unknown;
+        return server == Endpoints.EndpointServer.Unknown ? "unknown" : server.ToString().ToLowerInvariant();
     }
 
     private static string? Model(FadenstackAgent agent)
@@ -568,7 +581,7 @@ internal sealed class ProvenanceCall : IProvenance
             limit.CancelAfter(ReportTimeout);
             try
             {
-                await Options.Backend.ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
+                await Options.BackendFor(agent).ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
                 reported = true;
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

@@ -8,6 +8,36 @@ this file says where it does.
 
 ### Added
 
+- **Standalone mode** ([Standalone mode](docs/standalone.md)): an agent on the person's own OpenAI-compatible model
+  endpoint, with no Fadenstack server. `AgentBuilder.UseEndpoint(ModelEndpoint)` or `UseChatClient(IChatClient)`, with
+  `UseLocalProfile(AgentDefinition, ownInstructions)`; `Build()` refuses a server and a model together.
+  - `AgentDefinition.FromJson`: the agent's definition as an app ships it; an unknown risk asks.
+  - `ModelEndpoint`, `EndpointDialect` (OpenAI, Azure OpenAI, Ollama, LM Studio, vLLM, SGLang, llama.cpp, LiteLLM,
+    OpenRouter, Mistral), `EndpointPreset`, and `DirectChatClient`, the endpoint as an `IChatClient`.
+  - `EndpointCheck` and its serialisable `EndpointReport`: reachable, the key, the models, usage figures, tool calls,
+    vision, the context length, and the text watermark status from a sourced table (`TextWatermark`, `EndpointWatermarkStatus`);
+    `FindLocalAsync` looks for local servers only with the person's consent.
+  - Typed errors: `EndpointKeyRejectedException`, `EndpointOriginRefusedException`, `EndpointModelNotFoundException`,
+    `EndpointContextLengthException`, `EndpointNotCompatibleException`, `EndpointUnreachableException`,
+    `ServerCertificateException`, `EndpointPlainHttpRefusedException`.
+  - `EndpointMarking` on each endpoint answer (`FadenstackChatOptions.EndpointMarking`).
+  - `FadenstackAgent.EndpointUrl`, `AgentContext.ServerClient` and `AgentContext.Connection`, `LocalProfileOptions`.
+  - `AgentProfile.LocalSkills` reads the profile's `local_skills` (a Fadenstack server from 0.7.1).
+  - `ContextBuilder.Build(entries, reservedTokens)`: room in the history budget for what goes with every request.
+- **The agent is a Microsoft Agent Framework `AIAgent`** (`Microsoft.Agents.AI.Abstractions` 1.28): MAF's `RunAsync`,
+  `RunStreamingAsync`, sessions (`FadenstackAgentSession`, which serializes only the session's id) and workflows run it as a
+  turn of a `ChatSession`. A run needs an approval handler. `Microsoft.Extensions.AI` is 10.11.
+- **Records signed on the device** (`Fadenstack.Provenance`): `LocalProvenanceBackend` for an agent without a server
+  (chosen by the agent's connection), with `DeviceSigner` (the engine's JWS format, ES256, a key per installation kept by
+  the OS key store), RFC 3161 time-stamps (`LocalProvenanceOptions`, `ProvenanceOptions.UseLocalBackend`) and a local
+  placement log that rotates.
+- **The endpoint's text watermark** (part of D18): never switched off for text people read; `FadenstackChatOptions.Unread`
+  for a call nobody reads, where vLLM and SGLang may leave it off (`EndpointDialect.WatermarkSwitchOff`); each answer's
+  transcript entry records `endpoint_marking`; `FadenstackAgent.EndpointWatermark`; `EndpointCheck.WatermarkOf` and
+  `ServerOf`; the provenance module's watermark layer relies on the endpoint (`endpoint-<server>`) and never claims more.
+- **`MachinePolicy`** ([Machine policy](docs/machine-policy.md)): one vocabulary for managed installs (`server`,
+  `standalone`, `endpoints`, `plainHttp`, `mcp`, `skills`, `webSearch`, `timestamping`), read fail-closed, enforced by
+  `AgentBuilder.UseMachinePolicy` (`MachinePolicyException`), narrowing local MCP and skills with a server too.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -61,6 +91,13 @@ this file says where it does.
 - `AgentPairing.WaitAsync`: in a pairing for several agents, a first agent the person did not approve is reported with
   `FadenstackPairingAgentException` (it was "expired"); the first approved other agent is signed in on the way.
 - The request timeout (`FadenstackClientOptions.Timeout`) also covers a stream's wait for its headers.
+- **Breaking (unlikely to matter):** `ProvenanceOptions.Backend` is null unless the app set one; the module then picks the
+  server's or, without a server, the device's backend.
+- `AgentContext.Client` throws `InvalidOperationException` for an agent without a server (it is unchanged with one);
+  `AgentContext.ServerClient` is the way to ask.
+- A stream whose data is not JSON breaks off with a `FadenstackStreamException` (code `invalid_stream`) instead of a
+  parser's exception. Streamed tool calls without an `index`, or a new call id under an index already used, are kept
+  apart instead of merged into one call.
 
 ### Removed
 
@@ -68,6 +105,11 @@ this file says where it does.
 
 ### Fixed
 
+- **An approval answer lost on the way is sent once more.** Answering a call the gateway holds now waits 10 seconds for a
+  word back, then sends the same answer once more when none came (no answer, the server unreachable, a proxy's 502, 503 or
+  504). A Fadenstack gateway from 0.7.1 (`approvals.idempotent`) takes a repeated answer once; an older one answers the
+  repeat of a taken answer 404, which now counts as taken. A 409 is never sent again. Before, a lost decline left the call
+  waiting until the gateway's own timeout (5 minutes). Log event 2053.
 - **A chat no longer loses its own grant to another chat's refresh.** The device's copy of grants took the server's list
   (or a stream's `faden.grants`) as it was when it was asked for; a grant made meanwhile in another chat, a Bypass
   started in parallel, was dropped from the copy, so that chat ran without it and its Stop could not end it at the
@@ -82,6 +124,11 @@ this file says where it does.
 
 ### Security
 
+- A model endpoint (standalone mode) is reached under transport rules: https, or plain http only to this computer or, with
+  the person's opt-in, the local network; a key never over plain http; no redirect to another origin; limits on what a
+  stream may send, so an endpoint cannot exhaust the device's memory (OWASP ASVS 5.0 V12, V13).
+- An endpoint cannot speak the gateway's protocol: its named events and its answer's `faden` block are not read, so it
+  cannot forge a refusal, an approval or a provenance receipt.
 - No request follows a redirect, so a 307 or 308 can no longer send a request's body (chat text, a refresh token, a
   pairing code) to another address (OWASP ASVS 5.0 V12).
 - Files that hold secrets are written owner-only (0600) before anything goes into them, replaced atomically, and not

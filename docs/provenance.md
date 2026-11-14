@@ -102,6 +102,25 @@ Local options may only tighten the policy: `RefuseWhenMissing()`, a lower `UseSh
 
 The report to the server holds the record's id (none for exempt content, a record the server could not sign, or unmarked content), the tool, the sink kind, the media type, the edit kind, a length class (`short`, `medium`, `long`; bytes are `long`) and the layers, each with `verified` where it applies: `true` for a mark read back, `false` where the host cannot be read back, absent where nothing is read back (the server's record, a watermark). Never content.
 
+## Without a server: records signed on the device
+
+For an agent on the person's own endpoint ([Standalone mode](standalone.md)) the module chooses the device's own
+backend, `LocalProvenanceBackend`, unless the app set one with `UseBackend`:
+
+- **The policy:** the local defaults (mark everything but standard editing; record what is missing).
+- **The record:** the server's format, signed on the device. A compact JWS (ES256, P-256) over the record's canonical JSON,
+  with `kid` `device:<16 hex>` and, in `x5c`, a self-signed certificate of the device's public key: anyone can check the
+  signature (`DeviceSigner.Verify`), and the signer shows as unknown, since no trust list names it. `content_hash` is the
+  plain SHA-256 (`hash_key_version` 0); a server's is a keyed HMAC.
+- **The key:** one per installation and OS user, made on first use, kept only encrypted by the OS key store (DPAPI on
+  Windows; the Keychain or libsecret with `Fadenstack.Secrets`). Where nothing encrypts, it lives in memory for as long as
+  the app runs. It never goes into a file as such or a log.
+- **The time-stamp:** an RFC 3161 token from a public authority, over the signature (only its SHA-256 leaves the device);
+  `UseLocalBackend(new LocalProvenanceOptions { TimestampAuthority = ..., Timestamping = false })` names another or switches
+  it off. Offline, or switched off, the record carries no token and its signed `created_at` is the device's clock.
+- **Placements:** appended to `placements.jsonl` in the standalone user's `provenance` folder, which rotates (1 MiB, three
+  kept). Nothing leaves the device.
+
 ## Receipts
 
 Every answer ends with the server's receipt. The session keeps them: `AgentResult.Receipts`, and on each answer's transcript entry `receipts` (`{ receipt_id, status: signed | reference | unsigned, reason }`, never the receipt). A tool call gets the receipt of the answer it came from (`IProvenance.Receipt`); a call from an answer without one gets none.
