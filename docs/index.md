@@ -169,6 +169,7 @@ The moved types are `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence` 
 - [Sessions on the device](sessions.md): storage, retention and your own store.
 - [Content provenance](provenance.md): marking what tools place as AI-generated.
 - [Chat panel](chat-panel.md): a ready chat UI for WPF and Avalonia hosts.
+- [Connecting an agent](connecting.md): the connection wizard, to a server or the person's own AI.
 - [Server-held grants and Bypass](server-grants.md): what the server holds so the agent need not ask again.
 - [Testing](testing.md): how to test an app against the SDK.
 - [Parity with the TypeScript SDK](parity.md): each feature, and its name in both SDKs.
