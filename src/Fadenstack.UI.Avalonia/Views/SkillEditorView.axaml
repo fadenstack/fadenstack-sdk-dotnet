@@ -1,0 +1,254 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sk="clr-namespace:Fadenstack.UI.Skills;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="900"
+             x:Class="Fadenstack.UI.Avalonia.Views.SkillEditorView"
+             x:DataType="sk:SkillEditorViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             b:WizardFocus.Step="{Binding Mode}">
+    <!--
+        The skill editor (sdk/51 F04): one view for a SkillEditorViewModel. The name and the description with the checks' words as you
+        type, the instructions in Markdown with a preview (the chat's Markdown view), the faden.yaml fields, the files (add, rename,
+        remove), the checks, Save (on only when the checks pass) and Cancel, and the Try panel (a message, the listed, matched and
+        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings through the view's
+        Strings; every look is a style class of the skin's or a theme key.
+    -->
+    <UserControl.Styles>
+        <Style Selector="Button.hide-disabled:disabled">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="TextBox.area">
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MinHeight" Value="160" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Esc says no to the replace question when it is open, else it is Cancel. -->
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding DismissReplaceCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding CancelCommand}" />
+    </UserControl.KeyBindings>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+            <TextBlock Classes="title" Text="{Binding Heading}" TextWrapping="Wrap" />
+
+            <!-- A model's draft: not saved until Save. -->
+            <Border Classes="banner notice" IsVisible="{Binding IsProposal}">
+                <TextBlock Text="{Binding ProposalNote}" TextWrapping="Wrap" />
+            </Border>
+
+            <!-- What the last action said (the skill could not be written). -->
+            <Border Classes="banner error" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                </DockPanel>
+            </Border>
+
+            <!-- The name is taken: Save asked, and replaces only after this answer. -->
+            <Border Classes="card" IsVisible="{Binding NeedsReplaceConfirmation}" b:WizardFocus.Step="{Binding NeedsReplaceConfirmation}">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="strong" Text="{Binding ReplaceTitle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                    <TextBlock Text="{Binding ReplaceBody}" TextWrapping="Wrap" />
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="secondary" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding DismissReplaceCommand}"
+                                Content="{v:Text SkillCancel}" AutomationProperties.Name="{v:Text SkillCancel}" />
+                        <Button Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmReplaceCommand}"
+                                Content="{v:Text SkillReplace}" AutomationProperties.Name="{v:Text SkillReplace}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Name and description ======================================================================== -->
+            <TextBlock Classes="strong" Text="{v:Text SkillName}" />
+            <TextBox Name="NameBox" b:WizardFocus.IsFirst="True" Text="{Binding Name, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                     AutomationProperties.Name="{v:Text SkillName}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Classes="strong" Text="{v:Text SkillDescription}" />
+            <TextBox Name="DescriptionBox" Text="{Binding Description, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" TextWrapping="Wrap"
+                     AutomationProperties.Name="{v:Text SkillDescription}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Instructions and their preview ============================================================== -->
+            <DockPanel>
+                <CheckBox DockPanel.Dock="Right" Name="PreviewBox" IsChecked="{Binding ShowPreview, Mode=TwoWay}" Content="{v:Text SkillPreview}"
+                          AutomationProperties.Name="{v:Text SkillPreview}" />
+                <TextBlock Classes="strong" Text="{v:Text SkillInstructions}" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBox Name="InstructionsBox" Classes="area" Text="{Binding Instructions, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                     AutomationProperties.Name="{v:Text SkillInstructions}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Name="PreviewCard" Classes="card" IsVisible="{Binding ShowPreview}">
+                <v:MarkdownView Blocks="{Binding PreviewBlocks}" />
+            </Border>
+
+            <!-- ===== faden.yaml: when to use it ================================================================== -->
+            <TextBlock Classes="strong" Text="{v:Text SkillMatching}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillTitleField}" />
+            <TextBox Name="TitleBox" Text="{Binding ExtensionTitle, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTitleField}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillKeywords}" />
+            <TextBox Name="KeywordsBox" Text="{Binding KeywordsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillKeywords}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillTags}" />
+            <TextBox Name="TagsBox" Text="{Binding TagsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTags}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillFileTypes}" />
+            <TextBox Name="FileTypesBox" Text="{Binding FileTypesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillFileTypes}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillPreferredTools}" />
+            <TextBox Name="PreferredToolsBox" Text="{Binding PreferredToolsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPreferredTools}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillPriority}" />
+            <TextBox Name="PriorityBox" Text="{Binding Priority, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPriority}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillActivation}" />
+            <ComboBox Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValueBinding="{ReflectionBinding Value}"
+                      SelectedValue="{Binding Activation, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch"
+                      AutomationProperties.Name="{v:Text SkillActivation}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillActivationOption">
+                        <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="caption muted" Text="{v:Text SkillLicense}" />
+            <TextBox Name="LicenseBox" Text="{Binding License, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillLicense}" />
+            <TextBlock Classes="caption muted" Text="{v:Text SkillCompatibility}" />
+            <TextBox Name="CompatibilityBox" Text="{Binding Compatibility, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillCompatibility}" />
+            <Button Classes="secondary" HorizontalAlignment="Left" IsVisible="{Binding HasUnknownKeys}" Command="{Binding DropUnknownKeysCommand}"
+                    Content="{v:Text SkillDropUnknownKeys}" AutomationProperties.Name="{v:Text SkillDropUnknownKeys}" />
+
+            <!-- ===== The files ==================================================================================== -->
+            <TextBlock Classes="strong" Text="{v:Text SkillResources}" />
+            <TextBlock Classes="muted" Text="{v:Text SkillNoResources}" TextWrapping="Wrap" IsVisible="{Binding !HasResources}" />
+            <ItemsControl ItemsSource="{Binding Resources}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="8" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillResourceViewModel">
+                        <Border Classes="card" AutomationProperties.Name="{Binding Path}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Classes="strong" Text="{Binding Path}" TextWrapping="Wrap" />
+                                <TextBox Text="{Binding NewPath, Mode=TwoWay}" AutomationProperties.Name="{Binding Path}"
+                                         IsReadOnly="{Binding $parent[v:SkillEditorView].((sk:SkillEditorViewModel)DataContext).IsReadOnly}" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Classes="secondary" Margin="0,0,8,0" Command="{Binding RenameCommand}" Content="{v:Text SkillRenameFile}"
+                                            AutomationProperties.Name="{v:Text SkillRenameFile}" />
+                                    <Button Classes="quiet" Command="{Binding RemoveCommand}" Content="{v:Text SkillRemoveFile}"
+                                            AutomationProperties.Name="{v:Text SkillRemoveFile}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding AddResourceCommand}" Content="{v:Text SkillAddFile}"
+                    AutomationProperties.Name="{v:Text SkillAddFile}" />
+
+            <!-- ===== The checks =================================================================================== -->
+            <TextBlock Classes="strong" Text="{v:Text SkillChecksHeading}" />
+            <Border Classes="banner success" IsVisible="{Binding !HasIssues}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
+                    <TextBlock Text="{v:Text SkillChecksOk}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+            </Border>
+            <ItemsControl Name="IssuesList" ItemsSource="{Binding Issues}" IsVisible="{Binding HasIssues}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="4" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                        <Border Classes="banner" Classes.error="{Binding IsError}" Classes.warning="{Binding !IsError}">
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Save and Cancel ============================================================================== -->
+            <WrapPanel Orientation="Horizontal">
+                <Button Name="SaveButton" Classes="primary" Margin="0,0,8,0" b:WizardFocus.IsPrimary="True" IsVisible="{Binding !IsReadOnly}"
+                        Command="{Binding SaveCommand}" Content="{v:Text SkillSave}" AutomationProperties.Name="{v:Text SkillSave}" />
+                <Button Name="CancelButton" Classes="quiet" Command="{Binding CancelCommand}" Content="{v:Text SkillCancel}"
+                        AutomationProperties.Name="{v:Text SkillCancel}" />
+            </WrapPanel>
+
+            <!-- ===== Try it ======================================================================================= -->
+            <Border Classes="card">
+                <StackPanel Spacing="8">
+                    <TextBlock Classes="strong" Text="{v:Text SkillTestHeading}" />
+                    <TextBlock Classes="caption muted" Text="{v:Text SkillTestPrompt}" />
+                    <TextBox Name="TestBox" Text="{Binding TestPrompt, Mode=TwoWay}" AutomationProperties.Name="{v:Text SkillTestPrompt}">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding RunTestCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Name="TestButton" Classes="secondary" Margin="0,0,8,0" Command="{Binding RunTestCommand}" Content="{v:Text SkillTestRun}"
+                                AutomationProperties.Name="{v:Text SkillTestRun}" />
+                        <Button Name="AskModelButton" Classes="secondary" IsVisible="{Binding CanAskModel}" Command="{Binding AskModelCommand}"
+                                Content="{v:Text SkillAskModel}" AutomationProperties.Name="{v:Text SkillAskModel}" />
+                    </WrapPanel>
+                    <TextBlock Classes="caption muted" Text="{Binding ModelNote}" TextWrapping="Wrap" IsVisible="{Binding CanAskModel}" />
+                    <TextBlock Name="ModelAnswerText" Text="{Binding ModelAnswerText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"
+                               IsVisible="{Binding ModelAnswerText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <StackPanel Name="TestResult" Spacing="8" IsVisible="{Binding HasTestResult}" AutomationProperties.LiveSetting="Polite">
+                        <TextBlock Name="TestNoteText" Text="{Binding TestNote}" TextWrapping="Wrap"
+                                   IsVisible="{Binding TestNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <TextBlock Classes="strong" Text="{v:Text SkillTestListed}" IsVisible="{Binding TestListed.Count, Converter={x:Static v:Counts.Any}}" />
+                        <ItemsControl ItemsSource="{Binding TestListed}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding TestMatches}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Classes="caption" Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Classes="strong" Text="{v:Text SkillTestPreloaded}" IsVisible="{Binding TestPreloaded.Count, Converter={x:Static v:Counts.Any}}" />
+                        <ItemsControl ItemsSource="{Binding TestPreloaded}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

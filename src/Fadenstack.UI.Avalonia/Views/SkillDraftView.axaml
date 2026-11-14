@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sk="clr-namespace:Fadenstack.UI.Skills;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="420"
+             x:Class="Fadenstack.UI.Avalonia.Views.SkillDraftView"
+             x:DataType="sk:SkillDraftViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
+    <!--
+        "Draft from this chat" (sdk/51 F04): one view for a SkillDraftViewModel. What the skill should be for (optional), the button that
+        asks the model once, the draft's state in words (asking, the proposal, why it failed) and the statement that nothing is saved until
+        the person presses Save in the editor. The proposal opens in the editor (the library shows it itself; Edit asks the host to).
+        The texts are UiStrings through the view's Strings; every look is a style class of the skin's or a theme key.
+    -->
+    <UserControl.Styles>
+        <Style Selector="Button.hide-disabled:disabled">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+            <TextBlock Classes="title" Text="{v:Text SkillDraftTitle}" TextWrapping="Wrap" />
+
+            <TextBlock Classes="strong" Text="{v:Text SkillDraftGuidance}" TextWrapping="Wrap" />
+            <TextBox Name="GuidanceBox" b:WizardFocus.IsFirst="True" Text="{Binding Guidance, Mode=TwoWay}" IsEnabled="{Binding !IsWorking}"
+                     TextWrapping="Wrap" AutomationProperties.Name="{v:Text SkillDraftGuidance}" />
+
+            <Button Name="StartButton" Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding DraftCommand}" Content="{v:Text SkillDraftStart}"
+                    AutomationProperties.Name="{v:Text SkillDraftStart}" />
+
+            <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWorking}" AutomationProperties.Name="{v:Text SkillDraftWorking}" />
+
+            <!-- The state in words. A wording that is only what the view model says, in the colour of what it means. -->
+            <Border Classes="banner success" IsVisible="{Binding State, Converter={x:Static b:WizardIs.In}, ConverterParameter='Ready'}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
+                    <TextBlock Name="ReadyText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+            </Border>
+            <Border Classes="banner warning" IsVisible="{Binding State, Converter={x:Static b:WizardIs.In}, ConverterParameter='ReadyWithProblems,NoChat,NoModel'}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                    <TextBlock Name="WarningText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+            </Border>
+            <Border Classes="banner error" IsVisible="{Binding State, Converter={x:Static b:WizardIs.In}, ConverterParameter='Failed,Unreadable'}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                    <TextBlock Name="ErrorText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                </DockPanel>
+            </Border>
+            <TextBlock Name="WorkingText" Classes="muted" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"
+                       IsVisible="{Binding IsWorking}" />
+
+            <!-- The proposal: where it is, and that it is not saved. -->
+            <Border Name="ProposalCard" Classes="card" IsVisible="{Binding Proposal, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="8">
+                    <TextBlock Name="ProposalText" Text="{Binding Proposal.ProposalNote}" TextWrapping="Wrap" />
+                    <Button Name="OpenButton" Classes="secondary" HorizontalAlignment="Left" Content="{v:Text SkillEdit}"
+                            AutomationProperties.Name="{v:Text SkillEdit}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

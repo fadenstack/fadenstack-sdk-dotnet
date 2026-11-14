@@ -238,6 +238,20 @@ public class SkillImportExportTests
     }
 
     [Fact]
+    public async Task An_analysis_with_an_error_is_never_committed_even_when_its_document_would_pass()
+    {
+        using var rig = new WorkshopRig();
+        var analysis = await rig.Workshop.AnalyzeZipAsync(Zip(Text("SKILL.md", GoodSkillMd), Text("faden.yaml", "priority: 999\n")), "y.zip");
+        Assert.False(analysis.Ok);
+
+        var committed = await rig.Workshop.CommitImportAsync(analysis, replaceExisting: true);
+
+        Assert.Equal(SkillSaveStatus.Refused, committed.Status);
+        Assert.Contains(committed.Issues, i => i.Code == SkillIssueCode.FadenYamlUnreadable);
+        Assert.False(Directory.Exists(rig.Folder), "a refused import wrote something");
+    }
+
+    [Fact]
     public async Task A_script_in_a_zip_and_an_unreadable_faden_yaml_refuse_it()
     {
         using var rig = new WorkshopRig();
