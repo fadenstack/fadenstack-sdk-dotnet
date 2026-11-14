@@ -223,7 +223,7 @@ public class ChatClientTests
     [Fact]
     public void Plain_http_is_refused_unless_asked_for()
     {
-        var error = Assert.Throws<ArgumentException>(() => new FadenstackClient(new FadenstackClientOptions { ServerUrl = new Uri("http://faden.local") }));
+        var error = Assert.Throws<FadenstackHttpsRequiredException>(() => new FadenstackClient(new FadenstackClientOptions { ServerUrl = new Uri("http://faden.local") }));
         Assert.Contains("https", error.Message);
         using var dev = new FadenstackClient(new FadenstackClientOptions { ServerUrl = new Uri("http://localhost:8002"), AllowInsecureHttp = true });
         Assert.NotNull(dev.Chat);

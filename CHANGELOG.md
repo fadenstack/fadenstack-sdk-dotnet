@@ -38,6 +38,10 @@ this file says where it does.
 - **`MachinePolicy`** ([Machine policy](docs/machine-policy.md)): one vocabulary for managed installs (`server`,
   `standalone`, `endpoints`, `plainHttp`, `mcp`, `skills`, `webSearch`, `timestamping`), read fail-closed, enforced by
   `AgentBuilder.UseMachinePolicy` (`MachinePolicyException`), narrowing local MCP and skills with a server too.
+- **Typed sign-in errors** (for the connection wizard): `FadenstackUnreachableException`, `ServerCertificateException`,
+  `FadenstackPairingPageElsewhereException`, `FadenstackHttpsRequiredException` (an `ArgumentException`),
+  `FadenstackBadCredentialsException`; and `PasswordLogin.LoginAsync`, the password sign-in of a server without pairing
+  (TypeScript has `loginWithPassword`).
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -93,6 +97,10 @@ this file says where it does.
 - The request timeout (`FadenstackClientOptions.Timeout`) also covers a stream's wait for its headers.
 - **Breaking (unlikely to matter):** `ProvenanceOptions.Backend` is null unless the app set one; the module then picks the
   server's or, without a server, the device's backend.
+- **Errors are more specific** (each a subclass of what was thrown before, so a `catch` of the old type still works; a
+  test that asserts the exact old type sees the new one): no answer from the server is `FadenstackUnreachableException`,
+  or `ServerCertificateException` when TLS refused the certificate; a sign-in page on another address is
+  `FadenstackPairingPageElsewhereException`; plain http where https is required is `FadenstackHttpsRequiredException`.
 - `AgentContext.Client` throws `InvalidOperationException` for an agent without a server (it is unchanged with one);
   `AgentContext.ServerClient` is the way to ask.
 - A stream whose data is not JSON breaks off with a `FadenstackStreamException` (code `invalid_stream`) instead of a
