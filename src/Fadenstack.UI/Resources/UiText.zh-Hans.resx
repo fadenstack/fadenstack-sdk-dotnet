@@ -1252,4 +1252,352 @@
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>同时删除保存在此计算机上的聊天</value>
   </data>
+  <data name="SkillLibraryTitle" xml:space="preserve">
+    <value>此设备上的技能</value>
+  </data>
+  <data name="SkillLibraryLoading" xml:space="preserve">
+    <value>正在读取技能…</value>
+  </data>
+  <data name="SkillLibraryFailed" xml:space="preserve">
+    <value>无法读取技能。</value>
+  </data>
+  <data name="SkillLibraryEmpty" xml:space="preserve">
+    <value>还没有技能。请新建一个，或导入文件夹或 zip 文件。</value>
+  </data>
+  <data name="SkillOriginBundled" xml:space="preserve">
+    <value>内置</value>
+  </data>
+  <data name="SkillOriginOwn" xml:space="preserve">
+    <value>您的</value>
+  </data>
+  <data name="SkillOriginOrganisation" xml:space="preserve">
+    <value>您的组织</value>
+  </data>
+  <data name="SkillNotReviewed" xml:space="preserve">
+    <value>未经审核</value>
+  </data>
+  <data name="SkillOn" xml:space="preserve">
+    <value>开</value>
+  </data>
+  <data name="SkillOff" xml:space="preserve">
+    <value>关</value>
+  </data>
+  <data name="SkillNew" xml:space="preserve">
+    <value>新建技能</value>
+  </data>
+  <data name="SkillEdit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="SkillView" xml:space="preserve">
+    <value>查看</value>
+  </data>
+  <data name="SkillDuplicate" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="SkillDelete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="SkillImport" xml:space="preserve">
+    <value>导入…</value>
+  </data>
+  <data name="SkillExport" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="SkillCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="SkillSave" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="SkillReplace" xml:space="preserve">
+    <value>替换</value>
+  </data>
+  <data name="SkillDeleteTitle" xml:space="preserve">
+    <value>删除 {0}？</value>
+  </data>
+  <data name="SkillDeleteBody" xml:space="preserve">
+    <value>其文件夹和文件将从此计算机中删除，且无法撤销。</value>
+  </data>
+  <data name="SkillImportTitle" xml:space="preserve">
+    <value>导入 {0}？</value>
+  </data>
+  <data name="SkillImportBody" xml:space="preserve">
+    <value>它会被添加到您的技能中，并标记为未经审核。请先阅读：这是来自外部的文本，模型会遵循它。</value>
+  </data>
+  <data name="SkillImportReplaceBody" xml:space="preserve">
+    <value>已有名为 {0} 的技能。导入将替换它。</value>
+  </data>
+  <data name="SkillImportRefused" xml:space="preserve">
+    <value>无法导入，未写入任何内容。</value>
+  </data>
+  <data name="SkillImported" xml:space="preserve">
+    <value>已导入 {0}。</value>
+  </data>
+  <data name="SkillSaved" xml:space="preserve">
+    <value>已保存 {0}。</value>
+  </data>
+  <data name="SkillDeleted" xml:space="preserve">
+    <value>已删除 {0}。</value>
+  </data>
+  <data name="SkillExported" xml:space="preserve">
+    <value>已导出 {0}。</value>
+  </data>
+  <data name="SkillExportFailed" xml:space="preserve">
+    <value>无法导出 {0}。</value>
+  </data>
+  <data name="SkillSaveFailed" xml:space="preserve">
+    <value>无法写入该技能，未做任何更改。</value>
+  </data>
+  <data name="SkillExistsTitle" xml:space="preserve">
+    <value>替换 {0}？</value>
+  </data>
+  <data name="SkillExistsBody" xml:space="preserve">
+    <value>已有同名技能。保存将替换它。</value>
+  </data>
+  <data name="SkillEditorEditing" xml:space="preserve">
+    <value>正在编辑 {0}</value>
+  </data>
+  <data name="SkillEditorReadOnly" xml:space="preserve">
+    <value>{0} 为只读。</value>
+  </data>
+  <data name="SkillEditorProposal" xml:space="preserve">
+    <value>这是建议的技能。请先阅读，只有想保留时才保存。</value>
+  </data>
+  <data name="SkillName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="SkillDescription" xml:space="preserve">
+    <value>描述</value>
+  </data>
+  <data name="SkillInstructions" xml:space="preserve">
+    <value>说明</value>
+  </data>
+  <data name="SkillPreview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="SkillLicense" xml:space="preserve">
+    <value>许可证</value>
+  </data>
+  <data name="SkillCompatibility" xml:space="preserve">
+    <value>兼容性</value>
+  </data>
+  <data name="SkillMatching" xml:space="preserve">
+    <value>何时使用</value>
+  </data>
+  <data name="SkillTitleField" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="SkillTags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="SkillKeywords" xml:space="preserve">
+    <value>关键词</value>
+  </data>
+  <data name="SkillFileTypes" xml:space="preserve">
+    <value>文件类型</value>
+  </data>
+  <data name="SkillPreferredTools" xml:space="preserve">
+    <value>首选工具</value>
+  </data>
+  <data name="SkillPriority" xml:space="preserve">
+    <value>优先级</value>
+  </data>
+  <data name="SkillActivation" xml:space="preserve">
+    <value>激活方式</value>
+  </data>
+  <data name="SkillActivationAuto" xml:space="preserve">
+    <value>消息匹配时</value>
+  </data>
+  <data name="SkillActivationAlways" xml:space="preserve">
+    <value>始终</value>
+  </data>
+  <data name="SkillActivationManual" xml:space="preserve">
+    <value>仅在被点名时</value>
+  </data>
+  <data name="SkillResources" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="SkillNoResources" xml:space="preserve">
+    <value>没有其他文件。</value>
+  </data>
+  <data name="SkillAddFile" xml:space="preserve">
+    <value>添加文件…</value>
+  </data>
+  <data name="SkillRenameFile" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="SkillRemoveFile" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="SkillDropUnknownKeys" xml:space="preserve">
+    <value>移除多余的字段</value>
+  </data>
+  <data name="SkillChecksHeading" xml:space="preserve">
+    <value>检查</value>
+  </data>
+  <data name="SkillChecksOk" xml:space="preserve">
+    <value>所有检查均已通过。</value>
+  </data>
+  <data name="SkillTestHeading" xml:space="preserve">
+    <value>试用</value>
+  </data>
+  <data name="SkillTestPrompt" xml:space="preserve">
+    <value>用于试用的消息</value>
+  </data>
+  <data name="SkillTestRun" xml:space="preserve">
+    <value>试用</value>
+  </data>
+  <data name="SkillTestListed" xml:space="preserve">
+    <value>告知模型的技能：</value>
+  </data>
+  <data name="SkillTestPreloaded" xml:space="preserve">
+    <value>立即加载：</value>
+  </data>
+  <data name="SkillTestNone" xml:space="preserve">
+    <value>此消息不会提供任何技能。</value>
+  </data>
+  <data name="SkillTestEditedNotListed" xml:space="preserve">
+    <value>此消息不会提供该技能。</value>
+  </data>
+  <data name="SkillMatchExplicit" xml:space="preserve">
+    <value>消息中点名</value>
+  </data>
+  <data name="SkillMatchAlways" xml:space="preserve">
+    <value>始终启用</value>
+  </data>
+  <data name="SkillMatchTrigger" xml:space="preserve">
+    <value>匹配其关键词</value>
+  </data>
+  <data name="SkillAskModel" xml:space="preserve">
+    <value>询问模型一次</value>
+  </data>
+  <data name="SkillModelNote" xml:space="preserve">
+    <value>仅调用模型一次，不运行任何工具。</value>
+  </data>
+  <data name="SkillModelAsking" xml:space="preserve">
+    <value>正在询问模型…</value>
+  </data>
+  <data name="SkillModelWouldLoad" xml:space="preserve">
+    <value>模型会加载 {0}。</value>
+  </data>
+  <data name="SkillModelWouldLoadOther" xml:space="preserve">
+    <value>模型会改为加载其他技能：{0}。</value>
+  </data>
+  <data name="SkillModelWouldNot" xml:space="preserve">
+    <value>对于此消息，模型不会加载任何技能。</value>
+  </data>
+  <data name="SkillModelFailed" xml:space="preserve">
+    <value>无法询问模型。</value>
+  </data>
+  <data name="SkillDraftTitle" xml:space="preserve">
+    <value>根据此聊天起草</value>
+  </data>
+  <data name="SkillDraftGuidance" xml:space="preserve">
+    <value>该技能用于什么？（可选）</value>
+  </data>
+  <data name="SkillDraftStart" xml:space="preserve">
+    <value>撰写草稿</value>
+  </data>
+  <data name="SkillDraftWorking" xml:space="preserve">
+    <value>正在撰写草稿…</value>
+  </data>
+  <data name="SkillDraftReady" xml:space="preserve">
+    <value>草稿已打开供您审阅。在您点击“保存”之前不会保存任何内容。</value>
+  </data>
+  <data name="SkillDraftNoChat" xml:space="preserve">
+    <value>此聊天中还没有可用于起草的内容。</value>
+  </data>
+  <data name="SkillDraftNoModel" xml:space="preserve">
+    <value>没有可用于撰写草稿的模型。</value>
+  </data>
+  <data name="SkillDraftFailed" xml:space="preserve">
+    <value>无法撰写草稿。</value>
+  </data>
+  <data name="SkillDraftUnreadable" xml:space="preserve">
+    <value>模型的回答不是技能。请重试。</value>
+  </data>
+  <data name="SkillDraftBroken" xml:space="preserve">
+    <value>草稿违反了下列规则。请先在编辑器中修正，再保存。</value>
+  </data>
+  <data name="SkillIssueNameMissing" xml:space="preserve">
+    <value>名称为空。</value>
+  </data>
+  <data name="SkillIssueNameForm" xml:space="preserve">
+    <value>名称只能使用小写字母、数字和单个连字符。</value>
+  </data>
+  <data name="SkillIssueNameTooLong" xml:space="preserve">
+    <value>名称有 {2} 个字符，上限为 {1}。</value>
+  </data>
+  <data name="SkillIssueNameNotFolder" xml:space="preserve">
+    <value>名称与文件夹名称（{3}）不一致。</value>
+  </data>
+  <data name="SkillIssueNameReserved" xml:space="preserve">
+    <value>已有内置技能使用此名称。</value>
+  </data>
+  <data name="SkillIssueDescriptionMissing" xml:space="preserve">
+    <value>描述为空。它告诉模型何时使用该技能。</value>
+  </data>
+  <data name="SkillIssueDescriptionTooLong" xml:space="preserve">
+    <value>描述有 {2} 个字符，上限为 {1}。</value>
+  </data>
+  <data name="SkillIssueCompatibilityTooLong" xml:space="preserve">
+    <value>兼容性说明有 {2} 个字符，上限为 {1}。</value>
+  </data>
+  <data name="SkillIssueUnknownKey" xml:space="preserve">
+    <value>SKILL.md 含有标准中没有的字段：{3}。请将其移除。</value>
+  </data>
+  <data name="SkillIssueInvisibleCharacter" xml:space="preserve">
+    <value>{0} 含有不可见字符（{3}）。请将其移除。</value>
+  </data>
+  <data name="SkillIssueControlCharacter" xml:space="preserve">
+    <value>{0} 含有控制字符（{3}）。请将其移除。</value>
+  </data>
+  <data name="SkillIssueBodyEmpty" xml:space="preserve">
+    <value>说明为空。</value>
+  </data>
+  <data name="SkillIssueBodyLarge" xml:space="preserve">
+    <value>说明较长（约 {2} 个词元，建议约 {1} 个）。模型遵循的效果可能会变差。</value>
+  </data>
+  <data name="SkillIssueTotalTooLarge" xml:space="preserve">
+    <value>该技能总大小超过 {1} 字节。</value>
+  </data>
+  <data name="SkillIssueFileTooLarge" xml:space="preserve">
+    <value>{0} 超过 {1} 字节。</value>
+  </data>
+  <data name="SkillIssueTooManyFiles" xml:space="preserve">
+    <value>该技能的文件超过 {1} 个。</value>
+  </data>
+  <data name="SkillIssueScriptFile" xml:space="preserve">
+    <value>{0} 是脚本或程序。此处从不运行脚本，请将其移除。</value>
+  </data>
+  <data name="SkillIssueUnsafePath" xml:space="preserve">
+    <value>不允许使用文件名 {0}（{3}）。</value>
+  </data>
+  <data name="SkillIssueDuplicatePath" xml:space="preserve">
+    <value>文件名 {0} 出现了两次。</value>
+  </data>
+  <data name="SkillIssueLinkEntry" xml:space="preserve">
+    <value>{0} 是链接。不接收链接。</value>
+  </data>
+  <data name="SkillIssueZipBomb" xml:space="preserve">
+    <value>此 zip 解压后的体积远超合理范围，未予打开。</value>
+  </data>
+  <data name="SkillIssueNotAZip" xml:space="preserve">
+    <value>{0} 不是 zip 文件。</value>
+  </data>
+  <data name="SkillIssueSkillMdMissing" xml:space="preserve">
+    <value>没有 SKILL.md。</value>
+  </data>
+  <data name="SkillIssueSkillMdUnreadable" xml:space="preserve">
+    <value>无法读取 SKILL.md：{3}</value>
+  </data>
+  <data name="SkillIssueFadenYamlUnreadable" xml:space="preserve">
+    <value>无法读取 faden.yaml：{3}</value>
+  </data>
+  <data name="SkillIssueFadenYamlUnknownKey" xml:space="preserve">
+    <value>faden.yaml 含有此编辑器不会保留的字段：{3}。保存时将丢弃它。</value>
+  </data>
+  <data name="SkillIssueReadFailed" xml:space="preserve">
+    <value>无法读取 {0}。</value>
+  </data>
 </root>

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using Fadenstack.Agents;
+using Fadenstack.SkillAuthoring;
 using Fadenstack.Tools;
 
 namespace Fadenstack.UI;
@@ -584,6 +585,228 @@ public sealed class UiStrings
 
     /// <summary>Under the picker: how to use it.</summary>
     public string SkillPickerHint => Text();
+
+    // -- the skill library, the editor and "Draft from this chat" (sdk/51 F04) ------------------------------------
+
+    public string SkillLibraryTitle => Text();
+
+    public string SkillLibraryLoading => Text();
+
+    public string SkillLibraryFailed => Text();
+
+    public string SkillLibraryEmpty => Text();
+
+    public string SkillOriginBundled => Text();
+
+    public string SkillOriginOwn => Text();
+
+    public string SkillOriginOrganisation => Text();
+
+    public string SkillNotReviewed => Text();
+
+    public string SkillOn => Text();
+
+    public string SkillOff => Text();
+
+    public string SkillNew => Text();
+
+    public string SkillEdit => Text();
+
+    public string SkillView => Text();
+
+    public string SkillDuplicate => Text();
+
+    public string SkillDelete => Text();
+
+    public string SkillImport => Text();
+
+    public string SkillExport => Text();
+
+    public string SkillCancel => Text();
+
+    public string SkillSave => Text();
+
+    public string SkillReplace => Text();
+
+    /// <summary>"Delete {0}?"</summary>
+    public string SkillDeleteTitle(string name) => Fill(name);
+
+    public string SkillDeleteBody => Text();
+
+    /// <summary>"Import {0}?"</summary>
+    public string SkillImportTitle(string name) => Fill(name);
+
+    public string SkillImportBody => Text();
+
+    /// <summary>"A skill named {0} is already here. Importing replaces it."</summary>
+    public string SkillImportReplaceBody(string name) => Fill(name);
+
+    public string SkillImportRefused => Text();
+
+    /// <summary>"{0} was imported."</summary>
+    public string SkillImported(string name) => Fill(name);
+
+    /// <summary>"{0} was saved."</summary>
+    public string SkillSaved(string name) => Fill(name);
+
+    /// <summary>"{0} was deleted."</summary>
+    public string SkillDeleted(string name) => Fill(name);
+
+    /// <summary>"{0} was exported."</summary>
+    public string SkillExported(string name) => Fill(name);
+
+    /// <summary>"{0} could not be exported."</summary>
+    public string SkillExportFailed(string name) => Fill(name);
+
+    public string SkillSaveFailed => Text();
+
+    /// <summary>"Replace {0}?"</summary>
+    public string SkillExistsTitle(string name) => Fill(name);
+
+    public string SkillExistsBody => Text();
+
+    /// <summary>"Editing {0}"</summary>
+    public string SkillEditorEditing(string name) => Fill(name);
+
+    /// <summary>"{0} is read only."</summary>
+    public string SkillEditorReadOnly(string name) => Fill(name);
+
+    public string SkillEditorProposal => Text();
+
+    public string SkillName => Text();
+
+    public string SkillDescription => Text();
+
+    public string SkillInstructions => Text();
+
+    public string SkillPreview => Text();
+
+    public string SkillLicense => Text();
+
+    public string SkillCompatibility => Text();
+
+    public string SkillMatching => Text();
+
+    public string SkillTitleField => Text();
+
+    public string SkillTags => Text();
+
+    public string SkillKeywords => Text();
+
+    public string SkillFileTypes => Text();
+
+    public string SkillPreferredTools => Text();
+
+    public string SkillPriority => Text();
+
+    public string SkillActivation => Text();
+
+    public string SkillActivationAuto => Text();
+
+    public string SkillActivationAlways => Text();
+
+    public string SkillActivationManual => Text();
+
+    public string SkillResources => Text();
+
+    public string SkillNoResources => Text();
+
+    public string SkillAddFile => Text();
+
+    public string SkillRenameFile => Text();
+
+    public string SkillRemoveFile => Text();
+
+    public string SkillDropUnknownKeys => Text();
+
+    public string SkillChecksHeading => Text();
+
+    public string SkillChecksOk => Text();
+
+    public string SkillTestHeading => Text();
+
+    public string SkillTestPrompt => Text();
+
+    public string SkillTestRun => Text();
+
+    public string SkillTestListed => Text();
+
+    public string SkillTestPreloaded => Text();
+
+    public string SkillTestNone => Text();
+
+    public string SkillTestEditedNotListed => Text();
+
+    public string SkillMatchExplicit => Text();
+
+    public string SkillMatchAlways => Text();
+
+    public string SkillMatchTrigger => Text();
+
+    public string SkillAskModel => Text();
+
+    public string SkillModelNote => Text();
+
+    public string SkillModelAsking => Text();
+
+    /// <summary>"The model would load {0}."</summary>
+    public string SkillModelWouldLoad(string name) => Fill(name);
+
+    /// <summary>"The model would load another skill instead: {0}."</summary>
+    public string SkillModelWouldLoadOther(string name) => Fill(name);
+
+    public string SkillModelWouldNot => Text();
+
+    public string SkillModelFailed => Text();
+
+    public string SkillDraftTitle => Text();
+
+    public string SkillDraftGuidance => Text();
+
+    public string SkillDraftStart => Text();
+
+    public string SkillDraftWorking => Text();
+
+    public string SkillDraftReady => Text();
+
+    public string SkillDraftNoChat => Text();
+
+    public string SkillDraftNoModel => Text();
+
+    public string SkillDraftFailed => Text();
+
+    public string SkillDraftUnreadable => Text();
+
+    public string SkillDraftBroken => Text();
+
+    /// <summary>What a check found, in words: a rule broken, with the field or file, the limit and the size, and the detail that go with it.</summary>
+    public string SkillIssueText(SkillIssueCode code, string subject, int limit, int actual, string detail) =>
+        string.Format(FormatCulture, this["SkillIssue" + code.ToString()], subject, limit, actual, detail);
+
+    /// <summary>How the pre-selection came to pick a skill: <c>explicit</c>, <c>always</c> or <c>trigger</c>.</summary>
+    public string SkillMatchLabel(string matchedBy) => matchedBy switch
+    {
+        "explicit" => SkillMatchExplicit,
+        "always" => SkillMatchAlways,
+        "trigger" => SkillMatchTrigger,
+        _ => matchedBy,
+    };
+
+    /// <summary>Where a skill comes from.</summary>
+    public string SkillOriginLabel(SkillOrigin origin) => origin switch
+    {
+        SkillOrigin.Bundled => SkillOriginBundled,
+        SkillOrigin.Own => SkillOriginOwn,
+        _ => SkillOriginOrganisation,
+    };
+
+    /// <summary>The name of an activation: <c>auto</c>, <c>always</c> or <c>manual</c>.</summary>
+    public string SkillActivationLabel(string activation) => activation switch
+    {
+        "always" => SkillActivationAlways,
+        "manual" => SkillActivationManual,
+        _ => SkillActivationAuto,
+    };
 
     // -- pictures -------------------------------------------------------------------------------------
 

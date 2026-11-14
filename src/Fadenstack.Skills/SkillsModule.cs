@@ -241,7 +241,7 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
     private static string Plain(string text) => text.Replace('\r', ' ').Replace('\n', ' ');
 
     /// <summary>The prompt with the listed skills (XML, as MAF lists them) and, after it, the blocks of the pre-loaded ones.</summary>
-    private static string? Render(SkillSelection selection, IReadOnlyList<string>? blocks)
+    internal static string? Render(SkillSelection selection, IReadOnlyList<string>? blocks)
     {
         if (selection.Listed.Count == 0)
         {
@@ -304,7 +304,7 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
         // bring its own.
         var extensions = new Dictionary<string, RawExtension>(StringComparer.Ordinal);
         var bundledNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var bundled in _options.Bundled)
+        foreach (var bundled in _options.Bundled.Where(b => _options.Switches?.IsEnabled(b.Name) != false))
         {
             sources.Add(Guarded(new AgentInMemorySkillsSource(new[] { Inline(bundled) }), bundled.Name, logger));
             if (bundledNames.Add(bundled.Name) && bundled.FadenYaml is not null)
@@ -319,6 +319,10 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
             foreach (var directory in SkillRules.SkillFolders(folder))
             {
                 var name = Path.GetFileName(directory);
+                if (_options.Switches?.IsEnabled(name) == false)
+                {
+                    continue; // the person switched it off
+                }
                 if (SkillRules.ExtraKey(Path.Combine(directory, "SKILL.md")) is { } extra)
                 {
                     Log.Skipped(logger, name, $"its SKILL.md has a field the standard does not have ({extra})");

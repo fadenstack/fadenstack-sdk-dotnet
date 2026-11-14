@@ -30,6 +30,12 @@ public sealed class SkillsOptions
     /// <summary>Skills bundled with the app. They come first: a folder's skill never takes a bundled skill's name.</summary>
     public IList<BundledSkill> Bundled { get; } = new List<BundledSkill>();
 
+    /// <summary>
+    /// The person's on/off switch per skill, kept in their settings (<see cref="FileSkillSwitches"/>): the module does not list an off skill for the
+    /// model. Null: every skill is on.
+    /// </summary>
+    public ISkillSwitches? Switches { get; set; }
+
     /// <summary>Decides from the agent's profile whether local skills are on; null: <see cref="CoreLocalSkillsPolicy"/>.</summary>
     public ILocalSkillsPolicy? Policy { get; set; }
 
