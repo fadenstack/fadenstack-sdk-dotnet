@@ -12,38 +12,30 @@ namespace Fadenstack.UI.Avalonia.Views;
 /// <summary>
 /// "Draft from this chat" for a <see cref="SkillDraftViewModel"/> (set it as the DataContext): what the draft should be for, the button
 /// that asks the model, the state, and the statement that nothing is saved until Save. The code here is only what a view does: it gives
-/// the panel the texts' language and direction (<see cref="Strings"/>), sends Enter to the primary button, and raises
-/// <see cref="EditorRequested"/> when the person asks to see the proposal in the editor (the host shows it; the library does so itself).
+/// the panel the texts' language and direction (the view model's <see cref="SkillDraftViewModel.Strings"/>) and sends Enter to the primary button;
+/// "Open the proposal" is the view model's command (<see cref="SkillDraftViewModel.OpenProposalCommand"/>).
 /// </summary>
 public partial class SkillDraftView : UserControl
 {
-    /// <summary>The texts of the panel; the current UI language's unless the host sets them (the same ones it gave the view model).</summary>
-    public static readonly StyledProperty<UiStrings?> StringsProperty = AvaloniaProperty.Register<SkillDraftView, UiStrings?>(nameof(Strings));
+    private readonly SkillTextsFollower _texts;
 
     public SkillDraftView()
     {
         FadenstackControls.EnsureLoaded();
         InitializeComponent();
-        Strings = UiStrings.Current;
-        OpenButton.Click += OnOpenClick;
+        _texts = new SkillTextsFollower(strings =>
+        {
+            ChatText.SetStrings(this, strings);
+            FlowDirection = strings is { IsRightToLeft: true } ? global::Avalonia.Media.FlowDirection.RightToLeft : global::Avalonia.Media.FlowDirection.LeftToRight;
+        });
     }
-
-    public UiStrings? Strings
-    {
-        get => GetValue(StringsProperty);
-        set => SetValue(StringsProperty, value);
-    }
-
-    /// <summary>The person asked to open the proposal in the editor; the argument is the proposal.</summary>
-    public event EventHandler<SkillEditorViewModel>? EditorRequested;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == StringsProperty)
+        if (change.Property == DataContextProperty)
         {
-            ChatText.SetStrings(this, Strings);
-            FlowDirection = Strings is { IsRightToLeft: true } ? global::Avalonia.Media.FlowDirection.RightToLeft : global::Avalonia.Media.FlowDirection.LeftToRight;
+            _texts.Follow(DataContext);
         }
     }
 
@@ -51,14 +43,6 @@ public partial class SkillDraftView : UserControl
     {
         base.OnAttachedToVisualTree(e);
         Dispatcher.UIThread.Post(() => WizardFocus.FocusFirst(this), DispatcherPriority.Loaded);
-    }
-
-    private void OnOpenClick(object? sender, RoutedEventArgs e)
-    {
-        if ((DataContext as SkillDraftViewModel)?.Proposal is { } proposal)
-        {
-            EditorRequested?.Invoke(this, proposal);
-        }
     }
 
     /// <summary>Enter presses the primary button (Esc has nothing to stop here).</summary>

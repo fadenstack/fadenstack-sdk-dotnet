@@ -1519,6 +1519,39 @@
   <data name="SkillDraftBroken" xml:space="preserve">
     <value>Le brouillon enfreint les règles ci-dessous. Corrigez-le dans l’éditeur avant d’enregistrer.</value>
   </data>
+  <data name="SkillBroken" xml:space="preserve">
+    <value>Cette compétence ne peut pas être lue : {0}</value>
+  </data>
+  <data name="SkillBrokenNoReason" xml:space="preserve">
+    <value>Cette compétence ne peut pas être lue. Ouvrez-la pour la corriger, ou supprimez-la.</value>
+  </data>
+  <data name="SkillTestMatchesHeading" xml:space="preserve">
+    <value>Correspond à ce message :</value>
+  </data>
+  <data name="SkillTokens" xml:space="preserve">
+    <value>environ {0:N0} sur {1:N0} jetons</value>
+  </data>
+  <data name="SkillDraftNothingSaved" xml:space="preserve">
+    <value>Rien n’est enregistré tant que vous n’appuyez pas sur Enregistrer.</value>
+  </data>
+  <data name="SkillDraftOpen" xml:space="preserve">
+    <value>Ouvrir la proposition</value>
+  </data>
+  <data name="SkillEditNamed" xml:space="preserve">
+    <value>Modifier {0}</value>
+  </data>
+  <data name="SkillViewNamed" xml:space="preserve">
+    <value>Afficher {0}</value>
+  </data>
+  <data name="SkillDeleteNamed" xml:space="preserve">
+    <value>Supprimer {0}</value>
+  </data>
+  <data name="SkillExportNamed" xml:space="preserve">
+    <value>Exporter {0}</value>
+  </data>
+  <data name="SkillDuplicateNamed" xml:space="preserve">
+    <value>Dupliquer {0}</value>
+  </data>
   <data name="SkillIssueNameMissing" xml:space="preserve">
     <value>Le nom est vide.</value>
   </data>

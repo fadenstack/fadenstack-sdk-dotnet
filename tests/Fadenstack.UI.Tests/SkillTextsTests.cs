@@ -87,4 +87,35 @@ public class SkillTextsTests
             Assert.NotEqual(english.SkillIssueText(SkillIssueCode.ScriptFile, "a", 0, 0, ""), strings.SkillIssueText(SkillIssueCode.ScriptFile, "a", 0, 0, ""));
         }
     }
-}
+
+    [Theory]
+    [MemberData(nameof(Languages))]
+    public void The_texts_of_the_skill_editor_gaps_exist_in_every_language_with_their_places_filled_in(string language)
+    {
+        var strings = new UiStrings(CultureInfo.GetCultureInfo(language), null, CultureInfo.GetCultureInfo("en-US"));
+        var english = In("en");
+
+        var filled = new[]
+        {
+            strings.SkillBroken("REASON"), strings.SkillEditNamed("NAME"), strings.SkillViewNamed("NAME"), strings.SkillDeleteNamed("NAME"),
+            strings.SkillExportNamed("NAME"), strings.SkillDuplicateNamed("NAME"), strings.SkillTokens(1234, 5000),
+        };
+        Assert.All(filled, t => Assert.DoesNotContain("{", t));
+        Assert.Contains("REASON", strings.SkillBroken("REASON"));
+        Assert.All(new[] { strings.SkillEditNamed("NAME"), strings.SkillViewNamed("NAME"), strings.SkillDeleteNamed("NAME"), strings.SkillExportNamed("NAME"), strings.SkillDuplicateNamed("NAME") },
+            t => Assert.Contains("NAME", t));
+        Assert.Equal(5, new[] { strings.SkillEditNamed("N"), strings.SkillViewNamed("N"), strings.SkillDeleteNamed("N"), strings.SkillExportNamed("N"), strings.SkillDuplicateNamed("N") }.Distinct().Count());
+        Assert.Contains("1,234", strings.SkillTokens(1234, 5000));
+        Assert.Contains("5,000", strings.SkillTokens(1234, 5000));
+        Assert.All(new[] { strings.SkillBrokenNoReason, strings.SkillTestMatchesHeading, strings.SkillDraftNothingSaved, strings.SkillDraftOpen },
+            t => Assert.True(t.Length > 0 && !t.StartsWith("Skill")));
+        if (language != "en")
+        {
+            Assert.NotEqual(english.SkillBrokenNoReason, strings.SkillBrokenNoReason);
+            Assert.NotEqual(english.SkillTestMatchesHeading, strings.SkillTestMatchesHeading);
+            Assert.NotEqual(english.SkillDraftNothingSaved, strings.SkillDraftNothingSaved);
+            Assert.NotEqual(english.SkillDraftOpen, strings.SkillDraftOpen);
+            Assert.NotEqual(english.SkillEditNamed("N"), strings.SkillEditNamed("N"));
+            Assert.NotEqual(english.SkillBroken("R"), strings.SkillBroken("R"));
+        }
+    }}

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -399,7 +400,7 @@ public class SkillViewTests
         using var host = await SkillHost.OpenDraftAsync(language, new ScriptedChat().Says(GoodAnswer));
         await host.Draft.DraftCommand.ExecuteAsync(null);
         await host.PumpAsync();
-        var view = new SkillEditorView { DataContext = host.Draft.Proposal, Strings = host.Strings };
+        var view = new SkillEditorView { DataContext = host.Draft.Proposal };
         host.Window.Content = view;
         await host.PumpAsync();
 
@@ -622,7 +623,7 @@ public class SkillViewTests
         Assert.Equal(expected, host.Draft.State);
         if (expected == SkillDraftState.Idle)
         {
-            Assert.DoesNotContain(s.SkillEdit, texts);
+            Assert.DoesNotContain(s.SkillDraftOpen, texts);
         }
         else
         {
@@ -632,7 +633,7 @@ public class SkillViewTests
         {
             // The proposal is there, and nothing is saved.
             Assert.Contains(s.SkillEditorProposal, texts);
-            Assert.Contains(s.SkillEdit, texts);
+            Assert.Contains(s.SkillDraftOpen, texts);
             Assert.Equal(0, host.Rig.Workshop.Saves);
         }
         if (expected == SkillDraftState.Ready)
@@ -661,18 +662,221 @@ public class SkillViewTests
     }
 
     [AvaloniaFact]
-    public async Task The_edit_button_asks_the_host_to_show_the_proposal_in_the_editor()
+    public async Task The_open_button_is_the_view_models_command_and_asks_for_the_proposal_in_the_editor()
     {
         using var host = await SkillHost.OpenDraftAsync(model: new ScriptedChat().Says(GoodAnswer));
-        SkillEditorViewModel? asked = null;
-        ((SkillDraftView)host.View).EditorRequested += (_, editor) => asked = editor;
         await host.Draft.DraftCommand.ExecuteAsync(null);
         await host.PumpAsync();
+        SkillEditorViewModel? asked = null;
+        host.Draft.ProposalReady += (_, editor) => asked = editor;
 
-        host.Find<Button>("OpenButton").RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        var open = host.Find<Button>("OpenButton");
+        Assert.Same(host.Draft.OpenProposalCommand, open.Command);
+        open.Command!.Execute(null);
         await host.PumpAsync();
 
         Assert.Same(host.Draft.Proposal, asked);
         Assert.Equal(0, host.Rig.Workshop.Saves);
     }
-}
+
+    // ---- the gaps the skin builders found ----------------------------------------------------------------------------
+
+    private static TextBlock MessageLine(SkillHost host, string banner) => host.Find<Border>(banner).GetVisualDescendants().OfType<TextBlock>().First();
+
+    [AvaloniaFact]
+    public async Task The_views_take_their_texts_from_the_view_model_and_follow_a_language_change()
+    {
+        var rig = new SkillRig();
+        using var _ = rig;
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+        var view = new SkillLibraryView { DataContext = library };
+
+        Assert.Equal("en", ChatText.GetStrings(view)!.Language);
+        language = "de";
+        library.Retext();
+        Assert.Equal("de", ChatText.GetStrings(view)!.Language);
+
+        // A view without a view model says the current language's texts.
+        view.DataContext = null;
+        Assert.Null(ChatText.GetStrings(view));
+        await Task.CompletedTask;
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public async Task The_library_shows_information_as_a_status_and_an_error_as_an_alert(string language)
+    {
+        using var host = await LibraryAtAsync("list", language);
+        var library = host.Library;
+        var s = host.Strings;
+
+        library.AskDeleteCommand.Execute(library.Rows.First(r => r.Name == "contract-review"));
+        await library.ConfirmDeleteCommand.ExecuteAsync(null);
+        await host.PumpAsync();
+
+        Assert.Equal(SkillMessageKind.Information, library.MessageKind);
+        Assert.True(host.Find<Border>("MessageInfo").IsEffectivelyVisible);
+        Assert.False(host.Find<Border>("MessageError").IsEffectivelyVisible);
+        Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageInfo")));
+        Assert.Contains(s.SkillDeleted("contract-review"), host.Texts());
+
+        await host.Rig.Real.SaveAsync(SkillRig.Doc("other-skill"));
+        await library.RefreshAsync();
+        await Wait.Until(() => library.Rows.Any(r => r.Name == "other-skill"));
+        var row = library.Rows.First(r => r.Name == "other-skill");
+        Directory.Delete(Path.Combine(host.Rig.Folder, "other-skill"), true);
+        await library.EditCommand.ExecuteAsync(row);
+        await host.PumpAsync();
+
+        Assert.Equal(SkillMessageKind.Error, library.MessageKind);
+        Assert.True(host.Find<Border>("MessageError").IsEffectivelyVisible);
+        Assert.False(host.Find<Border>("MessageInfo").IsEffectivelyVisible);
+        Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageError")));
+        Assert.Contains(library.Message, host.Texts());
+        Assert.Empty(host.BindingErrors);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public async Task A_broken_skill_says_it_cannot_be_read_and_why(string language)
+    {
+        using var host = await SkillHost.OpenLibraryAsync(language);
+        Directory.CreateDirectory(Path.Combine(host.Rig.Folder, "bad-skill"));
+        File.WriteAllText(Path.Combine(host.Rig.Folder, "bad-skill", "SKILL.md"), "---\nname: bad-skill\ndescription: x\nversion: 3\n---\nBody.\n");
+        await host.Library.RefreshAsync();
+        await Wait.Until(() => host.Library.Rows.Any(r => r.Name == "bad-skill"));
+        await host.PumpAsync();
+
+        var bad = host.Library.Rows.First(r => r.Name == "bad-skill");
+        Assert.True(bad.IsBroken);
+        Assert.Contains(bad.BrokenText, host.Texts());
+        Assert.StartsWith(host.Strings.SkillBroken("").Split(':')[0], bad.BrokenText);
+        Assert.Single(host.Texts(), t => t == bad.BrokenText);
+        Assert.Empty(host.BindingErrors);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public async Task The_buttons_of_a_row_are_named_for_the_row(string language)
+    {
+        using var host = await SkillHost.OpenLibraryAsync(language);
+        var s = host.Strings;
+        var own = host.Library.Rows.First(r => r.Name == "contract-review");
+        var bundled = host.Library.Rows.First(r => r.Name == "slide-design");
+
+        Button Of(SkillRowViewModel row, string text) => host.Visible().OfType<Button>().First(b => ReferenceEquals(b.CommandParameter, row) && b.Content as string == text);
+
+        Assert.Equal(s.SkillEditNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillEdit)));
+        Assert.Equal(s.SkillDuplicateNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillDuplicate)));
+        Assert.Equal(s.SkillExportNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillExport)));
+        Assert.Equal(s.SkillDeleteNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillDelete)));
+        Assert.Equal(s.SkillViewNamed("slide-design"), AutomationProperties.GetName(Of(bundled, s.SkillView)));
+    }
+
+    [AvaloniaFact]
+    public async Task Draft_from_this_chat_is_an_entry_of_the_library_only_when_the_host_gave_a_conversation()
+    {
+        using (var without = await SkillHost.OpenLibraryAsync())
+        {
+            Assert.Empty(without.ButtonsSaying(without.Strings.SkillDraftTitle));
+            Assert.DoesNotContain(without.Strings.SkillDraftNothingSaved, without.Texts());
+        }
+
+        using var host = await SkillHost.OpenLibraryAsync(model: new ScriptedChat().Says(GoodAnswer), draft: true);
+        var s = host.Strings;
+        Assert.DoesNotContain(s.SkillDraftNothingSaved, host.Texts());
+
+        host.ButtonSaying(s.SkillDraftTitle).Command!.Execute(null);
+        await host.PumpAsync();
+
+        Assert.True(host.Library.DraftOpen);
+        Assert.Contains(s.SkillDraftNothingSaved, host.Texts());
+        Assert.Contains(s.SkillDraftStart, host.Texts());
+
+        await host.Library.Draft!.DraftCommand.ExecuteAsync(null);
+        await host.PumpAsync();
+
+        Assert.NotNull(host.Library.Editor);
+        Assert.True(host.Library.Editor!.IsProposal);
+        Assert.Contains(s.SkillEditorProposal, host.Texts());
+        Assert.Equal(0, host.Rig.Workshop.Saves);
+        Assert.Empty(host.BindingErrors);
+    }
+
+    [AvaloniaTheory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public async Task The_editor_counts_the_instructions_tokens_and_warns_when_over(string language)
+    {
+        using var host = await SkillHost.OpenEditorAsync(language, "edit");
+
+        host.Editor.Instructions = new string('w', 1200 * 4);
+        await host.PumpAsync();
+        Assert.Equal(host.Strings.SkillTokens(1200, 5000), host.Editor.InstructionsTokensText);
+        Assert.True(host.Find<TextBlock>("TokensText").IsEffectivelyVisible);
+        Assert.False(host.Find<Border>("TokensWarning").IsEffectivelyVisible);
+        Assert.Contains(host.Editor.InstructionsTokensText, host.Texts());
+
+        host.Editor.Instructions = new string('w', 5001 * 4);
+        await host.PumpAsync();
+        Assert.False(host.Find<TextBlock>("TokensText").IsEffectivelyVisible);
+        Assert.True(host.Find<Border>("TokensWarning").IsEffectivelyVisible);
+        Assert.Contains(host.Strings.SkillTokens(5001, 5000), host.Texts());
+        Assert.Empty(host.BindingErrors);
+    }
+
+    [AvaloniaFact]
+    public async Task The_try_panel_has_a_heading_for_the_matched_list()
+    {
+        using var host = await SkillHost.OpenEditorAsync(mode: "edit");
+        Assert.DoesNotContain(host.Strings.SkillTestMatchesHeading, host.Texts());
+
+        host.Editor.KeywordsText = "contract";
+        host.Editor.TestPrompt = "Please review this contract";
+        host.Editor.RunTest();
+        await host.PumpAsync();
+
+        Assert.NotEmpty(host.Editor.TestMatches);
+        Assert.Contains(host.Strings.SkillTestMatchesHeading, host.Texts());
+    }
+
+    [AvaloniaFact]
+    public async Task The_editor_shows_an_error_as_an_alert_and_information_as_a_status()
+    {
+        using var host = await SkillHost.OpenEditorAsync();
+        Directory.CreateDirectory(host.Rig.Root);
+        File.WriteAllText(host.Rig.Folder, "not a folder");
+        host.Editor.Name = "contract-review";
+        host.Editor.Description = "Reviews a contract.";
+        host.Editor.Instructions = "## Goal\nReview.\n";
+
+        await host.Editor.SaveCommand.ExecuteAsync(null);
+        await host.PumpAsync();
+
+        Assert.Equal(SkillMessageKind.Error, host.Editor.MessageKind);
+        Assert.True(host.Find<Border>("MessageError").IsEffectivelyVisible);
+        Assert.False(host.Find<Border>("MessageInfo").IsEffectivelyVisible);
+        Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageError")));
+        Assert.Contains(host.Strings.SkillSaveFailed, host.Texts());
+        Assert.Empty(host.BindingErrors);
+    }
+
+    [AvaloniaTheory]
+    [MemberData(nameof(DraftStates))]
+    public async Task Nothing_is_saved_until_Save_is_said_in_every_state_of_the_draft_view(string state, string language)
+    {
+        using var host = await DraftAtAsync(state, language);
+
+        Assert.True(host.Find<TextBlock>("StandingNote").IsEffectivelyVisible);
+        Assert.Contains(host.Strings.SkillDraftNothingSaved, host.Texts());
+        if (host.Draft.HasProposal)
+        {
+            var open = host.Find<Button>("OpenButton");
+            Assert.Same(host.Draft.OpenProposalCommand, open.Command);
+            Assert.Equal(host.Strings.SkillDraftOpen, AutomationProperties.GetName(open));
+        }
+    }}

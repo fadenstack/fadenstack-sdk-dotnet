@@ -15,7 +15,7 @@
         The skill library (sdk/51 F04): one view for a SkillLibraryViewModel. The list of skills, each with where it comes from, "not
         reviewed" for the person's own and its switch where it may be switched; New and Import; Edit (View for a bundled skill),
         Duplicate, Delete (after the confirmation the view model asks for) and Export on each row. When the view model has an editor open
-        the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) through the view's Strings;
+        the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) from the view model's Strings;
         every look is a style class of the skin's or a theme key.
     -->
     <UserControl.Styles>
@@ -36,11 +36,23 @@
             <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
                 <TextBlock Classes="title" Text="{v:Text SkillLibraryTitle}" TextWrapping="Wrap" />
 
-                <!-- What the last action did. -->
-                <Border Classes="banner success" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <!-- What the last action did: information is a status (polite), a warning too, an error is an alert (assertive). -->
+                <Border Name="MessageInfo" Classes="banner success" IsVisible="{Binding MessageIsInformation}">
                     <DockPanel>
                         <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
                         <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    </DockPanel>
+                </Border>
+                <Border Name="MessageWarning" Classes="banner warning" IsVisible="{Binding MessageIsWarning}">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    </DockPanel>
+                </Border>
+                <Border Name="MessageError" Classes="banner error" IsVisible="{Binding MessageIsError}">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
 
@@ -53,7 +65,12 @@
                             AutomationProperties.Name="{v:Text SkillNew}" />
                     <Button Classes="secondary" Margin="0,0,8,8" Command="{Binding ImportCommand}" Content="{v:Text SkillImport}"
                             AutomationProperties.Name="{v:Text SkillImport}" />
+                    <Button Name="DraftButton" Classes="secondary" Margin="0,0,8,8" IsVisible="{Binding HasDraft}" Command="{Binding DraftFromChatCommand}"
+                            Content="{v:Text SkillDraftTitle}" AutomationProperties.Name="{v:Text SkillDraftTitle}" />
                 </WrapPanel>
+
+                <!-- "Draft from this chat": only when the app gave the library its conversation. -->
+                <v:SkillDraftView Name="DraftHost" DataContext="{Binding Draft}" IsVisible="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).DraftOpen}" />
 
                 <!-- Delete: the question first. Cancel has the focus. -->
                 <Border Classes="card" IsVisible="{Binding PendingDelete, Converter={x:Static ObjectConverters.IsNotNull}}"
@@ -123,6 +140,10 @@
                                             <TextBlock Classes="caption" Text="{Binding Description}" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </DockPanel>
+                                    <!-- A skill that cannot be read: why, and that it can be opened or deleted. -->
+                                    <Border Classes="banner error" IsVisible="{Binding IsBroken}">
+                                        <TextBlock Name="BrokenText" Text="{Binding BrokenText}" TextWrapping="Wrap" />
+                                    </Border>
                                     <WrapPanel Orientation="Horizontal">
                                         <Border Classes="badge" Margin="0,0,8,0"><TextBlock Text="{Binding OriginLabel}" /></Border>
                                         <Border Classes="badge write" IsVisible="{Binding IsNotReviewed}"><TextBlock Text="{Binding StatusLabel}" /></Border>
@@ -130,19 +151,19 @@
                                     <WrapPanel Orientation="Horizontal">
                                         <Button Classes="secondary" Margin="0,0,8,0" IsVisible="{Binding !IsReadOnly}" CommandParameter="{Binding}"
                                                 Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).EditCommand}"
-                                                Content="{v:Text SkillEdit}" AutomationProperties.Name="{v:Text SkillEdit}" />
+                                                Content="{v:Text SkillEdit}" AutomationProperties.Name="{Binding EditLabel}" />
                                         <Button Classes="secondary" Margin="0,0,8,0" IsVisible="{Binding IsReadOnly}" CommandParameter="{Binding}"
                                                 Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).EditCommand}"
-                                                Content="{v:Text SkillView}" AutomationProperties.Name="{v:Text SkillView}" />
+                                                Content="{v:Text SkillView}" AutomationProperties.Name="{Binding ViewLabel}" />
                                         <Button Classes="quiet" Margin="0,0,8,0" IsVisible="{Binding CanDuplicate}" CommandParameter="{Binding}"
                                                 Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).DuplicateCommand}"
-                                                Content="{v:Text SkillDuplicate}" AutomationProperties.Name="{v:Text SkillDuplicate}" />
+                                                Content="{v:Text SkillDuplicate}" AutomationProperties.Name="{Binding DuplicateLabel}" />
                                         <Button Classes="quiet" Margin="0,0,8,0" IsVisible="{Binding CanExport}" CommandParameter="{Binding}"
                                                 Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).ExportCommand}"
-                                                Content="{v:Text SkillExport}" AutomationProperties.Name="{v:Text SkillExport}" />
+                                                Content="{v:Text SkillExport}" AutomationProperties.Name="{Binding ExportLabel}" />
                                         <Button Classes="quiet" IsVisible="{Binding CanDelete}" CommandParameter="{Binding}"
                                                 Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).AskDeleteCommand}"
-                                                Content="{v:Text SkillDelete}" AutomationProperties.Name="{v:Text SkillDelete}" />
+                                                Content="{v:Text SkillDelete}" AutomationProperties.Name="{Binding DeleteLabel}" />
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -153,7 +174,7 @@
         </ScrollViewer>
 
         <!-- The open editor (new, edit, duplicate, a bundled skill to read, or a draft's proposal). -->
-        <v:SkillEditorView Name="EditorHost" DataContext="{Binding Editor}" Strings="{Binding $parent[v:SkillLibraryView].Strings}"
+        <v:SkillEditorView Name="EditorHost" DataContext="{Binding Editor}"
                            IsVisible="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).Editor, Converter={x:Static ObjectConverters.IsNotNull}}" />
     </Panel>
 </UserControl>

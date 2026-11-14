@@ -15,7 +15,7 @@
         "Draft from this chat" (sdk/51 F04): one view for a SkillDraftViewModel. What the skill should be for (optional), the button that
         asks the model once, the draft's state in words (asking, the proposal, why it failed) and the statement that nothing is saved until
         the person presses Save in the editor. The proposal opens in the editor (the library shows it itself; Edit asks the host to).
-        The texts are UiStrings through the view's Strings; every look is a style class of the skin's or a theme key.
+        The texts are UiStrings from the view model's Strings; every look is a style class of the skin's or a theme key.
     -->
     <UserControl.Styles>
         <Style Selector="Button.hide-disabled:disabled">
@@ -30,6 +30,9 @@
             <TextBlock Classes="strong" Text="{v:Text SkillDraftGuidance}" TextWrapping="Wrap" />
             <TextBox Name="GuidanceBox" b:WizardFocus.IsFirst="True" Text="{Binding Guidance, Mode=TwoWay}" IsEnabled="{Binding !IsWorking}"
                      TextWrapping="Wrap" AutomationProperties.Name="{v:Text SkillDraftGuidance}" />
+
+            <!-- In every state: nothing is saved until Save. -->
+            <TextBlock Name="StandingNote" Classes="caption muted" Text="{Binding StandingNote}" TextWrapping="Wrap" />
 
             <Button Name="StartButton" Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding DraftCommand}" Content="{v:Text SkillDraftStart}"
                     AutomationProperties.Name="{v:Text SkillDraftStart}" />
@@ -62,8 +65,8 @@
             <Border Name="ProposalCard" Classes="card" IsVisible="{Binding Proposal, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <StackPanel Spacing="8">
                     <TextBlock Name="ProposalText" Text="{Binding Proposal.ProposalNote}" TextWrapping="Wrap" />
-                    <Button Name="OpenButton" Classes="secondary" HorizontalAlignment="Left" Content="{v:Text SkillEdit}"
-                            AutomationProperties.Name="{v:Text SkillEdit}" />
+                    <Button Name="OpenButton" Classes="secondary" HorizontalAlignment="Left" Command="{Binding OpenProposalCommand}" Content="{v:Text SkillDraftOpen}"
+                            AutomationProperties.Name="{v:Text SkillDraftOpen}" />
                 </StackPanel>
             </Border>
         </StackPanel>

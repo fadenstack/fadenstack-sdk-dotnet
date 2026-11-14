@@ -9,7 +9,7 @@ namespace Fadenstack.UI.Wpf.Views;
 /// <summary>
 /// The skill editor for a <see cref="SkillEditorViewModel"/> (set it as the DataContext): the fields, the preview, the files, the checks,
 /// Save and Cancel, and the Try panel. The code here is only what a view does: it picks the colours, gives the panel the texts' language
-/// and direction (<see cref="Strings"/>, the same texts the view model was given), sends Esc to the replace question or to Cancel, and Enter
+/// and direction (the view model's <see cref="SkillEditorViewModel.Strings"/>), sends Esc to the replace question or to Cancel, and Enter
 /// to the primary button (Save) or, in the Try box, to the test; the focus goes to the name when the editor opens (the XAML).
 /// </summary>
 public partial class SkillEditorView : UserControl
@@ -17,27 +17,18 @@ public partial class SkillEditorView : UserControl
     public static readonly DependencyProperty ThemeProperty = DependencyProperty.Register(
         nameof(Theme), typeof(ChatTheme), typeof(SkillEditorView), new PropertyMetadata(ChatTheme.System, (d, _) => SkillViewSupport.ApplyTheme((SkillEditorView)d, ((SkillEditorView)d).Theme)));
 
-    /// <summary>The texts of the panel; the current UI language's unless the host sets them (the same ones it gave the view model).</summary>
-    public static readonly DependencyProperty StringsProperty = DependencyProperty.Register(
-        nameof(Strings), typeof(UiStrings), typeof(SkillEditorView), new PropertyMetadata(null, (d, e) => SkillViewSupport.ApplyStrings((SkillEditorView)d, (UiStrings?)e.NewValue)));
-
     public SkillEditorView()
     {
         InitializeComponent();
         SkillViewSupport.ApplyTheme(this, Theme);
-        Strings = UiStrings.Current;
+        var texts = new SkillTextsFollower(strings => SkillViewSupport.ApplyStrings(this, strings));
+        DataContextChanged += (_, e) => texts.Follow(e.NewValue);
     }
 
     public ChatTheme Theme
     {
         get => (ChatTheme)GetValue(ThemeProperty);
         set => SetValue(ThemeProperty, value);
-    }
-
-    public UiStrings? Strings
-    {
-        get => (UiStrings?)GetValue(StringsProperty);
-        set => SetValue(StringsProperty, value);
     }
 
     /// <summary>The key came from the Try box (its text host, not the box itself, is the event's source).</summary>

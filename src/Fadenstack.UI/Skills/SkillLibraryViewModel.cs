@@ -7,6 +7,16 @@ using Microsoft.Extensions.AI;
 namespace Fadenstack.UI.Skills;
 
 /// <summary>
+/// A skill view model that tells its texts (as the connection wizard does): a view reads every text from <see cref="Strings"/> and says them
+/// again when it changes (the app's language changed, <c>Retext</c>).
+/// </summary>
+public interface ISkillTexts : System.ComponentModel.INotifyPropertyChanged
+{
+    /// <summary>The texts the view model was given; the current UI language's by default.</summary>
+    UiStrings Strings { get; }
+}
+
+/// <summary>
 /// What the editor needs from the app that a view model cannot do itself: choose a file or a folder, and write a file. The skin
 /// implements it with the system's dialogs; a host without any answers null or false.
 /// </summary>
@@ -20,6 +30,19 @@ public interface ISkillFileHost
 
     /// <summary>A file the person chose to add to a skill (its name and content); null when they cancelled.</summary>
     Task<SkillFile?> PickResourceAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>What kind of thing a message says: a skin shows an error as an alert and the others as a status.</summary>
+public enum SkillMessageKind
+{
+    /// <summary>What an action did ("x was saved"): polite.</summary>
+    Information,
+
+    /// <summary>Something the person should look at, that did not stop the action.</summary>
+    Warning,
+
+    /// <summary>The action did not happen: assertive.</summary>
+    Error,
 }
 
 /// <summary>One check's finding, in words, for the list under the editor.</summary>
@@ -74,6 +97,11 @@ public sealed class SkillRowViewModel : ObservableObject
     /// <summary>The skill cannot be used as it is (its SKILL.md breaks a rule): the module does not list it; open it to fix it, or delete it.</summary>
     public bool IsBroken => Entry.IsBroken;
 
+    /// <summary>"This skill cannot be read: ..." for a broken skill (with the reason when the library knows it); empty for the others.</summary>
+    public string BrokenText => !Entry.IsBroken ? "" : Entry.BrokenIssue is { } issue
+        ? _strings().SkillBroken(_strings().SkillIssueText(issue.Code, issue.Subject ?? "", issue.Limit, issue.Actual, issue.Detail ?? ""))
+        : _strings().SkillBrokenNoReason;
+
     public bool IsEnabled
     {
         get => _isEnabled;
@@ -95,8 +123,25 @@ public sealed class SkillRowViewModel : ObservableObject
 
     public bool CanExport => Entry.Origin != SkillOrigin.Organisation && !Entry.IsBroken;
 
+    /// <summary>The names a screen reader says for the row's buttons ("Edit contract-review"), so the buttons of two rows are told apart.</summary>
+    public string EditLabel => _strings().SkillEditNamed(Name);
+
+    public string ViewLabel => _strings().SkillViewNamed(Name);
+
+    public string DuplicateLabel => _strings().SkillDuplicateNamed(Name);
+
+    public string DeleteLabel => _strings().SkillDeleteNamed(Name);
+
+    public string ExportLabel => _strings().SkillExportNamed(Name);
+
     internal void Retext()
     {
+        OnPropertyChanged(nameof(BrokenText));
+        OnPropertyChanged(nameof(EditLabel));
+        OnPropertyChanged(nameof(ViewLabel));
+        OnPropertyChanged(nameof(DuplicateLabel));
+        OnPropertyChanged(nameof(DeleteLabel));
+        OnPropertyChanged(nameof(ExportLabel));
         OnPropertyChanged(nameof(OriginLabel));
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(SwitchLabel));
@@ -109,7 +154,7 @@ public sealed class SkillRowViewModel : ObservableObject
 /// Platform-neutral: the skins draw it. Nothing is written except by a command the person started, and an import writes nothing until
 /// every check has passed and the person pressed Import. A newer action makes an older one's answer stale, and a stale answer changes nothing.
 /// </summary>
-public sealed class SkillLibraryViewModel : ObservableObject
+public sealed class SkillLibraryViewModel : ObservableObject, ISkillTexts
 {
     private readonly ISkillWorkshop _workshop;
     private readonly ISkillFileHost? _files;
@@ -123,6 +168,9 @@ public sealed class SkillLibraryViewModel : ObservableObject
     private bool _loaded;
     private bool _failed;
     private string _message = "";
+    private SkillMessageKind _messageKind;
+    private readonly SkillDraftViewModel? _draft;
+    private bool _draftOpen;
     private SkillRowViewModel? _pendingDelete;
     private ImportAnalysis? _pendingImport;
     private IReadOnlyList<SkillIssueViewModel> _importIssues = Array.Empty<SkillIssueViewModel>();
@@ -134,8 +182,9 @@ public sealed class SkillLibraryViewModel : ObservableObject
     /// <param name="model">The model for the editor's "ask the model once" (one call, no tool runs); without it that button is off.</param>
     /// <param name="dispatcher">The UI thread; inline by default (tests, headless hosts).</param>
     /// <param name="strings">The texts; the current UI language's by default.</param>
+    /// <param name="draftSource">The app's conversation, for "Draft from this chat" (see <see cref="CreateDraft"/>); without it the library has no such entry.</param>
     public SkillLibraryViewModel(ISkillWorkshop workshop, ISkillFileHost? files = null, IChatClient? model = null, IUiDispatcher? dispatcher = null,
-        Func<UiStrings>? strings = null)
+        Func<UiStrings>? strings = null, Func<IReadOnlyList<SkillDraftMessage>>? draftSource = null)
     {
         _workshop = workshop ?? throw new ArgumentNullException(nameof(workshop));
         _files = files;
@@ -156,7 +205,31 @@ public sealed class SkillLibraryViewModel : ObservableObject
         ConfirmImportCommand = new AsyncRelayCommand(ConfirmImportAsync, () => _pendingImport is { Ok: true } && !_importBusy);
         CancelImportCommand = new RelayCommand(CancelImport, () => _pendingImport is not null);
         ExportCommand = new AsyncRelayCommand<SkillRowViewModel>(ExportAsync, row => _files is not null && row is { CanExport: true });
+        if (draftSource is not null)
+        {
+            _draft = CreateDraft(draftSource);
+            _draft.ProposalReady += (_, _) => DraftOpen = false;
+        }
+        DraftFromChatCommand = new RelayCommand(() => DraftOpen = !_draftOpen, () => _draft is not null && _editor is null);
     }
+
+    /// <summary>The texts; a skin binds the fixed ones and the computed ones below, and follows this when the language changes.</summary>
+    public UiStrings Strings => _strings();
+
+    /// <summary>"Draft from this chat": the draft, when the app gave a conversation (<c>draftSource</c>); null otherwise, and then the library has no such entry.</summary>
+    public SkillDraftViewModel? Draft => _draft;
+
+    public bool HasDraft => _draft is not null;
+
+    /// <summary>The draft's panel is shown (the entry was pressed and no proposal has opened since).</summary>
+    public bool DraftOpen
+    {
+        get => _draftOpen;
+        private set => SetProperty(ref _draftOpen, value);
+    }
+
+    /// <summary>The "Draft from this chat" entry: shows or hides the draft's panel.</summary>
+    public IRelayCommand DraftFromChatCommand { get; }
 
     /// <summary>The skills, bundled first, then the person's own, then the organisation's.</summary>
     public IReadOnlyList<SkillRowViewModel> Rows => _rows;
@@ -172,10 +245,29 @@ public sealed class SkillLibraryViewModel : ObservableObject
     public string Note => _isLoading && !_loaded ? _strings().SkillLibraryLoading : _failed ? _strings().SkillLibraryFailed : IsEmpty ? _strings().SkillLibraryEmpty : "";
 
     /// <summary>What the last action did ("x was saved"), or why not; empty when nothing was said.</summary>
-    public string Message
+    public string Message => _message;
+
+    /// <summary>Whether <see cref="Message"/> is information, a warning or an error; a view shows an error as an alert (assertive) and the rest as a status (polite).</summary>
+    public SkillMessageKind MessageKind => _messageKind;
+
+    /// <summary>There is a message and it is an error: a skin shows it as an alert.</summary>
+    public bool MessageIsError => _message.Length > 0 && _messageKind == SkillMessageKind.Error;
+
+    /// <summary>There is a message and it is a warning.</summary>
+    public bool MessageIsWarning => _message.Length > 0 && _messageKind == SkillMessageKind.Warning;
+
+    /// <summary>There is a message and it is information: a skin shows it as a status.</summary>
+    public bool MessageIsInformation => _message.Length > 0 && _messageKind == SkillMessageKind.Information;
+
+    private void Say(string text, SkillMessageKind kind = SkillMessageKind.Information)
     {
-        get => _message;
-        private set => SetProperty(ref _message, value);
+        _messageKind = kind;
+        _message = text ?? "";
+        OnPropertyChanged(nameof(Message));
+        OnPropertyChanged(nameof(MessageKind));
+        OnPropertyChanged(nameof(MessageIsError));
+        OnPropertyChanged(nameof(MessageIsWarning));
+        OnPropertyChanged(nameof(MessageIsInformation));
     }
 
     /// <summary>The skill the person asked to delete, until they confirm or cancel.</summary>
@@ -226,6 +318,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
                 EditCommand.NotifyCanExecuteChanged();
                 DuplicateCommand.NotifyCanExecuteChanged();
                 ImportCommand.NotifyCanExecuteChanged();
+                DraftFromChatCommand.NotifyCanExecuteChanged();
             }
         }
     }
@@ -307,11 +400,14 @@ public sealed class SkillLibraryViewModel : ObservableObject
         {
             row.Retext();
         }
+        OnPropertyChanged(nameof(Strings));
         OnPropertyChanged(nameof(Note));
         OnPropertyChanged(nameof(DeleteTitle));
         OnPropertyChanged(nameof(DeleteBody));
         OnPropertyChanged(nameof(ImportTitle));
         OnPropertyChanged(nameof(ImportBody));
+        _draft?.Retext();
+        _editor?.Retext();
     }
 
     private void Ui(Action action)
@@ -331,6 +427,10 @@ public sealed class SkillLibraryViewModel : ObservableObject
 
     private void Open(SkillEditorViewModel editor)
     {
+        if (ReferenceEquals(_editor, editor))
+        {
+            return;
+        }
         editor.Closed += OnEditorClosed;
         Editor = editor;
     }
@@ -349,7 +449,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
             Editor = null;
             if (e.Saved)
             {
-                Message = _strings().SkillSaved(e.Name ?? "");
+                Say(_strings().SkillSaved(e.Name ?? ""));
             }
         });
         _ = RefreshAsync();
@@ -379,7 +479,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
         {
             if (read.Document is null)
             {
-                Message = _strings().SkillIssueText(read.Issues.FirstOrDefault()?.Code ?? SkillIssueCode.ReadFailed, row.Name, 0, 0, read.Issues.FirstOrDefault()?.Detail ?? "");
+                Say(_strings().SkillIssueText(read.Issues.FirstOrDefault()?.Code ?? SkillIssueCode.ReadFailed, row.Name, 0, 0, read.Issues.FirstOrDefault()?.Detail ?? ""), SkillMessageKind.Error);
                 return;
             }
             Open(NewEditor(row.IsReadOnly ? SkillEditorMode.View : SkillEditorMode.Edit, read.Document, row.IsReadOnly ? null : row.Name, read.Issues));
@@ -399,7 +499,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
         {
             if (read.Document is null)
             {
-                Message = _strings().SkillIssueText(SkillIssueCode.ReadFailed, row.Name, 0, 0, "");
+                Say(_strings().SkillIssueText(SkillIssueCode.ReadFailed, row.Name, 0, 0, ""), SkillMessageKind.Error);
                 return;
             }
             var name = CopyName(row.Name, taken);
@@ -428,7 +528,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
         }
         PendingDelete = null;
         var deleted = await _workshop.DeleteAsync(row.Name).ConfigureAwait(false);
-        Ui(() => Message = deleted ? _strings().SkillDeleted(row.Name) : _strings().SkillSaveFailed);
+        Ui(() => Say(deleted ? _strings().SkillDeleted(row.Name) : _strings().SkillSaveFailed, deleted ? SkillMessageKind.Information : SkillMessageKind.Error));
         await RefreshAsync().ConfigureAwait(false);
     }
 
@@ -524,7 +624,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
             if (result.Saved)
             {
                 SetImport(null);
-                Message = _strings().SkillImported(result.Name ?? "");
+                Say(_strings().SkillImported(result.Name ?? ""));
             }
             else if (result.Status == SkillSaveStatus.Refused)
             {
@@ -532,7 +632,7 @@ public sealed class SkillLibraryViewModel : ObservableObject
             }
             else
             {
-                Message = _strings().SkillSaveFailed;
+                Say(_strings().SkillSaveFailed, SkillMessageKind.Error);
             }
             ImportCommand.NotifyCanExecuteChanged();
         });
@@ -550,6 +650,6 @@ public sealed class SkillLibraryViewModel : ObservableObject
         }
         var zip = await _workshop.ExportAsync(row.Name).ConfigureAwait(false);
         var written = zip is not null && await _files.SaveExportAsync(row.Name + ".zip", zip, CancellationToken.None).ConfigureAwait(false);
-        Ui(() => Message = zip is null ? _strings().SkillExportFailed(row.Name) : written ? _strings().SkillExported(row.Name) : "");
+        Ui(() => Say(zip is null ? _strings().SkillExportFailed(row.Name) : written ? _strings().SkillExported(row.Name) : "", zip is null ? SkillMessageKind.Error : SkillMessageKind.Information));
     }
 }

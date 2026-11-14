@@ -1779,6 +1779,39 @@
   <data name="SkillDraftBroken" xml:space="preserve">
     <value>The draft breaks the rules listed below. Fix it in the editor before saving.</value>
   </data>
+  <data name="SkillBroken" xml:space="preserve">
+    <value>This skill cannot be read: {0}</value>
+  </data>
+  <data name="SkillBrokenNoReason" xml:space="preserve">
+    <value>This skill cannot be read. Open it to fix it, or delete it.</value>
+  </data>
+  <data name="SkillTestMatchesHeading" xml:space="preserve">
+    <value>Matched this message:</value>
+  </data>
+  <data name="SkillTokens" xml:space="preserve">
+    <value>about {0:N0} of {1:N0} tokens</value>
+  </data>
+  <data name="SkillDraftNothingSaved" xml:space="preserve">
+    <value>Nothing is saved until you press Save.</value>
+  </data>
+  <data name="SkillDraftOpen" xml:space="preserve">
+    <value>Open the proposal</value>
+  </data>
+  <data name="SkillEditNamed" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="SkillViewNamed" xml:space="preserve">
+    <value>View {0}</value>
+  </data>
+  <data name="SkillDeleteNamed" xml:space="preserve">
+    <value>Delete {0}</value>
+  </data>
+  <data name="SkillExportNamed" xml:space="preserve">
+    <value>Export {0}</value>
+  </data>
+  <data name="SkillDuplicateNamed" xml:space="preserve">
+    <value>Duplicate {0}</value>
+  </data>
   <data name="SkillIssueNameMissing" xml:space="preserve">
     <value>The name is empty.</value>
   </data>

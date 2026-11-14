@@ -41,7 +41,7 @@ public enum SkillDraftState
 /// Core's limits: names up to 64 characters, descriptions up to 1,024, the conversation up to 24,000 characters (newest first), a message
 /// up to 4,000.
 /// </summary>
-public sealed class SkillDraftViewModel : ObservableObject
+public sealed class SkillDraftViewModel : ObservableObject, ISkillTexts
 {
     /// <summary>The longest name (core's <c>NAME_MAX</c>).</summary>
     public const int NameMax = SkillLimits.NameMax;
@@ -136,9 +136,30 @@ public sealed class SkillDraftViewModel : ObservableObject
         var current = UiStrings.Current;
         _strings = strings ?? (() => current);
         DraftCommand = new AsyncRelayCommand(DraftAsync, () => _state != SkillDraftState.Working);
+        OpenProposalCommand = new RelayCommand(OpenProposal, () => _proposal is not null);
     }
 
-    /// <summary>The proposal is ready (<see cref="Proposal"/>): the app shows the editor. Nothing is saved.</summary>
+    /// <summary>The texts; a skin binds the fixed ones and the computed ones below, and follows this when the language changes.</summary>
+    public UiStrings Strings => _strings();
+
+    /// <summary>In every state: nothing is saved until Save (in the editor).</summary>
+    public string StandingNote => _strings().SkillDraftNothingSaved;
+
+    /// <summary>The draft has a proposal to open.</summary>
+    public bool HasProposal => _proposal is not null;
+
+    /// <summary>"Open the proposal": shows the proposal's editor (raises <see cref="ProposalReady"/> again, which the library answers by showing it); on when there is one.</summary>
+    public IRelayCommand OpenProposalCommand { get; }
+
+    private void OpenProposal()
+    {
+        if (_proposal is not null)
+        {
+            ProposalReady?.Invoke(this, _proposal);
+        }
+    }
+
+    /// <summary>The proposal is ready (<see cref="Proposal"/>) or was asked for again (<see cref="OpenProposalCommand"/>): the app shows the editor. Nothing is saved.</summary>
     public event EventHandler<SkillEditorViewModel>? ProposalReady;
 
     public SkillDraftState State => _state;
@@ -173,7 +194,9 @@ public sealed class SkillDraftViewModel : ObservableObject
     /// <summary>The app's language changed.</summary>
     public void Retext()
     {
+        OnPropertyChanged(nameof(Strings));
         OnPropertyChanged(nameof(StatusText));
+        OnPropertyChanged(nameof(StandingNote));
         _proposal?.Retext();
     }
 
@@ -248,6 +271,8 @@ public sealed class SkillDraftViewModel : ObservableObject
             var editor = new SkillEditorViewModel(_workshop, SkillEditorMode.Proposal, document, null, null, _files, _model, _dispatcher, _strings);
             _proposal = editor;
             OnPropertyChanged(nameof(Proposal));
+            OnPropertyChanged(nameof(HasProposal));
+            OpenProposalCommand.NotifyCanExecuteChanged();
             SetState(editor.HasErrors ? SkillDraftState.ReadyWithProblems : SkillDraftState.Ready);
             ProposalReady?.Invoke(this, editor);
         });

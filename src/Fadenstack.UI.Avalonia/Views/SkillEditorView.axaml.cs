@@ -10,34 +10,30 @@ namespace Fadenstack.UI.Avalonia.Views;
 /// <summary>
 /// The skill editor for a <see cref="SkillEditorViewModel"/> (set it as the DataContext): the fields, the preview, the files, the checks,
 /// Save and Cancel, and the Try panel. The code here is only what a view does: it gives the panel the texts' language and direction
-/// (<see cref="Strings"/>, the same texts the view model was given) and sends Enter to the primary button (Save); Esc is two key
+/// (the view model's <see cref="SkillEditorViewModel.Strings"/>) and sends Enter to the primary button (Save); Esc is two key
 /// bindings of the XAML, and the focus goes to the name when the editor opens (the XAML).
 /// </summary>
 public partial class SkillEditorView : UserControl
 {
-    /// <summary>The texts of the panel; the current UI language's unless the host sets them (the same ones it gave the view model).</summary>
-    public static readonly StyledProperty<UiStrings?> StringsProperty = AvaloniaProperty.Register<SkillEditorView, UiStrings?>(nameof(Strings));
+    private readonly SkillTextsFollower _texts;
 
     public SkillEditorView()
     {
         FadenstackControls.EnsureLoaded();
         InitializeComponent();
-        Strings = UiStrings.Current;
-    }
-
-    public UiStrings? Strings
-    {
-        get => GetValue(StringsProperty);
-        set => SetValue(StringsProperty, value);
+        _texts = new SkillTextsFollower(strings =>
+        {
+            ChatText.SetStrings(this, strings);
+            FlowDirection = strings is { IsRightToLeft: true } ? global::Avalonia.Media.FlowDirection.RightToLeft : global::Avalonia.Media.FlowDirection.LeftToRight;
+        });
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == StringsProperty)
+        if (change.Property == DataContextProperty)
         {
-            ChatText.SetStrings(this, Strings);
-            FlowDirection = Strings is { IsRightToLeft: true } ? global::Avalonia.Media.FlowDirection.RightToLeft : global::Avalonia.Media.FlowDirection.LeftToRight;
+            _texts.Follow(DataContext);
         }
     }
 

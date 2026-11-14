@@ -30,8 +30,9 @@ public class SkillAccessibilityTests
             {
                 failures.Add(what + " has no automation name");
             }
-            else if (control is Button { Content: string shown } && NameOf(control) != shown)
+            else if (control is Button { Content: string shown } && !NameOf(control)!.Contains(shown, StringComparison.OrdinalIgnoreCase))
             {
+                // The name may say more than the button does ("Edit contract-review") but must contain what the button says (WCAG 2.5.3).
                 failures.Add(what + $" is named '{NameOf(control)}' but says '{shown}'");
             }
         }

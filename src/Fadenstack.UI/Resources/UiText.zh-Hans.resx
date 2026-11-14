@@ -1519,6 +1519,39 @@
   <data name="SkillDraftBroken" xml:space="preserve">
     <value>草稿违反了下列规则。请先在编辑器中修正，再保存。</value>
   </data>
+  <data name="SkillBroken" xml:space="preserve">
+    <value>无法读取此技能：{0}</value>
+  </data>
+  <data name="SkillBrokenNoReason" xml:space="preserve">
+    <value>无法读取此技能。请打开它进行修正，或将其删除。</value>
+  </data>
+  <data name="SkillTestMatchesHeading" xml:space="preserve">
+    <value>与此消息匹配：</value>
+  </data>
+  <data name="SkillTokens" xml:space="preserve">
+    <value>约 {0:N0} / {1:N0} 个词元</value>
+  </data>
+  <data name="SkillDraftNothingSaved" xml:space="preserve">
+    <value>在您点击“保存”之前不会保存任何内容。</value>
+  </data>
+  <data name="SkillDraftOpen" xml:space="preserve">
+    <value>打开提案</value>
+  </data>
+  <data name="SkillEditNamed" xml:space="preserve">
+    <value>编辑 {0}</value>
+  </data>
+  <data name="SkillViewNamed" xml:space="preserve">
+    <value>查看 {0}</value>
+  </data>
+  <data name="SkillDeleteNamed" xml:space="preserve">
+    <value>删除 {0}</value>
+  </data>
+  <data name="SkillExportNamed" xml:space="preserve">
+    <value>导出 {0}</value>
+  </data>
+  <data name="SkillDuplicateNamed" xml:space="preserve">
+    <value>复制 {0}</value>
+  </data>
   <data name="SkillIssueNameMissing" xml:space="preserve">
     <value>名称为空。</value>
   </data>

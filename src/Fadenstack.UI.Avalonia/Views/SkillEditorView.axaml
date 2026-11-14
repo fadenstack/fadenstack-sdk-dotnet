@@ -16,7 +16,7 @@
         The skill editor (sdk/51 F04): one view for a SkillEditorViewModel. The name and the description with the checks' words as you
         type, the instructions in Markdown with a preview (the chat's Markdown view), the faden.yaml fields, the files (add, rename,
         remove), the checks, Save (on only when the checks pass) and Cancel, and the Try panel (a message, the listed, matched and
-        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings through the view's
+        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings from the view model's
         Strings; every look is a style class of the skin's or a theme key.
     -->
     <UserControl.Styles>
@@ -45,8 +45,20 @@
                 <TextBlock Text="{Binding ProposalNote}" TextWrapping="Wrap" />
             </Border>
 
-            <!-- What the last action said (the skill could not be written). -->
-            <Border Classes="banner error" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <!-- What the last action said: an error is an alert (assertive), information and a warning a status (polite). -->
+            <Border Name="MessageInfo" Classes="banner success" IsVisible="{Binding MessageIsInformation}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+            </Border>
+            <Border Name="MessageWarning" Classes="banner warning" IsVisible="{Binding MessageIsWarning}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
+            </Border>
+            <Border Name="MessageError" Classes="banner error" IsVisible="{Binding MessageIsError}">
                 <DockPanel>
                     <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
@@ -98,6 +110,14 @@
             </DockPanel>
             <TextBox Name="InstructionsBox" Classes="area" Text="{Binding Instructions, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
                      AutomationProperties.Name="{v:Text SkillInstructions}" />
+            <!-- The size against the advisory limit: a note, and a warning when over. -->
+            <TextBlock Name="TokensText" Classes="caption muted" Text="{Binding InstructionsTokensText}" IsVisible="{Binding !InstructionsOverLimit}" />
+            <Border Name="TokensWarning" Classes="banner warning" IsVisible="{Binding InstructionsOverLimit}">
+                <DockPanel>
+                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding InstructionsTokensText}" TextWrapping="Wrap" />
+                </DockPanel>
+            </Border>
             <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="sk:SkillIssueViewModel">
@@ -231,6 +251,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <TextBlock Name="TestMatchesHeading" Classes="strong" Text="{v:Text SkillTestMatchesHeading}" IsVisible="{Binding TestMatches.Count, Converter={x:Static v:Counts.Any}}" />
                         <ItemsControl ItemsSource="{Binding TestMatches}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
