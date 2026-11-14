@@ -84,6 +84,50 @@ public class BypassStepUpTests
         Assert.Single(grants.Made.Select(m => m.Header("x-faden-step-up")).Distinct());
         Assert.NotNull(first.Bypass);
         Assert.NotNull(second.Bypass);
+        Assert.NotEqual(first.Bypass!.Id, second.Bypass!.Id);
+    }
+
+    [Fact]
+    public async Task A_list_read_before_a_chat_started_bypass_does_not_lose_that_chats_grant()
+    {
+        // Another chat's refresh (a chat opened again, the lifecycle's tick) read the server's list just before this chat's
+        // grant was made, and its answer came after. Before, the copy became that list: the chat lost its grant, ran without
+        // it, and its Stop could not end it at the server.
+        var (gateway, grants) = Server();
+        using var agent = Instant(gateway.Builder().UseApprovals(new Card()).Build());
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        using var hold = new ManualResetEventSlim();
+        grants.HoldNextList = hold;
+        var refresh = Task.Run(() => agent.Grants.RefreshAsync());
+        Assert.True(await grants.ListRead.WaitAsync(TimeSpan.FromSeconds(10)));
+
+        var grant = await session.StartBypassAsync();
+        hold.Set();
+        await refresh;
+
+        Assert.NotNull(grant);
+        Assert.Equal(grant!.Id, session.Bypass?.Id);
+        await session.StopBypassAsync();
+        Assert.Equal("revoked", grants.Status(grant.Id));
+    }
+
+    [Fact]
+    public async Task A_snapshot_from_before_a_chat_started_bypass_keeps_its_grant_and_a_later_snapshot_decides()
+    {
+        var (gateway, grants) = Server();
+        using var agent = Instant(gateway.Builder().UseApprovals(new Card()).Build());
+        var session = await agent.StartSessionAsync(ToolMode.Ask);
+        // Another chat's stream: the gateway read its faden.grants when that chat's request came, before this grant.
+        var before = JsonDocument.Parse(JsonSerializer.Serialize(grants.Snapshot())).RootElement;
+        var since = agent.Grants.Generation;
+        var grant = await session.StartBypassAsync();
+
+        agent.Grants.Replace(before, since);
+        Assert.Equal(grant!.Id, session.Bypass?.Id);
+
+        // A snapshot asked for after the grant came is the server's word: without the grant, it has ended.
+        agent.Grants.Replace(before, agent.Grants.Generation);
+        Assert.Null(session.Bypass);
     }
 
     [Fact]

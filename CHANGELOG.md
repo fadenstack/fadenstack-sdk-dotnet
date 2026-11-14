@@ -68,6 +68,10 @@ this file says where it does.
 
 ### Fixed
 
+- **A chat no longer loses its own grant to another chat's refresh.** The device's copy of grants took the server's list
+  (or a stream's `faden.grants`) as it was when it was asked for; a grant made meanwhile in another chat, a Bypass
+  started in parallel, was dropped from the copy, so that chat ran without it and its Stop could not end it at the
+  server. The copy now keeps what the server answered this device after the list or snapshot was asked for.
 - Two processes that keep the same agent sign-in no longer sign each other out by renewing it at the same time.
 - A kept sign-in, stored approvals or a saved chat that cannot be read no longer throws: it counts as nothing kept, and a
   chat line that cannot be read costs only that line.

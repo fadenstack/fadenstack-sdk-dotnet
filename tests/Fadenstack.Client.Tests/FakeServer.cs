@@ -9,6 +9,7 @@ public sealed class FakeServer : HttpMessageHandler
 {
     private readonly List<(string Method, string Path, Func<Recorded, HttpResponseMessage> Answer)> _routes = new();
 
+    /// <summary>What the server was sent, in order. Written under its own lock: read it once the requests are done.</summary>
     public List<Recorded> Requests { get; } = new();
 
     public FakeServer On(string method, string path, Func<Recorded, HttpResponseMessage> answer)
@@ -61,7 +62,10 @@ public sealed class FakeServer : HttpMessageHandler
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync();
         var recorded = new Recorded(request.Method.Method, request.RequestUri!.AbsolutePath, request.RequestUri.Query,
             request.Headers.ToDictionary(h => h.Key.ToLowerInvariant(), h => string.Join(",", h.Value)), body);
-        Requests.Add(recorded);
+        lock (Requests)
+        {
+            Requests.Add(recorded); // requests may come at once (two chats starting Bypass in parallel)
+        }
         var route = _routes.LastOrDefault(r => r.Method == recorded.Method && r.Path == recorded.Path);
         return route.Answer is null
             ? Respond(HttpStatusCode.NotFound, new { detail = "Not Found" })

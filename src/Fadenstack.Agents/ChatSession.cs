@@ -710,6 +710,8 @@ public sealed class ChatSession
         // Cleared as a round starts too: a model that reuses an id in a later round never inherits an earlier call's grant.
         // A mark counts once, for that call and tool: it is taken out when read, so a repeated id never spends it twice.
         private readonly Dictionary<string, (string GrantId, string Tool)> _covered = new();
+        // Where the device's copy of grants stood when this round's request went out: its faden.grants keeps what came later.
+        private long _grantsSince;
         private readonly StringBuilder _text = new();
 
         // The conversation's Bypass ended since its last turn: the model is told (BypassEndedNote).
@@ -1065,6 +1067,7 @@ public sealed class ChatSession
             var calls = new List<FunctionCallContent>();
             var receipts = new List<ProvenanceReceiptContent>();
             ChatFinishReason? finish = null;
+            _grantsSince = Agent.Grants.Generation;
             await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
                 .ConfigureAwait(false))
             {
@@ -1240,7 +1243,7 @@ public sealed class ChatSession
                     }
                     break;
                 case "faden.grants":
-                    Agent.Grants.Replace(value);
+                    Agent.Grants.Replace(value, _grantsSince);
                     break;
                 case "faden.tool_denied":
                     _toolDenied = true;

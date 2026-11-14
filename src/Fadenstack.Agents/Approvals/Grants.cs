@@ -25,6 +25,10 @@ public sealed class AgentGrants
     private readonly FadenstackAgent _agent;
     private readonly object _gate = new();
     private List<AgentGrant> _grants = new();
+    // Each answer of the server this copy took in one at a time (Keep), counted: a list or a stream's snapshot asked for
+    // before an answer came cannot know that grant yet, so replacing the copy with it keeps what came later (Replace).
+    private long _generation;
+    private readonly Dictionary<string, long> _keptAt = new(StringComparer.Ordinal);
     // Every grant the copy saw, as it last saw it, kept when a new list replaces the copy: why one ended (WhyEndedAsync).
     private readonly Dictionary<string, AgentGrant> _seen = new(StringComparer.Ordinal);
     private TimeSpan _offset;
@@ -358,13 +362,14 @@ public sealed class AgentGrants
         {
             return;
         }
+        var since = Generation;
         var list = await _agent.Backend.ListGrantsAsync(cancellationToken).ConfigureAwait(false);
         if (list.Data.Any(g => !Owned(g)))
         {
             Replace(Array.Empty<AgentGrant>(), null); // another agent version's or device's grant: nothing is held (fail closed)
             throw new InvalidOperationException(NotOwned);
         }
-        Replace(list.Data, list.ServerNow);
+        Replace(list.Data, list.ServerNow, since);
     }
 
     /// <summary>
@@ -434,11 +439,27 @@ public sealed class AgentGrants
     }
 
     /// <summary>
+    /// Where the copy stands: taken before a request whose answer replaces the copy (a list, a stream's snapshot), so the
+    /// answers this copy took in meanwhile are kept (<see cref="Replace(IEnumerable{AgentGrant}, DateTimeOffset?, long?)"/>).
+    /// </summary>
+    internal long Generation
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _generation;
+            }
+        }
+    }
+
+    /// <summary>
     /// A stream's <c>faden.grants</c>: the device's live grants, which replace the copy -- never join an older one. A
     /// snapshot that is malformed, or holds a grant of another agent version or device, clears the copy (fail closed); a
-    /// single grant this SDK cannot read is left out.
+    /// single grant this SDK cannot read is left out. <paramref name="since"/>: <see cref="Generation"/> when the request
+    /// went out; the server's answers the copy took in after it (another chat's new Bypass) stand.
     /// </summary>
-    internal void Replace(JsonElement snapshot)
+    internal void Replace(JsonElement snapshot, long? since = null)
     {
         var grants = new List<AgentGrant>();
         DateTimeOffset? now = null;
@@ -473,7 +494,7 @@ public sealed class AgentGrants
             grants.Clear();
             now = null;
         }
-        Replace(grants, now);
+        Replace(grants, now, valid ? since : null);
     }
 
     // Whether the grant is this agent version's on this device (the profile says which; a device the profile does not name is not compared).
@@ -490,15 +511,31 @@ public sealed class AgentGrants
         grant.Kind == kind && grant.Status == "active" && grant.RemainingS > 0 && grant.RemainingS <= minutes * 60L
         && (conversationId is null || grant.ConversationId == conversationId) && Owned(grant);
 
-    private void Replace(IEnumerable<AgentGrant> grants, DateTimeOffset? serverNow)
+    /// <summary>
+    /// The copy becomes <paramref name="grants"/>, the server's list as it was when it was asked for. With
+    /// <paramref name="keptSince"/> (the <see cref="Generation"/> at that moment), each grant the copy took in later -- made,
+    /// extended, paused or ended by the server's answer to this device -- stays as that answer said: the list was read
+    /// before it and cannot know it. Without it (fail closed) the copy is exactly <paramref name="grants"/>. Before, a chat
+    /// whose Bypass grant came while another chat's list was on its way lost it, and could not end it.
+    /// </summary>
+    private void Replace(IEnumerable<AgentGrant> grants, DateTimeOffset? serverNow, long? keptSince = null)
     {
         lock (_gate)
         {
-            _grants = grants.ToList();
-            foreach (var grant in _grants)
+            var fresh = grants.ToList();
+            if (keptSince is { } since)
+            {
+                foreach (var later in _keptAt.Where(k => k.Value > since).Select(k => _seen[k.Key]))
+                {
+                    fresh.RemoveAll(g => g.Id == later.Id);
+                    fresh.Add(later);
+                }
+            }
+            foreach (var grant in fresh)
             {
                 _seen[grant.Id] = grant;
             }
+            _grants = fresh;
             Sync(serverNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);
@@ -514,6 +551,7 @@ public sealed class AgentGrants
         {
             _grants = _grants.Where(g => g.Id != grant.Id).Append(grant).ToList();
             _seen[grant.Id] = grant;
+            _keptAt[grant.Id] = ++_generation;
             Sync(grant.ServerNow);
         }
         Changed?.Invoke(this, EventArgs.Empty);

@@ -17,11 +17,7 @@ public sealed class FakeGrants
     public FakeGrants(FakeServer server)
     {
         Server = server;
-        server.On("POST", Route, Create).On("GET", Route, _ => FakeServer.Respond(HttpStatusCode.OK, new
-        {
-            @object = "list", data = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList(),
-            server_now = ServerNow,
-        }));
+        server.On("POST", Route, Create).On("GET", Route, _ => List());
         for (var i = 1; i <= 5; i++)
         {
             var id = $"g-{i}";
@@ -198,14 +194,49 @@ public sealed class FakeGrants
     public object Snapshot() => new
     {
         serverNow = ServerNow,
-        grants = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList(),
+        grants = Live(),
     };
+
+    private List<Dictionary<string, object?>> Live()
+    {
+        lock (_grants)
+        {
+            return _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList();
+        }
+    }
 
     /// <summary>Changes the grant the server is about to answer a request with, as a faulty or hostile server might.</summary>
     public Action<Dictionary<string, object?>>? Tamper { get; set; }
 
     /// <summary>While set, a request to make a grant waits for it: the card shows "confirming" meanwhile.</summary>
     public ManualResetEventSlim? HoldCreate { get; set; }
+
+    private ManualResetEventSlim? _holdNextList;
+
+    /// <summary>
+    /// The next list of grants is read at once and answered only once this is set: a list asked for before a grant was made
+    /// whose answer comes after it. <see cref="ListRead"/> says when it was read.
+    /// </summary>
+    public ManualResetEventSlim? HoldNextList { get => _holdNextList; set => _holdNextList = value; }
+
+    /// <summary>Released when the list <see cref="HoldNextList"/> holds has been read.</summary>
+    public SemaphoreSlim ListRead { get; } = new(0);
+
+    private HttpResponseMessage List()
+    {
+        List<Dictionary<string, object?>> data;
+        lock (_grants)
+        {
+            data = _grants.Where(g => (string)g["status"]! is "active" or "paused").Select(Shown).ToList();
+        }
+        var now = ServerNow;
+        if (Interlocked.Exchange(ref _holdNextList, null) is { } hold)
+        {
+            ListRead.Release();
+            hold.Wait(TimeSpan.FromSeconds(20));
+        }
+        return FakeServer.Respond(HttpStatusCode.OK, new { @object = "list", data, server_now = now });
+    }
 
     /// <summary>With <see cref="HoldCreate"/>: once released, the request ends as a cancelled one (the person pressed Stop).</summary>
     public bool CancelAfterHold { get; set; }
@@ -251,12 +282,17 @@ public sealed class FakeGrants
     {
         var grant = new Dictionary<string, object?>
         {
-            ["object"] = "agent.grant", ["id"] = $"g-{_grants.Count + 1}", ["kind"] = kind, ["status"] = "active",
+            ["object"] = "agent.grant", ["id"] = "", ["kind"] = kind, ["status"] = "active",
             ["scope"] = scope, ["issued_at"] = ServerNow, ["expires_at"] = ServerNow.AddMinutes(minutes),
             ["max_calls"] = null, ["calls_used"] = 0, ["agent_id"] = "a-1", ["agent_version"] = 3, ["device_id"] = "device-7", ["narrowed"] = Array.Empty<string>(),
             ["evidence_level"] = EvidenceLevel ?? (kind == "time" ? "decisions" : "calls"),
         };
-        _grants.Add(grant);
+        lock (_grants)
+        {
+            // Under the lock: two grants made at once each get their own id (two chats starting Bypass in parallel).
+            grant["id"] = $"g-{_grants.Count + 1}";
+            _grants.Add(grant);
+        }
         return grant;
     }
 
