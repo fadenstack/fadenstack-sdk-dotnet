@@ -16,4 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fadenstack.UI.Wpf\Fadenstack.UI.Wpf.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The wizard's fakes (the server, the endpoint checks, the stores, the clock): the tests drive the same real view model as the UI tests do. -->
+    <Compile Include="..\Fadenstack.UI.Tests\WizardFakes.cs" Link="Harness\WizardFakes.cs" />
+  </ItemGroup>
 </Project>
