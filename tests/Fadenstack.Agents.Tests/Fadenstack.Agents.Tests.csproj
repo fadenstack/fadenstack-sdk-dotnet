@@ -18,6 +18,10 @@
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Client.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Core's agent templates (release/0.7.1): the apps' contracts/*.json with local_skills_mode, as AgentDefinition reads them. -->
+    <None Include="Definitions\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression" />
