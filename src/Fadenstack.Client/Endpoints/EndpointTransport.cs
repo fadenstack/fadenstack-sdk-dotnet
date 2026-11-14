@@ -35,6 +35,9 @@ internal sealed class EndpointTransport : IDisposable
     private readonly HttpClient _http;
     private readonly ILogger _log;
 
+    /// <summary>The loopback address a keyed plain-http endpoint was resolved to, once, and connected to from then on.</summary>
+    private System.Net.IPAddress? _pinned;
+
     public EndpointTransport(ModelEndpoint endpoint)
     {
         Endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
@@ -64,8 +67,16 @@ internal sealed class EndpointTransport : IDisposable
             {
                 throw new ArgumentException("A request to an endpoint stays at the endpoint's own origin.", nameof(url));
             }
-            await CheckPlainHttpAsync(url, Endpoint, cancellationToken).ConfigureAwait(false);
-            var request = build(url);
+            var pinned = await CheckPlainHttpAsync(url, Endpoint, cancellationToken).ConfigureAwait(false);
+            if (pinned is not null && _pinned is null)
+            {
+                _pinned = pinned; // resolved once: a second DNS answer cannot move a keyed connection
+            }
+            var request = build(pinned is null ? url : Pin(url, _pinned!));
+            if (pinned is not null)
+            {
+                request.Headers.Host = url.IsDefaultPort ? url.Host : $"{url.Host}:{url.Port}";
+            }
             var key = Endpoint.Key is { } provider ? await provider.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false) : null;
             if (key is not null)
             {
@@ -143,25 +154,42 @@ internal sealed class EndpointTransport : IDisposable
         code: "redirect");
 
     /// <summary>
-    /// D3: plain http only to this device, or to a private network after the endpoint's opt-in; never with a key. Decided by
-    /// the addresses the host resolves to, so a name that points outside counts as outside (on .NET 8 the connection itself is
-    /// checked too, <see cref="CreateHandler"/>).
+    /// D3: plain http only to this device, or to a private network after the endpoint's opt-in. Decided by the addresses the
+    /// host resolves to, so a name that points outside counts as outside (on .NET 8 the connection itself is checked too,
+    /// <see cref="CreateHandler"/>).
+    /// <para>
+    /// A key goes over plain http only to this computer (owner, 14 Nov): every address the name resolves to must be loopback
+    /// (127.0.0.0/8, ::1), never a private range, opt-in or not, and never where the machine policy forbids plain http. The
+    /// address is returned, and the transport connects to exactly that one from then on, so a second DNS answer cannot move
+    /// the key elsewhere (.NET Framework's handler cannot report the address it connected to). Null for anything without a key.
+    /// </para>
     /// </summary>
-    internal static async Task CheckPlainHttpAsync(Uri url, ModelEndpoint endpoint, CancellationToken cancellationToken)
+    internal static async Task<System.Net.IPAddress?> CheckPlainHttpAsync(Uri url, ModelEndpoint endpoint,
+        CancellationToken cancellationToken)
     {
         if (url.Scheme != Uri.UriSchemeHttp)
         {
-            return;
+            return null;
         }
         if (endpoint.Key is not null)
         {
-            throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.KeyOverPlainHttp,
-                "A key never travels over plain http: use the endpoint's https address, or leave the key out.");
+            if (endpoint.PlainHttpForbidden)
+            {
+                throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.ForbiddenByPolicy,
+                    "This computer's policy forbids plain http, so a key does not travel unencrypted even to this computer: use https.");
+            }
+            var addresses = await NetworkAddress.ResolveAsync(url.Host, endpoint.Resolve, cancellationToken).ConfigureAwait(false);
+            if (addresses.Length == 0 || addresses.Any(a => NetworkAddress.Of(a) != AddressScope.Loopback))
+            {
+                throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.KeyOverPlainHttp,
+                    "A key travels over plain http only to this computer: use the endpoint's https address, or leave the key out.");
+            }
+            return addresses[0];
         }
-        var scope = await NetworkAddress.OfHostAsync(url.Host, cancellationToken).ConfigureAwait(false);
+        var scope = await NetworkAddress.OfHostAsync(url.Host, endpoint.Resolve, cancellationToken).ConfigureAwait(false);
         if (scope == AddressScope.Loopback)
         {
-            return;
+            return null;
         }
         if (scope == AddressScope.Private)
         {
@@ -172,7 +200,7 @@ internal sealed class EndpointTransport : IDisposable
             }
             if (endpoint.AllowPlainHttpInLan)
             {
-                return;
+                return null;
             }
             throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.NoOptIn,
                 "Plain http to another computer in the local network needs the person's opt-in for this endpoint; https is better.");
@@ -180,6 +208,10 @@ internal sealed class EndpointTransport : IDisposable
         throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.NotLocal,
             "Plain http goes only to this computer or, with an opt-in, to the local network: use the endpoint's https address.");
     }
+
+    /// <summary>The URL with its host replaced by <paramref name="address"/> (the Host header keeps the name).</summary>
+    private static Uri Pin(Uri url, System.Net.IPAddress address) =>
+        new UriBuilder(url) { Host = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? $"[{address}]" : address.ToString() }.Uri;
 
     /// <summary>A request that got no answer: unreachable, or a certificate that is not trusted.</summary>
     private static FadenstackException Unreachable(HttpRequestException e)
@@ -326,11 +358,13 @@ internal sealed class EndpointTransport : IDisposable
         handler.ConnectCallback = async (context, cancellationToken) =>
         {
             var plain = context.InitialRequestMessage.RequestUri?.Scheme == Uri.UriSchemeHttp;
+            var keyed = endpoint.Key is not null;
             var addresses = IPAddress.TryParse(context.DnsEndPoint.Host.Trim('[', ']'), out var literal)
                 ? [literal]
                 : await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken).ConfigureAwait(false);
+            // With a key, only this computer: the address actually connected to decides, not the name.
             var allowed = addresses.Where(a => !plain || NetworkAddress.Of(a) == AddressScope.Loopback
-                || (endpoint.AllowPlainHttpInLan && NetworkAddress.Of(a) == AddressScope.Private)).ToArray();
+                || (!keyed && endpoint.AllowPlainHttpInLan && NetworkAddress.Of(a) == AddressScope.Private)).ToArray();
             if (allowed.Length == 0)
             {
                 throw new EndpointPlainHttpRefusedException(endpoint.AllowPlainHttpInLan ? PlainHttpRefusal.NotLocal : PlainHttpRefusal.NoOptIn,

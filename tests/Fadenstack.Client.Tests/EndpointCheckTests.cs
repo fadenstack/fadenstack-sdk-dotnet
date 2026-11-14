@@ -135,6 +135,19 @@ public class EndpointCheckTests
     }
 
     [Fact]
+    public async Task A_key_over_plain_http_to_this_computer_is_said()
+    {
+        var (check, fake) = Make("http://127.0.0.1:4000/v1", EndpointDialect.LiteLlm, new StaticTokenProvider("k"));
+
+        var report = await check.RunAsync();
+
+        Assert.True(report.Usable);
+        Assert.Contains(EndpointProblem.KeyUnencryptedOnThisComputer, report.Problems);
+        Assert.Contains("\"KeyUnencryptedOnThisComputer\"", report.ToJson());
+        Assert.All(fake.Requests, r => Assert.Equal("127.0.0.1", r.Url.Host));
+    }
+
+    [Fact]
     public async Task Nothing_listening_is_unreachable()
     {
         var (check, fake) = Make();

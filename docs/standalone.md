@@ -160,7 +160,11 @@ OWASP ASVS 5.0 V12 (secure communication) and V13 (secrets):
 - **Plain http to the local network** (RFC 1918, link-local, `fc00::/7`) only with `AllowPlainHttpInLan`, set when the
   person opted in for this endpoint after a warning. The addresses a name resolves to decide, and on .NET 8 the address
   actually connected to is checked too, so a name cannot be pointed elsewhere between the check and the connection.
-- **A key never travels over plain http.** Such a request is refused before anything is sent
+- **A key travels over plain http only to this computer** (a local LiteLLM or vLLM with a key). Every address the name
+  resolves to must be loopback (127.0.0.0/8, `::1`), never a private range, opt-in or not; the name is resolved once and
+  the connection goes to exactly that address, so a second DNS answer cannot move the key (on .NET 8 the address
+  connected to is checked as well). The check says so (`KeyUnencryptedOnThisComputer`), and a machine policy's
+  `plainHttp: forbidden` forbids it. Anywhere else the request is refused before anything is sent
   (`EndpointPlainHttpRefusedException`, `Reason = KeyOverPlainHttp`).
 - **No automatic redirect.** A redirect to the same origin is followed (at most three); any other is refused, so the key
   and the request never leave the origin they were meant for (`FadenstackApiException`, code `redirect`).

@@ -44,7 +44,12 @@ internal static class NetworkAddress
     /// The scope of a host: an address literal by itself; <c>localhost</c> (and names under it, RFC 6761) is loopback; a name
     /// takes the widest scope of every address it resolves to, so one public address makes it public. Unresolvable: public.
     /// </summary>
-    public static async Task<AddressScope> OfHostAsync(string host, CancellationToken cancellationToken)
+    public static Task<AddressScope> OfHostAsync(string host, CancellationToken cancellationToken) =>
+        OfHostAsync(host, null, cancellationToken);
+
+    /// <summary>The same, with the resolver a test or the endpoint gives (DNS when null).</summary>
+    public static async Task<AddressScope> OfHostAsync(string host, Func<string, Task<IPAddress[]>>? resolve,
+        CancellationToken cancellationToken)
     {
         var name = host.Trim('[', ']');
         if (IPAddress.TryParse(name, out var literal))
@@ -60,7 +65,7 @@ internal static class NetworkAddress
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            addresses = await Dns.GetHostAddressesAsync(name).ConfigureAwait(false);
+            addresses = await (resolve ?? Dns.GetHostAddressesAsync)(name).ConfigureAwait(false);
         }
         catch (SocketException)
         {
@@ -71,5 +76,28 @@ internal static class NetworkAddress
             return AddressScope.Public;
         }
         return addresses.Select(Of).Min(); // Public < Private < Loopback: the widest wins
+    }
+
+    /// <summary>
+    /// The addresses a host stands for: a literal by itself, a name by what it resolves to (<c>localhost</c> too: the
+    /// address decides, not the name). Empty when it does not resolve.
+    /// </summary>
+    public static async Task<IPAddress[]> ResolveAsync(string host, Func<string, Task<IPAddress[]>>? resolve,
+        CancellationToken cancellationToken)
+    {
+        var name = host.Trim('[', ']');
+        if (IPAddress.TryParse(name, out var literal))
+        {
+            return [literal];
+        }
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await (resolve ?? Dns.GetHostAddressesAsync)(name).ConfigureAwait(false);
+        }
+        catch (SocketException)
+        {
+            return [];
+        }
     }
 }

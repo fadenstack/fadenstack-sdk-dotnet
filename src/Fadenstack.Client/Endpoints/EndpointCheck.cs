@@ -35,6 +35,9 @@ public enum EndpointProblem
     /// <summary>The server refused the request for its watermark; requests go without it.</summary>
     WatermarkRequestRefused,
 
+    /// <summary>The key travels unencrypted, on this computer only (plain http to loopback; owner, 14 Nov).</summary>
+    KeyUnencryptedOnThisComputer,
+
     Failed,
 }
 
@@ -190,6 +193,10 @@ public sealed class EndpointCheck
             Dialect = _endpoint.Dialect.Name, Watermark = TextWatermarks.For(server, null, _endpoint.Dialect.RequestWatermark, null),
         };
         using var transport = new EndpointTransport(_endpoint);
+        if (_endpoint.Key is not null && _endpoint.BaseUrl.Scheme == Uri.UriSchemeHttp)
+        {
+            problems.Add(EndpointProblem.KeyUnencryptedOnThisComputer); // said, even where it is allowed
+        }
 
         // 1. /models: reachable, the key, the models.
         JsonElement? listing = null;

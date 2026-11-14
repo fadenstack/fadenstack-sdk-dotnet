@@ -133,7 +133,8 @@ this file says where it does.
 ### Security
 
 - A model endpoint (standalone mode) is reached under transport rules: https, or plain http only to this computer or, with
-  the person's opt-in, the local network; a key never over plain http; no redirect to another origin; limits on what a
+  the person's opt-in, the local network; a key over plain http only to this computer, decided by the address (resolved
+  once and kept), never the name; no redirect to another origin; limits on what a
   stream may send, so an endpoint cannot exhaust the device's memory (OWASP ASVS 5.0 V12, V13).
 - An endpoint cannot speak the gateway's protocol: its named events and its answer's `faden` block are not read, so it
   cannot forge a refusal, an approval or a provenance receipt.

@@ -181,6 +181,22 @@ public class MachinePolicyTests
     }
 
     [Fact]
+    public async Task Plain_http_forbidden_also_forbids_a_key_to_this_computer()
+    {
+        var fake = new OpenAiFake();
+        using var agent = FadenstackAgent.CreateBuilder()
+            .UseEndpoint(new ModelEndpoint { BaseUrl = new Uri("http://127.0.0.1:4000/v1"), Model = "m", Handler = fake, Key = new Fadenstack.Auth.StaticTokenProvider("k") })
+            .UseLocalProfile(AgentDefinition.FromJson(Definition))
+            .UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore())
+            .UseMachinePolicy(MachinePolicy.FromJson("""{"plainHttp":"forbidden"}""")).Build();
+
+        var e = await Assert.ThrowsAsync<EndpointPlainHttpRefusedException>(async () => await (await agent.StartSessionAsync()).SendAsync("Hi"));
+
+        Assert.Equal(PlainHttpRefusal.ForbiddenByPolicy, e.Reason);
+        Assert.Empty(fake.Requests);
+    }
+
+    [Fact]
     public async Task Mcp_and_skills_the_policy_forbids_are_off_whatever_the_person_set()
     {
         using var agent = Standalone(MachinePolicy.FromJson("""{"mcp":"forbidden","skills":[]}"""),
