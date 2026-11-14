@@ -841,4 +841,415 @@
   <data name="GrantsEnded_Host" xml:space="preserve">
     <value>L'application y a mis fin.</value>
   </data>
+  <data name="WizardBack" xml:space="preserve">
+    <value>Retour</value>
+  </data>
+  <data name="WizardContinue" xml:space="preserve">
+    <value>Continuer</value>
+  </data>
+  <data name="WizardCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="WizardClose" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="WizardTryAgain" xml:space="preserve">
+    <value>Réessayer</value>
+  </data>
+  <data name="WizardCheck" xml:space="preserve">
+    <value>Vérifier</value>
+  </data>
+  <data name="WizardChooseTitle" xml:space="preserve">
+    <value>Comment souhaitez-vous utiliser {0} ?</value>
+  </data>
+  <data name="WizardChooseServer" xml:space="preserve">
+    <value>Se connecter à mon organisation</value>
+  </data>
+  <data name="WizardChooseServerHelp" xml:space="preserve">
+    <value>Votre organisation utilise Fadenstack : connectez-vous avec votre compte.</value>
+  </data>
+  <data name="WizardChooseOwnAi" xml:space="preserve">
+    <value>Utiliser ma propre IA</value>
+  </data>
+  <data name="WizardChooseOwnAiHelp" xml:space="preserve">
+    <value>Connectez-vous à un serveur d'IA de votre choix : sur cet ordinateur, dans votre réseau ou chez un fournisseur.</value>
+  </data>
+  <data name="WizardChooseDemo" xml:space="preserve">
+    <value>Essayer la démo</value>
+  </data>
+  <data name="WizardNothingAllowed" xml:space="preserve">
+    <value>Les paramètres de cet ordinateur n'autorisent aucune de ces options. Contactez votre service informatique.</value>
+  </data>
+  <data name="WizardAppStepRefused" xml:space="preserve">
+    <value>Sans cette autorisation, l'application ne peut pas continuer.</value>
+  </data>
+  <data name="WizardStoreFailed" xml:space="preserve">
+    <value>L'application n'a pas pu enregistrer ses paramètres. Réessayez.</value>
+  </data>
+  <data name="WizardServerTitle" xml:space="preserve">
+    <value>Se connecter à votre organisation</value>
+  </data>
+  <data name="WizardServerLabel" xml:space="preserve">
+    <value>Adresse du serveur</value>
+  </data>
+  <data name="WizardServerPlaceholder" xml:space="preserve">
+    <value>https://ia.exemple.com</value>
+  </data>
+  <data name="WizardServerHelp" xml:space="preserve">
+    <value>Votre service informatique vous donne cette adresse.</value>
+  </data>
+  <data name="WizardServerLocked" xml:space="preserve">
+    <value>Votre organisation a défini cette adresse.</value>
+  </data>
+  <data name="WizardServerAddressInvalid" xml:space="preserve">
+    <value>Saisissez l'adresse du serveur, par exemple https://ia.exemple.com.</value>
+  </data>
+  <data name="WizardServerHttpsRequired" xml:space="preserve">
+    <value>Saisissez l'adresse sous la forme https://… Le http simple ne fonctionne que pour cet ordinateur.</value>
+  </data>
+  <data name="WizardChecking" xml:space="preserve">
+    <value>Vérification du serveur…</value>
+  </data>
+  <data name="WizardUnreachable" xml:space="preserve">
+    <value>Le serveur est injoignable. Vérifiez l'adresse et votre réseau.</value>
+  </data>
+  <data name="WizardCertificateNotTrusted" xml:space="preserve">
+    <value>Le certificat du serveur n'est pas approuvé sur cet ordinateur. Contactez votre service informatique : le certificat de votre organisation se configure sur l'ordinateur, jamais ici.</value>
+  </data>
+  <data name="WizardNotFadenstack" xml:space="preserve">
+    <value>Cette adresse ne répond pas comme un serveur Fadenstack. Vérifiez l'adresse.</value>
+  </data>
+  <data name="WizardRestarting" xml:space="preserve">
+    <value>Connecté à {0}. L'application redémarre pour que vous puissiez vous connecter.</value>
+  </data>
+  <data name="WizardChangeServer" xml:space="preserve">
+    <value>Changer de serveur</value>
+  </data>
+  <data name="WizardServerAt" xml:space="preserve">
+    <value>Serveur : {0}</value>
+  </data>
+  <data name="WizardStarting" xml:space="preserve">
+    <value>Demande d'un code au serveur…</value>
+  </data>
+  <data name="WizardCodeTitle" xml:space="preserve">
+    <value>Se connecter à {0}</value>
+  </data>
+  <data name="WizardCodeIntro" xml:space="preserve">
+    <value>Approuvez cet ordinateur dans votre navigateur. Votre mot de passe reste dans le navigateur.</value>
+  </data>
+  <data name="WizardCodeName" xml:space="preserve">
+    <value>Votre code de connexion</value>
+  </data>
+  <data name="WizardCopyCode" xml:space="preserve">
+    <value>Copier le code</value>
+  </data>
+  <data name="WizardOpenPage" xml:space="preserve">
+    <value>Ouvrir la page de connexion</value>
+  </data>
+  <data name="WizardWaiting" xml:space="preserve">
+    <value>En attente de votre approbation… Le code expire dans {0}.</value>
+  </data>
+  <data name="WizardWaitingRetry" xml:space="preserve">
+    <value>Le serveur est momentanément injoignable. Nouvelle tentative… Le code expire dans {0}.</value>
+  </data>
+  <data name="WizardDenied" xml:space="preserve">
+    <value>La connexion a été refusée dans le navigateur.</value>
+  </data>
+  <data name="WizardExpired" xml:space="preserve">
+    <value>Le code a expiré.</value>
+  </data>
+  <data name="WizardNewCode" xml:space="preserve">
+    <value>Obtenir un nouveau code</value>
+  </data>
+  <data name="WizardTooOld" xml:space="preserve">
+    <value>Ce serveur ne prend pas encore en charge la connexion par code. Demandez à votre service informatique de mettre à jour Fadenstack.</value>
+  </data>
+  <data name="WizardTooOldPassword" xml:space="preserve">
+    <value>Vous pouvez vous connecter avec votre e-mail et votre mot de passe à la place.</value>
+  </data>
+  <data name="WizardStartFailure_Unreachable" xml:space="preserve">
+    <value>Le serveur est injoignable.</value>
+  </data>
+  <data name="WizardStartFailure_CertificateNotTrusted" xml:space="preserve">
+    <value>Le certificat du serveur n'est pas approuvé sur cet ordinateur. Contactez votre service informatique.</value>
+  </data>
+  <data name="WizardStartFailure_RateLimited" xml:space="preserve">
+    <value>Trop de tentatives de connexion depuis cette adresse. Réessayez dans un instant.</value>
+  </data>
+  <data name="WizardStartFailure_PageElsewhere" xml:space="preserve">
+    <value>Le serveur a indiqué une page de connexion située à une autre adresse que la sienne. Demandez à votre service informatique de vérifier les paramètres du proxy.</value>
+  </data>
+  <data name="WizardStartFailure_ServerError" xml:space="preserve">
+    <value>Le serveur n'a pas pu démarrer une connexion. Réessayez.</value>
+  </data>
+  <data name="WizardPairFailed" xml:space="preserve">
+    <value>La connexion s'est interrompue. Réessayez.</value>
+  </data>
+  <data name="WizardRedeeming" xml:space="preserve">
+    <value>Connexion en cours…</value>
+  </data>
+  <data name="WizardSignedInAs" xml:space="preserve">
+    <value>Connecté en tant que {0}.</value>
+  </data>
+  <data name="WizardSignedIn" xml:space="preserve">
+    <value>Connecté.</value>
+  </data>
+  <data name="WizardNoAccess" xml:space="preserve">
+    <value>Vous n'avez pas accès à cet assistant. Demandez à votre service informatique de vous y donner accès.</value>
+  </data>
+  <data name="WizardSignInEnded" xml:space="preserve">
+    <value>Votre connexion a pris fin. Connectez-vous à nouveau.</value>
+  </data>
+  <data name="WizardUsePassword" xml:space="preserve">
+    <value>Se connecter plutôt avec un e-mail et un mot de passe</value>
+  </data>
+  <data name="WizardEmail" xml:space="preserve">
+    <value>Adresse e-mail</value>
+  </data>
+  <data name="WizardPassword" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="WizardSignIn" xml:space="preserve">
+    <value>Se connecter</value>
+  </data>
+  <data name="WizardBackToCode" xml:space="preserve">
+    <value>Se connecter plutôt avec un code</value>
+  </data>
+  <data name="WizardPasswordFailure_BadCredentials" xml:space="preserve">
+    <value>L'e-mail ou le mot de passe est incorrect.</value>
+  </data>
+  <data name="WizardPasswordFailure_HttpsRequired" xml:space="preserve">
+    <value>Un mot de passe ne transite que par https : utilisez l'adresse https du serveur.</value>
+  </data>
+  <data name="WizardPasswordFailure_NotFadenstack" xml:space="preserve">
+    <value>Cette adresse ne répond pas comme un serveur Fadenstack.</value>
+  </data>
+  <data name="WizardPasswordFailure_Unreachable" xml:space="preserve">
+    <value>Le serveur est injoignable.</value>
+  </data>
+  <data name="WizardPasswordFailure_CertificateNotTrusted" xml:space="preserve">
+    <value>Le certificat du serveur n'est pas approuvé sur cet ordinateur. Contactez votre service informatique.</value>
+  </data>
+  <data name="WizardPasswordFailure_Other" xml:space="preserve">
+    <value>La connexion n'a pas fonctionné. Réessayez.</value>
+  </data>
+  <data name="WizardOwnTitle" xml:space="preserve">
+    <value>Utiliser votre propre IA</value>
+  </data>
+  <data name="WizardOwnDataFlow" xml:space="preserve">
+    <value>Ce que vous écrivez est envoyé au serveur d'IA que vous choisissez, et ses réponses viennent de là. Rien n'est envoyé à Fadenstack.</value>
+  </data>
+  <data name="WizardOwnProviderTerms" xml:space="preserve">
+    <value>Les conditions du fournisseur relèvent d'un accord entre vous et le fournisseur.</value>
+  </data>
+  <data name="WizardOwnNotice" xml:space="preserve">
+    <value>Dans ce mode, l'agent se connecte directement au point de terminaison du modèle que vous choisissez. Fadenstack n'exploite aucun serveur dans ce mode. Sur votre appareil, l'agent marque le contenu généré par l'IA lorsque c'est techniquement possible : il inscrit des informations signées et lisibles par machine dans les propriétés des documents et des e-mails et conserve un enregistrement local. La présence d'un filigrane de texte invisible dans le texte des conversations et dans le texte inséré dépend de votre point de terminaison ; l'agent affiche l'état de votre connexion. Le mode serveur peut ajouter un filigrane de texte pendant la génération. Ce mode ne produit aucune image. Les métadonnées peuvent être perdues lorsque le contenu est copié, converti ou modifié. Si vous utilisez du contenu généré par l'IA dans votre travail ou si vous le publiez, vous pouvez avoir vos propres obligations de transparence, par exemple en vertu de l'article 50, paragraphe 4, du règlement européen sur l'IA pour les hypertrucages et pour les textes publiés dans le but d'informer le public sur des questions d'intérêt public. Veuillez ne pas supprimer ni modifier les marquages, sauf à des fins légitimes telles que les tests de sécurité.</value>
+  </data>
+  <data name="WizardOwnLiability" xml:space="preserve">
+    <value>Nous fournissons le logiciel gratuitement et ne répondons donc que de la faute intentionnelle et de la faute lourde (article 521 du Code civil allemand (BGB)). La responsabilité au titre de la loi sur la responsabilité du fait des produits (Produkthaftungsgesetz) et en cas d'atteinte à la vie, au corps ou à la santé demeure inchangée.</value>
+  </data>
+  <data name="WizardOwnBindingVersion" xml:space="preserve">
+    <value>Le texte allemand fait foi.</value>
+  </data>
+  <data name="WizardOwnFullTerms" xml:space="preserve">
+    <value>Lire les conditions complètes</value>
+  </data>
+  <data name="WizardOwnConsent" xml:space="preserve">
+    <value>J'ai lu ceci et j'accepte les conditions.</value>
+  </data>
+  <data name="WizardOwnSearchConsent" xml:space="preserve">
+    <value>Rechercher des serveurs d'IA sur cet ordinateur (Ollama, LM Studio, vLLM, llama.cpp)</value>
+  </data>
+  <data name="WizardOwnAccept" xml:space="preserve">
+    <value>Accepter et continuer</value>
+  </data>
+  <data name="WizardOwnServerInstead" xml:space="preserve">
+    <value>Configurer plutôt le mode serveur</value>
+  </data>
+  <data name="WizardOwnSearching" xml:space="preserve">
+    <value>Recherche de serveurs d'IA sur cet ordinateur…</value>
+  </data>
+  <data name="WizardOwnPickTitle" xml:space="preserve">
+    <value>Choisir votre IA</value>
+  </data>
+  <data name="WizardOwnFound" xml:space="preserve">
+    <value>Trouvés sur cet ordinateur</value>
+  </data>
+  <data name="WizardOwnNothingFound" xml:space="preserve">
+    <value>Aucun serveur d'IA n'a été trouvé sur cet ordinateur.</value>
+  </data>
+  <data name="WizardOwnPresets" xml:space="preserve">
+    <value>Fournisseurs et serveurs</value>
+  </data>
+  <data name="WizardOwnAddress" xml:space="preserve">
+    <value>Adresse</value>
+  </data>
+  <data name="WizardOwnAddressPlaceholder" xml:space="preserve">
+    <value>https://exemple.com/v1</value>
+  </data>
+  <data name="WizardOwnNeedsKey" xml:space="preserve">
+    <value>Ce serveur a besoin d'une clé</value>
+  </data>
+  <data name="WizardOwnUse" xml:space="preserve">
+    <value>Utiliser celui-ci</value>
+  </data>
+  <data name="WizardEndpointAddressInvalid" xml:space="preserve">
+    <value>Saisissez une adresse commençant par https:// (ou http:// pour cet ordinateur).</value>
+  </data>
+  <data name="WizardEndpointHttpsRequired" xml:space="preserve">
+    <value>Utilisez l'adresse https. Le http simple ne fonctionne que pour cet ordinateur, et pour votre réseau local après confirmation de votre part.</value>
+  </data>
+  <data name="WizardAddressNotAllowed" xml:space="preserve">
+    <value>Les paramètres de cet ordinateur n'autorisent pas cette adresse. Contactez votre service informatique.</value>
+  </data>
+  <data name="WizardAddressPlainHttpForbidden" xml:space="preserve">
+    <value>Les paramètres de cet ordinateur n'autorisent pas le http simple. Utilisez l'adresse https.</value>
+  </data>
+  <data name="WizardAddressKeyNeedsHttps" xml:space="preserve">
+    <value>Une clé n'est jamais envoyée en http simple vers un autre ordinateur. Utilisez l'adresse https.</value>
+  </data>
+  <data name="WizardPlainHttpTitle" xml:space="preserve">
+    <value>Http simple dans votre réseau local</value>
+  </data>
+  <data name="WizardPlainHttpWarning" xml:space="preserve">
+    <value>Cette adresse se trouve dans votre réseau local et utilise le http simple : d'autres personnes du réseau pourraient lire ce que vous envoyez et recevez. Ne l'utilisez que dans un réseau de confiance. Aucune clé ne peut être utilisée avec cette adresse.</value>
+  </data>
+  <data name="WizardPlainHttpConfirm" xml:space="preserve">
+    <value>Utiliser quand même</value>
+  </data>
+  <data name="WizardKeyTitle" xml:space="preserve">
+    <value>La clé</value>
+  </data>
+  <data name="WizardKeyLabel" xml:space="preserve">
+    <value>Clé d'API</value>
+  </data>
+  <data name="WizardKeyHelp" xml:space="preserve">
+    <value>La clé est conservée dans le magasin de clés de cet ordinateur, jamais dans un fichier.</value>
+  </data>
+  <data name="WizardOwnChecking" xml:space="preserve">
+    <value>Vérification de la connexion…</value>
+  </data>
+  <data name="WizardProblem_Unreachable" xml:space="preserve">
+    <value>Le serveur est injoignable. Est-il en marche, et l'adresse est-elle correcte ?</value>
+  </data>
+  <data name="WizardProblem_CertificateNotTrusted" xml:space="preserve">
+    <value>Le certificat du serveur n'est pas approuvé sur cet ordinateur. Contactez votre service informatique.</value>
+  </data>
+  <data name="WizardProblem_PlainHttpRefused" xml:space="preserve">
+    <value>Le http simple n'est pas autorisé pour cette adresse.</value>
+  </data>
+  <data name="WizardProblem_KeyRejected" xml:space="preserve">
+    <value>Le serveur a refusé la clé.</value>
+  </data>
+  <data name="WizardProblem_OriginRefused" xml:space="preserve">
+    <value>Le serveur a refusé les requêtes de cette application. Il doit d'abord l'autoriser.</value>
+  </data>
+  <data name="WizardProblem_NotCompatible" xml:space="preserve">
+    <value>Ce serveur ne répond pas comme un point de terminaison compatible OpenAI.</value>
+  </data>
+  <data name="WizardProblem_RateLimited" xml:space="preserve">
+    <value>Le serveur reçoit trop de requêtes en ce moment. Réessayez dans un instant.</value>
+  </data>
+  <data name="WizardProblem_ModelNotFound" xml:space="preserve">
+    <value>Le serveur ne dispose pas de ce modèle.</value>
+  </data>
+  <data name="WizardProblem_NoToolCalls" xml:space="preserve">
+    <value>Ce modèle ne peut que discuter : il ne peut pas utiliser d'outils.</value>
+  </data>
+  <data name="WizardProblem_NoUsage" xml:space="preserve">
+    <value>Le serveur n'indique pas combien de jetons ont été utilisés.</value>
+  </data>
+  <data name="WizardProblem_ContextTooShort" xml:space="preserve">
+    <value>Le contexte du modèle est trop court pour l'agent : choisissez un modèle avec un contexte plus long, ou augmentez le paramètre du serveur.</value>
+  </data>
+  <data name="WizardProblem_OllamaDefaultContext" xml:space="preserve">
+    <value>Ollama exécute ce modèle avec son contexte par défaut, trop court, qui tronque les longues invites. Augmentez OLLAMA_CONTEXT_LENGTH.</value>
+  </data>
+  <data name="WizardProblem_WatermarkRequestRefused" xml:space="preserve">
+    <value>Le serveur n'ajoute pas son filigrane de texte, les requêtes sont donc envoyées sans lui.</value>
+  </data>
+  <data name="WizardProblem_KeyUnencryptedOnThisComputer" xml:space="preserve">
+    <value>La clé est envoyée sans chiffrement au serveur de cet ordinateur (http simple).</value>
+  </data>
+  <data name="WizardProblem_Failed" xml:space="preserve">
+    <value>La vérification n'a pas fonctionné. Réessayez.</value>
+  </data>
+  <data name="WizardEnterKey" xml:space="preserve">
+    <value>Saisissez à nouveau la clé</value>
+  </data>
+  <data name="WizardShowHelp" xml:space="preserve">
+    <value>Comment l'autoriser</value>
+  </data>
+  <data name="WizardOwnHelpTitle" xml:space="preserve">
+    <value>Autoriser cette application</value>
+  </data>
+  <data name="WizardOwnHelp" xml:space="preserve">
+    <value>Ollama ne répond qu'aux applications qu'il connaît : ajoutez l'origine de cette application à OLLAMA_ORIGINS et redémarrez Ollama. Dans LM Studio, activez CORS dans les paramètres du serveur.</value>
+  </data>
+  <data name="WizardOwnWorks" xml:space="preserve">
+    <value>La connexion fonctionne.</value>
+  </data>
+  <data name="WizardWatermark_Unknown" xml:space="preserve">
+    <value>On ne sait pas si cette connexion marque le texte d'un filigrane.</value>
+  </data>
+  <data name="WizardWatermark_Marks" xml:space="preserve">
+    <value>Cette connexion marque le texte d'un filigrane invisible.</value>
+  </data>
+  <data name="WizardWatermark_IfAccountEnabled" xml:space="preserve">
+    <value>Cette connexion ne marque le texte que si le compte a activé cette option.</value>
+  </data>
+  <data name="WizardWatermark_IfOperatorConfigured" xml:space="preserve">
+    <value>Cette connexion ne marque le texte que si l'exploitant du serveur l'a configuré.</value>
+  </data>
+  <data name="WizardWatermark_Never" xml:space="preserve">
+    <value>Cette connexion ne marque pas le texte d'un filigrane.</value>
+  </data>
+  <data name="WizardWatermarkConfirmed" xml:space="preserve">
+    <value>Le serveur a confirmé son filigrane.</value>
+  </data>
+  <data name="WizardModelTitle" xml:space="preserve">
+    <value>Choisir le modèle</value>
+  </data>
+  <data name="WizardModelLabel" xml:space="preserve">
+    <value>Modèle</value>
+  </data>
+  <data name="WizardOwnDone" xml:space="preserve">
+    <value>Votre IA est prête.</value>
+  </data>
+  <data name="WizardSettingsTitle" xml:space="preserve">
+    <value>Connexion</value>
+  </data>
+  <data name="WizardConnectedServer" xml:space="preserve">
+    <value>Connecté à {0}.</value>
+  </data>
+  <data name="WizardConnectedEndpoint" xml:space="preserve">
+    <value>Votre propre IA : {0}.</value>
+  </data>
+  <data name="WizardConnectOrganisation" xml:space="preserve">
+    <value>Se connecter à mon organisation</value>
+  </data>
+  <data name="WizardChangeEndpoint" xml:space="preserve">
+    <value>Changer d'IA</value>
+  </data>
+  <data name="WizardSignOut" xml:space="preserve">
+    <value>Se déconnecter</value>
+  </data>
+  <data name="WizardRemoveEndpoint" xml:space="preserve">
+    <value>Supprimer cette IA</value>
+  </data>
+  <data name="WizardSignOutTitle" xml:space="preserve">
+    <value>Se déconnecter sur cet ordinateur ?</value>
+  </data>
+  <data name="WizardSignOutBody" xml:space="preserve">
+    <value>La connexion prend fin sur le serveur et sur cet ordinateur.</value>
+  </data>
+  <data name="WizardRemoveTitle" xml:space="preserve">
+    <value>Supprimer cette IA de cet ordinateur ?</value>
+  </data>
+  <data name="WizardRemoveBody" xml:space="preserve">
+    <value>Sa clé est supprimée du magasin de clés de cet ordinateur.</value>
+  </data>
+  <data name="WizardDeleteChats" xml:space="preserve">
+    <value>Supprimer aussi les conversations conservées sur cet ordinateur</value>
+  </data>
 </root>

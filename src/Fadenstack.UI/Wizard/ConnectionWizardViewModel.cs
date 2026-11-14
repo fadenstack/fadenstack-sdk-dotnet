@@ -401,6 +401,104 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
     /// <summary>Sign-out also deletes the chats kept on this computer; starts unticked.</summary>
     public bool DeleteLocalChats { get => _deleteLocalChats; set => SetProperty(ref _deleteLocalChats, value); }
 
+    // ---- Texts (UiStrings, five languages) ----
+
+    /// <summary>The texts; a skin binds the fixed ones (<c>Strings.WizardServerTitle</c>) and the computed ones below.</summary>
+    public UiStrings Strings => _strings();
+
+    /// <summary>Why the typed address was not taken, for the step showing it; null when it was.</summary>
+    public string? AddressErrorText => _addressError switch
+    {
+        AddressProblem.None => null,
+        AddressProblem.Invalid => _step == WizardStep.ServerAddress ? Strings.WizardServerAddressInvalid : Strings.WizardEndpointAddressInvalid,
+        AddressProblem.HttpsRequired => _step == WizardStep.ServerAddress ? Strings.WizardServerHttpsRequired : Strings.WizardEndpointHttpsRequired,
+        AddressProblem.NotAllowed => Strings.WizardAddressNotAllowed,
+        AddressProblem.PlainHttpForbidden => Strings.WizardAddressPlainHttpForbidden,
+        _ => Strings.WizardAddressKeyNeedsHttps,
+    };
+
+    public string? StartFailureText => _startFailure is { } failure ? Strings.WizardStartFailure(failure) : null;
+
+    public string? PasswordFailureText => _passwordFailure is { } failure ? Strings.WizardPasswordFailure(failure) : null;
+
+    /// <summary>Why the endpoint is unusable, in plain words.</summary>
+    public string? ProblemText => _problem is { } problem ? Strings.WizardProblem(problem) : null;
+
+    /// <summary>"Waiting for your approval… The code expires in 9:41." (or the retrying line) while the code shows.</summary>
+    public string? WaitingText => _step != WizardStep.PairCode ? null
+        : _isRetrying ? Strings.WizardWaitingRetry(_timeLeft) : Strings.WizardWaiting(_timeLeft);
+
+    /// <summary>"Signed in as Ana." for the moment after the approval.</summary>
+    public string SignedInText => _person is { } person
+        ? Strings.WizardSignedInAs(string.IsNullOrWhiteSpace(person.DisplayName) ? person.Email : person.DisplayName!)
+        : Strings.WizardSignedIn;
+
+    /// <summary>
+    /// What the check found, in plain words (F15 step 4): that it works, what limits it (chat only, the context, the
+    /// key unencrypted on this computer, ...), and whether the connection watermarks text.
+    /// </summary>
+    public IReadOnlyList<string> ResultLines
+    {
+        get
+        {
+            if (_report is not { Usable: true } report)
+            {
+                return Array.Empty<string>();
+            }
+            var lines = new List<string> { Strings.WizardOwnWorks };
+            lines.AddRange(report.Problems.Where(p => !Blocking.Contains(p) && p != EndpointProblem.Failed).Distinct().Select(Strings.WizardProblem));
+            lines.Add(Strings.WizardWatermark(report.Watermark.Status));
+            if (report.Watermark.Confirmed == true)
+            {
+                lines.Add(Strings.WizardWatermarkConfirmed);
+            }
+            return lines;
+        }
+    }
+
+    /// <summary>Settings' line for the connection the app has now.</summary>
+    public string? ConnectedText => _options.Current switch
+    {
+        { Mode: ConnectionMode.Server, Server: { } server } => Strings.WizardConnectedServer(server.AbsoluteUri),
+        { Mode: ConnectionMode.Endpoint, Endpoint: { } endpoint } => Strings.WizardConnectedEndpoint(endpoint.BaseUrl.AbsoluteUri),
+        _ => null,
+    };
+
+    /// <summary>The computed texts follow what they are made of.</summary>
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        switch (e.PropertyName)
+        {
+            case nameof(Step):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(AddressErrorText)));
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(WaitingText)));
+                break;
+            case nameof(AddressError):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(AddressErrorText)));
+                break;
+            case nameof(StartFailure):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(StartFailureText)));
+                break;
+            case nameof(PasswordFailure):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(PasswordFailureText)));
+                break;
+            case nameof(Problem):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(ProblemText)));
+                break;
+            case nameof(TimeLeft):
+            case nameof(IsRetrying):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(WaitingText)));
+                break;
+            case nameof(Person):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(SignedInText)));
+                break;
+            case nameof(Report):
+                base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(ResultLines)));
+                break;
+        }
+    }
+
     // ---- Commands ----
 
     public IRelayCommand ChooseServerCommand { get; }
