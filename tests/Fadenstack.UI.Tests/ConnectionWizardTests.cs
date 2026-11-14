@@ -2120,6 +2120,35 @@ public class ConnectionWizardTests
         Assert.Equal(new[] { WizardOutcome.Connected }, rig.Completed);
     }
 
+    [Fact]
+    public void The_checked_endpoint_and_the_result_carry_the_apps_CA_and_the_wizard_offers_no_CA_choice()
+    {
+        var ca = new byte[] { 0x30, 0x82, 0x01, 0x0A, 0x42 };
+        using var rig = OwnPick(o => o with { TrustedCaCertificate = ca });
+        Pick(rig, EndpointPreset.Ollama);
+        UseEndpoint(rig);
+
+        rig.Press(rig.Wizard.ContinueCommand);
+
+        Assert.All(rig.Checker.Checked, e => Assert.Same(ca, e.TrustedCaCertificate));
+        Assert.NotEmpty(rig.Checker.Checked);
+        Assert.Same(ca, Assert.Single(rig.Store.Saved).Endpoint!.TrustedCaCertificate);
+        // No property of the view model takes or shows a certificate: the CA comes from the app only.
+        Assert.DoesNotContain(typeof(ConnectionWizardViewModel).GetProperties(),
+            p => p.Name.Contains("Certificate", StringComparison.OrdinalIgnoreCase) || p.Name.Contains("Trust", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Without_an_app_CA_the_endpoint_carries_none()
+    {
+        using var rig = OwnPick();
+        Pick(rig, EndpointPreset.Ollama);
+        UseEndpoint(rig);
+        rig.Press(rig.Wizard.ContinueCommand);
+
+        Assert.Null(Assert.Single(rig.Store.Saved).Endpoint!.TrustedCaCertificate);
+    }
+
     private static WizardRig ModelStep(out EndpointReport first)
     {
         var url = new Uri("https://api.openai.com/v1");

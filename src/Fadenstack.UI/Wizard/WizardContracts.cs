@@ -381,6 +381,13 @@ public sealed record WizardOptions
     /// <summary>The app's name, for the texts.</summary>
     public string AppName { get; init; } = "";
 
+    /// <summary>
+    /// The app's trusted CA (DER bytes), from the machine policy or the app's settings; never from a click in the wizard. It goes
+    /// to every endpoint the wizard checks and builds (<see cref="ModelEndpoint.TrustedCaCertificate"/>), as the app passes it to
+    /// <see cref="ServerSignIn"/> for the server (F15). The wizard offers no CA trust in its UI.
+    /// </summary>
+    public byte[]? TrustedCaCertificate { get; init; }
+
     /// <summary>The app's licence and privacy texts.</summary>
     public Uri? LicenceLink { get; init; }
 

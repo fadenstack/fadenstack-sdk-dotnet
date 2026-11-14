@@ -54,6 +54,8 @@ this file says where it does.
   machine policy shapes the choices. `ServerSignIn` and `EndpointChecker` drive the SDK; `ServerCheck.CheckAsync` checks a
   server's `/api/health`; `EndpointCheck.PlaceOfAsync` tells this computer, the local network and the internet apart on the
   resolved address. The skins and the texts follow.
+  `WizardOptions.TrustedCaCertificate`: the app's CA reaches every endpoint the wizard checks and builds
+  (`ModelEndpoint.TrustedCaCertificate`), as it does the server; the wizard offers no CA trust in its UI.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -127,6 +129,10 @@ this file says where it does.
 
 ### Fixed
 
+- **A local MCP server on 2026-07-28 only attaches when it is slow to start.** The MCP SDK's 5-second probe for that revision
+  ran out while `uvx` was still fetching the server, the client took it for an older server, sent `initialize`, and was
+  refused. The client now asks once more with 2026-07-28 pinned; 2025-11-25 servers still attach by the SDK's fallback.
+  `McpServerStatus.ProtocolVersion` says which revision a server runs on.
 - **An approval answer lost on the way is sent once more.** Answering a call the gateway holds now waits 10 seconds for a
   word back, then sends the same answer once more when none came (no answer, the server unreachable, a proxy's 502, 503 or
   504). A Fadenstack gateway from 0.7.1 (`approvals.idempotent`) takes a repeated answer once; an older one answers the

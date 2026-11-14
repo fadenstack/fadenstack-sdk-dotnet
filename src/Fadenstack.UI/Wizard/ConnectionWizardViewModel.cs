@@ -1159,6 +1159,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         _pending = new ModelEndpoint
         {
             BaseUrl = url, Dialect = _selectedPreset?.Dialect ?? EndpointDialect.OpenAICompatible, AllowPlainHttpInLan = lan,
+            TrustedCaCertificate = _options.TrustedCaCertificate, // the app's CA, never one the person picks here (F15)
         };
         _keyProvider = null;
         KeySet = false;
