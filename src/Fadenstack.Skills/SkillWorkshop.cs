@@ -184,7 +184,9 @@ public sealed class SkillWorkshop : ISkillWorkshop
 
     public async Task<SkillSaveResult> CommitImportAsync(ImportAnalysis analysis, bool replaceExisting, CancellationToken cancellationToken = default)
     {
-        if (analysis is null || analysis.Document is not { } document)
+        // An analysis with any error is refused as a whole, even when its document would pass: an unreadable faden.yaml or a
+        // refused file is not in the document, and saving the rest would drop it without a word.
+        if (analysis is null || !analysis.Ok || analysis.Document is not { } document)
         {
             return new SkillSaveResult(SkillSaveStatus.Refused, analysis?.Issues ?? Array.Empty<SkillIssue>());
         }
