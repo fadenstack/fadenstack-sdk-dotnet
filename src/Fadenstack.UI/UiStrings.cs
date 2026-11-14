@@ -779,6 +779,34 @@ public sealed class UiStrings
 
     public string SkillDraftBroken => Text();
 
+    /// <summary>"This skill cannot be read: {0}" (the reason is a check's words).</summary>
+    public string SkillBroken(string reason) => Fill(reason);
+
+    /// <summary>A broken skill whose reason is not known.</summary>
+    public string SkillBrokenNoReason => Text();
+
+    /// <summary>The Try panel's heading for the skills that matched.</summary>
+    public string SkillTestMatchesHeading => Text();
+
+    /// <summary>"about {0:N0} of {1:N0} tokens": the instructions' size against the advisory limit.</summary>
+    public string SkillTokens(int tokens, int limit) => Fill2(tokens, limit);
+
+    /// <summary>In every state of a draft: nothing is saved until Save.</summary>
+    public string SkillDraftNothingSaved => Text();
+
+    public string SkillDraftOpen => Text();
+
+    /// <summary>"Edit {0}": a row button's name for a screen reader.</summary>
+    public string SkillEditNamed(string name) => Fill(name);
+
+    public string SkillViewNamed(string name) => Fill(name);
+
+    public string SkillDeleteNamed(string name) => Fill(name);
+
+    public string SkillExportNamed(string name) => Fill(name);
+
+    public string SkillDuplicateNamed(string name) => Fill(name);
+
     /// <summary>What a check found, in words: a rule broken, with the field or file, the limit and the size, and the detail that go with it.</summary>
     public string SkillIssueText(SkillIssueCode code, string subject, int limit, int actual, string detail) =>
         string.Format(FormatCulture, this["SkillIssue" + code.ToString()], subject, limit, actual, detail);

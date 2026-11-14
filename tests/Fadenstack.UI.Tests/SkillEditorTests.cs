@@ -449,4 +449,79 @@ public class SkillEditorTests
         Assert.Contains("Le nom est vide.", Texts(editor));
         await Task.CompletedTask;
     }
-}
+
+    // -- the gaps the skin builders found: texts, message kind, the token counter ---------------------------------------------------
+
+    [Fact]
+    public void The_editor_exposes_its_texts_and_says_so_when_the_language_changes()
+    {
+        using var rig = new SkillRig();
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+        library.NewCommand.Execute(null);
+        var editor = library.Editor!;
+        var changed = new List<string?>();
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Equal("Name", editor.Strings.SkillName);
+        language = "es";
+        editor.Retext();
+
+        Assert.Contains(nameof(SkillEditorViewModel.Strings), changed);
+        Assert.Equal(SkillRig.In("es").SkillName, editor.Strings.SkillName);
+        Assert.Equal("Coinciden con este mensaje:", editor.Strings.SkillTestMatchesHeading);
+        Assert.IsAssignableFrom<ISkillTexts>(editor);
+    }
+
+    [Fact]
+    public async Task The_message_of_the_editor_says_whether_it_is_information_or_an_error()
+    {
+        using var rig = new SkillRig();
+        var editor = NewEditor(rig);
+        Assert.Equal(("", false, false), (editor.Message, editor.MessageIsError, editor.MessageIsInformation));
+
+        // A skills folder that is a file: the skill cannot be written.
+        Directory.CreateDirectory(rig.Root);
+        File.WriteAllText(rig.Folder, "not a folder");
+        editor.Name = "contract-review";
+        editor.Description = "Reviews a contract.";
+        editor.Instructions = "## Goal\nReview.\n";
+        await editor.SaveCommand.ExecuteAsync(null);
+
+        Assert.Equal("The skill could not be written. Nothing was changed.", editor.Message);
+        Assert.Equal(SkillMessageKind.Error, editor.MessageKind);
+        Assert.True(editor.MessageIsError);
+        Assert.False(editor.MessageIsInformation);
+
+        // A save that works says what it did, as information.
+        File.Delete(rig.Folder);
+        await editor.SaveCommand.ExecuteAsync(null);
+        Assert.Equal("contract-review was saved.", editor.Message);
+        Assert.Equal(SkillMessageKind.Information, editor.MessageKind);
+        Assert.True(editor.MessageIsInformation);
+        Assert.False(editor.MessageIsError);
+    }
+
+    [Fact]
+    public void The_token_counter_says_the_size_against_the_advisory_limit_and_when_it_is_over()
+    {
+        using var rig = new SkillRig();
+        var english = new UiStrings(System.Globalization.CultureInfo.GetCultureInfo("en"), null, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+        var library = rig.Library(strings: () => english);
+        library.NewCommand.Execute(null);
+        var editor = library.Editor!;
+        var changed = new List<string?>();
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Equal("about 0 of 5,000 tokens", editor.InstructionsTokensText);
+        Assert.False(editor.InstructionsOverLimit);
+
+        editor.Instructions = new string('w', 1200 * 4);
+        Assert.Equal("about 1,200 of 5,000 tokens", editor.InstructionsTokensText);
+        Assert.False(editor.InstructionsOverLimit);
+        Assert.Contains(nameof(SkillEditorViewModel.InstructionsTokensText), changed);
+
+        editor.Instructions = new string('w', 5001 * 4);
+        Assert.Equal("about 5,001 of 5,000 tokens", editor.InstructionsTokensText);
+        Assert.True(editor.InstructionsOverLimit);
+    }}

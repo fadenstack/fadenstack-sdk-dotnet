@@ -1519,6 +1519,39 @@
   <data name="SkillDraftBroken" xml:space="preserve">
     <value>Der Entwurf verstößt gegen die unten genannten Regeln. Beheben Sie das im Editor, bevor Sie speichern.</value>
   </data>
+  <data name="SkillBroken" xml:space="preserve">
+    <value>Dieser Skill kann nicht gelesen werden: {0}</value>
+  </data>
+  <data name="SkillBrokenNoReason" xml:space="preserve">
+    <value>Dieser Skill kann nicht gelesen werden. Öffnen Sie ihn, um ihn zu beheben, oder löschen Sie ihn.</value>
+  </data>
+  <data name="SkillTestMatchesHeading" xml:space="preserve">
+    <value>Passend zu dieser Nachricht:</value>
+  </data>
+  <data name="SkillTokens" xml:space="preserve">
+    <value>etwa {0:N0} von {1:N0} Tokens</value>
+  </data>
+  <data name="SkillDraftNothingSaved" xml:space="preserve">
+    <value>Gespeichert wird erst, wenn Sie auf „Speichern“ klicken.</value>
+  </data>
+  <data name="SkillDraftOpen" xml:space="preserve">
+    <value>Vorschlag öffnen</value>
+  </data>
+  <data name="SkillEditNamed" xml:space="preserve">
+    <value>{0} bearbeiten</value>
+  </data>
+  <data name="SkillViewNamed" xml:space="preserve">
+    <value>{0} ansehen</value>
+  </data>
+  <data name="SkillDeleteNamed" xml:space="preserve">
+    <value>{0} löschen</value>
+  </data>
+  <data name="SkillExportNamed" xml:space="preserve">
+    <value>{0} exportieren</value>
+  </data>
+  <data name="SkillDuplicateNamed" xml:space="preserve">
+    <value>{0} duplizieren</value>
+  </data>
   <data name="SkillIssueNameMissing" xml:space="preserve">
     <value>Der Name ist leer.</value>
   </data>

@@ -1519,6 +1519,39 @@
   <data name="SkillDraftBroken" xml:space="preserve">
     <value>El borrador incumple las reglas indicadas abajo. Corríjalo en el editor antes de guardar.</value>
   </data>
+  <data name="SkillBroken" xml:space="preserve">
+    <value>Esta habilidad no se puede leer: {0}</value>
+  </data>
+  <data name="SkillBrokenNoReason" xml:space="preserve">
+    <value>Esta habilidad no se puede leer. Ábrala para corregirla o elimínela.</value>
+  </data>
+  <data name="SkillTestMatchesHeading" xml:space="preserve">
+    <value>Coinciden con este mensaje:</value>
+  </data>
+  <data name="SkillTokens" xml:space="preserve">
+    <value>unos {0:N0} de {1:N0} tokens</value>
+  </data>
+  <data name="SkillDraftNothingSaved" xml:space="preserve">
+    <value>No se guarda nada hasta que pulse Guardar.</value>
+  </data>
+  <data name="SkillDraftOpen" xml:space="preserve">
+    <value>Abrir la propuesta</value>
+  </data>
+  <data name="SkillEditNamed" xml:space="preserve">
+    <value>Editar {0}</value>
+  </data>
+  <data name="SkillViewNamed" xml:space="preserve">
+    <value>Ver {0}</value>
+  </data>
+  <data name="SkillDeleteNamed" xml:space="preserve">
+    <value>Eliminar {0}</value>
+  </data>
+  <data name="SkillExportNamed" xml:space="preserve">
+    <value>Exportar {0}</value>
+  </data>
+  <data name="SkillDuplicateNamed" xml:space="preserve">
+    <value>Duplicar {0}</value>
+  </data>
   <data name="SkillIssueNameMissing" xml:space="preserve">
     <value>El nombre está vacío.</value>
   </data>

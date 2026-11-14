@@ -15,7 +15,7 @@
         "Draft from this chat" (sdk/51 F04): one view for a SkillDraftViewModel. What the skill should be for (optional), the button that
         asks the model once, the draft's state in words (asking, the proposal, why it failed) and the statement that nothing is saved until
         the person presses Save in the editor. The proposal opens in the editor (the library shows it itself; Edit asks the host to).
-        The texts are UiStrings through the view's Strings. It works on .NET Framework 4.7.2 and on .NET 8.
+        The texts are UiStrings from the view model's Strings. It works on .NET Framework 4.7.2 and on .NET 8.
     -->
     <UserControl.Resources>
         <ResourceDictionary>
@@ -34,6 +34,9 @@
             <TextBox x:Name="GuidanceBox" Style="{StaticResource Fadenstack.TextBox}" b:WizardFocus.IsFirst="True" Margin="0,0,0,12" TextWrapping="Wrap"
                      Text="{Binding Guidance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsWorking, Converter={StaticResource Fadenstack.InverseBool}}"
                      AutomationProperties.Name="{local:Text SkillDraftGuidance}" />
+
+            <!-- In every state: nothing is saved until Save. -->
+            <TextBlock x:Name="StandingNote" Style="{StaticResource Skill.Caption}" Text="{Binding StandingNote}" Margin="0,0,0,12" />
 
             <Button x:Name="StartButton" Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,12" Command="{Binding DraftCommand}"
                     Content="{local:Text SkillDraftStart}" AutomationProperties.Name="{local:Text SkillDraftStart}" />
@@ -63,8 +66,8 @@
                     Visibility="{Binding Proposal, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                 <StackPanel>
                     <TextBlock x:Name="ProposalText" Text="{Binding Proposal.ProposalNote}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                    <Button x:Name="OpenButton" Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Content="{local:Text SkillEdit}"
-                            AutomationProperties.Name="{local:Text SkillEdit}" />
+                    <Button x:Name="OpenButton" Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Command="{Binding OpenProposalCommand}"
+                            Content="{local:Text SkillDraftOpen}" AutomationProperties.Name="{local:Text SkillDraftOpen}" />
                 </StackPanel>
             </Border>
         </StackPanel>

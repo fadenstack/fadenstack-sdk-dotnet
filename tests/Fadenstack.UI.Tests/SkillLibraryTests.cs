@@ -393,4 +393,152 @@ public class SkillLibraryTests
 
         public SkillTestResult Test(string prompt, SkillDocument? edited, string? editedFrom = null) => throw new NotSupportedException();
     }
-}
+
+    // -- the gaps the skin builders found: texts, message kind, broken rows, row button names, "Draft from this chat" ------------------
+
+    private static UiStrings Fixed(string language) =>
+        new(System.Globalization.CultureInfo.GetCultureInfo(language), null, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+
+    [Fact]
+    public async Task The_library_exposes_its_texts_and_says_so_when_the_language_changes()
+    {
+        using var rig = new SkillRig();
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+        var changed = new List<string?>();
+        library.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Equal("Skills on this device", library.Strings.SkillLibraryTitle);
+        language = "de";
+        library.Retext();
+
+        Assert.Contains(nameof(SkillLibraryViewModel.Strings), changed);
+        Assert.Equal(SkillRig.In("de").SkillLibraryTitle, library.Strings.SkillLibraryTitle);
+        await library.RefreshAsync();
+        Assert.IsAssignableFrom<ISkillTexts>(library);
+    }
+
+    [Fact]
+    public async Task A_message_says_whether_it_is_information_or_an_error()
+    {
+        using var rig = new SkillRig();
+        await rig.Workshop.SaveAsync(SkillRig.Doc());
+        var library = rig.Library();
+        await library.RefreshAsync();
+        Assert.Equal("", library.Message);
+        Assert.False(library.MessageIsError || library.MessageIsInformation || library.MessageIsWarning);
+
+        // Information: what an action did.
+        library.AskDeleteCommand.Execute(library.Rows.First(r => r.Name == "contract-review"));
+        await library.ConfirmDeleteCommand.ExecuteAsync(null);
+        Assert.Equal("contract-review was deleted.", library.Message);
+        Assert.Equal(SkillMessageKind.Information, library.MessageKind);
+        Assert.True(library.MessageIsInformation);
+        Assert.False(library.MessageIsError);
+
+        // An error: the action did not happen (the skill is gone from the disk before Edit reads it).
+        await rig.Workshop.SaveAsync(SkillRig.Doc("other-skill"));
+        await library.RefreshAsync();
+        var row = library.Rows.First(r => r.Name == "other-skill");
+        Directory.Delete(Path.Combine(rig.Folder, "other-skill"), true);
+        await library.EditCommand.ExecuteAsync(row);
+        Assert.NotEqual("", library.Message);
+        Assert.Equal(SkillMessageKind.Error, library.MessageKind);
+        Assert.True(library.MessageIsError);
+        Assert.False(library.MessageIsInformation);
+    }
+
+    [Fact]
+    public async Task A_broken_skill_says_it_cannot_be_read_and_why()
+    {
+        using var rig = new SkillRig();
+        await rig.Workshop.SaveAsync(SkillRig.Doc());
+        Directory.CreateDirectory(Path.Combine(rig.Folder, "bad-skill"));
+        File.WriteAllText(Path.Combine(rig.Folder, "bad-skill", "SKILL.md"), "---\nname: bad-skill\ndescription: x\nversion: 3\n---\nBody.\n");
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+
+        await library.RefreshAsync();
+
+        var good = library.Rows.First(r => r.Name == "contract-review");
+        var bad = library.Rows.First(r => r.Name == "bad-skill");
+        Assert.True(bad.IsBroken);
+        Assert.StartsWith("This skill cannot be read: ", bad.BrokenText);
+        Assert.Contains("version", bad.BrokenText);
+        Assert.Equal("", good.BrokenText);
+        Assert.Equal("", library.Rows.First(r => r.Name == "slide-design").BrokenText);
+
+        language = "de";
+        library.Retext();
+        Assert.StartsWith("Dieser Skill kann nicht gelesen werden: ", bad.BrokenText);
+    }
+
+    [Fact]
+    public async Task A_broken_skill_without_a_known_reason_still_says_it_cannot_be_read()
+    {
+        var entry = new SkillEntry("odd", "", SkillOrigin.Own, true) { IsBroken = true };
+        var row = new SkillRowViewModel(entry, () => SkillRig.English);
+
+        Assert.Equal("This skill cannot be read. Open it to fix it, or delete it.", row.BrokenText);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task The_buttons_of_a_row_have_names_that_tell_the_rows_apart_in_every_language()
+    {
+        using var rig = new SkillRig();
+        await rig.Workshop.SaveAsync(SkillRig.Doc());
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+        await library.RefreshAsync();
+        var row = library.Rows.First(r => r.Name == "contract-review");
+        var bundled = library.Rows.First(r => r.Name == "slide-design");
+
+        Assert.Equal(("Edit contract-review", "Delete contract-review", "Export contract-review", "Duplicate contract-review"),
+            (row.EditLabel, row.DeleteLabel, row.ExportLabel, row.DuplicateLabel));
+        Assert.Equal("View slide-design", bundled.ViewLabel);
+
+        language = "fr";
+        library.Retext();
+        Assert.Equal("Modifier contract-review", row.EditLabel);
+        Assert.Equal("Supprimer contract-review", row.DeleteLabel);
+        language = "zh-Hans";
+        library.Retext();
+        Assert.Contains("contract-review", row.ExportLabel);
+        Assert.Equal(5, new[] { row.EditLabel, row.DeleteLabel, row.ExportLabel, row.DuplicateLabel, bundled.ViewLabel }.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Draft_from_this_chat_is_an_entry_only_when_the_host_gives_a_conversation()
+    {
+        using var rig = new SkillRig();
+        var without = rig.Library();
+        Assert.False(without.HasDraft);
+        Assert.Null(without.Draft);
+        Assert.False(without.DraftFromChatCommand.CanExecute(null));
+
+        var chat = new[] { new SkillDraftMessage(true, "Please review this contract."), new SkillDraftMessage(false, "Clause 4 caps liability.") };
+        var model = new ScriptedChat().Says("---\nname: contract-review\ndescription: Reviews contracts. Use when asked.\n---\n## Goal\nReview.\n");
+        var library = new SkillLibraryViewModel(rig.Workshop, rig.Files, model, strings: () => SkillRig.English, draftSource: () => chat);
+
+        Assert.True(library.HasDraft);
+        Assert.NotNull(library.Draft);
+        Assert.False(library.DraftOpen);
+        Assert.True(library.DraftFromChatCommand.CanExecute(null));
+        library.DraftFromChatCommand.Execute(null);
+        Assert.True(library.DraftOpen);
+
+        // The draft opens in the library's editor as a proposal; nothing is saved.
+        await library.Draft!.DraftCommand.ExecuteAsync(null);
+        Assert.NotNull(library.Editor);
+        Assert.True(library.Editor!.IsProposal);
+        Assert.False(library.DraftOpen);
+        Assert.Equal(0, rig.Workshop.Saves);
+        Assert.False(library.DraftFromChatCommand.CanExecute(null));
+
+        // Open the proposal again while it is open: the same editor, once.
+        library.Draft.OpenProposalCommand.Execute(null);
+        Assert.Same(library.Draft.Proposal, library.Editor);
+        library.Editor.CancelCommand.Execute(null);
+        Assert.Null(library.Editor);
+    }}

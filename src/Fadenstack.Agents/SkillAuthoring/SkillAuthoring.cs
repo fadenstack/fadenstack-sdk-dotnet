@@ -69,6 +69,9 @@ public sealed record SkillEntry(string Name, string Description, SkillOrigin Ori
 
     /// <summary>The folder's SKILL.md cannot be read or breaks a rule: the module does not list it; the person can open it to fix or delete it.</summary>
     public bool IsBroken { get; init; }
+
+    /// <summary>Why it is broken, as a check's finding, when the library knows (null otherwise); the view model says it in words.</summary>
+    public SkillIssue? BrokenIssue { get; init; }
 }
 
 /// <summary>A file of a skill (a resource): its path relative to the skill's folder, with forward slashes, and its content.</summary>

@@ -15,7 +15,7 @@
         The skill library (sdk/51 F04): one view for a SkillLibraryViewModel. The list of skills, each with where it comes from, "not
         reviewed" for the person's own and its switch where it may be switched; New and Import; Edit (View for a bundled skill),
         Duplicate, Delete (after the confirmation the view model asks for) and Export on each row. When the view model has an editor open
-        the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) through the view's Strings.
+        the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) from the view model's Strings.
         It works on .NET Framework 4.7.2 and on .NET 8.
     -->
     <UserControl.Resources>
@@ -33,10 +33,18 @@
             <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16">
                 <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text SkillLibraryTitle}" Margin="0,0,0,12" />
 
-                <!-- What the last action did. -->
-                <Border Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
-                        Visibility="{Binding Message, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
+                <!-- What the last action did: information is a status (polite), a warning too, an error is an alert (assertive). -->
+                <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
+                        Visibility="{Binding MessageIsInformation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </Border>
+                <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,12"
+                        Visibility="{Binding MessageIsWarning, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                </Border>
+                <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12"
+                        Visibility="{Binding MessageIsError, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                 </Border>
 
                 <!-- Reading, could not read, none yet. -->
@@ -48,7 +56,15 @@
                             AutomationProperties.Name="{local:Text SkillNew}" />
                     <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,8" Command="{Binding ImportCommand}" Content="{local:Text SkillImport}"
                             AutomationProperties.Name="{local:Text SkillImport}" />
+                    <Button x:Name="DraftButton" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,8" Command="{Binding DraftFromChatCommand}"
+                            Visibility="{Binding HasDraft, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                            Content="{local:Text SkillDraftTitle}" AutomationProperties.Name="{local:Text SkillDraftTitle}" />
                 </WrapPanel>
+
+                <!-- "Draft from this chat": only when the app gave the library its conversation. -->
+                <local:SkillDraftView x:Name="DraftHost" DataContext="{Binding Draft}" Margin="0,0,0,12"
+                                      Visibility="{Binding DataContext.DraftOpen, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                                      Theme="{Binding Theme, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}" />
 
                 <!-- Delete: the question first. Cancel has the focus. -->
                 <Border x:Name="DeleteCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" b:WizardFocus.Step="{Binding PendingDelete}"
@@ -111,6 +127,11 @@
                                             <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Description}" />
                                         </StackPanel>
                                     </DockPanel>
+                                    <!-- A skill that cannot be read: why, and that it can be opened or deleted. -->
+                                    <Border Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,8"
+                                            Visibility="{Binding IsBroken, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                        <TextBlock x:Name="BrokenText" Text="{Binding BrokenText}" TextWrapping="Wrap" />
+                                    </Border>
                                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
                                         <Border Style="{StaticResource Fadenstack.Badge}" Margin="0,0,8,0">
                                             <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding OriginLabel}" />
@@ -124,23 +145,23 @@
                                         <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
                                                 Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
-                                                Content="{local:Text SkillEdit}" AutomationProperties.Name="{local:Text SkillEdit}" />
+                                                Content="{local:Text SkillEdit}" AutomationProperties.Name="{Binding EditLabel}" />
                                         <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
                                                 Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
-                                                Content="{local:Text SkillView}" AutomationProperties.Name="{local:Text SkillView}" />
+                                                Content="{local:Text SkillView}" AutomationProperties.Name="{Binding ViewLabel}" />
                                         <Button Style="{StaticResource Fadenstack.GhostButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanDuplicate, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.DuplicateCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
-                                                Content="{local:Text SkillDuplicate}" AutomationProperties.Name="{local:Text SkillDuplicate}" />
+                                                Content="{local:Text SkillDuplicate}" AutomationProperties.Name="{Binding DuplicateLabel}" />
                                         <Button Style="{StaticResource Fadenstack.GhostButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanExport, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
-                                                Content="{local:Text SkillExport}" AutomationProperties.Name="{local:Text SkillExport}" />
+                                                Content="{local:Text SkillExport}" AutomationProperties.Name="{Binding ExportLabel}" />
                                         <Button Style="{StaticResource Fadenstack.GhostButton}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanDelete, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.AskDeleteCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
-                                                Content="{local:Text SkillDelete}" AutomationProperties.Name="{local:Text SkillDelete}" />
+                                                Content="{local:Text SkillDelete}" AutomationProperties.Name="{Binding DeleteLabel}" />
                                     </WrapPanel>
                                 </StackPanel>
                             </Border>
@@ -152,7 +173,6 @@
 
         <!-- The open editor (new, edit, duplicate, a bundled skill to read, or a draft's proposal). -->
         <local:SkillEditorView x:Name="EditorHost" DataContext="{Binding Editor}"
-                               Strings="{Binding Strings, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                Theme="{Binding Theme, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                Visibility="{Binding DataContext.Editor, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
     </Grid>

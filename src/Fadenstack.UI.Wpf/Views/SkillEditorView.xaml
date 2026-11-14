@@ -16,7 +16,7 @@
         The skill editor (sdk/51 F04): one view for a SkillEditorViewModel. The name and the description with the checks' words as you
         type, the instructions in Markdown with a preview (the chat's Markdown templates), the faden.yaml fields, the files (add, rename,
         remove), the checks, Save (on only when the checks pass) and Cancel, and the Try panel (a message, the listed, matched and
-        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings through the view's
+        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings from the view model's
         Strings. It works on .NET Framework 4.7.2 and on .NET 8.
     -->
     <UserControl.Resources>
@@ -43,8 +43,17 @@
                 <TextBlock Text="{Binding ProposalNote}" TextWrapping="Wrap" />
             </Border>
 
-            <!-- What the last action said (the skill could not be written). -->
-            <Border Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12" Visibility="{Binding Message, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
+            <!-- What the last action said: an error is an alert (assertive), information and a warning a status (polite). -->
+            <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
+                    Visibility="{Binding MessageIsInformation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </Border>
+            <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,12"
+                    Visibility="{Binding MessageIsWarning, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </Border>
+            <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12"
+                    Visibility="{Binding MessageIsError, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
             </Border>
 
@@ -98,6 +107,13 @@
             <TextBox x:Name="InstructionsBox" Style="{StaticResource Skill.Area}" Margin="0,0,0,4"
                      Text="{Binding Instructions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
                      AutomationProperties.Name="{local:Text SkillInstructions}" />
+            <!-- The size against the advisory limit: a note, and a warning when over. -->
+            <TextBlock x:Name="TokensText" Style="{StaticResource Skill.Caption}" Text="{Binding InstructionsTokensText}" Margin="0,0,0,8"
+                       Visibility="{Binding InstructionsOverLimit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+            <Border x:Name="TokensWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,8"
+                    Visibility="{Binding InstructionsOverLimit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <TextBlock Text="{Binding InstructionsTokensText}" TextWrapping="Wrap" />
+            </Border>
             <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}" Focusable="False" Margin="0,0,0,8">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -225,6 +241,8 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <TextBlock x:Name="TestMatchesHeading" Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestMatchesHeading}" Margin="0,0,0,2"
+                                   Visibility="{Binding TestMatches.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                         <ItemsControl ItemsSource="{Binding TestMatches}" Focusable="False" Margin="0,0,0,8">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>

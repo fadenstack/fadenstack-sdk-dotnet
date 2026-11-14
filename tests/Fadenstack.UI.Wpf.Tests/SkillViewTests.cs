@@ -74,8 +74,9 @@ public class SkillViewTests
             {
                 failures.Add(what + " has no automation name");
             }
-            else if (element is Button { Content: string shown } && name != shown)
+            else if (element is Button { Content: string shown } && name.IndexOf(shown, StringComparison.OrdinalIgnoreCase) < 0)
             {
+                // The name may say more than the button does ("Edit contract-review") but must contain what the button says (WCAG 2.5.3).
                 failures.Add(what + $" is named '{name}' but says '{shown}'");
             }
         }
@@ -409,7 +410,7 @@ public class SkillViewTests
     {
         using var host = SkillHost.OpenDraft(language, new ScriptedChat().Says(GoodAnswer));
         host.Await(host.Draft.DraftCommand.ExecuteAsync(null));
-        var view = new SkillEditorView { DataContext = host.Draft.Proposal, Strings = host.Strings };
+        var view = new SkillEditorView { DataContext = host.Draft.Proposal };
         host.Window.Content = view;
         host.Pump();
 
@@ -621,7 +622,7 @@ public class SkillViewTests
         Assert.Equal(expected, host.Draft.State);
         if (expected == SkillDraftState.Idle)
         {
-            Assert.DoesNotContain(s.SkillEdit, texts);
+            Assert.DoesNotContain(s.SkillDraftOpen, texts);
         }
         else
         {
@@ -631,7 +632,7 @@ public class SkillViewTests
         {
             // The proposal is there, and nothing is saved.
             Assert.Contains(s.SkillEditorProposal, texts);
-            Assert.Contains(s.SkillEdit, texts);
+            Assert.Contains(s.SkillDraftOpen, texts);
             Assert.Equal(0, host.Rig.Workshop.Saves);
         }
         if (expected == SkillDraftState.Ready)
@@ -667,17 +668,222 @@ public class SkillViewTests
     });
 
     [Fact]
-    public void The_edit_button_asks_the_host_to_show_the_proposal_in_the_editor() => Sta.Run(() =>
+    public void The_open_button_is_the_view_models_command_and_asks_for_the_proposal_in_the_editor() => Sta.Run(() =>
     {
         using var host = SkillHost.OpenDraft(model: new ScriptedChat().Says(GoodAnswer));
-        SkillEditorViewModel? asked = null;
-        ((SkillDraftView)host.View).EditorRequested += (_, editor) => asked = editor;
         host.Await(host.Draft.DraftCommand.ExecuteAsync(null));
+        SkillEditorViewModel? asked = null;
+        host.Draft.ProposalReady += (_, editor) => asked = editor;
 
-        host.Find<Button>("OpenButton").RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        var open = host.Find<Button>("OpenButton");
+        Assert.Same(host.Draft.OpenProposalCommand, open.Command);
+        open.Command!.Execute(null);
         host.Pump();
 
         Assert.Same(host.Draft.Proposal, asked);
         Assert.Equal(0, host.Rig.Workshop.Saves);
     });
-}
+
+    // ---- the gaps the skin builders found ----------------------------------------------------------------------------
+
+    private static TextBlock MessageLine(SkillHost host, string banner) => (TextBlock)host.Find<Border>(banner).Child;
+
+    [Fact]
+    public void The_views_take_their_texts_from_the_view_model_and_follow_a_language_change() => Sta.Run(() =>
+    {
+        using var rig = new SkillRig();
+        var language = "en";
+        var library = rig.Library(strings: () => SkillRig.In(language));
+        var view = new SkillLibraryView { DataContext = library };
+
+        Assert.Equal("en", ChatText.GetStrings(view)!.Language);
+        language = "de";
+        library.Retext();
+        Assert.Equal("de", ChatText.GetStrings(view)!.Language);
+
+        // A view without a view model says the current language's texts.
+        view.DataContext = null;
+        Assert.Null(ChatText.GetStrings(view));
+    });
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public void The_library_shows_information_as_a_status_and_an_error_as_an_alert(string language) => Sta.Run(() =>
+    {
+        using var host = LibraryAt("list", language);
+        var library = host.Library;
+        var s = host.Strings;
+
+        library.AskDeleteCommand.Execute(library.Rows.First(r => r.Name == "contract-review"));
+        host.Await(library.ConfirmDeleteCommand.ExecuteAsync(null));
+        host.WaitUntil(() => library.Message.Length > 0);
+        host.Pump();
+
+        Assert.Equal(SkillMessageKind.Information, library.MessageKind);
+        Assert.True(host.Find<Border>("MessageInfo").IsVisible);
+        Assert.False(host.Find<Border>("MessageError").IsVisible);
+        Assert.Equal(AutomationLiveSetting.Polite, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageInfo")));
+        Assert.Contains(s.SkillDeleted("contract-review"), host.Texts());
+
+        host.Await(host.Rig.Real.SaveAsync(SkillRig.Doc("other-skill")));
+        host.Await(library.RefreshAsync());
+        host.WaitUntil(() => library.Rows.Any(r => r.Name == "other-skill"));
+        var row = library.Rows.First(r => r.Name == "other-skill");
+        Directory.Delete(Path.Combine(host.Rig.Folder, "other-skill"), true);
+        host.Await(library.EditCommand.ExecuteAsync(row));
+        host.WaitUntil(() => library.MessageKind == SkillMessageKind.Error);
+        host.Pump();
+
+        Assert.Equal(SkillMessageKind.Error, library.MessageKind);
+        Assert.True(host.Find<Border>("MessageError").IsVisible);
+        Assert.False(host.Find<Border>("MessageInfo").IsVisible);
+        Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageError")));
+        Assert.Contains(library.Message, host.Texts());
+        Assert.Empty(host.BindingErrors);
+    });
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public void A_broken_skill_says_it_cannot_be_read_and_why(string language) => Sta.Run(() =>
+    {
+        using var host = SkillHost.OpenLibrary(language);
+        Directory.CreateDirectory(Path.Combine(host.Rig.Folder, "bad-skill"));
+        File.WriteAllText(Path.Combine(host.Rig.Folder, "bad-skill", "SKILL.md"), "---\nname: bad-skill\ndescription: x\nversion: 3\n---\nBody.\n");
+        host.Await(host.Library.RefreshAsync());
+        host.WaitUntil(() => host.Library.Rows.Any(r => r.Name == "bad-skill"));
+        host.Pump();
+
+        var bad = host.Library.Rows.First(r => r.Name == "bad-skill");
+        Assert.True(bad.IsBroken);
+        Assert.Contains(bad.BrokenText, host.Texts());
+        Assert.StartsWith(host.Strings.SkillBroken("").Split(':')[0], bad.BrokenText);
+        Assert.Single(host.Texts(), t => t == bad.BrokenText);
+        Assert.Empty(host.BindingErrors);
+    });
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void The_buttons_of_a_row_are_named_for_the_row(string language) => Sta.Run(() =>
+    {
+        using var host = SkillHost.OpenLibrary(language);
+        var s = host.Strings;
+        var own = host.Library.Rows.First(r => r.Name == "contract-review");
+        var bundled = host.Library.Rows.First(r => r.Name == "slide-design");
+
+        Button Of(SkillRowViewModel row, string text) => host.Visible().OfType<Button>().First(b => ReferenceEquals(b.CommandParameter, row) && b.Content as string == text);
+
+        Assert.Equal(s.SkillEditNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillEdit)));
+        Assert.Equal(s.SkillDuplicateNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillDuplicate)));
+        Assert.Equal(s.SkillExportNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillExport)));
+        Assert.Equal(s.SkillDeleteNamed("contract-review"), AutomationProperties.GetName(Of(own, s.SkillDelete)));
+        Assert.Equal(s.SkillViewNamed("slide-design"), AutomationProperties.GetName(Of(bundled, s.SkillView)));
+    });
+
+    [Fact]
+    public void Draft_from_this_chat_is_an_entry_of_the_library_only_when_the_host_gave_a_conversation() => Sta.Run(() =>
+    {
+        using (var without = SkillHost.OpenLibrary())
+        {
+            Assert.Empty(without.ButtonsSaying(without.Strings.SkillDraftTitle));
+            Assert.DoesNotContain(without.Strings.SkillDraftNothingSaved, without.Texts());
+        }
+
+        using var host = SkillHost.OpenLibrary(model: new ScriptedChat().Says(GoodAnswer), draft: true);
+        var s = host.Strings;
+        Assert.DoesNotContain(s.SkillDraftNothingSaved, host.Texts());
+
+        host.ButtonSaying(s.SkillDraftTitle).Command!.Execute(null);
+        host.Pump();
+
+        Assert.True(host.Library.DraftOpen);
+        Assert.Contains(s.SkillDraftNothingSaved, host.Texts());
+        Assert.Contains(s.SkillDraftStart, host.Texts());
+
+        host.Await(host.Library.Draft!.DraftCommand.ExecuteAsync(null));
+        host.WaitUntil(() => host.Library.Editor is not null);
+        host.Pump();
+
+        Assert.NotNull(host.Library.Editor);
+        Assert.True(host.Library.Editor!.IsProposal);
+        Assert.Contains(s.SkillEditorProposal, host.Texts());
+        Assert.Equal(0, host.Rig.Workshop.Saves);
+        Assert.Empty(host.BindingErrors);
+    });
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public void The_editor_counts_the_instructions_tokens_and_warns_when_over(string language) => Sta.Run(() =>
+    {
+        using var host = SkillHost.OpenEditor(language, "edit");
+
+        host.Editor.Instructions = new string('w', 1200 * 4);
+        host.Pump();
+        Assert.Equal(host.Strings.SkillTokens(1200, 5000), host.Editor.InstructionsTokensText);
+        Assert.True(host.Find<TextBlock>("TokensText").IsVisible);
+        Assert.False(host.Find<Border>("TokensWarning").IsVisible);
+        Assert.Contains(host.Editor.InstructionsTokensText, host.Texts());
+
+        host.Editor.Instructions = new string('w', 5001 * 4);
+        host.Pump();
+        Assert.False(host.Find<TextBlock>("TokensText").IsVisible);
+        Assert.True(host.Find<Border>("TokensWarning").IsVisible);
+        Assert.Contains(host.Strings.SkillTokens(5001, 5000), host.Texts());
+        Assert.Empty(host.BindingErrors);
+    });
+
+    [Fact]
+    public void The_try_panel_has_a_heading_for_the_matched_list() => Sta.Run(() =>
+    {
+        using var host = SkillHost.OpenEditor(mode: "edit");
+        Assert.DoesNotContain(host.Strings.SkillTestMatchesHeading, host.Texts());
+
+        host.Editor.KeywordsText = "contract";
+        host.Editor.TestPrompt = "Please review this contract";
+        host.Editor.RunTest();
+        host.Pump();
+
+        Assert.NotEmpty(host.Editor.TestMatches);
+        Assert.Contains(host.Strings.SkillTestMatchesHeading, host.Texts());
+    });
+
+    [Fact]
+    public void The_editor_shows_an_error_as_an_alert_and_information_as_a_status() => Sta.Run(() =>
+    {
+        using var host = SkillHost.OpenEditor();
+        Directory.CreateDirectory(host.Rig.Root);
+        File.WriteAllText(host.Rig.Folder, "not a folder");
+        host.Editor.Name = "contract-review";
+        host.Editor.Description = "Reviews a contract.";
+        host.Editor.Instructions = "## Goal\nReview.\n";
+
+        host.Await(host.Editor.SaveCommand.ExecuteAsync(null));
+        host.WaitUntil(() => host.Editor.Message.Length > 0);
+        host.Pump();
+
+        Assert.Equal(SkillMessageKind.Error, host.Editor.MessageKind);
+        Assert.True(host.Find<Border>("MessageError").IsVisible);
+        Assert.False(host.Find<Border>("MessageInfo").IsVisible);
+        Assert.Equal(AutomationLiveSetting.Assertive, AutomationProperties.GetLiveSetting(MessageLine(host, "MessageError")));
+        Assert.Contains(host.Strings.SkillSaveFailed, host.Texts());
+        Assert.Empty(host.BindingErrors);
+    });
+
+    [Theory]
+    [MemberData(nameof(DraftStates))]
+    public void Nothing_is_saved_until_Save_is_said_in_every_state_of_the_draft_view(string state, string language) => Sta.Run(() =>
+    {
+        using var host = DraftAt(state, language);
+
+        Assert.True(host.Find<TextBlock>("StandingNote").IsVisible);
+        Assert.Contains(host.Strings.SkillDraftNothingSaved, host.Texts());
+        if (host.Draft.HasProposal)
+        {
+            var open = host.Find<Button>("OpenButton");
+            Assert.Same(host.Draft.OpenProposalCommand, open.Command);
+            Assert.Equal(host.Strings.SkillDraftOpen, AutomationProperties.GetName(open));
+        }
+    });}

@@ -100,7 +100,7 @@ public sealed record SkillActivationOption(string Value, string Label);
 /// pre-selection over the edited skill and, if the app gave a model, asks it once whether it would call <c>load_skill</c>: one model call,
 /// and no tool runs. Platform-neutral: the skins draw it.
 /// </summary>
-public sealed class SkillEditorViewModel : ObservableObject
+public sealed class SkillEditorViewModel : ObservableObject, ISkillTexts
 {
     private readonly ISkillWorkshop _workshop;
     private readonly ISkillFileHost? _files;
@@ -132,6 +132,7 @@ public sealed class SkillEditorViewModel : ObservableObject
     private bool _needsReplace;
     private bool _showPreview;
     private string _message = "";
+    private SkillMessageKind _messageKind;
     private int _saveVersion;
     private int _askVersion;
     private SkillCheck _check = new(Array.Empty<SkillIssue>());
@@ -250,6 +251,9 @@ public sealed class SkillEditorViewModel : ObservableObject
             if (Change(ref _instructions, value ?? ""))
             {
                 OnPropertyChanged(nameof(PreviewBlocks));
+                OnPropertyChanged(nameof(InstructionsTokens));
+                OnPropertyChanged(nameof(InstructionsTokensText));
+                OnPropertyChanged(nameof(InstructionsOverLimit));
             }
         }
     }
@@ -344,11 +348,33 @@ public sealed class SkillEditorViewModel : ObservableObject
     public bool HasUnknownKeys => _unknownKeys.Count > 0;
 
     /// <summary>What the last action said, e.g. that the skill could not be written.</summary>
-    public string Message
+    public string Message => _message;
+
+    /// <summary>Whether <see cref="Message"/> is information, a warning or an error; a view shows an error as an alert (assertive) and the rest as a status (polite).</summary>
+    public SkillMessageKind MessageKind => _messageKind;
+
+    /// <summary>There is a message and it is an error: a skin shows it as an alert.</summary>
+    public bool MessageIsError => _message.Length > 0 && _messageKind == SkillMessageKind.Error;
+
+    /// <summary>There is a message and it is a warning.</summary>
+    public bool MessageIsWarning => _message.Length > 0 && _messageKind == SkillMessageKind.Warning;
+
+    /// <summary>There is a message and it is information: a skin shows it as a status.</summary>
+    public bool MessageIsInformation => _message.Length > 0 && _messageKind == SkillMessageKind.Information;
+
+    private void Say(string text, SkillMessageKind kind = SkillMessageKind.Information)
     {
-        get => _message;
-        private set => SetProperty(ref _message, value);
+        _messageKind = kind;
+        _message = text ?? "";
+        OnPropertyChanged(nameof(Message));
+        OnPropertyChanged(nameof(MessageKind));
+        OnPropertyChanged(nameof(MessageIsError));
+        OnPropertyChanged(nameof(MessageIsWarning));
+        OnPropertyChanged(nameof(MessageIsInformation));
     }
+
+    /// <summary>The texts; a skin binds the fixed ones and the computed ones here, and follows this when the language changes.</summary>
+    public UiStrings Strings => _strings();
 
     public bool ShowPreview
     {
@@ -598,6 +624,8 @@ public sealed class SkillEditorViewModel : ObservableObject
     public void Retext()
     {
         Recheck();
+        OnPropertyChanged(nameof(Strings));
+        OnPropertyChanged(nameof(InstructionsTokensText));
         OnPropertyChanged(nameof(Heading));
         OnPropertyChanged(nameof(ProposalNote));
         OnPropertyChanged(nameof(ActivationOptions));
@@ -696,7 +724,7 @@ public sealed class SkillEditorViewModel : ObservableObject
         var version = Interlocked.Increment(ref _saveVersion);
         _saving = true;
         NeedsReplaceConfirmation = false;
-        Message = "";
+        Say("");
         OnPropertyChanged(nameof(IsSaving));
         OnPropertyChanged(nameof(CanSave));
         SaveCommand.NotifyCanExecuteChanged();
@@ -729,7 +757,7 @@ public sealed class SkillEditorViewModel : ObservableObject
                     OnPropertyChanged(nameof(ProposalNote));
                     OnPropertyChanged(nameof(Heading));
                     OnPropertyChanged(nameof(IsDirty));
-                    Message = _strings().SkillSaved(document.Name);
+                    Say(_strings().SkillSaved(document.Name));
                     Closed?.Invoke(this, new SkillEditorClosedEventArgs(true, document.Name));
                     break;
                 case SkillSaveStatus.Exists:
@@ -739,7 +767,7 @@ public sealed class SkillEditorViewModel : ObservableObject
                     Recheck();
                     break;
                 default:
-                    Message = _strings().SkillSaveFailed;
+                    Say(_strings().SkillSaveFailed, SkillMessageKind.Error);
                     break;
             }
             OnPropertyChanged(nameof(CanSave));
@@ -768,4 +796,10 @@ public sealed class SkillEditorViewModel : ObservableObject
 
     /// <summary>The instructions' size in tokens as the advisory limit counts them (4 characters each), for a counter under the field.</summary>
     public int InstructionsTokens => _instructions.Length / SkillLimits.CharactersPerToken;
+
+    /// <summary>"about 1,200 of 5,000 tokens": the counter under the instructions.</summary>
+    public string InstructionsTokensText => _strings().SkillTokens(InstructionsTokens, SkillLimits.BodyAdvisoryTokens);
+
+    /// <summary>The instructions are past the advisory limit: the counter is a warning (the checks say so too; it does not stop the save).</summary>
+    public bool InstructionsOverLimit => InstructionsTokens > SkillLimits.BodyAdvisoryTokens;
 }

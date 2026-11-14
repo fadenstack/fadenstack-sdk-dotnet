@@ -41,32 +41,24 @@
     "Property System.Windows.Input.ICommand AttachCommand"
   ],
   "src/Fadenstack.UI.Avalonia/Views/SkillDraftView.axaml.cs": [
-    "Constructor Void .cctor()",
     "Constructor Void .ctor()",
-    "Event System.EventHandler`1[Fadenstack.UI.Skills.SkillEditorViewModel] EditorRequested",
-    "Field Avalonia.StyledProperty`1[Fadenstack.UI.UiStrings] StringsProperty",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
     "Method Void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs)",
     "Method Void OnKeyDown(Avalonia.Input.KeyEventArgs)",
-    "Method Void OnOpenClick(System.Object, Avalonia.Interactivity.RoutedEventArgs)",
-    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings"
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
   ],
   "src/Fadenstack.UI.Avalonia/Views/SkillEditorView.axaml.cs": [
-    "Constructor Void .cctor()",
     "Constructor Void .ctor()",
-    "Field Avalonia.StyledProperty`1[Fadenstack.UI.UiStrings] StringsProperty",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
     "Method Void OnKeyDown(Avalonia.Input.KeyEventArgs)",
-    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings"
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
   ],
   "src/Fadenstack.UI.Avalonia/Views/SkillLibraryView.axaml.cs": [
-    "Constructor Void .cctor()",
     "Constructor Void .ctor()",
-    "Field Avalonia.StyledProperty`1[Fadenstack.UI.UiStrings] StringsProperty",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
     "Method Void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs)",
     "Method Void OnKeyDown(Avalonia.Input.KeyEventArgs)",
-    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings"
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
   ],
   "src/Fadenstack.UI.Avalonia/Views/WizardView.axaml.cs": [
     "Constructor Void .cctor()",
@@ -141,7 +133,6 @@
   "src/Fadenstack.UI.Wpf/Views/SkillDraftView.xaml.cs": [
     "Constructor Void .cctor()",
     "Constructor Void .ctor()",
-    "Event System.EventHandler`1[Fadenstack.UI.Skills.SkillEditorViewModel] EditorRequested",
     "Field Boolean _contentLoaded",
     "Field System.Windows.Controls.Border ProposalCard",
     "Field System.Windows.Controls.Button OpenButton",
@@ -150,22 +141,24 @@
     "Field System.Windows.Controls.TextBlock ErrorText",
     "Field System.Windows.Controls.TextBlock ProposalText",
     "Field System.Windows.Controls.TextBlock ReadyText",
+    "Field System.Windows.Controls.TextBlock StandingNote",
     "Field System.Windows.Controls.TextBlock WarningText",
     "Field System.Windows.Controls.TextBlock WorkingText",
     "Field System.Windows.Controls.TextBox GuidanceBox",
-    "Field System.Windows.DependencyProperty StringsProperty",
     "Field System.Windows.DependencyProperty ThemeProperty",
     "Method Void OnKeyDown(System.Windows.Input.KeyEventArgs)",
-    "Method Void OnOpenClick(System.Object, System.Windows.RoutedEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings",
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/SkillEditorView.xaml.cs": [
     "Constructor Void .cctor()",
     "Constructor Void .ctor()",
     "Field Boolean _contentLoaded",
+    "Field System.Windows.Controls.Border MessageError",
+    "Field System.Windows.Controls.Border MessageInfo",
+    "Field System.Windows.Controls.Border MessageWarning",
     "Field System.Windows.Controls.Border PreviewCard",
     "Field System.Windows.Controls.Border ReplaceCard",
+    "Field System.Windows.Controls.Border TokensWarning",
     "Field System.Windows.Controls.Button AskModelButton",
     "Field System.Windows.Controls.Button CancelButton",
     "Field System.Windows.Controls.Button SaveButton",
@@ -177,7 +170,9 @@
     "Field System.Windows.Controls.StackPanel Column",
     "Field System.Windows.Controls.StackPanel TestResult",
     "Field System.Windows.Controls.TextBlock ModelAnswerText",
+    "Field System.Windows.Controls.TextBlock TestMatchesHeading",
     "Field System.Windows.Controls.TextBlock TestNoteText",
+    "Field System.Windows.Controls.TextBlock TokensText",
     "Field System.Windows.Controls.TextBox CompatibilityBox",
     "Field System.Windows.Controls.TextBox DescriptionBox",
     "Field System.Windows.Controls.TextBox FileTypesBox",
@@ -190,25 +185,26 @@
     "Field System.Windows.Controls.TextBox TagsBox",
     "Field System.Windows.Controls.TextBox TestBox",
     "Field System.Windows.Controls.TextBox TitleBox",
-    "Field System.Windows.DependencyProperty StringsProperty",
     "Field System.Windows.DependencyProperty ThemeProperty",
     "Method Boolean IsInTestBox(System.Object)",
     "Method Void OnKeyDown(System.Windows.Input.KeyEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings",
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/SkillLibraryView.xaml.cs": [
     "Constructor Void .cctor()",
     "Constructor Void .ctor()",
     "Field Boolean _contentLoaded",
+    "Field Fadenstack.UI.Wpf.Views.SkillDraftView DraftHost",
     "Field Fadenstack.UI.Wpf.Views.SkillEditorView EditorHost",
     "Field System.Windows.Controls.Border DeleteCard",
     "Field System.Windows.Controls.Border ImportCard",
+    "Field System.Windows.Controls.Border MessageError",
+    "Field System.Windows.Controls.Border MessageInfo",
+    "Field System.Windows.Controls.Border MessageWarning",
+    "Field System.Windows.Controls.Button DraftButton",
     "Field System.Windows.Controls.StackPanel Column",
-    "Field System.Windows.DependencyProperty StringsProperty",
     "Field System.Windows.DependencyProperty ThemeProperty",
     "Method Void OnKeyDown(System.Windows.Input.KeyEventArgs)",
-    "Property Fadenstack.UI.UiStrings Strings",
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/WizardView.xaml.cs": [

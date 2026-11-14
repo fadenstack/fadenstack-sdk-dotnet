@@ -49,17 +49,23 @@ public sealed class SkillWorkshop : ISkillWorkshop
         {
             var (text, _, problem) = _store.ReadHead(name);
             var broken = problem is not null || _reserved.Contains(name);
+            var reason = problem;
+            string? parseError = null;
             var description = "";
-            if (!broken && SkillMarkdown.TryParse(text, out var head, out _))
+            if (!broken && SkillMarkdown.TryParse(text, out var head, out parseError))
             {
                 description = head.Description;
-                broken = SkillValidator.Check(head with { Instructions = "", Extension = new SkillExtensionFields() }, name, _reserved).HasErrors;
+                var check = SkillValidator.Check(head with { Instructions = "", Extension = new SkillExtensionFields() }, name, _reserved);
+                broken = check.HasErrors;
+                reason = check.Issues.FirstOrDefault(i => i.IsError);
             }
             else
             {
+                reason ??= _reserved.Contains(name) ? new SkillIssue(SkillIssueCode.NameReserved, SkillSeverity.Error, name)
+                    : new SkillIssue(SkillIssueCode.SkillMdUnreadable, SkillSeverity.Error, "SKILL.md", Detail: parseError ?? "");
                 broken = true;
             }
-            entries.Add(new SkillEntry(name, description, SkillOrigin.Own, _switches.IsEnabled(name)) { IsBroken = broken });
+            entries.Add(new SkillEntry(name, description, SkillOrigin.Own, _switches.IsEnabled(name)) { IsBroken = broken, BrokenIssue = broken ? reason : null });
         }
         if (_organisation is not null)
         {

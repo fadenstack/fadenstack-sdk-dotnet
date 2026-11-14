@@ -320,4 +320,78 @@ public class SkillDraftTests
         draft.Retext();
         Assert.Equal("没有可用于撰写草稿的模型。", draft.StatusText);
     }
-}
+
+    // -- the gaps the skin builders found: texts, the standing line, Open the proposal -----------------------------------------------
+
+    [Fact]
+    public async Task The_draft_exposes_its_texts_and_says_so_when_the_language_changes()
+    {
+        using var rig = new SkillRig();
+        var language = "en";
+        var draft = new SkillDraftViewModel(rig.Workshop, null, () => Chat, strings: () => SkillRig.In(language));
+        var changed = new List<string?>();
+        draft.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        Assert.Equal("Draft from this chat", draft.Strings.SkillDraftTitle);
+        language = "fr";
+        draft.Retext();
+
+        Assert.Contains(nameof(SkillDraftViewModel.Strings), changed);
+        Assert.Contains(nameof(SkillDraftViewModel.StandingNote), changed);
+        Assert.Equal(SkillRig.In("fr").SkillDraftTitle, draft.Strings.SkillDraftTitle);
+        Assert.IsAssignableFrom<ISkillTexts>(draft);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task Nothing_is_saved_until_Save_is_said_in_every_state_of_the_draft()
+    {
+        using var rig = new SkillRig();
+        const string line = "Nothing is saved until you press Save.";
+        var states = new List<(SkillDraftState State, string Note)>();
+
+        var idle = Draft(rig, new ScriptedChat().Says(GoodAnswer));
+        states.Add((idle.State, idle.StandingNote));
+        var noChat = Draft(rig, new ScriptedChat().Says(GoodAnswer), Array.Empty<SkillDraftMessage>());
+        await noChat.DraftCommand.ExecuteAsync(null);
+        states.Add((noChat.State, noChat.StandingNote));
+        var noModel = Draft(rig, null);
+        await noModel.DraftCommand.ExecuteAsync(null);
+        states.Add((noModel.State, noModel.StandingNote));
+        var unreadable = Draft(rig, new ScriptedChat().Says("   "));
+        await unreadable.DraftCommand.ExecuteAsync(null);
+        states.Add((unreadable.State, unreadable.StandingNote));
+        var failed = Draft(rig, new ScriptedChat().Throws());
+        await failed.DraftCommand.ExecuteAsync(null);
+        states.Add((failed.State, failed.StandingNote));
+        var ready = Draft(rig, new ScriptedChat().Says(GoodAnswer));
+        await ready.DraftCommand.ExecuteAsync(null);
+        states.Add((ready.State, ready.StandingNote));
+
+        Assert.Equal(new[] { SkillDraftState.Idle, SkillDraftState.NoChat, SkillDraftState.NoModel, SkillDraftState.Unreadable, SkillDraftState.Failed, SkillDraftState.Ready },
+            states.Select(s => s.State));
+        Assert.All(states, s => Assert.Equal(line, s.Note));
+    }
+
+    [Fact]
+    public async Task Open_the_proposal_is_a_command_that_is_on_only_when_there_is_one()
+    {
+        using var rig = new SkillRig();
+        var draft = Draft(rig, new ScriptedChat().Says(GoodAnswer));
+        var opened = new List<SkillEditorViewModel>();
+        draft.ProposalReady += (_, e) => opened.Add(e);
+
+        Assert.False(draft.HasProposal);
+        Assert.False(draft.OpenProposalCommand.CanExecute(null));
+
+        await draft.DraftCommand.ExecuteAsync(null);
+        Assert.True(draft.HasProposal);
+        Assert.True(draft.OpenProposalCommand.CanExecute(null));
+        Assert.Single(opened);
+
+        draft.OpenProposalCommand.Execute(null);
+
+        Assert.Equal(2, opened.Count);
+        Assert.Same(draft.Proposal, opened[1]);
+        Assert.Equal(0, rig.Workshop.Saves);
+    }}

@@ -52,12 +52,13 @@ internal sealed class SkillHost : IDisposable
 
     public IReadOnlyList<string> BindingErrors => _capture.Errors;
 
-    private SkillLibraryViewModel NewLibrary(IChatClient? model) =>
-        new(Rig.Workshop, Rig.Files, model, new AvaloniaUiDispatcher(), () => Strings);
+    private SkillLibraryViewModel NewLibrary(IChatClient? model, bool draft = false) =>
+        new(Rig.Workshop, Rig.Files, model, new AvaloniaUiDispatcher(), () => Strings,
+            draft ? () => new[] { new SkillDraftMessage(true, "Please review this contract."), new SkillDraftMessage(false, "Clause 4 caps liability.") } : null);
 
     /// <summary>The library view over a library that has read its skills (the bundled one and, if asked, the person's own).</summary>
     public static async Task<SkillHost> OpenLibraryAsync(string language = "en", bool own = true, bool bundled = true, IChatClient? model = null,
-        double width = 560, double height = 900)
+        double width = 560, double height = 900, bool draft = false)
     {
         var rig = new SkillRig();
         if (!bundled)
@@ -70,8 +71,8 @@ internal sealed class SkillHost : IDisposable
         }
         var host = new SkillHost(language, h =>
         {
-            h.Library = h.NewLibrary(model);
-            return new SkillLibraryView { DataContext = h.Library, Strings = h.Strings };
+            h.Library = h.NewLibrary(model, draft);
+            return new SkillLibraryView { DataContext = h.Library };
         }, rig, width, height);
         await host.Library.RefreshAsync();
         await host.LoadedAsync();
@@ -91,7 +92,7 @@ internal sealed class SkillHost : IDisposable
         var host = new SkillHost(language, h =>
         {
             h.Library = h.NewLibrary(model);
-            return new SkillEditorView { Strings = h.Strings };
+            return new SkillEditorView();
         }, rig, width, height);
         await host.Library.RefreshAsync();
         await host.LoadedAsync();
@@ -125,7 +126,7 @@ internal sealed class SkillHost : IDisposable
             h.Draft = h.Library.CreateDraft(() => chat
                 ? new[] { new SkillDraftMessage(true, "Please review this contract."), new SkillDraftMessage(false, "Clause 4 caps liability.") }
                 : Array.Empty<SkillDraftMessage>());
-            return new SkillDraftView { DataContext = h.Draft, Strings = h.Strings };
+            return new SkillDraftView { DataContext = h.Draft };
         }, rig, width, height);
         host.Window.Show();
         await host.PumpAsync();

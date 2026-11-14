@@ -9,8 +9,7 @@ namespace Fadenstack.UI.Wpf.Views;
 /// <summary>
 /// The skill library for a <see cref="SkillLibraryViewModel"/> (set it as the DataContext): the list with its buttons, the delete and
 /// import questions, and, while the view model has an editor open, that editor in place of the list. The code here is only what a view
-/// does: it picks the colours, gives the panel the texts' language and direction (<see cref="Strings"/>, the same texts the view model
-/// was given), puts the focus on the first button when it appears, sends Esc to the question that is open (the delete or the import) and
+/// does: it picks the colours, gives the panel the texts' language and direction (the view model's <see cref="SkillLibraryViewModel.Strings"/>), puts the focus on the first button when it appears, sends Esc to the question that is open (the delete or the import) and
 /// Enter to the import question's primary button.
 /// </summary>
 public partial class SkillLibraryView : UserControl
@@ -18,15 +17,12 @@ public partial class SkillLibraryView : UserControl
     public static readonly DependencyProperty ThemeProperty = DependencyProperty.Register(
         nameof(Theme), typeof(ChatTheme), typeof(SkillLibraryView), new PropertyMetadata(ChatTheme.System, (d, _) => SkillViewSupport.ApplyTheme((SkillLibraryView)d, ((SkillLibraryView)d).Theme)));
 
-    /// <summary>The texts of the panel; the current UI language's unless the host sets them (the same ones it gave the view model).</summary>
-    public static readonly DependencyProperty StringsProperty = DependencyProperty.Register(
-        nameof(Strings), typeof(UiStrings), typeof(SkillLibraryView), new PropertyMetadata(null, (d, e) => SkillViewSupport.ApplyStrings((SkillLibraryView)d, (UiStrings?)e.NewValue)));
-
     public SkillLibraryView()
     {
         InitializeComponent();
         SkillViewSupport.ApplyTheme(this, Theme);
-        Strings = UiStrings.Current;
+        var texts = new SkillTextsFollower(strings => SkillViewSupport.ApplyStrings(this, strings));
+        DataContextChanged += (_, e) => texts.Follow(e.NewValue);
         SkillViewSupport.FocusFirstWhenLoaded(this);
     }
 
@@ -34,12 +30,6 @@ public partial class SkillLibraryView : UserControl
     {
         get => (ChatTheme)GetValue(ThemeProperty);
         set => SetValue(ThemeProperty, value);
-    }
-
-    public UiStrings? Strings
-    {
-        get => (UiStrings?)GetValue(StringsProperty);
-        set => SetValue(StringsProperty, value);
     }
 
     /// <summary>
