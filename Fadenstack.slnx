@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Fadenstack.Agents/Fadenstack.Agents.csproj" />
+    <Project Path="src/Fadenstack.Agents.Delegation/Fadenstack.Agents.Delegation.csproj" />
     <Project Path="src/Fadenstack.Client/Fadenstack.Client.csproj" />
     <Project Path="src/Fadenstack.Mcp/Fadenstack.Mcp.csproj" />
     <Project Path="src/Fadenstack.Provenance/Fadenstack.Provenance.csproj" />
@@ -18,6 +19,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Fadenstack.Agents.Tests/Fadenstack.Agents.Tests.csproj" />
+    <Project Path="tests/Fadenstack.Agents.Delegation.Tests/Fadenstack.Agents.Delegation.Tests.csproj" />
     <Project Path="tests/Fadenstack.Architecture.Tests/Fadenstack.Architecture.Tests.csproj" />
     <Project Path="tests/Fadenstack.Client.Tests/Fadenstack.Client.Tests.csproj" />
     <Project Path="tests/Fadenstack.Provenance.Tests/Fadenstack.Provenance.Tests.csproj" />

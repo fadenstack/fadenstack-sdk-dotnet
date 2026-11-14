@@ -20,6 +20,7 @@
     <!-- Every library of the SDK, so its built assembly is next to the tests (A1 reads what each one references). -->
     <ProjectReference Include="..\..\src\Fadenstack.Client\Fadenstack.Client.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+    <ProjectReference Include="..\..\src\Fadenstack.Agents.Delegation\Fadenstack.Agents.Delegation.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Mcp\Fadenstack.Mcp.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Provenance\Fadenstack.Provenance.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Workspaces\Fadenstack.Workspaces.csproj" />

@@ -49,6 +49,12 @@ jobs:
       - name: Pack
         run: dotnet pack Fadenstack.slnx -c Release --no-build -o artifacts
 
+      # Fadenstack.Agents.Delegation is for applications and stays off nuget.org until the A2A library it will use ships a
+      # netstandard2.0 build (sdk/08 decision 11; upstream a2aproject/a2a-dotnet issue #197). The SDK keeps only IAgentDelegate.
+      - name: Leave out the delegation package
+        shell: pwsh
+        run: Remove-Item artifacts/Fadenstack.Agents.Delegation.* -ErrorAction Stop
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages

@@ -1,0 +1,268 @@
+using System.Runtime.InteropServices;
+using Fadenstack.Agents.Delegation;
+using Fadenstack.Agents.Registry;
+using Xunit;
+
+namespace Fadenstack.Agents.Tests;
+
+/// <summary>Delegation to a document: which instance takes the task, and starting the app when none is open.</summary>
+public sealed class DocumentDelegationTests : IDisposable
+{
+    private readonly string _folder = Path.Combine(Path.GetTempPath(), "faden-docdeleg-" + Guid.NewGuid().ToString("N"));
+    private readonly List<IDisposable> _disposables = new();
+    private readonly DeviceAgentRegistry _registry;
+    private readonly Client _client = new();
+
+    public DocumentDelegationTests()
+    {
+        _registry = new DeviceAgentRegistry(_folder);
+    }
+
+    public void Dispose()
+    {
+        foreach (var d in _disposables)
+        {
+            d.Dispose();
+        }
+        try
+        {
+            Directory.Delete(_folder, true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+
+    /// <summary>Stands in for the pipe: records where each task went and completes it.</summary>
+    private sealed class Client : IDelegationClient
+    {
+        public List<(string Pipe, TaskRequest Request)> Sent { get; } = new();
+
+        public Task<TaskOutcome> RunAsync(AgentDelegationEndpoint endpoint, TaskRequest request, ITaskObserver observer, CancellationToken cancellationToken)
+        {
+            Sent.Add((endpoint.Pipe, request));
+            return Task.FromResult(new TaskOutcome(request.TaskId, TaskState.Completed, "done"));
+        }
+    }
+
+    private sealed class Launcher : IAgentLauncher
+    {
+        public bool Can { get; set; } = true;
+        public AgentLaunch Launch { get; set; } = new(true, null);
+        public Action? OnLaunch { get; set; }
+        public List<(string Agent, string? Document)> Launched { get; } = new();
+
+        public bool CanLaunch(string agent, string? document) => Can;
+
+        public Task<AgentLaunch> LaunchAsync(string agent, string? document, CancellationToken cancellationToken)
+        {
+            Launched.Add((agent, document));
+            OnLaunch?.Invoke();
+            return Task.FromResult(Launch);
+        }
+    }
+
+    private AgentRegistration Register(string pipe, params string[] workspaces)
+    {
+        var registration = _registry.Register(new AgentPresence
+        {
+            Agent = "word-assistant",
+            Instance = pipe,
+            Workspaces = workspaces,
+            Delegation = new AgentDelegationEndpoint { Pipe = pipe, Secret = "s", Card = new AgentCardSummary { Slug = "word-assistant", Name = "Word" } },
+        });
+        _disposables.Add(registration);
+        return registration;
+    }
+
+    private LocalAgentDelegate Caller(Launcher? launcher = null, TimeSpan? timeout = null) => new(_registry, "desktop-assistant", "Desktop agent",
+        new Dictionary<string, string> { ["word-assistant"] = "Word" }, _client, new LocalAgentDelegateOptions
+        {
+            Launcher = launcher, ReadyTimeout = timeout ?? TimeSpan.FromSeconds(10), PollInterval = TimeSpan.FromMilliseconds(10),
+        });
+
+    private static DelegationRequest Ask(string? document) => new("word-assistant", "Comment.") { Document = document };
+
+    [Fact]
+    public async Task A_task_for_a_document_goes_to_the_instance_that_works_in_it()
+    {
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        var other = Register("pipe-other", Path.Combine(docs, "other.docx"));
+        Register("pipe-report", Path.Combine(docs, "report.docx"));
+        other.Update(AgentStatus.Idle); // the newest, but not the one
+        // The same file written another way: through ".", and on Windows in another case.
+        var written = Path.Combine(docs, ".", "report.docx");
+        written = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? written.ToLowerInvariant() : written;
+
+        var result = await Caller().RunAsync(Ask(written));
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        var sent = Assert.Single(_client.Sent);
+        Assert.Equal("pipe-report", sent.Pipe);
+        Assert.Equal(written, sent.Request.Document);
+    }
+
+    [Fact]
+    public async Task Without_a_document_and_several_documents_open_the_task_is_refused_with_their_list()
+    {
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        Register("pipe-first", Path.Combine(docs, "a.docx"));
+        Register("pipe-second", Path.Combine(docs, "b.docx"));
+
+        var result = await Caller().RunAsync(Ask(null));
+
+        Assert.Equal(DelegationOutcome.Rejected, result.Outcome);
+        Assert.Contains(Path.Combine(docs, "a.docx"), result.Text);
+        Assert.Contains(Path.Combine(docs, "b.docx"), result.Text);
+        Assert.Contains("document set to the one the person means", result.Text);
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task With_several_documents_open_the_person_chooses_and_the_task_goes_to_that_one()
+    {
+        var docs = Path.Combine(Path.GetTempPath(), "Docs");
+        Register("pipe-a", Path.Combine(docs, "a.docx"));
+        Register("pipe-b", Path.Combine(docs, "b.docx"));
+        DelegationChoiceRequest? asked = null;
+
+        var result = await Caller().RunAsync(Ask(null), new DelegationCallbacks
+        {
+            Choose = (request, _) =>
+            {
+                asked = request;
+                return Task.FromResult<string?>(request.Documents[0]);
+            },
+        });
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        Assert.Equal(("word-assistant", "Word"), (asked!.Agent, asked.AgentName));
+        Assert.Equal(new[] { Path.Combine(docs, "a.docx"), Path.Combine(docs, "b.docx") }, asked.Documents);
+        var sent = Assert.Single(_client.Sent);
+        Assert.Equal(("pipe-a", Path.Combine(docs, "a.docx")), (sent.Pipe, sent.Request.Document));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not-one-of-them.docx")]
+    public async Task A_person_who_chooses_none_of_the_documents_cancels_the_task(string? answer)
+    {
+        Register("pipe-a", "a.docx");
+        Register("pipe-b", "b.docx");
+
+        var result = await Caller().RunAsync(Ask(null), new DelegationCallbacks { Choose = (_, _) => Task.FromResult(answer) });
+
+        Assert.Equal(DelegationOutcome.Canceled, result.Outcome);
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task Without_a_document_one_document_open_in_two_windows_or_beside_an_instance_without_one_takes_the_task()
+    {
+        var doc = Path.Combine(Path.GetTempPath(), "Docs", "a.docx");
+        Register("pipe-first", doc);
+        Register("pipe-second", doc);
+        Register("pipe-none");
+
+        var result = await Caller().RunAsync(Ask(null));
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        Assert.Equal("pipe-none", Assert.Single(_client.Sent).Pipe); // the newest, as before
+        Assert.Null(_client.Sent[0].Request.Document);
+    }
+
+    [Fact]
+    public void An_unsaved_documents_name_is_compared_as_a_name()
+    {
+        Assert.True(DocumentPaths.Same("Document1", "document1"));
+        Assert.False(DocumentPaths.Same("Document1", "Document2"));
+        Assert.False(DocumentPaths.Same("Document1", @"C:\Docs\Document1"));
+        Assert.False(DocumentPaths.Same("", ""));
+    }
+
+    [Fact]
+    public async Task A_document_nobody_has_open_and_no_launcher_names_the_document_in_the_answer()
+    {
+        Register("pipe-other", @"C:\Docs\other.docx");
+
+        var result = await Caller().RunAsync(Ask(@"C:\Docs\report.docx"));
+
+        Assert.Equal(DelegationOutcome.NotRunning, result.Outcome);
+        Assert.Contains(@"C:\Docs\report.docx", result.Text);
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task A_launcher_starts_the_app_and_the_task_runs_when_the_agent_appears()
+    {
+        var statuses = new List<DelegationStatus>();
+        var launcher = new Launcher { OnLaunch = () => _ = Task.Run(async () =>
+        {
+            await Task.Delay(100);
+            Register("pipe-new", @"C:\Docs\report.docx");
+        }) };
+
+        var result = await Caller(launcher).RunAsync(Ask(@"C:\Docs\report.docx"), new DelegationCallbacks { Status = statuses.Add });
+
+        Assert.Equal(DelegationOutcome.Completed, result.Outcome);
+        Assert.Equal((@"word-assistant", @"C:\Docs\report.docx"), Assert.Single(launcher.Launched));
+        var launching = Assert.Single(statuses, s => s.State == "launching");
+        Assert.Equal((result.TaskId, "word-assistant", @"C:\Docs\report.docx"), (launching.TaskId, launching.Agent, launching.Text));
+        Assert.Equal("pipe-new", Assert.Single(_client.Sent).Pipe);
+    }
+
+    [Fact]
+    public async Task A_launch_that_did_not_start_answers_with_the_launchers_problem()
+    {
+        var launcher = new Launcher { Launch = new AgentLaunch(false, "Word is not installed.") };
+
+        var result = await Caller(launcher).RunAsync(Ask(@"C:\Docs\report.docx"));
+
+        Assert.Equal((DelegationOutcome.NotRunning, "Word is not installed."), (result.Outcome, result.Text));
+        Assert.Empty(_client.Sent);
+    }
+
+    [Fact]
+    public async Task An_agent_that_does_not_get_ready_in_time_is_not_running()
+    {
+        var result = await Caller(new Launcher(), TimeSpan.FromMilliseconds(100)).RunAsync(Ask(@"C:\Docs\report.docx"));
+
+        Assert.Equal((DelegationOutcome.NotRunning, "Word did not get ready in time."), (result.Outcome, result.Text));
+    }
+
+    [Fact]
+    public async Task Cancelling_while_the_app_starts_cancels_the_delegation()
+    {
+        using var cancel = new CancellationTokenSource();
+        var running = Caller(new Launcher()).RunAsync(Ask(@"C:\Docs\report.docx"), null, cancel.Token);
+        await Task.Delay(100);
+
+        cancel.Cancel();
+        var result = await running.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(DelegationOutcome.Canceled, result.Outcome);
+    }
+
+    [Fact]
+    public async Task A_launcher_that_cannot_start_the_agent_is_not_asked()
+    {
+        var launcher = new Launcher { Can = false };
+
+        var result = await Caller(launcher).RunAsync(Ask(null));
+
+        Assert.Equal(DelegationOutcome.NotRunning, result.Outcome);
+        Assert.Empty(launcher.Launched);
+    }
+
+    [Fact]
+    public async Task A_running_agent_is_not_launched_again()
+    {
+        Register("pipe-report", @"C:\Docs\report.docx");
+        var launcher = new Launcher();
+
+        await Caller(launcher).RunAsync(Ask(@"C:\Docs\report.docx"));
+
+        Assert.Empty(launcher.Launched);
+        Assert.Single(_client.Sent);
+    }
+}
