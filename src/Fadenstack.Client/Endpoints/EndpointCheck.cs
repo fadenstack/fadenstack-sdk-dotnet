@@ -92,7 +92,7 @@ public sealed record EndpointReport
     /// <summary>Pictures: off in standalone until D17 (owner, 14 Nov), so always false here.</summary>
     public bool Pictures { get; init; }
 
-    public WatermarkStatus Watermark { get; init; } = new();
+    public EndpointWatermarkStatus Watermark { get; init; } = new();
 
     public IReadOnlyList<EndpointProblem> Problems { get; init; } = [];
 
@@ -539,6 +539,23 @@ public sealed class EndpointCheck
         }
     }
 
+    /// <summary>
+    /// The text watermark status of an endpoint from the sourced table alone, by its host and dialect, with no request: what
+    /// applies when no check report is at hand (a vLLM or SGLang server of unknown version: only if its operator configured it).
+    /// </summary>
+    public static EndpointWatermarkStatus WatermarkOf(ModelEndpoint endpoint)
+    {
+        if (endpoint is null)
+        {
+            throw new ArgumentNullException(nameof(endpoint));
+        }
+        return TextWatermarks.For(ServerOf(endpoint), null, endpoint.Dialect.RequestWatermark, null);
+    }
+
+    /// <summary>The kind of server behind an endpoint by its host and dialect alone, with no request.</summary>
+    public static EndpointServer ServerOf(ModelEndpoint endpoint) =>
+        (endpoint?.BaseUrl is null ? null : ByHost(endpoint.BaseUrl)) ?? ByDialect(endpoint?.Dialect ?? EndpointDialect.OpenAICompatible);
+
     /// <summary>The server by the endpoint's host, for the clouds whose host says it.</summary>
     internal static EndpointServer? ByHost(Uri baseUrl)
     {
@@ -557,7 +574,7 @@ public sealed class EndpointCheck
         };
     }
 
-    private static EndpointServer ByDialect(EndpointDialect dialect) => dialect.Name switch
+    internal static EndpointServer ByDialect(EndpointDialect dialect) => dialect.Name switch
     {
         "openai" => EndpointServer.OpenAI,
         "azure-openai" => EndpointServer.AzureOpenAI,

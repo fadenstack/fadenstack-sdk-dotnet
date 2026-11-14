@@ -377,6 +377,37 @@ public class StandaloneAgentTests : IDisposable
         Assert.All(fake.Requests, r => Assert.EndsWith("/v1/chat/completions", r.Url.AbsolutePath));
     }
 
+    [Fact]
+    public async Task Each_answer_records_what_the_endpoint_did_about_its_watermark_and_a_servers_does_not()
+    {
+        var store = new MemorySessionStore();
+        var fake = new OpenAiFake();
+        fake.ChatHeaders["x-watermark"] = "false";
+        using var agent = FadenstackAgent.CreateBuilder()
+            .UseEndpoint(new ModelEndpoint { BaseUrl = new Uri("http://localhost:11434/v1"), Model = "m", Dialect = EndpointDialect.Ollama, Handler = fake })
+            .UseLocalProfile(AgentDefinition.FromJson(Definition)).UseSessionStore(store).UseApprovalStore(new MemoryApprovalStore()).Build();
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("Hi");
+
+        Assert.Equal(TextWatermark.Never, agent.EndpointWatermark!.Status);
+        var answer = (await store.ReadAsync(agent.Slug, session.Id, default)).Single(e => e.Type == EntryTypes.AssistantMessage);
+        var marking = answer.Data.GetProperty("endpoint_marking");
+        Assert.Equal("Never", marking.GetProperty("status").GetString());
+        Assert.False(marking.GetProperty("requested").GetBoolean());
+        Assert.False(marking.GetProperty("confirmed").GetBoolean());
+        Assert.False(marking.GetProperty("deterministic").GetBoolean());
+
+        var gatewayStore = new MemorySessionStore();
+        var gateway = new Gateway();
+        using var governed = gateway.Builder(gatewayStore).Build();
+        gateway.Says("Hi.");
+        var g = await governed.StartSessionAsync();
+        await g.SendAsync("Hi");
+        Assert.Null(governed.EndpointWatermark);
+        var governedAnswer = (await gatewayStore.ReadAsync(governed.Slug, g.Id, default)).Single(e => e.Type == EntryTypes.AssistantMessage);
+        Assert.False(governedAnswer.Data.TryGetProperty("endpoint_marking", out _));
+    }
+
     public sealed class LocalTools
     {
         [AgentTool(ToolClass.Read), Description("Reads a page.")]

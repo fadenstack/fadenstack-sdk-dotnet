@@ -21,6 +21,7 @@ internal static class EndpointWire
     public static JsonObject Request(IEnumerable<ChatMessage> messages, ChatOptions? options, string model, bool stream,
         EndpointDialect dialect)
     {
+        var unread = IsUnread(options);
         var body = ChatWire.Request(messages, Clean(options), model, stream);
         if (!dialect.StreamUsage)
         {
@@ -52,12 +53,26 @@ internal static class EndpointWire
                 message.Remove("name"); // the person's name stays on the device (data minimisation)
             }
         }
-        if (dialect.RequestWatermark)
+        // Text people read: the mark is asked for where the server takes a request, and never switched off. Only an answer
+        // nobody reads (the caller said so) may go without it, and only where the server has the switch (F10).
+        if (!unread && dialect.RequestWatermark)
         {
             body["watermark"] = new JsonObject { ["enabled"] = true };
         }
+        else if (unread && dialect.WatermarkSwitchOff == WatermarkSwitchOff.WatermarkingFalse)
+        {
+            body["watermarking"] = false;
+        }
+        else if (unread && dialect.WatermarkSwitchOff == WatermarkSwitchOff.WatermarkEnabledFalse)
+        {
+            body["watermark"] = new JsonObject { ["enabled"] = false };
+        }
         return body;
     }
+
+    /// <summary>Whether the caller said no person reads this answer (<see cref="FadenstackChatOptions.Unread"/>, exactly <c>true</c>).</summary>
+    public static bool IsUnread(ChatOptions? options) =>
+        options?.AdditionalProperties?.TryGetValue(FadenstackChatOptions.Unread, out var value) == true && value is true;
 
     /// <summary>The options without the gateway's keys and without any extra key that is not passed through.</summary>
     private static ChatOptions? Clean(ChatOptions? options)

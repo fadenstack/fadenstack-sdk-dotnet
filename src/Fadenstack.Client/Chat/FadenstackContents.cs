@@ -143,6 +143,12 @@ public static class FadenstackChatOptions
     /// </summary>
     public const string EndpointMarking = "faden.endpoint_marking";
 
+    /// <summary>
+    /// Set to <c>true</c> on a request whose answer no person reads (a classification, a message between agents): only then may
+    /// a person's own endpoint be asked to leave its text watermark off (sdk/51 F10). Text people read always keeps it.
+    /// </summary>
+    public const string Unread = "faden.unread";
+
     public static ChatOptions WithConversation(this ChatOptions options, string conversationId, string? turnId = null)
     {
         options.AdditionalProperties ??= new AdditionalPropertiesDictionary();

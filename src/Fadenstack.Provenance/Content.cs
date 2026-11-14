@@ -58,6 +58,12 @@ public sealed record MarkableContent
     /// <summary>The receipt of the model's answer the content came from; null when there is none.</summary>
     public ProvenanceReceiptContent? Receipt { get; init; }
 
+    /// <summary>
+    /// Without a server: the person's endpoint and its answer, as far as their text watermark goes (sdk/51 F10); null with a
+    /// server, whose receipt says it.
+    /// </summary>
+    internal EndpointLayer? Endpoint { get; init; }
+
     /// <summary>Under the policy's short-text threshold: no watermark is expected.</summary>
     public bool IsShort { get; init; }
 
@@ -300,3 +306,6 @@ public static class ExemptReasons
     /// </summary>
     public const string NotContent = "not-content";
 }
+
+/// <summary>What a standalone agent knows of its endpoint's text watermark: the connection's status, and the answer's marking.</summary>
+internal sealed record EndpointLayer(Fadenstack.Endpoints.EndpointWatermarkStatus Connection, Fadenstack.Endpoints.EndpointMarking? Answer, string Server);

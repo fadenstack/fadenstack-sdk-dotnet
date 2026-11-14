@@ -76,6 +76,15 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     public Uri? EndpointUrl => (_settings.Backend as LocalAgentBackend)?.EndpointUrl;
 
     /// <summary>
+    /// For a standalone agent, whether its connection marks text with the server's watermark (sdk/51 F03 item 8, F10): the
+    /// endpoint check's report, else the sourced table. Null with a Fadenstack server, whose receipts say it per answer.
+    /// </summary>
+    public Endpoints.EndpointWatermarkStatus? EndpointWatermark => (_settings.Backend as LocalAgentBackend)?.Watermark;
+
+    /// <summary>For a standalone agent, the kind of server behind its endpoint; null with a Fadenstack server.</summary>
+    internal Endpoints.EndpointServer? EndpointServer => (_settings.Backend as LocalAgentBackend)?.Server;
+
+    /// <summary>
     /// How the agent is connected: <see cref="AgentConnection.Governed"/> to an organisation's Fadenstack server, or
     /// <see cref="AgentConnection.Standalone"/> to the person's own model endpoint. For showing or hiding the server's parts.
     /// </summary>

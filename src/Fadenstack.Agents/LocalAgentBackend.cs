@@ -60,6 +60,17 @@ internal sealed class LocalAgentBackend : IAgentBackend
     /// <summary>The endpoint's base, when the agent talks to one (not for a host's own chat client).</summary>
     public Uri? EndpointUrl => _endpoint?.BaseUrl;
 
+    /// <summary>
+    /// Whether the connection marks text (F03 item 8): the check's word when the app gave its report, else the sourced table by
+    /// the endpoint's host and dialect; unknown for a host's own chat client.
+    /// </summary>
+    /// <summary>The kind of server: the check's word, else by the endpoint's host and dialect.</summary>
+    public EndpointServer Server => _report?.Server is { } known && known != EndpointServer.Unknown ? known
+        : _endpoint is null ? EndpointServer.Unknown : EndpointCheck.ServerOf(_endpoint);
+
+    public EndpointWatermarkStatus Watermark => _report?.Watermark
+        ?? (_endpoint is null ? new EndpointWatermarkStatus { Status = TextWatermark.Unknown } : EndpointCheck.WatermarkOf(_endpoint));
+
     public bool AcceptsEvents => false;
 
     public async Task<AgentProfile> GetProfileAsync(CancellationToken cancellationToken)

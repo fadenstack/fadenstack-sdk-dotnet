@@ -131,6 +131,30 @@ internal sealed class ReceiptKeeper
         }
     }
 
+    private readonly Dictionary<string, Endpoints.EndpointMarking> _markings = new();
+
+    /// <summary>A person's own endpoint said what it did about its watermark for the turn's latest model call (F10).</summary>
+    public void KeepMarking(string? turn, Endpoints.EndpointMarking marking)
+    {
+        if (turn is null)
+        {
+            return;
+        }
+        lock (_turns)
+        {
+            Turn(turn);
+            _markings[turn] = marking;
+        }
+    }
+
+    public Endpoints.EndpointMarking? LatestMarking(string turn)
+    {
+        lock (_turns)
+        {
+            return _markings.TryGetValue(turn, out var m) ? m : null;
+        }
+    }
+
     public IReadOnlyList<ProvenanceReceiptContent> Of(string turn)
     {
         lock (_turns)
@@ -176,6 +200,11 @@ internal sealed class ReceiptStage : DelegatingChatClient
         {
             _receipts.Keep(turn, receipt);
         }
+        if (response.AdditionalProperties?.TryGetValue(FadenstackChatOptions.EndpointMarking, out var m) == true
+            && m is Endpoints.EndpointMarking marking)
+        {
+            _receipts.KeepMarking(turn, marking);
+        }
         return response;
     }
 
@@ -189,6 +218,11 @@ internal sealed class ReceiptStage : DelegatingChatClient
             foreach (var receipt in update.Contents.OfType<ProvenanceReceiptContent>())
             {
                 _receipts.Keep(turn, receipt);
+            }
+            if (update.AdditionalProperties?.TryGetValue(FadenstackChatOptions.EndpointMarking, out var m) == true
+                && m is Endpoints.EndpointMarking marking)
+            {
+                _receipts.KeepMarking(turn, marking);
             }
             yield return update;
         }

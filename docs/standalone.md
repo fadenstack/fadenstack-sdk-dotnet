@@ -127,6 +127,20 @@ On SGLang every request asks for the mark; a server that refuses the request get
 (`AdditionalProperties[FadenstackChatOptions.EndpointMarking]`): requested, confirmed, and whether the sampling was
 deterministic (temperature 0, top-k 1), which defeats a watermark.
 
+### The watermark rules
+
+- **Never switched off for text people read.** On vLLM a request without `watermarking` gets the mark, and on SGLang the
+  agent asks for it; the SDK sends a switch-off (`watermarking: false`, `watermark: {"enabled": false}`) only for a call
+  whose answer no person reads, which the caller says with `AdditionalProperties[FadenstackChatOptions.Unread] = true`
+  (a classification, a message between agents). An app's own `watermarking` or `watermark` field is never passed on.
+- **Deterministic sampling defeats it:** the SDK does not default to temperature 0 or top-k 1; where an app sets them, the
+  record says the watermark may not apply.
+- **The record says what held.** Each answer's transcript entry carries `endpoint_marking` (the connection's status,
+  requested, the server's word, deterministic), and `agent.EndpointWatermark` gives the connection's status. With the
+  provenance module, each placement's watermark layer is `endpoint-<server>`: applied only where the provider marks by
+  default or the server said so for that answer; `runtime-without-watermark` for Ollama and the like;
+  `no-watermark-greedy` for deterministic sampling; otherwise not claimed, with why.
+
 ## Keys
 
 | Where | How the key is kept |

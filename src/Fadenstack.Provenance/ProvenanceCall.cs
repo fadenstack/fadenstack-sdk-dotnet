@@ -112,7 +112,13 @@ internal sealed class ProvenanceCall : IProvenance
         var receipt = content.ReceiptId is { Length: > 0 } id ? new ProvenanceReceiptContent(null, id)
             : isImage ? null : Receipt;
         var (facts, dropped) = Enrich(content, kind);
-        var given = content with { Receipt = receipt, IsShort = isShort, Texts = Options.TextsFor(Language()), Facts = facts };
+        var endpoint = _call.Agent?.EndpointWatermark is { } connection && !isImage
+            ? new EndpointLayer(connection, _state.Receipts.LatestMarking(_call.TurnId), ServerName(_call.Agent!))
+            : null;
+        var given = content with
+        {
+            Receipt = receipt, IsShort = isShort, Texts = Options.TextsFor(Language()), Facts = facts, Endpoint = endpoint,
+        };
         var placement = new Placement
         {
             Tool = _call.Tool.Name, SinkKind = content.Sink.Kind, MediaType = content.MediaType, EditKind = kind, LengthClass = length,
@@ -436,6 +442,13 @@ internal sealed class ProvenanceCall : IProvenance
             Log.RecordNotSigned(Logger, _call.Tool.Name, e.GetType().Name);
             return null;
         }
+    }
+
+    /// <summary>The kind of server behind a standalone agent's endpoint, lower case, for the layer's method (<c>endpoint-ollama</c>).</summary>
+    private static string ServerName(FadenstackAgent agent)
+    {
+        var server = agent.EndpointServer ?? Endpoints.EndpointServer.Unknown;
+        return server == Endpoints.EndpointServer.Unknown ? "unknown" : server.ToString().ToLowerInvariant();
     }
 
     private static string? Model(FadenstackAgent agent)

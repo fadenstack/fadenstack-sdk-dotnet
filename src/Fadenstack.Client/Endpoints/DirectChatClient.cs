@@ -134,7 +134,7 @@ public sealed class DirectChatClient : IChatClient
     private void Mark(AdditionalPropertiesDictionary properties, HttpResponseMessage response, ChatOptions? options) =>
         properties[FadenstackChatOptions.EndpointMarking] = new EndpointMarking
         {
-            Requested = Dialect.RequestWatermark,
+            Requested = Dialect.RequestWatermark && !EndpointWire.IsUnread(options),
             Confirmed = EndpointMarking.Header(FadenstackTransport.HeaderValue(response, "x-watermark")),
             Deterministic = EndpointWire.Deterministic(options),
         };

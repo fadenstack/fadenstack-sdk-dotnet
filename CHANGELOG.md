@@ -15,7 +15,7 @@ this file says where it does.
   - `ModelEndpoint`, `EndpointDialect` (OpenAI, Azure OpenAI, Ollama, LM Studio, vLLM, SGLang, llama.cpp, LiteLLM,
     OpenRouter, Mistral), `EndpointPreset`, and `DirectChatClient`, the endpoint as an `IChatClient`.
   - `EndpointCheck` and its serialisable `EndpointReport`: reachable, the key, the models, usage figures, tool calls,
-    vision, the context length, and the text watermark status from a sourced table (`TextWatermark`, `WatermarkStatus`);
+    vision, the context length, and the text watermark status from a sourced table (`TextWatermark`, `EndpointWatermarkStatus`);
     `FindLocalAsync` looks for local servers only with the person's consent.
   - Typed errors: `EndpointKeyRejectedException`, `EndpointOriginRefusedException`, `EndpointModelNotFoundException`,
     `EndpointContextLengthException`, `EndpointNotCompatibleException`, `EndpointUnreachableException`,
@@ -31,6 +31,10 @@ this file says where it does.
   (chosen by the agent's connection), with `DeviceSigner` (the engine's JWS format, ES256, a key per installation kept by
   the OS key store), RFC 3161 time-stamps (`LocalProvenanceOptions`, `ProvenanceOptions.UseLocalBackend`) and a local
   placement log that rotates.
+- **The endpoint's text watermark** (part of D18): never switched off for text people read; `FadenstackChatOptions.Unread`
+  for a call nobody reads, where vLLM and SGLang may leave it off (`EndpointDialect.WatermarkSwitchOff`); each answer's
+  transcript entry records `endpoint_marking`; `FadenstackAgent.EndpointWatermark`; `EndpointCheck.WatermarkOf` and
+  `ServerOf`; the provenance module's watermark layer relies on the endpoint (`endpoint-<server>`) and never claims more.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork

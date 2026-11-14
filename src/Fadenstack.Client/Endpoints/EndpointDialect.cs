@@ -30,6 +30,20 @@ public enum ThinkingSwitch
     ChatTemplateKwargs,
 }
 
+/// <summary>How a request asks a server to leave its text watermark off; sent only for calls no person reads (F10).</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum WatermarkSwitchOff
+{
+    /// <summary>The server has no such switch, or the SDK never sends it.</summary>
+    None,
+
+    /// <summary><c>watermarking: false</c>: vLLM (0.30+) and TensorRT-LLM.</summary>
+    WatermarkingFalse,
+
+    /// <summary><c>watermark: {"enabled": false}</c>: SGLang (0.5.22+).</summary>
+    WatermarkEnabledFalse,
+}
+
 /// <summary>Which header carries the key.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum KeyHeader
@@ -72,6 +86,12 @@ public sealed record EndpointDialect
     /// </summary>
     public bool RequestWatermark { get; init; }
 
+    /// <summary>
+    /// How a request for an answer no person reads (<see cref="Chat.FadenstackChatOptions.Unread"/>) asks the server to leave
+    /// its watermark off. Never sent for text people read (owner, 14 Nov; part of D18).
+    /// </summary>
+    public WatermarkSwitchOff WatermarkSwitchOff { get; init; }
+
     /// <summary>Any server that speaks the OpenAI chat completions API: nothing beyond the common fields.</summary>
     public static EndpointDialect OpenAICompatible { get; } = new();
 
@@ -92,11 +112,15 @@ public sealed record EndpointDialect
 
     public static EndpointDialect LMStudio { get; } = new() { Name = "lm-studio" };
 
-    public static EndpointDialect Vllm { get; } = new() { Name = "vllm", Thinking = ThinkingSwitch.ChatTemplateKwargs };
+    public static EndpointDialect Vllm { get; } = new()
+    {
+        Name = "vllm", Thinking = ThinkingSwitch.ChatTemplateKwargs, WatermarkSwitchOff = WatermarkSwitchOff.WatermarkingFalse,
+    };
 
     public static EndpointDialect Sglang { get; } = new()
     {
         Name = "sglang", Thinking = ThinkingSwitch.ChatTemplateKwargs, RequestWatermark = true,
+        WatermarkSwitchOff = WatermarkSwitchOff.WatermarkEnabledFalse,
     };
 
     public static EndpointDialect LlamaCpp { get; } = new() { Name = "llama.cpp", Thinking = ThinkingSwitch.ChatTemplateKwargs };

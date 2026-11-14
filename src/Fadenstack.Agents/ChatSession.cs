@@ -1076,12 +1076,18 @@ public sealed class ChatSession
             var text = new StringBuilder();
             var calls = new List<FunctionCallContent>();
             var receipts = new List<ProvenanceReceiptContent>();
+            Endpoints.EndpointMarking? marking = null;
             ChatFinishReason? finish = null;
             _grantsSince = Agent.Grants.Generation;
             await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
                 .ConfigureAwait(false))
             {
                 finish = update.FinishReason ?? finish;
+                if (update.AdditionalProperties?.TryGetValue(FadenstackChatOptions.EndpointMarking, out var m) == true
+                    && m is Endpoints.EndpointMarking endpointMarking)
+                {
+                    marking = endpointMarking; // a person's own endpoint says what it did about its watermark (F10)
+                }
                 foreach (var content in update.Contents)
                 {
                     switch (content)
@@ -1131,6 +1137,15 @@ public sealed class ChatSession
                     origin = "model",
                     // What made the answer, by the receipts' ids: never more of them than that.
                     receipts = receipts.Count == 0 ? null : receipts.Select(ReceiptData).ToList(),
+                    // Without a server: the endpoint's text watermark for this answer, as far as anyone can tell (F10): the
+                    // connection's status, whether the request asked for it, the server's word, and deterministic sampling.
+                    endpoint_marking = marking is null ? null : new
+                    {
+                        status = Agent.EndpointWatermark?.Status.ToString(),
+                        requested = marking.Requested,
+                        confirmed = marking.Confirmed,
+                        deterministic = marking.Deterministic,
+                    },
                 }).ConfigureAwait(false);
             }
             if (_blocked is not null)

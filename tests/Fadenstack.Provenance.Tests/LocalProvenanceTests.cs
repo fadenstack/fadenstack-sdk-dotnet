@@ -347,6 +347,69 @@ public class LocalProvenanceTests : IDisposable
         Assert.All(fake.Requests, r => Assert.EndsWith("/chat/completions", r.Url.AbsolutePath)); // nothing else left the device
     }
 
+    [Theory]
+    [InlineData("http://localhost:11434/v1", "ollama", null, false, "endpoint-ollama", false, ProvenanceReasons.RuntimeWithoutWatermark)]
+    [InlineData("https://api.anthropic.com/v1", "openai-compatible", null, false, "endpoint-anthropic", true, null)]
+    [InlineData("https://api.x.ai/v1", "openai-compatible", "true", false, "endpoint-xai", true, null)]
+    [InlineData("https://api.x.ai/v1", "openai-compatible", "false", false, "endpoint-xai", false, ProvenanceReasons.NoWatermarkRemoteModel)]
+    [InlineData("https://api.openai.com/v1", "openai", null, false, "endpoint-openai", false, null)]
+    [InlineData("http://localhost:8000/v1", "vllm", null, false, "endpoint-vllm", false, null)]
+    [InlineData("https://api.anthropic.com/v1", "openai-compatible", null, true, "endpoint-anthropic", false, ProvenanceReasons.NoWatermarkGreedy)]
+    public async Task The_watermark_layer_relies_on_the_endpoint_and_never_claims_more(string baseUrl, string dialect, string? header,
+        bool greedy, string method, bool applied, string? reason)
+    {
+        var fake = new OpenAiFake();
+        if (header is not null)
+        {
+            fake.ChatHeaders["x-watermark"] = header;
+        }
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "chat_message", JsonSerializer.Serialize(new { text = TestAgents.LongText }))));
+        fake.Answers.Enqueue(OpenAiFake.Text("Done."));
+        var tools = new WritingTools();
+        var builder = FadenstackAgent.CreateBuilder()
+            .UseEndpoint(new ModelEndpoint
+            {
+                BaseUrl = new Uri(baseUrl), Model = "m", Dialect = EndpointDialect.Named(dialect), Handler = fake,
+                Key = baseUrl.StartsWith("https", StringComparison.Ordinal) ? new StaticTokenProvider("k") : null,
+            })
+            .UseLocalProfile(AgentDefinition.FromJson("{\"slug\":\"docs-assistant\",\"version\":{\"host_tool_contract\":" + WritingTools.Contract + "}}"))
+            .UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore())
+            .UseApprovals((_, _) => Task.FromResult(ApprovalDecision.Approve()))
+            .AddTools(tools)
+            .Use(new ProvenanceModule(o => o.UseLocalBackend(new LocalProvenanceOptions
+            {
+                Folder = _folder, Signer = DeviceSigner.Ephemeral(), Timestamping = false,
+            })));
+        if (greedy)
+        {
+            builder.AddChatStage(StageOrder.Custom, inner => new GreedyStage(inner));
+        }
+        using var agent = builder.Build();
+
+        var session = await agent.StartSessionAsync();
+        await session.SendAsync("Tell the customer.");
+
+        var layer = Assert.Single(Assert.Single(tools.Placed).Layers, l => l.Layer == MarkLayer.Watermark);
+        Assert.Equal((method, applied, reason), (layer.Method, layer.Applied, layer.Reason));
+    }
+
+    /// <summary>An app that sets temperature 0: the endpoint's watermark may not apply.</summary>
+    private sealed class GreedyStage : Microsoft.Extensions.AI.DelegatingChatClient
+    {
+        public GreedyStage(Microsoft.Extensions.AI.IChatClient inner) : base(inner)
+        {
+        }
+
+        public override IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<Microsoft.Extensions.AI.ChatMessage> messages, Microsoft.Extensions.AI.ChatOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            options ??= new Microsoft.Extensions.AI.ChatOptions();
+            options.Temperature = 0;
+            return base.GetStreamingResponseAsync(messages, options, cancellationToken);
+        }
+    }
+
     // ---- helpers ----
 
     private static byte[] PrivateKeyOf(DeviceSigner signer)

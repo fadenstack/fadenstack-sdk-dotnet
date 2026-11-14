@@ -23,7 +23,7 @@ public enum TextWatermark
 }
 
 /// <summary>A connection's text watermark status, with the source it rests on; kept for the records (F10).</summary>
-public sealed record WatermarkStatus
+public sealed record EndpointWatermarkStatus
 {
     public TextWatermark Status { get; init; }
 
@@ -51,7 +51,7 @@ internal static class TextWatermarks
     private static readonly Version VllmFirst = new(0, 30, 0);
     private static readonly Version SglangFirst = new(0, 5, 22);
 
-    public static WatermarkStatus For(EndpointServer server, string? version, bool requested, bool? confirmed)
+    public static EndpointWatermarkStatus For(EndpointServer server, string? version, bool requested, bool? confirmed)
     {
         var (status, source) = server switch
         {
@@ -72,7 +72,7 @@ internal static class TextWatermarks
                 "https://discuss.ai.google.dev/t/does-gemini-api-text-output-carry-synthid-watermarking-gemini-2-5-flash-lite-gemini-3-1-flash-lite-eu-ai-act-art-50-2/177241"),
             _ => (TextWatermark.Unknown, (string?)null), // Mistral, OpenRouter, LiteLLM, unknown: none found, or the provider behind it decides
         };
-        return new WatermarkStatus { Status = status, Source = source, Checked = Checked, Requested = requested, Confirmed = confirmed };
+        return new EndpointWatermarkStatus { Status = status, Source = source, Checked = Checked, Requested = requested, Confirmed = confirmed };
     }
 
     /// <summary>A known version before the first with the feature: never; at or after it, or unknown: only if configured.</summary>

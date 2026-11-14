@@ -554,6 +554,54 @@ public class EndpointClientTests
     // ---- the watermark as an answer reports it (F03 item 8, F10) ----
 
     [Theory]
+    [InlineData("vllm")]
+    [InlineData("sglang")]
+    [InlineData("ollama")]
+    public async Task A_request_for_text_people_read_never_switches_the_watermark_off(string dialect)
+    {
+        var (client, fake) = Make("https://api.example.test/v1", EndpointDialect.Named(dialect), new StaticTokenProvider("k"));
+        var options = new ChatOptions { AdditionalProperties = new() { ["watermarking"] = false, ["watermark"] = new { enabled = false } } };
+
+        await StreamAsync(client, options);
+
+        var body = fake.Requests[0].Json;
+        Assert.False(body.TryGetProperty("watermarking", out _));
+        Assert.Equal(dialect == "sglang", body.TryGetProperty("watermark", out var w) && w.GetProperty("enabled").GetBoolean());
+        if (dialect != "sglang")
+        {
+            Assert.False(body.TryGetProperty("watermark", out _));
+        }
+    }
+
+    [Theory]
+    [InlineData("vllm", "{\"watermarking\":false}")]
+    [InlineData("sglang", "{\"watermark\":{\"enabled\":false}}")]
+    [InlineData("ollama", "{}")]
+    public async Task An_answer_nobody_reads_may_go_without_the_watermark_where_the_server_has_the_switch(string dialect, string expected)
+    {
+        var (client, fake) = Make("https://api.example.test/v1", EndpointDialect.Named(dialect), new StaticTokenProvider("k"));
+        var options = new ChatOptions { AdditionalProperties = new() { [FadenstackChatOptions.Unread] = true } };
+
+        var (_, updates) = await StreamAsync(client, options);
+
+        var body = fake.Requests[0].Json;
+        using var want = JsonDocument.Parse(expected);
+        foreach (var field in want.RootElement.EnumerateObject())
+        {
+            Assert.Equal(field.Value.GetRawText(), body.GetProperty(field.Name).GetRawText());
+        }
+        if (dialect == "ollama")
+        {
+            Assert.False(body.TryGetProperty("watermarking", out _));
+            Assert.False(body.TryGetProperty("watermark", out _));
+        }
+        Assert.False(body.TryGetProperty(FadenstackChatOptions.Unread, out _));
+        var marking = (EndpointMarking)updates.Last().AdditionalProperties![FadenstackChatOptions.EndpointMarking]!;
+        Assert.False(marking.Requested);
+    }
+
+
+    [Theory]
     [InlineData("true", true)]
     [InlineData("false", false)]
     [InlineData(null, null)]
