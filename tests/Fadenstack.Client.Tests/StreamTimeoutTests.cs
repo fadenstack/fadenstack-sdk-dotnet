@@ -71,10 +71,12 @@ public class StreamTimeoutTests
     [Fact]
     public async Task Keep_alive_comments_keep_a_slow_stream_alive_and_the_headers_timeout_does_not_cut_it()
     {
-        // 8 keep-alives 150 ms apart: 1.2 s in all, longer than both limits, never silent for as long as the idle one.
-        var events = Enumerable.Repeat(": keep-alive\n\n", 8).Concat(new[] { Chunk("Done."), Chunk("", "stop"), FakeServer.Done });
-        using var client = Make(new Handler(_ => Task.FromResult(Streaming(new Trickling(events, TimeSpan.FromMilliseconds(150))))),
-            timeout: TimeSpan.FromMilliseconds(500), idle: TimeSpan.FromMilliseconds(500));
+        // 25 keep-alives 100 ms apart: 2.5 s in all, longer than both limits (2 s), and never silent for as long as the idle one.
+        // The limits are real time (the SDK has no clock to inject), so they are 20 times the pause: a loaded machine that
+        // holds a 100 ms pause up for a second still does not make the stream look silent.
+        var events = Enumerable.Repeat(": keep-alive\n\n", 25).Concat(new[] { Chunk("Done."), Chunk("", "stop"), FakeServer.Done });
+        using var client = Make(new Handler(_ => Task.FromResult(Streaming(new Trickling(events, TimeSpan.FromMilliseconds(100))))),
+            timeout: TimeSpan.FromSeconds(2), idle: TimeSpan.FromSeconds(2));
 
         Assert.Equal("Done.", await ReadAllAsync(client, CancellationToken.None));
     }

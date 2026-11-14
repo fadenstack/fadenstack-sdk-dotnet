@@ -12,8 +12,19 @@ namespace Fadenstack.Client.Tests;
 /// </summary>
 public sealed class OpenAiFake : HttpMessageHandler
 {
-    /// <summary>What the endpoint was sent, in order.</summary>
-    public List<FakeRequest> Requests { get; } = new();
+    private readonly List<FakeRequest> _requests = new();
+
+    /// <summary>What it was sent, in order: a copy taken under the lock it writes with, safe to read while another request comes in.</summary>
+    public List<FakeRequest> Requests
+    {
+        get
+        {
+            lock (_requests)
+            {
+                return _requests.ToList();
+            }
+        }
+    }
 
     public Queue<FakeAnswer> Answers { get; } = new();
 
@@ -79,9 +90,9 @@ public sealed class OpenAiFake : HttpMessageHandler
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync();
         var headers = request.Headers.ToDictionary(h => h.Key.ToLowerInvariant(), h => string.Join(",", h.Value));
         var recorded = new FakeRequest(request.Method.Method, request.RequestUri!, headers, body);
-        lock (Requests)
+        lock (_requests)
         {
-            Requests.Add(recorded);
+            _requests.Add(recorded);
         }
         if (Intercept?.Invoke(recorded) is { } intercepted)
         {

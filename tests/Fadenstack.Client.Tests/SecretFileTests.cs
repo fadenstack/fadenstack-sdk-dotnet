@@ -23,8 +23,12 @@ public sealed class SecretFileTests : IDisposable
         // Each writer writes its own letter, large enough that a torn file would mix two.
         var payloads = Enumerable.Range(0, 6).Select(i => Enumerable.Repeat((byte)('a' + i), 128 * 1024).ToArray()).ToArray();
         var torn = 0;
+        var reads = 0;
         using var stop = new CancellationTokenSource();
-        // A reader that never pauses, reading the way the stores do.
+        // A reader that hardly pauses (1 ms, so a writer's rename can get in between its opens), reading the way the stores do.
+        // On Windows a rename can find the target held for an instant, and a read can find it just replaced and be refused;
+        // both are told "try again" (ReadKeptAsync does, for the stores), neither is a torn file. Run flat out, the reader
+        // starved the six writers' renames for longer than their two seconds under load (found on a full-solution run).
         var reader = Task.Run(() =>
         {
             while (!stop.IsCancellationRequested)
@@ -32,15 +36,17 @@ public sealed class SecretFileTests : IDisposable
                 try
                 {
                     var read = SecretProtection.ReadShared(File_);
+                    Interlocked.Increment(ref reads);
                     if (!payloads.Any(p => p.AsSpan().SequenceEqual(read)))
                     {
                         Interlocked.Increment(ref torn);
                     }
                 }
-                catch (FileNotFoundException)
+                catch (Exception e) when (e is FileNotFoundException or UnauthorizedAccessException or IOException)
                 {
-                    // before the first write
+                    // before the first write, or the instant of a replace
                 }
+                Thread.Sleep(1);
             }
         });
 
@@ -62,6 +68,7 @@ public sealed class SecretFileTests : IDisposable
         }
 
         Assert.Equal(0, torn);
+        Assert.True(reads > 0, "the reader never read the file, so it proved nothing");
         var final = File.ReadAllBytes(File_);
         Assert.Contains(payloads, p => p.AsSpan().SequenceEqual(final));
         Assert.Equal(new[] { File_ }, Directory.GetFiles(_directory)); // no temporary file left behind

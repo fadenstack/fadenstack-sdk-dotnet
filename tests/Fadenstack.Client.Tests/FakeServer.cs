@@ -9,8 +9,22 @@ public sealed class FakeServer : HttpMessageHandler
 {
     private readonly List<(string Method, string Path, Func<Recorded, HttpResponseMessage> Answer)> _routes = new();
 
-    /// <summary>What the server was sent, in order. Written under its own lock: read it once the requests are done.</summary>
-    public List<Recorded> Requests { get; } = new();
+    private readonly List<Recorded> _requests = new();
+
+    /// <summary>
+    /// What the server was sent, in order: a copy taken under the lock the server writes with, so a test that reads while
+    /// another request is still coming in (a refresh after start-up) never meets a list that changes under it.
+    /// </summary>
+    public List<Recorded> Requests
+    {
+        get
+        {
+            lock (_requests)
+            {
+                return _requests.ToList();
+            }
+        }
+    }
 
     public FakeServer On(string method, string path, Func<Recorded, HttpResponseMessage> answer)
     {
@@ -62,9 +76,9 @@ public sealed class FakeServer : HttpMessageHandler
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync();
         var recorded = new Recorded(request.Method.Method, request.RequestUri!.AbsolutePath, request.RequestUri.Query,
             request.Headers.ToDictionary(h => h.Key.ToLowerInvariant(), h => string.Join(",", h.Value)), body);
-        lock (Requests)
+        lock (_requests)
         {
-            Requests.Add(recorded); // requests may come at once (two chats starting Bypass in parallel)
+            _requests.Add(recorded); // requests may come at once (two chats starting Bypass in parallel)
         }
         var route = _routes.LastOrDefault(r => r.Method == recorded.Method && r.Path == recorded.Path);
         return route.Answer is null
