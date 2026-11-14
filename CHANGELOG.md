@@ -34,6 +34,14 @@ this file says where it does.
   refuse an app's tool of that name, and an app's tool source that brings one has it left out (log event 2016). A
   Fadenstack gateway from 0.7.1 takes `find_tool` as read, so the local MCP module's search no longer asks under a server;
   the tools it finds still ask on every call. Only the SDK's own sources bring it.
+- **Breaking:** four more tool names are the SDK's own, for its coming tools: `load_skill`, `read_skill_resource`,
+  `run_skill_script` (never offered) and `web_search`; all five are in `AgentTool.ReservedNames`. An app's tool of one
+  of these names is refused as `find_tool` is (`ArgumentException`); rename it. An app's tool source, or a local MCP
+  server, that brings one has it left out (log events 2016 and 3007). A Fadenstack gateway gives these names the class
+  of the SDK's tool, so an app's tool under one would be taken for it.
+- A tool source's tool that loses its name to the app's own tool or to an earlier source is still left out, and is now
+  logged with what won (event 2017). Between two local MCP servers the first one's tool is kept, as before, and the
+  other is logged by the servers' labels (event 3008); `find_tool` no longer finds the second one.
 
 - **Breaking:** `AgentSession` is now `ChatSession`. The Microsoft Agent Framework has an `AgentSession` of its own, and
   the agent becomes an `AIAgent` in this release; only the name changes.

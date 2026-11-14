@@ -763,12 +763,19 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         }
     }
 
-    /// <summary>The agent's tools: <c>find_tool</c> and, held back until found, every running server's tools. The first server's tool wins a name.</summary>
+    /// <summary>
+    /// The agent's tools: <c>find_tool</c> and, held back until found, every running server's tools. The first server's tool
+    /// wins a name. A server's tool under a name the SDK keeps for itself (<see cref="AgentTool.ReservedNames"/>) is left out:
+    /// this module is one of the SDK's own sources, so what it brings under such a name would pass for the SDK's tool. Both
+    /// are logged, by the servers' labels.
+    /// </summary>
     private IReadOnlyList<AgentTool> BuildTools()
     {
         var tools = new List<AgentTool>();
         var index = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal) { FindToolName };
+        var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+        var reserved = new List<string>();
+        var taken = new List<(string Label, string Winner)>();
         lock (_gate)
         {
             foreach (var entry in _entries.Where(e => e.State == McpServerState.Running))
@@ -778,14 +785,35 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                     : McpText.OneLine(entry.Server.Label, 40));
                 foreach (var tool in entry.Tools)
                 {
-                    if (seen.Add(tool.Name))
+                    if (AgentTool.ReservedNames.Contains(tool.Name, StringComparer.Ordinal))
                     {
+                        reserved.Add(entry.Server.Label);
+                    }
+                    else if (owners.TryGetValue(tool.Name, out var winner))
+                    {
+                        taken.Add((entry.Server.Label, winner));
+                    }
+                    else
+                    {
+                        owners[tool.Name] = entry.Server.Label;
                         tools.Add(new AgentTool(tool.Function, ToolClass.Unknown, "mcp", entry.Server.Label, tool.OpenWorld)
                         {
                             Scope = _scope, ReadOnlyHint = tool.Info.Hints.ReadOnly, DestructiveHint = tool.Info.Hints.Destructive,
                         });
                     }
                 }
+            }
+        }
+        if (_context is { } context && (reserved.Count > 0 || taken.Count > 0))
+        {
+            var log = context.LoggerFactory.CreateLogger(Log.Category);
+            foreach (var label in reserved)
+            {
+                Log.ToolNameReserved(log, label);
+            }
+            foreach (var (label, winner) in taken)
+            {
+                Log.ToolNameTaken(log, label, winner);
             }
         }
         if (index.Count > 0)
@@ -816,7 +844,10 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         List<ToolEntry> candidates;
         lock (_gate)
         {
-            candidates = _entries.Where(e => e.State == McpServerState.Running).SelectMany(e => e.Tools).ToList();
+            // What BuildTools offers: no name the SDK keeps for itself, and the first server's tool of a name.
+            candidates = _entries.Where(e => e.State == McpServerState.Running).SelectMany(e => e.Tools)
+                .Where(t => !AgentTool.ReservedNames.Contains(t.Name, StringComparer.Ordinal))
+                .GroupBy(t => t.Name, StringComparer.Ordinal).Select(g => g.First()).ToList();
         }
         var ranked = McpText.Rank(candidates.Select(t => (t.Name, t.Description)).ToList(), query ?? "", MaxFound);
         if (ranked.Count == 0)

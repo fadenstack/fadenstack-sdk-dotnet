@@ -39,7 +39,18 @@ The rules:
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.
 
-One name is the SDK's: `find_tool` (`AgentTool.ToolSearchName`), the local MCP module's tool search, which a Fadenstack gateway takes as read. `AddTool` and `AddTools` refuse a tool of that name (`ArgumentException`), and a tool source of the app's that brings one has it left out (logged, event 2016).
+Five names are the SDK's own (`AgentTool.ReservedNames`). A Fadenstack gateway gives each the class of the SDK's tool, so an app's tool cannot take one:
+
+| Name | The SDK's tool |
+|---|---|
+| `find_tool` | The tool search of the local MCP module (`AgentTool.ToolSearchName`): read |
+| `load_skill`, `read_skill_resource` | Skills on the device (coming): read |
+| `run_skill_script` | Kept, and never offered: skill scripts stay off |
+| `web_search` | Web search (coming): read, open-world |
+
+- `AddTool`, `AddTools` and a module's `Configure` refuse a tool of one of these names (`ArgumentException`).
+- A tool source of the app's that brings one has it left out (logged, event 2016). Only the SDK's own sources bring them; a local MCP server's tool of such a name is left out too (event 3007).
+- A tool source's tool whose name is taken is left out as before: the app's own tool wins, then the first source. From 0.3.0 it is logged with what won (event 2017; event 3008 between two local MCP servers).
 
 A tool can say what a call acts on, for the approval card: `AddTool(new AgentTool(function, ToolClass.Destructive) { Describe = (args, ct) => ... })`, returning text such as `button "Send" on mail.example.com`. The agent calls it only when it asks the user, and the card shows it above the arguments (`ApprovalRequest.Target`), since `ref: e12` tells the user little. Null, empty, an exception or no answer within 3 seconds leaves the card with the arguments.
 

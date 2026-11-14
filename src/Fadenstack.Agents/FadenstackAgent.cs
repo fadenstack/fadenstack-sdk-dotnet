@@ -684,7 +684,11 @@ public sealed class FadenstackAgent : IDisposable
         _refreshing.Dispose();
     }
 
-    /// <summary>The host tools, then each source's tools in the builder's order; a host tool wins over an MCP tool of the same name.</summary>
+    /// <summary>
+    /// The host tools, then each source's tools in the builder's order: a host tool wins over a source's of the same name, the
+    /// first source over a later one, and the tool left out is logged with the reason. A name the SDK keeps for itself
+    /// comes only from the SDK's own sources.
+    /// </summary>
     private List<AgentTool> Compose()
     {
         var tools = new List<AgentTool>(_hostTools);
@@ -701,6 +705,10 @@ public sealed class FadenstackAgent : IDisposable
                 if (names.Add(tool.Name))
                 {
                     tools.Add(tool);
+                }
+                else
+                {
+                    Log.ToolNameTaken(Logger, tool.Name, _hostTools.Any(t => t.Name == tool.Name) ? "the app's own tool" : "an earlier tool source");
                 }
             }
         }

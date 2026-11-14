@@ -191,8 +191,19 @@ public sealed class AgentTool
     /// </summary>
     public const string ToolSearchName = "find_tool";
 
-    /// <summary>Whether <paramref name="name"/> is one the SDK keeps for its own tools.</summary>
-    internal static bool IsReserved(string name) => string.Equals(name, ToolSearchName, StringComparison.Ordinal);
+    /// <summary>
+    /// The names the SDK keeps for its own tools (sdk/52 §10.5, the owner, 14 Nov 2026): <c>find_tool</c> (the tool search),
+    /// <c>load_skill</c>, <c>read_skill_resource</c> and <c>run_skill_script</c> (skills on the device), and <c>web_search</c>.
+    /// A Fadenstack gateway gives these names the class of the SDK's own tool, so no app's tool may carry one: the builder
+    /// refuses it, and an app's tool source that brings one has it left out. Only the SDK's own sources bring them.
+    /// </summary>
+    public static IReadOnlyList<string> ReservedNames { get; } = new[]
+    {
+        ToolSearchName, "load_skill", "read_skill_resource", "run_skill_script", "web_search",
+    };
+
+    /// <summary>Whether <paramref name="name"/> is one the SDK keeps for its own tools (<see cref="ReservedNames"/>).</summary>
+    internal static bool IsReserved(string name) => ReservedNames.Contains(name, StringComparer.Ordinal);
 
     /// <summary>The host tools of <paramref name="target"/>: its public methods marked <see cref="AgentToolAttribute"/>.</summary>
     public static IReadOnlyList<AgentTool> From(object target)

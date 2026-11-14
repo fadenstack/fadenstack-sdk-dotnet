@@ -31,4 +31,10 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 3006, Level = LogLevel.Information, Message = "MCP server {Label} asked the person a question: {Outcome}")]
     internal static partial void Question(ILogger logger, string label, string outcome);
+
+    [LoggerMessage(EventId = 3007, Level = LogLevel.Warning, Message = "MCP server {Label} brought a tool under a name the SDK keeps for its own tools; it was left out")]
+    internal static partial void ToolNameReserved(ILogger logger, string label);
+
+    [LoggerMessage(EventId = 3008, Level = LogLevel.Warning, Message = "MCP server {Label} brought a tool whose name MCP server {Winner} already brings; the first server's is kept")]
+    internal static partial void ToolNameTaken(ILogger logger, string label, string winner);
 }

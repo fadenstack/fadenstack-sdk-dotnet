@@ -92,13 +92,14 @@ public sealed class AgentBuilder
         return this;
     }
 
-    /// <summary>An app's tool: never under a name the SDK keeps for itself (<see cref="AgentTool.ToolSearchName"/>).</summary>
+    /// <summary>An app's tool: never under a name the SDK keeps for itself (<see cref="AgentTool.ReservedNames"/>).</summary>
     private void Add(AgentTool tool)
     {
         if (AgentTool.IsReserved(tool.Name))
         {
             throw new ArgumentException(
-                $"'{tool.Name}' is the SDK's own tool search, so an app's tool cannot take the name: name it differently.", nameof(tool));
+                $"'{tool.Name}' is a name the SDK keeps for its own tools ({string.Join(", ", AgentTool.ReservedNames)}), so an app's tool cannot take it: name it differently.",
+                nameof(tool));
         }
         _tools.Add(tool);
     }

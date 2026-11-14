@@ -82,6 +82,9 @@ The model calls `find_tool` with a few words about what it needs (`query`). The 
   admin's rule or the agent's contract says otherwise (an older gateway holds it `unknown`, and it asks there). The name is the
   SDK's (`AgentTool.ToolSearchName`): an app's tool cannot take it, so that word reaches no tool with side effects. The tools it
   finds ask on their own calls, every time.
+- A server's tool under one of the SDK's own names (`find_tool`, `load_skill`, `read_skill_resource`, `run_skill_script`,
+  `web_search`; see [Tools](tools.md)) is left out, and `find_tool` does not find it (logged by the server's label, event
+  3007). Of two servers with a tool of the same name, the first one's is kept, and the other's is logged (event 3008).
 
 The list of found tools is fenced as untrusted data, like every result of these servers. What is switched on belongs to one conversation: another chat starts without it.
 
