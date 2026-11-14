@@ -30,7 +30,10 @@ this file says where it does.
 - **Records signed on the device** (`Fadenstack.Provenance`): `LocalProvenanceBackend` for an agent without a server
   (chosen by the agent's connection), with `DeviceSigner` (the engine's JWS format, ES256, a key per installation kept by
   the OS key store), RFC 3161 time-stamps (`LocalProvenanceOptions`, `ProvenanceOptions.UseLocalBackend`) and a local
-  placement log that rotates.
+  placement log that rotates. DigiCert by default, with a local backup: every record kept on the device with its token,
+  the labelled device clock and a queue that survives a restart when offline (`KeptRecords`, `FlushTimestampQueueAsync`); a
+  token counts only when its CMS signature, a time-stamping certificate that chains to a trusted root, and the nonce
+  check out (`TimestampRoots` for an organisation's own server).
 - **The endpoint's text watermark** (part of D18): never switched off for text people read; `FadenstackChatOptions.Unread`
   for a call nobody reads, where vLLM and SGLang may leave it off (`EndpointDialect.WatermarkSwitchOff`); each answer's
   transcript entry records `endpoint_marking`; `FadenstackAgent.EndpointWatermark`; `EndpointCheck.WatermarkOf` and

@@ -12,6 +12,27 @@ public enum PolicyAccess
     Listed,
 }
 
+/// <summary>Whether records signed on the device get an RFC 3161 time-stamp, and from whom (F09, F10).</summary>
+public enum TimestampingMode
+{
+    /// <summary>From the SDK's default authority (DigiCert).</summary>
+    On,
+
+    /// <summary>None: nothing leaves the device, and a record keeps the device's clock.</summary>
+    Off,
+
+    /// <summary>From the organisation's own time-stamp server (<see cref="TimestampingPolicy.Server"/>).</summary>
+    OwnServer,
+}
+
+/// <summary>The policy's <c>timestamping</c>: <c>on</c>, <c>off</c>, or the address of an own time-stamp server.</summary>
+public sealed record TimestampingPolicy(TimestampingMode Mode, Uri? Server)
+{
+    public static TimestampingPolicy On { get; } = new(TimestampingMode.On, null);
+
+    public static TimestampingPolicy Off { get; } = new(TimestampingMode.Off, null);
+}
+
 /// <summary>One key of a machine policy: its access and, for a list, the items.</summary>
 public sealed record PolicyRule(PolicyAccess Access, IReadOnlyList<string> Items)
 {
@@ -64,8 +85,11 @@ public sealed record MachinePolicy
     /// <summary>The <c>web_search</c> tool.</summary>
     public PolicyAccess WebSearch { get; init; } = PolicyAccess.Allowed;
 
-    /// <summary>RFC 3161 time-stamps for records signed on the device (only a hash leaves the device; F10).</summary>
-    public PolicyAccess Timestamping { get; init; } = PolicyAccess.Allowed;
+    /// <summary>
+    /// RFC 3161 time-stamps for records signed on the device (only a hash leaves the device; F10): <c>on</c> (DigiCert, the
+    /// default), <c>off</c>, or the address of the organisation's own time-stamp server.
+    /// </summary>
+    public TimestampingPolicy Timestamping { get; init; } = TimestampingPolicy.On;
 
     /// <summary>The keys the policy set itself (the app locks them in its UI and never writes them into the person's settings).</summary>
     public IReadOnlyCollection<string> Locked { get; init; } = Array.Empty<string>();
@@ -173,7 +197,7 @@ public sealed record MachinePolicy
             Mcp = Rule(values, "mcp", byDefaultRule, warnings),
             Skills = Rule(values, "skills", byDefaultRule, warnings),
             WebSearch = Access(values, "webSearch", byDefault, warnings),
-            Timestamping = Access(values, "timestamping", PolicyAccess.Allowed, warnings),
+            Timestamping = Timestamps(values, warnings),
             Locked = locked,
             Warnings = warnings,
         };
@@ -195,6 +219,30 @@ public sealed record MachinePolicy
                 warnings.Add($"'{key}' has a value the SDK does not know: forbidden.");
                 return PolicyAccess.Forbidden;
         }
+    }
+
+    /// <summary><c>on</c>, <c>off</c>, or an http(s) address; anything else narrows to <c>off</c> (less leaves the device).</summary>
+    private static TimestampingPolicy Timestamps(Dictionary<string, JsonElement> values, List<string> warnings)
+    {
+        if (!values.TryGetValue("timestamping", out var value))
+        {
+            return TimestampingPolicy.On;
+        }
+        var text = value.ValueKind == JsonValueKind.String ? value.GetString()?.Trim() : null;
+        switch (text)
+        {
+            case "on":
+                return TimestampingPolicy.On;
+            case "off":
+                return TimestampingPolicy.Off;
+        }
+        if (Uri.TryCreate(text, UriKind.Absolute, out var server) && (server.Scheme == Uri.UriSchemeHttps || server.Scheme == Uri.UriSchemeHttp)
+            && server.UserInfo.Length == 0)
+        {
+            return new TimestampingPolicy(TimestampingMode.OwnServer, server);
+        }
+        warnings.Add("'timestamping' is neither on, off nor an http(s) address: off.");
+        return TimestampingPolicy.Off;
     }
 
     private static PolicyRule Rule(Dictionary<string, JsonElement> values, string key, PolicyRule fallback, List<string> warnings)

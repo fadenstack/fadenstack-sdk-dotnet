@@ -1,6 +1,7 @@
 using System.Formats.Asn1;
 using System.Net;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -38,7 +39,7 @@ public class LocalProvenanceTests : IDisposable
     private LocalProvenanceBackend Backend(TsaFake? tsa = null, bool timestamping = true, DeviceSigner? signer = null) => new(new LocalProvenanceOptions
     {
         Folder = _folder, Signer = signer ?? DeviceSigner.Ephemeral(), Handler = tsa, Timestamping = timestamping,
-        TimestampAuthority = new Uri("https://tsa.example.test/"),
+        TimestampAuthority = new Uri("https://tsa.example.test/"), TimestampRoots = TestAuthority.Roots,
     });
 
     private static FadenstackAgent Agent() => FadenstackAgent.CreateBuilder()
@@ -93,7 +94,7 @@ public class LocalProvenanceTests : IDisposable
         var tsa = new TsaFake();
         using var backend = Backend(tsa);
         using var agent = Agent();
-        for (var i = 0; i < 600; i++)
+        for (var i = 0; i < 60; i++) // the nonce's first byte is never zero now; 60 records still stamp and keep
         {
             Assert.NotNull((await backend.SignRecordAsync(agent, Request(), default)).Timestamp);
         }
@@ -251,7 +252,7 @@ public class LocalProvenanceTests : IDisposable
         using var agent = FadenstackAgent.CreateBuilder()
             .UseChatClient(new NoModel())
             .UseLocalProfile(AgentDefinition.FromJson("""{"slug":"docs-assistant"}"""))
-            .UseMachinePolicy(MachinePolicy.FromJson("""{"timestamping":"forbidden"}"""))
+            .UseMachinePolicy(MachinePolicy.FromJson("""{"timestamping":"off"}"""))
             .Build();
 
         var signed = await backend.SignRecordAsync(agent, Request(), default);
@@ -291,6 +292,162 @@ public class LocalProvenanceTests : IDisposable
         var signed = await backend.SignRecordAsync(agent, Request(), default);
 
         Assert.NotNull(signed.Timestamp);
+    }
+
+    // ---- the authority's answer is input from outside (owner, 14 Nov) ----
+
+    public static TheoryData<string> WrongTokens() => new() { "tampered", "untrusted", "no-usage", "wrong-hash", "wrong-nonce", "refused" };
+
+    [Theory]
+    [MemberData(nameof(WrongTokens))]
+    public async Task A_token_counts_only_when_its_signature_certificate_and_nonce_check_out(string wrong)
+    {
+        var tsa = wrong switch
+        {
+            "tampered" => new TsaFake { Tampered = true },
+            "untrusted" => new TsaFake { Authority = TestAuthority.Untrusted },
+            "no-usage" => new TsaFake { Authority = TestAuthority.WithoutTimeStampingUsage },
+            "wrong-hash" => new TsaFake { WrongHash = true },
+            "wrong-nonce" => new TsaFake { WrongNonce = true },
+            _ => new TsaFake { Status = 2 },
+        };
+        using var backend = Backend(tsa);
+        using var agent = Agent();
+
+        var signed = await backend.SignRecordAsync(agent, Request(), default);
+
+        Assert.Null(signed.Timestamp);
+        var kept = Assert.Single(backend.KeptRecords());
+        Assert.True(kept.Queued); // waits for a token that checks out
+        Assert.Equal(LocalProvenanceBackend.DeviceClockTime, kept.TimeSource);
+    }
+
+    [Fact]
+    public async Task A_token_that_checks_out_is_kept_next_to_its_record()
+    {
+        using var backend = Backend(new TsaFake());
+        using var agent = Agent();
+
+        var signed = await backend.SignRecordAsync(agent, Request(), default);
+
+        var kept = Assert.Single(backend.KeptRecords());
+        Assert.Equal(signed.Record.Id, kept.Signed.Record.Id);
+        Assert.Equal(signed.Timestamp, kept.Signed.Timestamp);
+        Assert.Equal(LocalProvenanceBackend.AuthorityTime, kept.TimeSource);
+        Assert.False(kept.Queued);
+        Assert.True(File.Exists(Path.Combine(_folder, "records", signed.Record.Id + ".json")));
+    }
+
+    [Fact]
+    public async Task Offline_the_record_keeps_the_labelled_clock_and_waits_and_after_a_restart_it_is_stamped()
+    {
+        var tsa = new TsaFake { Down = true };
+        using var agent = Agent();
+        string id;
+        using (var before = Backend(tsa))
+        {
+            var signed = await before.SignRecordAsync(agent, Request(), default);
+            id = signed.Record.Id;
+            Assert.Null(signed.Timestamp);
+            var waiting = Assert.Single(before.KeptRecords());
+            Assert.Equal((LocalProvenanceBackend.DeviceClockTime, true), (waiting.TimeSource, waiting.Queued));
+        }
+
+        tsa.Down = false;
+        using var after = Backend(tsa); // a restart: a new backend on the same folder
+        var stamped = await after.FlushTimestampQueueAsync(agent);
+
+        Assert.Equal(1, stamped);
+        var kept = Assert.Single(after.KeptRecords());
+        Assert.Equal(id, kept.Signed.Record.Id);
+        Assert.NotNull(kept.Signed.Timestamp);
+        Assert.False(kept.Queued);
+        Assert.Equal(LocalProvenanceBackend.DeviceClockTime, kept.TimeSource); // still dated by the clock; the token proves "no later than"
+        Assert.NotNull(kept.StampedLaterAt);
+    }
+
+    [Fact]
+    public async Task Signing_a_record_once_the_authority_answers_stamps_what_waited()
+    {
+        var tsa = new TsaFake { Down = true };
+        using var backend = Backend(tsa);
+        using var agent = Agent();
+        await backend.SignRecordAsync(agent, Request(), default);
+        await backend.SignRecordAsync(agent, Request(), default);
+
+        tsa.Down = false;
+        await backend.SignRecordAsync(agent, Request(), default);
+
+        Assert.All(backend.KeptRecords(), r => Assert.NotNull(r.Signed.Timestamp));
+        Assert.Equal(2, backend.KeptRecords().Count(r => r.StampedLaterAt is not null));
+    }
+
+    [Fact]
+    public async Task The_policy_names_its_own_server_or_switches_stamping_off()
+    {
+        var own = new TsaFake();
+        using var backend = Backend(own);
+        using var ownServer = FadenstackAgent.CreateBuilder().UseChatClient(new NoModel())
+            .UseLocalProfile(AgentDefinition.FromJson("""{"slug":"docs-assistant"}"""))
+            .UseMachinePolicy(MachinePolicy.FromJson("""{"timestamping":"https://tsa.example.internal/stamp"}""")).Build();
+        using var off = FadenstackAgent.CreateBuilder().UseChatClient(new NoModel())
+            .UseLocalProfile(AgentDefinition.FromJson("""{"slug":"docs-assistant"}"""))
+            .UseMachinePolicy(MachinePolicy.FromJson("""{"timestamping":"off"}""")).Build();
+
+        var stamped = await backend.SignRecordAsync(ownServer, Request(), default);
+        var unstamped = await backend.SignRecordAsync(off, Request(), default);
+
+        Assert.NotNull(stamped.Timestamp);
+        Assert.Equal("tsa.example.internal", Assert.Single(own.Requests).Url.Host);
+        Assert.Null(unstamped.Timestamp);
+        var notQueued = backend.KeptRecords().Single(r => r.Signed.Record.Id == unstamped.Record.Id);
+        Assert.False(notQueued.Queued); // off sends nothing, now or later
+        Assert.Equal(LocalProvenanceBackend.DeviceClockTime, notQueued.TimeSource);
+    }
+
+    [Fact]
+    public void The_parser_never_throws_on_a_mangled_answer()
+    {
+        var hash = new byte[32];
+        new Random(7).NextBytes(hash);
+        var nonce = new byte[] { 0x41, 2, 3, 4, 5, 6, 7, 8 };
+        var good = TestAuthority.Default.Answer(hash, new System.Numerics.BigInteger(Enumerable.Reverse(nonce).Concat(new byte[] { 0 }).ToArray()));
+        Assert.True(Rfc3161.Grants(good, hash, nonce, TestAuthority.Roots));
+        var random = new Random(1234);
+        var accepted = 0;
+        for (var i = 0; i < 1200; i++)
+        {
+            var bad = (byte[])good.Clone();
+            switch (i % 4)
+            {
+                case 0: // flip a few bytes
+                    for (var k = 0; k < 1 + random.Next(4); k++)
+                    {
+                        bad[random.Next(bad.Length)] ^= (byte)(1 + random.Next(255));
+                    }
+                    break;
+                case 1: // cut it short
+                    bad = bad.Take(random.Next(bad.Length)).ToArray();
+                    break;
+                case 2: // a stretch of noise
+                    var at = random.Next(bad.Length);
+                    for (var k = at; k < Math.Min(bad.Length, at + 16); k++)
+                    {
+                        bad[k] = (byte)random.Next(256);
+                    }
+                    break;
+                default: // pure noise
+                    bad = new byte[random.Next(1, 400)];
+                    random.NextBytes(bad);
+                    break;
+            }
+            if (Rfc3161.Grants(bad, hash, nonce, TestAuthority.Roots)) // must return, never throw
+            {
+                accepted++;
+            }
+        }
+        // A byte flipped outside the signed parts (an unsigned attribute, padding) may still verify; nothing else can.
+        Assert.True(accepted < 30, $"{accepted} mangled answers were accepted");
     }
 
     // ---- the log ----
@@ -492,35 +649,45 @@ public class LocalProvenanceTests : IDisposable
         }
     }
 
-    /// <summary>A time-stamp authority: reads the request, answers a granted token over its hash and nonce (or not).</summary>
-    private sealed class TsaFake : HttpMessageHandler
+    /// <summary>
+    /// A time-stamp authority for the tests: a root and a certificate made for time-stamping, which sign real CMS tokens over
+    /// the request's hash and nonce; each way a token can be wrong is a switch.
+    /// </summary>
+    internal sealed class TestAuthority
     {
-        public List<(string? ContentType, byte[] Body, byte[] Hash)> Requests { get; } = new();
+        private static readonly Lazy<TestAuthority> Instance = new(() => new TestAuthority("Fadenstack test TSA", timeStamping: true));
+        private static readonly Lazy<TestAuthority> Stranger = new(() => new TestAuthority("Someone else's TSA", timeStamping: true));
+        private static readonly Lazy<TestAuthority> NoUsage = new(() => new TestAuthority("Not a TSA", timeStamping: false));
 
-        public bool Down { get; init; }
+        public static TestAuthority Default => Instance.Value;
+        public static TestAuthority Untrusted => Stranger.Value;
+        public static TestAuthority WithoutTimeStampingUsage => NoUsage.Value;
+        public static X509Certificate2Collection Roots => new() { Default.Root, NoUsage.Value.Root };
 
-        public bool WrongNonce { get; init; }
+        public X509Certificate2 Root { get; }
+        public X509Certificate2 Signer { get; }
 
-        public int Status { get; init; }
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        private TestAuthority(string name, bool timeStamping)
         {
-            if (Down)
+            var now = DateTimeOffset.UtcNow;
+            using var rootKey = RSA.Create(2048);
+            var rootRequest = new CertificateRequest($"CN={name} root", rootKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+            Root = rootRequest.CreateSelfSigned(now.AddDays(-1), now.AddYears(5));
+            var signerKey = RSA.Create(2048);
+            var request = new CertificateRequest($"CN={name}", signerKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+            if (timeStamping)
             {
-                throw new HttpRequestException("offline");
+                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid("1.3.6.1.5.5.7.3.8") }, true));
             }
-            var body = await request.Content!.ReadAsByteArrayAsync();
-            var req = new AsnReader(body, AsnEncodingRules.DER).ReadSequence();
-            req.ReadInteger();
-            var imprint = req.ReadSequence();
-            imprint.ReadSequence();
-            var hash = imprint.ReadOctetString();
-            var nonce = req.ReadInteger();
-            Requests.Add((request.Content.Headers.ContentType?.MediaType, body, hash));
-            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Response(hash, WrongNonce ? nonce + 1 : nonce)) };
+            using var issued = request.Create(Root, now.AddHours(-1), now.AddYears(1), new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+            Signer = issued.CopyWithPrivateKey(signerKey);
         }
 
-        private byte[] Response(byte[] hash, System.Numerics.BigInteger nonce)
+        /// <summary>A <c>TimeStampResp</c> over <paramref name="hash"/> with <paramref name="nonce"/>.</summary>
+        public byte[] Answer(byte[] hash, System.Numerics.BigInteger nonce, int status = 0, bool tamper = false)
         {
             var info = new AsnWriter(AsnEncodingRules.DER);
             info.PushSequence();
@@ -536,30 +703,64 @@ public class LocalProvenanceTests : IDisposable
             info.WriteGeneralizedTime(DateTimeOffset.UtcNow);
             info.WriteInteger(nonce);
             info.PopSequence();
+            var cms = new SignedCms(new ContentInfo(new Oid("1.2.840.113549.1.9.16.1.4"), info.Encode()), detached: false);
+            cms.ComputeSignature(new CmsSigner(Signer) { IncludeOption = X509IncludeOption.EndCertOnly });
+            var token = cms.Encode();
+            if (tamper)
+            {
+                token[token.Length - 10] ^= 0x01; // inside the signature value
+            }
             var w = new AsnWriter(AsnEncodingRules.DER);
             w.PushSequence();
             w.PushSequence();
-            w.WriteInteger(Status);
+            w.WriteInteger(status);
             w.PopSequence();
-            w.PushSequence(); // ContentInfo
-            w.WriteObjectIdentifier("1.2.840.113549.1.7.2");
-            var explicit0 = new Asn1Tag(TagClass.ContextSpecific, 0, isConstructed: true);
-            w.PushSequence(explicit0);
-            w.PushSequence(); // SignedData
-            w.WriteInteger(3);
-            w.PushSetOf();
-            w.PopSetOf();
-            w.PushSequence();
-            w.WriteObjectIdentifier("1.2.840.113549.1.9.16.1.4");
-            w.PushSequence(explicit0);
-            w.WriteOctetString(info.Encode());
-            w.PopSequence(explicit0);
-            w.PopSequence();
-            w.PopSequence();
-            w.PopSequence(explicit0);
-            w.PopSequence();
+            if (status is 0 or 1)
+            {
+                w.WriteEncodedValue(token);
+            }
             w.PopSequence();
             return w.Encode();
+        }
+    }
+
+    /// <summary>Plays a time-stamp authority over HTTP: reads the request, answers as the switches say.</summary>
+    private sealed class TsaFake : HttpMessageHandler
+    {
+        public List<(string? ContentType, byte[] Body, byte[] Hash, Uri Url)> Requests { get; } = new();
+
+        public bool Down { get; set; }
+
+        public bool WrongNonce { get; init; }
+
+        public bool WrongHash { get; init; }
+
+        public bool Tampered { get; init; }
+
+        public int Status { get; init; }
+
+        public TestAuthority Authority { get; init; } = TestAuthority.Default;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (Down)
+            {
+                throw new HttpRequestException("offline");
+            }
+            var body = await request.Content!.ReadAsByteArrayAsync();
+            var req = new AsnReader(body, AsnEncodingRules.DER).ReadSequence();
+            req.ReadInteger();
+            var imprint = req.ReadSequence();
+            imprint.ReadSequence();
+            var hash = imprint.ReadOctetString();
+            var nonce = req.ReadInteger();
+            lock (Requests)
+            {
+                Requests.Add((request.Content.Headers.ContentType?.MediaType, body, hash, request.RequestUri!));
+            }
+            var answer = Authority.Answer(WrongHash ? hash.Select(b => (byte)(b ^ 0xFF)).ToArray() : hash, WrongNonce ? nonce + 1 : nonce,
+                Status, Tampered);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(answer) };
         }
     }
 }

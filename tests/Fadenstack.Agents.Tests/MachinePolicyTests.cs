@@ -24,7 +24,7 @@ public class MachinePolicyTests
     {
         var policy = MachinePolicy.FromJson("""
             {"server":"https://ai.example.test","standalone":"allowed","endpoints":["http://localhost:11434","https://llm.example.test/v1"],
-             "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"forbidden"}
+             "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"off"}
             """);
 
         Assert.Equal(new Uri("https://ai.example.test"), policy.Server);
@@ -36,7 +36,7 @@ public class MachinePolicyTests
         Assert.False(policy.Mcp.Allows("other"));
         Assert.Equal(PolicyRule.Allowed, policy.Skills);
         Assert.Equal(PolicyAccess.Forbidden, policy.WebSearch);
-        Assert.Equal(PolicyAccess.Forbidden, policy.Timestamping);
+        Assert.Equal(TimestampingPolicy.Off, policy.Timestamping);
         Assert.Equal(MachinePolicy.Keys.OrderBy(k => k), policy.Locked.OrderBy(k => k));
         Assert.Empty(policy.Warnings);
     }
@@ -51,7 +51,7 @@ public class MachinePolicyTests
         Assert.Equal(PolicyRule.Forbidden, policy.Skills);
         Assert.Equal(PolicyAccess.Forbidden, policy.WebSearch);
         Assert.Equal(PolicyAccess.Allowed, policy.PlainHttp);
-        Assert.Equal(PolicyAccess.Allowed, policy.Timestamping);
+        Assert.Equal(TimestampingPolicy.On, policy.Timestamping); // DigiCert by default
         Assert.Equal(new[] { "server" }, policy.Locked);
     }
 
@@ -72,7 +72,6 @@ public class MachinePolicyTests
     [InlineData("webSearch")]
     [InlineData("mcp")]
     [InlineData("skills")]
-    [InlineData("timestamping")]
     public void An_unknown_value_narrows_to_forbidden(string key)
     {
         var policy = MachinePolicy.FromJson($$"""{"{{key}}":"sometimes"}""");
@@ -83,11 +82,27 @@ public class MachinePolicyTests
             "plainHttp" => policy.PlainHttp,
             "webSearch" => policy.WebSearch,
             "mcp" => policy.Mcp.Access,
-            "skills" => policy.Skills.Access,
-            _ => policy.Timestamping,
+            _ => policy.Skills.Access,
         };
         Assert.Equal(PolicyAccess.Forbidden, access);
         Assert.Contains(policy.Warnings, w => w.Contains(key) && !w.Contains("sometimes")); // never the value itself
+    }
+
+    [Theory]
+    [InlineData("\"on\"", TimestampingMode.On, null)]
+    [InlineData("\"off\"", TimestampingMode.Off, null)]
+    [InlineData("\"https://tsa.example.test/rfc3161\"", TimestampingMode.OwnServer, "https://tsa.example.test/rfc3161")]
+    [InlineData("\"http://tsa.example.internal\"", TimestampingMode.OwnServer, "http://tsa.example.internal/")]
+    [InlineData("\"sometimes\"", TimestampingMode.Off, null)]
+    [InlineData("\"ftp://tsa.example.test\"", TimestampingMode.Off, null)]
+    [InlineData("true", TimestampingMode.Off, null)]
+    public void Timestamping_is_on_off_or_an_own_servers_address_and_anything_else_is_off(string value, TimestampingMode mode, string? server)
+    {
+        var policy = MachinePolicy.FromJson("{\"timestamping\":" + value + "}");
+
+        Assert.Equal(mode, policy.Timestamping.Mode);
+        Assert.Equal(server, policy.Timestamping.Server?.AbsoluteUri);
+        Assert.Equal(mode == TimestampingMode.Off && value != "\"off\"", policy.Warnings.Any(w => w.Contains("timestamping")));
     }
 
     [Fact]

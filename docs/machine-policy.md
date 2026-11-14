@@ -23,7 +23,7 @@ var agent = FadenstackAgent.CreateBuilder()
 | `mcp` | `allowed`, `forbidden`, or a list of allowed local MCP sources | like `standalone` |
 | `skills` | `allowed`, `forbidden`, or a list of allowed skill folders | like `standalone` |
 | `webSearch` | `allowed`, `forbidden` | like `standalone` |
-| `timestamping` | `allowed`, `forbidden`: RFC 3161 time-stamps for records signed on the device (only a hash leaves) | `allowed` |
+| `timestamping` | `on` (DigiCert), `off`, or the address of the organisation's own time-stamp server: RFC 3161 time-stamps for records signed on the device (only a hash leaves); anything else is `off` | `on` |
 
 ## Rules
 
