@@ -2854,4 +2854,80 @@ public class ConnectionWizardTests
         Assert.Equal(AddressProblem.HttpsRequired, rig.Wizard.AddressError);
         Assert.Empty(rig.Checker.Checked);
     }
+
+    // ===================================================================================================================
+    // The texts (I15 step 3): the computed ones follow the state, in the rig's language (German)
+    // ===================================================================================================================
+
+    [Fact]
+    public void The_waiting_line_counts_down_in_minutes_and_seconds_and_says_when_it_retries()
+    {
+        using var rig = PairCode();
+
+        Assert.Equal("Warten auf Ihre Bestätigung… Der Code läuft in 10:00 ab.", rig.Wizard.WaitingText);
+
+        rig.Clock.Advance(TimeSpan.FromSeconds(19));
+
+        Assert.Equal("Warten auf Ihre Bestätigung… Der Code läuft in 9:41 ab.", rig.Wizard.WaitingText);
+    }
+
+    [Fact]
+    public void An_address_error_reads_as_the_path_it_belongs_to()
+    {
+        using var server = Rig();
+        server.Start();
+        server.Press(server.Wizard.ChooseServerCommand);
+        server.Wizard.ServerAddressText = "http://ai.example.test";
+        server.Press(server.Wizard.SubmitServerCommand);
+
+        using var own = OwnPick();
+        Type(own, "http://8.8.8.8/v1");
+        UseEndpoint(own);
+
+        Assert.Equal(own.Strings.WizardServerHttpsRequired, server.Wizard.AddressErrorText);
+        Assert.Equal(own.Strings.WizardEndpointHttpsRequired, own.Wizard.AddressErrorText);
+        Assert.NotEqual(server.Wizard.AddressErrorText, own.Wizard.AddressErrorText);
+    }
+
+    [Fact]
+    public void The_result_says_in_plain_words_what_limits_the_connection_and_whether_it_watermarks_text()
+    {
+        var url = new Uri("http://localhost:11434/v1");
+        var report = Reports.Usable(url) with
+        {
+            ToolCalls = false,
+            Problems = new[] { EndpointProblem.NoToolCalls, EndpointProblem.OllamaDefaultContext },
+            Watermark = new EndpointWatermarkStatus { Status = TextWatermark.Never },
+        };
+        using var rig = OwnPick(before: r => r.Checker.Report.Returns(report));
+        Type(rig, url.AbsoluteUri);
+
+        UseEndpoint(rig);
+
+        Assert.Equal(WizardStep.OwnResult, rig.Wizard.Step);
+        Assert.Equal(new[]
+        {
+            "Die Verbindung funktioniert.",
+            "Dieses Modell kann nur chatten: Es kann keine Werkzeuge nutzen.",
+            "Ollama betreibt dieses Modell mit seinem kurzen Standardkontext, der lange Eingaben abschneidet. Erhöhen Sie OLLAMA_CONTEXT_LENGTH.",
+            "Diese Verbindung kennzeichnet Texte nicht mit einem Wasserzeichen.",
+        }, rig.Wizard.ResultLines);
+    }
+
+    [Fact]
+    public void A_failed_check_names_its_problem_and_the_signed_in_line_names_the_person()
+    {
+        var url = new Uri("https://api.example.test/v1");
+        using var own = OwnPick(before: r => r.Checker.Report.Returns(Reports.Failing(url, EndpointProblem.KeyRejected)));
+        Type(own, url.AbsoluteUri);
+        UseEndpoint(own);
+
+        Assert.Equal("Der Server hat den Schlüssel abgelehnt.", own.Wizard.ProblemText);
+
+        PendingAnswer<PairingApproval>? wait = null;
+        using var server = PairCode(before: r => wait = r.Sign.Wait.Pending());
+        wait!.Complete(Approve("main-agent"));
+
+        Assert.Equal("Angemeldet als Ana.", server.Wizard.SignedInText);
+    }
 }

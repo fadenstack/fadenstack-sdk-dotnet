@@ -841,4 +841,415 @@
   <data name="GrantsEnded_Host" xml:space="preserve">
     <value>应用已将其结束。</value>
   </data>
+  <data name="WizardBack" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="WizardContinue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="WizardCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="WizardClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="WizardTryAgain" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="WizardCheck" xml:space="preserve">
+    <value>检查</value>
+  </data>
+  <data name="WizardChooseTitle" xml:space="preserve">
+    <value>您想如何使用 {0}？</value>
+  </data>
+  <data name="WizardChooseServer" xml:space="preserve">
+    <value>连接到我的组织</value>
+  </data>
+  <data name="WizardChooseServerHelp" xml:space="preserve">
+    <value>您的组织使用 Fadenstack：请用您的账户登录。</value>
+  </data>
+  <data name="WizardChooseOwnAi" xml:space="preserve">
+    <value>使用我自己的 AI</value>
+  </data>
+  <data name="WizardChooseOwnAiHelp" xml:space="preserve">
+    <value>连接到您选择的 AI 服务器：在此计算机上、在您的网络中或在提供商处。</value>
+  </data>
+  <data name="WizardChooseDemo" xml:space="preserve">
+    <value>试用演示</value>
+  </data>
+  <data name="WizardNothingAllowed" xml:space="preserve">
+    <value>此计算机的设置不允许其中任何一项。请联系您的 IT 部门。</value>
+  </data>
+  <data name="WizardAppStepRefused" xml:space="preserve">
+    <value>没有此权限，应用无法继续。</value>
+  </data>
+  <data name="WizardStoreFailed" xml:space="preserve">
+    <value>应用无法保存其设置。请重试。</value>
+  </data>
+  <data name="WizardServerTitle" xml:space="preserve">
+    <value>连接到您的组织</value>
+  </data>
+  <data name="WizardServerLabel" xml:space="preserve">
+    <value>服务器地址</value>
+  </data>
+  <data name="WizardServerPlaceholder" xml:space="preserve">
+    <value>https://ai.example.com</value>
+  </data>
+  <data name="WizardServerHelp" xml:space="preserve">
+    <value>此地址由您的 IT 部门提供。</value>
+  </data>
+  <data name="WizardServerLocked" xml:space="preserve">
+    <value>此地址由您的组织设置。</value>
+  </data>
+  <data name="WizardServerAddressInvalid" xml:space="preserve">
+    <value>请输入服务器地址，例如 https://ai.example.com。</value>
+  </data>
+  <data name="WizardServerHttpsRequired" xml:space="preserve">
+    <value>请以 https://… 的形式输入地址。普通 http 仅适用于此计算机。</value>
+  </data>
+  <data name="WizardChecking" xml:space="preserve">
+    <value>正在检查服务器…</value>
+  </data>
+  <data name="WizardUnreachable" xml:space="preserve">
+    <value>无法连接到服务器。请检查地址和您的网络。</value>
+  </data>
+  <data name="WizardCertificateNotTrusted" xml:space="preserve">
+    <value>此计算机不信任该服务器的证书。请联系您的 IT 部门：您组织的证书在计算机上设置，绝不在此处设置。</value>
+  </data>
+  <data name="WizardNotFadenstack" xml:space="preserve">
+    <value>此地址的响应不像 Fadenstack 服务器。请检查地址。</value>
+  </data>
+  <data name="WizardRestarting" xml:space="preserve">
+    <value>已连接到 {0}。应用将重新启动，以便您登录。</value>
+  </data>
+  <data name="WizardChangeServer" xml:space="preserve">
+    <value>更换服务器</value>
+  </data>
+  <data name="WizardServerAt" xml:space="preserve">
+    <value>服务器：{0}</value>
+  </data>
+  <data name="WizardStarting" xml:space="preserve">
+    <value>正在向服务器请求代码…</value>
+  </data>
+  <data name="WizardCodeTitle" xml:space="preserve">
+    <value>登录到 {0}</value>
+  </data>
+  <data name="WizardCodeIntro" xml:space="preserve">
+    <value>请在浏览器中批准此计算机。您的密码只保留在浏览器中。</value>
+  </data>
+  <data name="WizardCodeName" xml:space="preserve">
+    <value>您的登录代码</value>
+  </data>
+  <data name="WizardCopyCode" xml:space="preserve">
+    <value>复制代码</value>
+  </data>
+  <data name="WizardOpenPage" xml:space="preserve">
+    <value>打开登录页面</value>
+  </data>
+  <data name="WizardWaiting" xml:space="preserve">
+    <value>正在等待您的批准…代码将在 {0} 后过期。</value>
+  </data>
+  <data name="WizardWaitingRetry" xml:space="preserve">
+    <value>暂时无法连接到服务器。正在重试…代码将在 {0} 后过期。</value>
+  </data>
+  <data name="WizardDenied" xml:space="preserve">
+    <value>登录已在浏览器中被拒绝。</value>
+  </data>
+  <data name="WizardExpired" xml:space="preserve">
+    <value>代码已过期。</value>
+  </data>
+  <data name="WizardNewCode" xml:space="preserve">
+    <value>获取新代码</value>
+  </data>
+  <data name="WizardTooOld" xml:space="preserve">
+    <value>此服务器尚不支持使用代码登录。请让您的 IT 部门更新 Fadenstack。</value>
+  </data>
+  <data name="WizardTooOldPassword" xml:space="preserve">
+    <value>您可以改用电子邮件和密码登录。</value>
+  </data>
+  <data name="WizardStartFailure_Unreachable" xml:space="preserve">
+    <value>无法连接到服务器。</value>
+  </data>
+  <data name="WizardStartFailure_CertificateNotTrusted" xml:space="preserve">
+    <value>此计算机不信任该服务器的证书。请联系您的 IT 部门。</value>
+  </data>
+  <data name="WizardStartFailure_RateLimited" xml:space="preserve">
+    <value>此地址的登录尝试次数过多。请稍后再试。</value>
+  </data>
+  <data name="WizardStartFailure_PageElsewhere" xml:space="preserve">
+    <value>服务器给出的登录页面不在它自己的地址上。请让您的 IT 部门检查代理的设置。</value>
+  </data>
+  <data name="WizardStartFailure_ServerError" xml:space="preserve">
+    <value>服务器无法开始登录。请重试。</value>
+  </data>
+  <data name="WizardPairFailed" xml:space="preserve">
+    <value>登录已中断。请重试。</value>
+  </data>
+  <data name="WizardRedeeming" xml:space="preserve">
+    <value>正在登录…</value>
+  </data>
+  <data name="WizardSignedInAs" xml:space="preserve">
+    <value>已以 {0} 的身份登录。</value>
+  </data>
+  <data name="WizardSignedIn" xml:space="preserve">
+    <value>已登录。</value>
+  </data>
+  <data name="WizardNoAccess" xml:space="preserve">
+    <value>您无权访问此助手。请让您的 IT 部门为您开通访问权限。</value>
+  </data>
+  <data name="WizardSignInEnded" xml:space="preserve">
+    <value>您的登录已结束。请重新登录。</value>
+  </data>
+  <data name="WizardUsePassword" xml:space="preserve">
+    <value>改用电子邮件和密码登录</value>
+  </data>
+  <data name="WizardEmail" xml:space="preserve">
+    <value>电子邮件</value>
+  </data>
+  <data name="WizardPassword" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="WizardSignIn" xml:space="preserve">
+    <value>登录</value>
+  </data>
+  <data name="WizardBackToCode" xml:space="preserve">
+    <value>改用代码登录</value>
+  </data>
+  <data name="WizardPasswordFailure_BadCredentials" xml:space="preserve">
+    <value>电子邮件或密码不正确。</value>
+  </data>
+  <data name="WizardPasswordFailure_HttpsRequired" xml:space="preserve">
+    <value>密码只能通过 https 发送：请使用服务器的 https 地址。</value>
+  </data>
+  <data name="WizardPasswordFailure_NotFadenstack" xml:space="preserve">
+    <value>此地址的响应不像 Fadenstack 服务器。</value>
+  </data>
+  <data name="WizardPasswordFailure_Unreachable" xml:space="preserve">
+    <value>无法连接到服务器。</value>
+  </data>
+  <data name="WizardPasswordFailure_CertificateNotTrusted" xml:space="preserve">
+    <value>此计算机不信任该服务器的证书。请联系您的 IT 部门。</value>
+  </data>
+  <data name="WizardPasswordFailure_Other" xml:space="preserve">
+    <value>登录未成功。请重试。</value>
+  </data>
+  <data name="WizardOwnTitle" xml:space="preserve">
+    <value>使用您自己的 AI</value>
+  </data>
+  <data name="WizardOwnDataFlow" xml:space="preserve">
+    <value>您写的内容会发送到您选择的 AI 服务器，它的回答也来自那里。不会向 Fadenstack 发送任何内容。</value>
+  </data>
+  <data name="WizardOwnProviderTerms" xml:space="preserve">
+    <value>提供商的条款由您与提供商之间约定。</value>
+  </data>
+  <data name="WizardOwnNotice" xml:space="preserve">
+    <value>在此模式下，智能体直接连接到您选择的模型端点。在此模式下，Fadenstack 不运行任何服务器。在您的设备上，智能体会在技术上可行的情况下标记 AI 生成的内容：它会将带签名的机器可读信息写入文档和电子邮件的属性，并保留本地记录。聊天文本和插入的文本是否还带有不可见的文本水印，取决于您的端点；智能体会显示您所用连接的状态。服务器模式可以在生成时添加文本水印。此模式不生成图片。内容被复制、转换或编辑时，元数据可能丢失。如果您在工作中使用 AI 生成的内容或将其发布，您可能负有自己的披露义务，例如根据欧盟《人工智能法》第 50 条第 4 款，针对深度伪造内容以及为向公众通报公共利益事务而发布的文本。请勿删除或更改这些标记，但出于安全测试等正当目的的除外。</value>
+  </data>
+  <data name="WizardOwnLiability" xml:space="preserve">
+    <value>我们免费提供本软件，因此仅对故意和重大过失承担责任（《德国民法典》（BGB）第521条）。根据《产品责任法》（Produkthaftungsgesetz）承担的责任，以及对生命、身体或健康造成损害的责任，不受影响。</value>
+  </data>
+  <data name="WizardOwnBindingVersion" xml:space="preserve">
+    <value>以德文文本为准。</value>
+  </data>
+  <data name="WizardOwnFullTerms" xml:space="preserve">
+    <value>阅读完整条款</value>
+  </data>
+  <data name="WizardOwnConsent" xml:space="preserve">
+    <value>我已阅读以上内容并接受条款。</value>
+  </data>
+  <data name="WizardOwnSearchConsent" xml:space="preserve">
+    <value>在此计算机上查找 AI 服务器（Ollama、LM Studio、vLLM、llama.cpp）</value>
+  </data>
+  <data name="WizardOwnAccept" xml:space="preserve">
+    <value>接受并继续</value>
+  </data>
+  <data name="WizardOwnServerInstead" xml:space="preserve">
+    <value>改为设置服务器模式</value>
+  </data>
+  <data name="WizardOwnSearching" xml:space="preserve">
+    <value>正在此计算机上查找 AI 服务器…</value>
+  </data>
+  <data name="WizardOwnPickTitle" xml:space="preserve">
+    <value>选择您的 AI</value>
+  </data>
+  <data name="WizardOwnFound" xml:space="preserve">
+    <value>在此计算机上找到</value>
+  </data>
+  <data name="WizardOwnNothingFound" xml:space="preserve">
+    <value>在此计算机上未找到 AI 服务器。</value>
+  </data>
+  <data name="WizardOwnPresets" xml:space="preserve">
+    <value>提供商和服务器</value>
+  </data>
+  <data name="WizardOwnAddress" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="WizardOwnAddressPlaceholder" xml:space="preserve">
+    <value>https://…/v1</value>
+  </data>
+  <data name="WizardOwnNeedsKey" xml:space="preserve">
+    <value>此服务器需要密钥</value>
+  </data>
+  <data name="WizardOwnUse" xml:space="preserve">
+    <value>使用此项</value>
+  </data>
+  <data name="WizardEndpointAddressInvalid" xml:space="preserve">
+    <value>请输入以 https:// 开头的地址（此计算机可用 http://）。</value>
+  </data>
+  <data name="WizardEndpointHttpsRequired" xml:space="preserve">
+    <value>请使用 https 地址。普通 http 仅适用于此计算机，以及经您确认后的本地网络。</value>
+  </data>
+  <data name="WizardAddressNotAllowed" xml:space="preserve">
+    <value>此计算机的设置不允许使用此地址。请联系您的 IT 部门。</value>
+  </data>
+  <data name="WizardAddressPlainHttpForbidden" xml:space="preserve">
+    <value>此计算机的设置不允许使用普通 http。请使用 https 地址。</value>
+  </data>
+  <data name="WizardAddressKeyNeedsHttps" xml:space="preserve">
+    <value>密钥绝不会通过普通 http 发送到另一台计算机。请使用 https 地址。</value>
+  </data>
+  <data name="WizardPlainHttpTitle" xml:space="preserve">
+    <value>本地网络中的普通 http</value>
+  </data>
+  <data name="WizardPlainHttpWarning" xml:space="preserve">
+    <value>此地址位于您的本地网络中，并使用普通 http：网络中的其他人可能读取您发送和接收的内容。请仅在您信任的网络中使用。此地址不能使用密钥。</value>
+  </data>
+  <data name="WizardPlainHttpConfirm" xml:space="preserve">
+    <value>仍然使用</value>
+  </data>
+  <data name="WizardKeyTitle" xml:space="preserve">
+    <value>密钥</value>
+  </data>
+  <data name="WizardKeyLabel" xml:space="preserve">
+    <value>API 密钥</value>
+  </data>
+  <data name="WizardKeyHelp" xml:space="preserve">
+    <value>密钥保存在此计算机的密钥存储中，绝不保存在文件里。</value>
+  </data>
+  <data name="WizardOwnChecking" xml:space="preserve">
+    <value>正在检查连接…</value>
+  </data>
+  <data name="WizardProblem_Unreachable" xml:space="preserve">
+    <value>无法连接到服务器。它是否在运行，地址是否正确？</value>
+  </data>
+  <data name="WizardProblem_CertificateNotTrusted" xml:space="preserve">
+    <value>此计算机不信任该服务器的证书。请联系您的 IT 部门。</value>
+  </data>
+  <data name="WizardProblem_PlainHttpRefused" xml:space="preserve">
+    <value>此地址不允许使用普通 http。</value>
+  </data>
+  <data name="WizardProblem_KeyRejected" xml:space="preserve">
+    <value>服务器拒绝了该密钥。</value>
+  </data>
+  <data name="WizardProblem_OriginRefused" xml:space="preserve">
+    <value>服务器拒绝了此应用的请求。必须先让它允许此应用。</value>
+  </data>
+  <data name="WizardProblem_NotCompatible" xml:space="preserve">
+    <value>此服务器的响应不像与 OpenAI 兼容的端点。</value>
+  </data>
+  <data name="WizardProblem_RateLimited" xml:space="preserve">
+    <value>服务器目前请求过多。请稍后再试。</value>
+  </data>
+  <data name="WizardProblem_ModelNotFound" xml:space="preserve">
+    <value>服务器没有此模型。</value>
+  </data>
+  <data name="WizardProblem_NoToolCalls" xml:space="preserve">
+    <value>此模型只能聊天：无法使用工具。</value>
+  </data>
+  <data name="WizardProblem_NoUsage" xml:space="preserve">
+    <value>服务器不报告使用了多少个 token。</value>
+  </data>
+  <data name="WizardProblem_ContextTooShort" xml:space="preserve">
+    <value>该模型的上下文对智能体来说太短：请选择上下文更长的模型，或调高服务器的设置。</value>
+  </data>
+  <data name="WizardProblem_OllamaDefaultContext" xml:space="preserve">
+    <value>Ollama 以其较短的默认上下文运行此模型，这会截断较长的提示。请调高 OLLAMA_CONTEXT_LENGTH。</value>
+  </data>
+  <data name="WizardProblem_WatermarkRequestRefused" xml:space="preserve">
+    <value>服务器不添加其文本水印，因此请求将不带水印发送。</value>
+  </data>
+  <data name="WizardProblem_KeyUnencryptedOnThisComputer" xml:space="preserve">
+    <value>密钥将未加密地发送到此计算机上的服务器（普通 http）。</value>
+  </data>
+  <data name="WizardProblem_Failed" xml:space="preserve">
+    <value>检查未成功。请重试。</value>
+  </data>
+  <data name="WizardEnterKey" xml:space="preserve">
+    <value>请重新输入密钥</value>
+  </data>
+  <data name="WizardShowHelp" xml:space="preserve">
+    <value>如何允许</value>
+  </data>
+  <data name="WizardOwnHelpTitle" xml:space="preserve">
+    <value>允许此应用</value>
+  </data>
+  <data name="WizardOwnHelp" xml:space="preserve">
+    <value>Ollama 只响应它认识的应用：请将此应用的来源添加到 OLLAMA_ORIGINS，然后重新启动 Ollama。在 LM Studio 中，请在服务器设置中开启 CORS。</value>
+  </data>
+  <data name="WizardOwnWorks" xml:space="preserve">
+    <value>连接正常。</value>
+  </data>
+  <data name="WizardWatermark_Unknown" xml:space="preserve">
+    <value>不清楚此连接是否为文本添加水印。</value>
+  </data>
+  <data name="WizardWatermark_Marks" xml:space="preserve">
+    <value>此连接会为文本添加不可见的水印。</value>
+  </data>
+  <data name="WizardWatermark_IfAccountEnabled" xml:space="preserve">
+    <value>仅当账户已开启时，此连接才会为文本添加水印。</value>
+  </data>
+  <data name="WizardWatermark_IfOperatorConfigured" xml:space="preserve">
+    <value>仅当服务器的运营方已设置时，此连接才会为文本添加水印。</value>
+  </data>
+  <data name="WizardWatermark_Never" xml:space="preserve">
+    <value>此连接不会为文本添加水印。</value>
+  </data>
+  <data name="WizardWatermarkConfirmed" xml:space="preserve">
+    <value>服务器已确认其水印。</value>
+  </data>
+  <data name="WizardModelTitle" xml:space="preserve">
+    <value>选择模型</value>
+  </data>
+  <data name="WizardModelLabel" xml:space="preserve">
+    <value>模型</value>
+  </data>
+  <data name="WizardOwnDone" xml:space="preserve">
+    <value>您的 AI 已就绪。</value>
+  </data>
+  <data name="WizardSettingsTitle" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="WizardConnectedServer" xml:space="preserve">
+    <value>已连接到 {0}。</value>
+  </data>
+  <data name="WizardConnectedEndpoint" xml:space="preserve">
+    <value>您自己的 AI：{0}。</value>
+  </data>
+  <data name="WizardConnectOrganisation" xml:space="preserve">
+    <value>连接到我的组织</value>
+  </data>
+  <data name="WizardChangeEndpoint" xml:space="preserve">
+    <value>更换 AI</value>
+  </data>
+  <data name="WizardSignOut" xml:space="preserve">
+    <value>退出登录</value>
+  </data>
+  <data name="WizardRemoveEndpoint" xml:space="preserve">
+    <value>移除此 AI</value>
+  </data>
+  <data name="WizardSignOutTitle" xml:space="preserve">
+    <value>在此计算机上退出登录？</value>
+  </data>
+  <data name="WizardSignOutBody" xml:space="preserve">
+    <value>登录将在服务器和此计算机上结束。</value>
+  </data>
+  <data name="WizardRemoveTitle" xml:space="preserve">
+    <value>从此计算机移除此 AI？</value>
+  </data>
+  <data name="WizardRemoveBody" xml:space="preserve">
+    <value>它的密钥会从此计算机的密钥存储中删除。</value>
+  </data>
+  <data name="WizardDeleteChats" xml:space="preserve">
+    <value>同时删除保存在此计算机上的聊天</value>
+  </data>
 </root>

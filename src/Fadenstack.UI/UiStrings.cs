@@ -639,6 +639,344 @@ public sealed class UiStrings
     /// <summary>"Help (opens in your browser)": a link's name for screen readers.</summary>
     public string OpensInBrowser(string link) => Fill(link);
 
+    // -- the connection wizard (sdk/51 F15) --------------------------------------------------------------
+
+    /// <summary>"Back"</summary>
+    public string WizardBack => Text();
+
+    /// <summary>"Continue"</summary>
+    public string WizardContinue => Text();
+
+    /// <summary>"Cancel"</summary>
+    public string WizardCancel => Text();
+
+    /// <summary>"Close"</summary>
+    public string WizardClose => Text();
+
+    /// <summary>"Try again"</summary>
+    public string WizardTryAgain => Text();
+
+    /// <summary>"Check"</summary>
+    public string WizardCheck => Text();
+
+    /// <summary>"How do you want to use {0}?"</summary>
+    public string WizardChooseTitle(string app) => Fill(app);
+
+    /// <summary>"Connect to my organisation"</summary>
+    public string WizardChooseServer => Text();
+
+    /// <summary>"Your organisation runs Fadenstack: sign in with your account."</summary>
+    public string WizardChooseServerHelp => Text();
+
+    /// <summary>"Use my own AI"</summary>
+    public string WizardChooseOwnAi => Text();
+
+    /// <summary>"Connect to an AI server you choose: on this computer, in your network or at a provider."</summary>
+    public string WizardChooseOwnAiHelp => Text();
+
+    /// <summary>"Try the demo"</summary>
+    public string WizardChooseDemo => Text();
+
+    /// <summary>"The settings of this computer allow none of these. Ask your IT."</summary>
+    public string WizardNothingAllowed => Text();
+
+    /// <summary>"Without this permission the app cannot go on."</summary>
+    public string WizardAppStepRefused => Text();
+
+    /// <summary>"The app could not save its settings. Try again."</summary>
+    public string WizardStoreFailed => Text();
+
+    /// <summary>"Connect to your organisation"</summary>
+    public string WizardServerTitle => Text();
+
+    /// <summary>"Server address"</summary>
+    public string WizardServerLabel => Text();
+
+    /// <summary>"https://ai.example.com"</summary>
+    public string WizardServerPlaceholder => Text();
+
+    /// <summary>"Your IT gives you this address."</summary>
+    public string WizardServerHelp => Text();
+
+    /// <summary>"Your organisation set this address."</summary>
+    public string WizardServerLocked => Text();
+
+    /// <summary>"Enter the server's address, for example https://ai.example.com."</summary>
+    public string WizardServerAddressInvalid => Text();
+
+    /// <summary>"Enter the address as https://… Plain http works only for this computer."</summary>
+    public string WizardServerHttpsRequired => Text();
+
+    /// <summary>"Checking the server…"</summary>
+    public string WizardChecking => Text();
+
+    /// <summary>"The server cannot be reached. Check the address and your network."</summary>
+    public string WizardUnreachable => Text();
+
+    /// <summary>WizardCertificateNotTrusted</summary>
+    public string WizardCertificateNotTrusted => Text();
+
+    /// <summary>"This address does not answer like a Fadenstack server. Check the address."</summary>
+    public string WizardNotFadenstack => Text();
+
+    /// <summary>"Connected to {0}. The app starts again so that you can sign in."</summary>
+    public string WizardRestarting(string server) => Fill(server);
+
+    /// <summary>"Change the server"</summary>
+    public string WizardChangeServer => Text();
+
+    /// <summary>"Server: {0}"</summary>
+    public string WizardServerAt(string server) => Fill(server);
+
+    /// <summary>"Asking the server for a code…"</summary>
+    public string WizardStarting => Text();
+
+    /// <summary>"Sign in to {0}"</summary>
+    public string WizardCodeTitle(string app) => Fill(app);
+
+    /// <summary>"Approve this computer in your browser. Your password stays in the browser."</summary>
+    public string WizardCodeIntro => Text();
+
+    /// <summary>"Your sign-in code"</summary>
+    public string WizardCodeName => Text();
+
+    /// <summary>"Copy the code"</summary>
+    public string WizardCopyCode => Text();
+
+    /// <summary>"Open the sign-in page"</summary>
+    public string WizardOpenPage => Text();
+
+    /// <summary>"Waiting for your approval… The code expires in {0}." ({0} as 9:41).</summary>
+    public string WizardWaiting(TimeSpan left) => Fill(MinutesAndSeconds(left));
+
+    /// <summary>"The server cannot be reached for the moment. Trying again… The code expires in {0}." ({0} as 9:41).</summary>
+    public string WizardWaitingRetry(TimeSpan left) => Fill(MinutesAndSeconds(left));
+
+    /// <summary>"The sign-in was denied in the browser."</summary>
+    public string WizardDenied => Text();
+
+    /// <summary>"The code expired."</summary>
+    public string WizardExpired => Text();
+
+    /// <summary>"Get a new code"</summary>
+    public string WizardNewCode => Text();
+
+    /// <summary>"This server does not support signing in with a code yet. Ask your IT to update Fadenstack."</summary>
+    public string WizardTooOld => Text();
+
+    /// <summary>"You can sign in with your e-mail and password instead."</summary>
+    public string WizardTooOldPassword => Text();
+
+    /// <summary>Why the first pairing request failed.</summary>
+    public string WizardStartFailure(Wizard.StartFailure value) => this["WizardStartFailure_" + value];
+
+    /// <summary>"The sign-in stopped. Try again."</summary>
+    public string WizardPairFailed => Text();
+
+    /// <summary>"Signing in…"</summary>
+    public string WizardRedeeming => Text();
+
+    /// <summary>"Signed in as {0}."</summary>
+    public string WizardSignedInAs(string person) => Fill(person);
+
+    /// <summary>"Signed in."</summary>
+    public string WizardSignedIn => Text();
+
+    /// <summary>"You have no access to this assistant. Ask your IT to give you access."</summary>
+    public string WizardNoAccess => Text();
+
+    /// <summary>"Your sign-in ended. Sign in again."</summary>
+    public string WizardSignInEnded => Text();
+
+    /// <summary>"Sign in with e-mail and password instead"</summary>
+    public string WizardUsePassword => Text();
+
+    /// <summary>"E-mail"</summary>
+    public string WizardEmail => Text();
+
+    /// <summary>"Password"</summary>
+    public string WizardPassword => Text();
+
+    /// <summary>"Sign in"</summary>
+    public string WizardSignIn => Text();
+
+    /// <summary>"Sign in with a code instead"</summary>
+    public string WizardBackToCode => Text();
+
+    /// <summary>Why the password sign-in failed.</summary>
+    public string WizardPasswordFailure(Wizard.PasswordFailure value) => this["WizardPasswordFailure_" + value];
+
+    /// <summary>"Use your own AI"</summary>
+    public string WizardOwnTitle => Text();
+
+    /// <summary>WizardOwnDataFlow</summary>
+    public string WizardOwnDataFlow => Text();
+
+    /// <summary>"The provider's terms are between you and the provider."</summary>
+    public string WizardOwnProviderTerms => Text();
+
+    /// <summary>The standalone notice (F15, owner 14 Nov): the report's draft without pictures (D17). Counsel reviews; German is binding.</summary>
+    public string WizardOwnNotice => Text();
+
+    /// <summary>The liability sentence (F15): counsel reviews; German is binding.</summary>
+    public string WizardOwnLiability => Text();
+
+    /// <summary>"The German text is the binding version."</summary>
+    public string WizardOwnBindingVersion => Text();
+
+    /// <summary>"Read the full terms"</summary>
+    public string WizardOwnFullTerms => Text();
+
+    /// <summary>"I have read this and accept the terms."</summary>
+    public string WizardOwnConsent => Text();
+
+    /// <summary>"Look for AI servers on this computer (Ollama, LM Studio, vLLM, llama.cpp)"</summary>
+    public string WizardOwnSearchConsent => Text();
+
+    /// <summary>"Accept and continue"</summary>
+    public string WizardOwnAccept => Text();
+
+    /// <summary>"Set up server mode instead"</summary>
+    public string WizardOwnServerInstead => Text();
+
+    /// <summary>"Looking for AI servers on this computer…"</summary>
+    public string WizardOwnSearching => Text();
+
+    /// <summary>"Choose your AI"</summary>
+    public string WizardOwnPickTitle => Text();
+
+    /// <summary>"Found on this computer"</summary>
+    public string WizardOwnFound => Text();
+
+    /// <summary>"No AI server was found on this computer."</summary>
+    public string WizardOwnNothingFound => Text();
+
+    /// <summary>"Providers and servers"</summary>
+    public string WizardOwnPresets => Text();
+
+    /// <summary>"Address"</summary>
+    public string WizardOwnAddress => Text();
+
+    /// <summary>"https://…/v1"</summary>
+    public string WizardOwnAddressPlaceholder => Text();
+
+    /// <summary>"This server needs a key"</summary>
+    public string WizardOwnNeedsKey => Text();
+
+    /// <summary>"Use this"</summary>
+    public string WizardOwnUse => Text();
+
+    /// <summary>"Enter an address that starts with https:// (or http:// for this computer)."</summary>
+    public string WizardEndpointAddressInvalid => Text();
+
+    /// <summary>WizardEndpointHttpsRequired</summary>
+    public string WizardEndpointHttpsRequired => Text();
+
+    /// <summary>"The settings of this computer do not allow this address. Ask your IT."</summary>
+    public string WizardAddressNotAllowed => Text();
+
+    /// <summary>"The settings of this computer do not allow plain http. Use the https address."</summary>
+    public string WizardAddressPlainHttpForbidden => Text();
+
+    /// <summary>"A key never goes over plain http to another computer. Use the https address."</summary>
+    public string WizardAddressKeyNeedsHttps => Text();
+
+    /// <summary>"Plain http in your local network"</summary>
+    public string WizardPlainHttpTitle => Text();
+
+    /// <summary>WizardPlainHttpWarning</summary>
+    public string WizardPlainHttpWarning => Text();
+
+    /// <summary>"Use it anyway"</summary>
+    public string WizardPlainHttpConfirm => Text();
+
+    /// <summary>"The key"</summary>
+    public string WizardKeyTitle => Text();
+
+    /// <summary>"API key"</summary>
+    public string WizardKeyLabel => Text();
+
+    /// <summary>"The key is kept in this computer's key store, never in a file."</summary>
+    public string WizardKeyHelp => Text();
+
+    /// <summary>"Checking the connection…"</summary>
+    public string WizardOwnChecking => Text();
+
+    /// <summary>What the endpoint check found, in plain words.</summary>
+    public string WizardProblem(Fadenstack.Endpoints.EndpointProblem value) => this["WizardProblem_" + value];
+
+    /// <summary>"Enter the key again"</summary>
+    public string WizardEnterKey => Text();
+
+    /// <summary>"How to allow it"</summary>
+    public string WizardShowHelp => Text();
+
+    /// <summary>"Allow this app"</summary>
+    public string WizardOwnHelpTitle => Text();
+
+    /// <summary>WizardOwnHelp</summary>
+    public string WizardOwnHelp => Text();
+
+    /// <summary>"The connection works."</summary>
+    public string WizardOwnWorks => Text();
+
+    /// <summary>Whether the connection watermarks text (F03 item 8).</summary>
+    public string WizardWatermark(Fadenstack.Endpoints.TextWatermark value) => this["WizardWatermark_" + value];
+
+    /// <summary>"The server confirmed its watermark."</summary>
+    public string WizardWatermarkConfirmed => Text();
+
+    /// <summary>"Choose the model"</summary>
+    public string WizardModelTitle => Text();
+
+    /// <summary>"Model"</summary>
+    public string WizardModelLabel => Text();
+
+    /// <summary>"Your AI is ready."</summary>
+    public string WizardOwnDone => Text();
+
+    /// <summary>"Connection"</summary>
+    public string WizardSettingsTitle => Text();
+
+    /// <summary>"Connected to {0}."</summary>
+    public string WizardConnectedServer(string server) => Fill(server);
+
+    /// <summary>"Your own AI: {0}."</summary>
+    public string WizardConnectedEndpoint(string endpoint) => Fill(endpoint);
+
+    /// <summary>"Connect to my organisation"</summary>
+    public string WizardConnectOrganisation => Text();
+
+    /// <summary>"Change the AI"</summary>
+    public string WizardChangeEndpoint => Text();
+
+    /// <summary>"Sign out"</summary>
+    public string WizardSignOut => Text();
+
+    /// <summary>"Remove this AI"</summary>
+    public string WizardRemoveEndpoint => Text();
+
+    /// <summary>"Sign out on this computer?"</summary>
+    public string WizardSignOutTitle => Text();
+
+    /// <summary>"The sign-in ends at the server and on this computer."</summary>
+    public string WizardSignOutBody => Text();
+
+    /// <summary>"Remove this AI from this computer?"</summary>
+    public string WizardRemoveTitle => Text();
+
+    /// <summary>"Its key is deleted from this computer's key store."</summary>
+    public string WizardRemoveBody => Text();
+
+    /// <summary>"Also delete the chats kept on this computer"</summary>
+    public string WizardDeleteChats => Text();
+
+    private static string MinutesAndSeconds(TimeSpan left)
+    {
+        var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));
+        return $"{seconds / 60}:{seconds % 60:00}";
+    }
+
     // -- lookup --------------------------------------------------------------------------------------
 
     private string Text([CallerMemberName] string name = "") => this[name];
