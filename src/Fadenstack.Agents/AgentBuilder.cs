@@ -401,6 +401,15 @@ public sealed class AgentBuilder
             {
                 throw new MachinePolicyException("endpoints", "This computer's policy does not list this endpoint.");
             }
+            if (_endpoint is not null && string.IsNullOrWhiteSpace(_endpoint.Model))
+            {
+                throw new InvalidOperationException("The endpoint needs a model (ModelEndpoint.Model): say which one the agent uses.");
+            }
+            if (_requireHostToolPolicyChecks)
+            {
+                throw new InvalidOperationException(
+                    "RequireHostToolPolicyChecks needs a Fadenstack server: an agent on its own endpoint has no server to check with.");
+            }
             if (_chatClient is not null && _policy.Endpoints is not null)
             {
                 throw new MachinePolicyException("endpoints",

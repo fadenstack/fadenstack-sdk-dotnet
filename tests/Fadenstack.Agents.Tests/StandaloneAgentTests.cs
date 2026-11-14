@@ -98,6 +98,18 @@ public class StandaloneAgentTests : IDisposable
     }
 
     [Fact]
+    public void An_endpoint_without_a_model_and_server_checks_without_a_server_are_refused_at_build()
+    {
+        var noModel = FadenstackAgent.CreateBuilder()
+            .UseEndpoint(new ModelEndpoint { BaseUrl = new Uri("http://localhost:11434/v1") })
+            .UseLocalProfile(AgentDefinition.FromJson(Definition));
+        Assert.Contains("model", Assert.Throws<InvalidOperationException>(() => noModel.Build()).Message);
+
+        var (checks, _) = Standalone();
+        Assert.Contains("needs a Fadenstack server", Assert.Throws<InvalidOperationException>(() => checks.RequireHostToolPolicyChecks().Build()).Message);
+    }
+
+    [Fact]
     public void The_slug_comes_from_the_definition()
     {
         var (builder, _) = Standalone();
