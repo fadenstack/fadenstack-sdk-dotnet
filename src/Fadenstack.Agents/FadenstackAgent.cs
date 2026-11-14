@@ -167,6 +167,9 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     /// <summary>How old the profile may be when a session starts or opens before it is read again (39 F8).</summary>
     internal static readonly TimeSpan ProfileMaxAge = TimeSpan.FromMinutes(1);
 
+    /// <summary>How long one try at answering a gateway's approval may take before it is sent once more; tests shorten it.</summary>
+    internal TimeSpan ApprovalAnswerTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>The time, for the profile's age and the grants' remaining time (<see cref="AgentGrants.ServerNow"/>); tests set it.</summary>
     internal Func<DateTimeOffset> Clock { get; set; } = () => DateTimeOffset.UtcNow;
 

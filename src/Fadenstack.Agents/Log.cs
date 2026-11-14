@@ -112,6 +112,10 @@ internal static partial class Log
         Message = "A saved chat could not be read ({Kind}); it is left out for now")]
     internal static partial void ChatUnreadable(ILogger logger, string kind);
 
+    [LoggerMessage(EventId = 2053, Level = LogLevel.Warning,
+        Message = "An approval answer got no word back ({Kind}); it is sent once more")]
+    internal static partial void ApprovalAnswerRetried(ILogger logger, string kind);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);

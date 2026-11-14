@@ -1378,12 +1378,54 @@ public sealed class ChatSession
             }
             // The gateway's own wait takes once, chat or always: an answer that also made a grant approves this call once.
             var scope = settled.Scope == ApprovalScopes.Grant ? ApprovalScopes.Once : settled.Scope;
-            await Agent.Backend.AnswerApprovalAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
+            await AnswerGatewayAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
             }
         }
+
+        /// <summary>
+        /// Sends the person's answer to a call the gateway holds: a short wait for it, then once more with the same body when
+        /// nothing came back (no answer in time, the server unreachable, a proxy's 502, 503 or 504), since an answer lost on the
+        /// way leaves the call waiting until the gateway's own timeout (the lost decline, release gate of 14 Nov). A gateway
+        /// with <c>approvals.idempotent</c> takes a repeated answer once (core 0.7.1 rc17); an older one answers the repeat of a
+        /// taken answer 404, which counts as taken: the stream says which. Any other refusal (409 and the rest) is not retried.
+        /// </summary>
+        private async Task AnswerGatewayAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken)
+        {
+            for (var attempt = 0; ; attempt++)
+            {
+                using var wait = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                wait.CancelAfter(Agent.ApprovalAnswerTimeout);
+                try
+                {
+                    await Agent.Backend.AnswerApprovalAsync(approvalId, approved, scope, wait.Token).ConfigureAwait(false);
+                    return;
+                }
+                catch (Exception e) when (attempt == 0 && !cancellationToken.IsCancellationRequested && Unanswered(e))
+                {
+                    Log.ApprovalAnswerRetried(Agent.Logger, e.GetType().Name);
+                }
+                catch (FadenstackApiException e) when (attempt == 1 && (int)e.Status == 404
+                    && !Agent.Profile.Features.Contains(IdempotentApprovals))
+                {
+                    return; // an older gateway: the first try was most likely taken
+                }
+            }
+        }
+
+        /// <summary>The server's feature: a repeated approval answer is taken once (core 0.7.1 rc17).</summary>
+        internal const string IdempotentApprovals = "approvals.idempotent";
+
+        /// <summary>No word came back: the answer may or may not have been taken.</summary>
+        private static bool Unanswered(Exception e) => e switch
+        {
+            OperationCanceledException => true, // our short wait
+            FadenstackApiException api => (int)api.Status is 502 or 503 or 504,
+            FadenstackException => true, // unreachable, or no answer within the transport's time
+            _ => false,
+        };
 
         /// <summary>The gateway's word on a call of the agent's own tool, kept until the round's calls are planned.</summary>
         private void Mark(JsonElement value)

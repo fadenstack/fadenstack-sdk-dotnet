@@ -105,6 +105,11 @@ this file says where it does.
 
 ### Fixed
 
+- **An approval answer lost on the way is sent once more.** Answering a call the gateway holds now waits 10 seconds for a
+  word back, then sends the same answer once more when none came (no answer, the server unreachable, a proxy's 502, 503 or
+  504). A Fadenstack gateway from 0.7.1 (`approvals.idempotent`) takes a repeated answer once; an older one answers the
+  repeat of a taken answer 404, which now counts as taken. A 409 is never sent again. Before, a lost decline left the call
+  waiting until the gateway's own timeout (5 minutes). Log event 2053.
 - **A chat no longer loses its own grant to another chat's refresh.** The device's copy of grants took the server's list
   (or a stream's `faden.grants`) as it was when it was asked for; a grant made meanwhile in another chat, a Bypass
   started in parallel, was dropped from the copy, so that chat ran without it and its Stop could not end it at the
