@@ -81,6 +81,22 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     /// </summary>
     public Endpoints.EndpointWatermarkStatus? EndpointWatermark => (_settings.Backend as LocalAgentBackend)?.Watermark;
 
+    /// <summary>
+    /// What IT set for this machine (<see cref="AgentBuilder.UseMachinePolicy"/>): modules read its lists (the MCP sources, the
+    /// skill folders); <see cref="MachinePolicy.None"/> when the app gave none.
+    /// </summary>
+    public MachinePolicy MachinePolicy => _settings.MachinePolicy;
+
+    /// <summary>
+    /// The profile under the machine policy: what it forbids is off whatever the server or the person says (R3-8); it never
+    /// turns on what they left off.
+    /// </summary>
+    private AgentProfile Narrowed(AgentProfile profile) => profile with
+    {
+        LocalMcp = _settings.MachinePolicy.Mcp.AllowsAny ? profile.LocalMcp : profile.LocalMcp with { Mode = "disable", DeveloperMode = false },
+        LocalSkills = _settings.MachinePolicy.Skills.AllowsAny ? profile.LocalSkills : profile.LocalSkills with { Mode = "disable", DeveloperMode = false },
+    };
+
     /// <summary>For a standalone agent, the kind of server behind its endpoint; null with a Fadenstack server.</summary>
     internal Endpoints.EndpointServer? EndpointServer => (_settings.Backend as LocalAgentBackend)?.Server;
 
@@ -250,7 +266,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
 
     private async Task<AgentProfile> ReadProfileAsync(CancellationToken cancellationToken)
     {
-        var profile = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var profile = Narrowed(await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false));
         var missing = profile.RequiredClientModules.Where(m => !_settings.Modules.Contains(m)).ToList();
         if (missing.Count > 0)
         {
@@ -302,7 +318,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     internal async Task RefreshPolicyAsync(CancellationToken cancellationToken)
     {
         var before = Profile;
-        var fresh = await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false);
+        var fresh = Narrowed(await Backend.GetProfileAsync(cancellationToken).ConfigureAwait(false));
         AssertHostPolicySupport(fresh);
         if (Binding(before) != Binding(fresh))
         {

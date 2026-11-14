@@ -29,6 +29,7 @@ public sealed class AgentBuilder
     private AgentDefinition? _definition;
     private string? _ownInstructions;
     private LocalProfileOptions? _localOptions;
+    private MachinePolicy _policy = MachinePolicy.None;
     private string? _agent;
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
@@ -100,6 +101,17 @@ public sealed class AgentBuilder
         _definition = definition ?? throw new ArgumentNullException(nameof(definition));
         _ownInstructions = ownInstructions;
         _localOptions = options;
+        return this;
+    }
+
+    /// <summary>
+    /// What IT set for this machine (sdk/51 F09): <c>Build()</c> refuses an endpoint the policy forbids or does not list, takes
+    /// away the plain-http opt-in where it forbids plain http, and narrows local MCP and skills, with a server too. The app
+    /// reads the policy from its managed location (<see cref="MachinePolicy.Load"/>) and locks what it sets.
+    /// </summary>
+    public AgentBuilder UseMachinePolicy(MachinePolicy policy)
+    {
+        _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         return this;
     }
 
@@ -380,12 +392,36 @@ public sealed class AgentBuilder
                     $"The definition is for '{definition.Slug}', not '{_agent}': in standalone mode the slug comes from the definition.");
             }
             agent = definition.Slug;
+            if (_policy.Standalone != PolicyAccess.Allowed)
+            {
+                throw new MachinePolicyException("standalone",
+                    "This computer's policy does not allow an agent on its own model endpoint: connect to the organisation's server.");
+            }
+            if (_endpoint is not null && !_policy.AllowsEndpoint(_endpoint.BaseUrl))
+            {
+                throw new MachinePolicyException("endpoints", "This computer's policy does not list this endpoint.");
+            }
+            if (_chatClient is not null && _policy.Endpoints is not null)
+            {
+                throw new MachinePolicyException("endpoints",
+                    "This computer's policy allows only listed endpoints, and a host's own chat client names none.");
+            }
             AssertNoDuplicateTools();
             var endpoint = _endpoint is null || _loggerFactory is null || _endpoint.LoggerFactory is not null
                 ? _endpoint : _endpoint with { LoggerFactory = _loggerFactory };
+            if (endpoint is not null && _policy.PlainHttp != PolicyAccess.Allowed)
+            {
+                endpoint = endpoint with { AllowPlainHttpInLan = false, PlainHttpForbidden = true };
+            }
+            var local = _localOptions ?? new LocalProfileOptions();
+            local = local with
+            {
+                LocalMcp = local.LocalMcp && _policy.Mcp.AllowsAny,
+                LocalSkills = local.LocalSkills && _policy.Skills.AllowsAny,
+            };
             // An endpoint's client is the agent's (disposed with it); a host's own chat client stays the host's.
             backend = new LocalAgentBackend(definition, _chatClient ?? new DirectChatClient(endpoint!), ownsChat: _chatClient is null,
-                endpoint, _endpointReport, _localOptions);
+                endpoint, _endpointReport, local);
             // D7: the person's own instructions come after the definition's.
             instructions = string.Join("\n\n", new[] { definition.Instructions, _ownInstructions?.Trim() }.Where(s => !string.IsNullOrEmpty(s)));
         }
@@ -431,6 +467,7 @@ public sealed class AgentBuilder
             Agent = agent,
             Chat = chat,
             Instructions = string.IsNullOrEmpty(instructions) ? null : instructions,
+            MachinePolicy = _policy,
             LoggerFactory = _loggerFactory ?? clientLogging ?? NullLoggerFactory.Instance,
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
@@ -492,6 +529,9 @@ internal sealed class AgentSettings
     /// the agent's own. The session sets them as the system message, above the chat stages.
     /// </summary>
     public string? Instructions { get; init; }
+
+    /// <summary>What IT set for this machine; <see cref="MachinePolicy.None"/> when the app gave none.</summary>
+    public MachinePolicy MachinePolicy { get; init; } = MachinePolicy.None;
 
     /// <summary>About how many tokens <see cref="Instructions"/> take (4 characters a token): the history budget leaves room.</summary>
     public int InstructionsTokens => Instructions is null ? 0 : (Instructions.Length + 3) / 4;

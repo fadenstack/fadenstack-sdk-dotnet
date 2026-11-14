@@ -244,6 +244,24 @@ public class LocalProvenanceTests : IDisposable
     }
 
     [Fact]
+    public async Task The_machine_policy_can_switch_time_stamps_off()
+    {
+        var tsa = new TsaFake();
+        using var backend = Backend(tsa);
+        using var agent = FadenstackAgent.CreateBuilder()
+            .UseChatClient(new NoModel())
+            .UseLocalProfile(AgentDefinition.FromJson("""{"slug":"docs-assistant"}"""))
+            .UseMachinePolicy(MachinePolicy.FromJson("""{"timestamping":"forbidden"}"""))
+            .Build();
+
+        var signed = await backend.SignRecordAsync(agent, Request(), default);
+
+        Assert.Null(signed.Timestamp);
+        Assert.Empty(tsa.Requests);
+        Assert.NotNull(DeviceSigner.Verify(signed.Signature)); // still signed
+    }
+
+    [Fact]
     public async Task The_policy_is_the_local_default()
     {
         using var backend = Backend();

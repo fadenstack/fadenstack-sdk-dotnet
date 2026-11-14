@@ -165,6 +165,11 @@ internal sealed class EndpointTransport : IDisposable
         }
         if (scope == AddressScope.Private)
         {
+            if (endpoint.PlainHttpForbidden)
+            {
+                throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.ForbiddenByPolicy,
+                    "This computer's policy forbids plain http in the local network: use the endpoint's https address.");
+            }
             if (endpoint.AllowPlainHttpInLan)
             {
                 return;

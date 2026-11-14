@@ -35,6 +35,9 @@ this file says where it does.
   for a call nobody reads, where vLLM and SGLang may leave it off (`EndpointDialect.WatermarkSwitchOff`); each answer's
   transcript entry records `endpoint_marking`; `FadenstackAgent.EndpointWatermark`; `EndpointCheck.WatermarkOf` and
   `ServerOf`; the provenance module's watermark layer relies on the endpoint (`endpoint-<server>`) and never claims more.
+- **`MachinePolicy`** ([Machine policy](docs/machine-policy.md)): one vocabulary for managed installs (`server`,
+  `standalone`, `endpoints`, `plainHttp`, `mcp`, `skills`, `webSearch`, `timestamping`), read fail-closed, enforced by
+  `AgentBuilder.UseMachinePolicy` (`MachinePolicyException`), narrowing local MCP and skills with a server too.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork

@@ -35,6 +35,9 @@ public sealed record ModelEndpoint
     /// </summary>
     public bool AllowPlainHttpInLan { get; init; }
 
+    /// <summary>The machine policy forbids plain http in the local network (F09): such a request is refused, saying so.</summary>
+    internal bool PlainHttpForbidden { get; init; }
+
     /// <summary>A CA (PEM or DER) to trust for this endpoint's certificate, besides the OS store; per connection, never process-wide.</summary>
     public byte[]? TrustedCaCertificate { get; init; }
 

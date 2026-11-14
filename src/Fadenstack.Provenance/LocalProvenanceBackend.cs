@@ -119,7 +119,10 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
         };
         var payload = JsonNode.Parse(JsonSerializer.Serialize(record, FadenstackJson.Options))!;
         var signature = Signer.Sign(payload);
-        var timestamp = await TimestampAsync(signature, cancellationToken).ConfigureAwait(false);
+        // The machine policy may switch time-stamps off (F09): then nothing leaves the device at all.
+        var timestamp = agent.MachinePolicy.Timestamping == PolicyAccess.Allowed
+            ? await TimestampAsync(signature, cancellationToken).ConfigureAwait(false)
+            : null;
         return new SignedRecord { Record = record, Signature = signature, Timestamp = timestamp };
     }
 
