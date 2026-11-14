@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Fadenstack.Skills</RootNamespace>
+    <PackageId>Fadenstack.Skills</PackageId>
+    <Description>Agent Skills for Fadenstack agents: skills on the device (folders and bundled) as two read tools, load_skill and read_skill_resource, under the agent's local skills policy. Scripts never run.</Description>
+    <PackageTags>$(PackageTags);skills;agent-skills</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft Agent Framework's AgentSkillsProvider (sdk/51 F04, H1): the file source, the validation and the two tools. Only this
+         module takes MAF's full package on (architecture test A4); the core stays on its Abstractions. -->
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.28.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fadenstack.Agents\Fadenstack.Agents.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Fadenstack.Skills.Tests" />
+  </ItemGroup>
+</Project>

@@ -219,7 +219,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
                 Log.ToolDropped(Logger, name);
             }
             var hostTools = tools.Count;
-            var context = new AgentContext(ServerClient, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            var context = new AgentContext(ServerClient, profile, Reporter.ReportNowAsync, _settings.LoggerFactory, _settings.MachinePolicy, this);
             var fromSources = new List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)>();
             foreach (var source in _settings.Sources)
             {
@@ -331,7 +331,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         _profileRead = Clock();
         if (_context is not null)
         {
-            _context = new AgentContext(ServerClient, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            _context = new AgentContext(ServerClient, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory, _settings.MachinePolicy, this);
         }
     }
 

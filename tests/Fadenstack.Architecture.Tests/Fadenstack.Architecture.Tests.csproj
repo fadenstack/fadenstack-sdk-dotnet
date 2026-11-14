@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\Fadenstack.Agents.Delegation\Fadenstack.Agents.Delegation.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Mcp\Fadenstack.Mcp.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Provenance\Fadenstack.Provenance.csproj" />
+    <ProjectReference Include="..\..\src\Fadenstack.Skills\Fadenstack.Skills.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Workspaces\Fadenstack.Workspaces.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.Secrets\Fadenstack.Secrets.csproj" />
     <ProjectReference Include="..\..\src\Fadenstack.UI\Fadenstack.UI.csproj" />
