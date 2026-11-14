@@ -132,6 +132,7 @@ public class AgentDefinitionTests
     [InlineData("{\"slug\":\"word-\"}")]
     [InlineData("{\"slug\":\"../word\"}")]
     [InlineData("{\"slug\":7}")]
+    [InlineData("{\"slug\":\"word\\n\"}")] // a JSON "\n" at the end: .NET's $ would let it through
     [InlineData("not json")]
     public void A_body_without_a_valid_slug_is_refused(string json)
     {

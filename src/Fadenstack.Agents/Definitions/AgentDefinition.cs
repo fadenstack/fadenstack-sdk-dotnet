@@ -18,7 +18,8 @@ namespace Fadenstack.Agents;
 public sealed class AgentDefinition
 {
     /// <summary>The server's rule for a slug (core <c>SLUG_PATTERN</c>): lower case, digits and inner hyphens, 1 to 64.</summary>
-    private static readonly Regex SlugPattern = new("^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$", RegexOptions.CultureInvariant);
+    /// <remarks><c>\z</c>, not <c>$</c>: in .NET <c>$</c> also matches before a final newline, which would let a slug with one through.</remarks>
+    private static readonly Regex SlugPattern = new(@"^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?\z", RegexOptions.CultureInvariant);
 
     private AgentDefinition(JsonElement json, string slug)
     {
