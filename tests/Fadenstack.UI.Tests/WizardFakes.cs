@@ -285,8 +285,15 @@ public sealed class FakeKeyStore : IEndpointKeyStore
 
     public List<Uri> Removed { get; } = new();
 
+    /// <summary>When set, saving a key fails with it and keeps nothing.</summary>
+    public Exception? Failure { get; set; }
+
     public Task<ITokenProvider> SaveAsync(Uri endpoint, string key, CancellationToken cancellationToken)
     {
+        if (Failure is { } failure)
+        {
+            return Task.FromException<ITokenProvider>(failure);
+        }
         Saved.Add((endpoint, key));
         var provider = new StaticTokenProvider(key);
         Providers.Add(provider);

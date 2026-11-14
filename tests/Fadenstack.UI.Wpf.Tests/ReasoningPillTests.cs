@@ -54,7 +54,9 @@ public class ReasoningPillTests
             .UseApprovalStore(new MemoryApprovalStore())
             .UseApprovals(broker)
             .Build();
-        var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance,
+        // The grants' timer ticks on a pool thread: through the WPF dispatcher it comes back to this thread (InlineDispatcher would
+        // raise a button's CanExecuteChanged from the pool and end the test host once the run is long enough for a tick).
+        var chat = new AgentChatViewModel(agent, broker, new Fadenstack.UI.Wpf.Services.WpfDispatcher(),
             new AgentChatOptions { AutomaticLanguage = new System.Globalization.CultureInfo(language), Preferences = new MemoryPreferenceStore(), RenderInterval = TimeSpan.Zero });
         chat.InitializeAsync().GetAwaiter().GetResult();
         var view = new ChatView { Theme = Enum.Parse<ChatTheme>(theme), DataContext = chat, Width = width, Height = 560 };

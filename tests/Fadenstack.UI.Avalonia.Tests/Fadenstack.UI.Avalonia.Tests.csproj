@@ -27,5 +27,7 @@
     <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\HarnessChat.cs" Link="Harness\HarnessChat.cs" />
     <Compile Include="..\..\samples\Fadenstack.Samples.Wpf\DemoGateway.cs" Link="Harness\DemoGateway.cs" />
     <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="Harness\DemoTools.cs" />
+    <!-- The wizard's fakes (the server, the endpoint checks, the stores, the clock): the tests drive the same real view model as the UI tests do. -->
+    <Compile Include="..\Fadenstack.UI.Tests\WizardFakes.cs" Link="Harness\WizardFakes.cs" />
   </ItemGroup>
 </Project>
