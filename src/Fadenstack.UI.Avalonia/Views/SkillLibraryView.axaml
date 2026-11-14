@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sk="clr-namespace:Fadenstack.UI.Skills;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="640"
+             x:Class="Fadenstack.UI.Avalonia.Views.SkillLibraryView"
+             x:DataType="sk:SkillLibraryViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
+    <!--
+        The skill library (sdk/51 F04): one view for a SkillLibraryViewModel. The list of skills, each with where it comes from, "not
+        reviewed" for the person's own and its switch where it may be switched; New and Import; Edit (View for a bundled skill),
+        Duplicate, Delete (after the confirmation the view model asks for) and Export on each row. When the view model has an editor open
+        the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) through the view's Strings;
+        every look is a style class of the skin's or a theme key.
+    -->
+    <UserControl.Styles>
+        <Style Selector="Button.hide-disabled:disabled">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Esc says no to the question that is open (the delete or the import). -->
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding CancelDeleteCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding CancelImportCommand}" />
+    </UserControl.KeyBindings>
+
+    <Panel>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                      IsVisible="{Binding Editor, Converter={x:Static ObjectConverters.IsNull}}">
+            <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+                <TextBlock Classes="title" Text="{v:Text SkillLibraryTitle}" TextWrapping="Wrap" />
+
+                <!-- What the last action did. -->
+                <Border Classes="banner success" IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                    <DockPanel>
+                        <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    </DockPanel>
+                </Border>
+
+                <!-- Reading, could not read, none yet. -->
+                <TextBlock Classes="muted" Text="{Binding Note}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"
+                           IsVisible="{Binding Note, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                <WrapPanel Orientation="Horizontal">
+                    <Button Classes="primary" Margin="0,0,8,8" b:WizardFocus.IsFirst="True" Command="{Binding NewCommand}" Content="{v:Text SkillNew}"
+                            AutomationProperties.Name="{v:Text SkillNew}" />
+                    <Button Classes="secondary" Margin="0,0,8,8" Command="{Binding ImportCommand}" Content="{v:Text SkillImport}"
+                            AutomationProperties.Name="{v:Text SkillImport}" />
+                </WrapPanel>
+
+                <!-- Delete: the question first. Cancel has the focus. -->
+                <Border Classes="card" IsVisible="{Binding PendingDelete, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        b:WizardFocus.Step="{Binding PendingDelete}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="strong" Text="{Binding DeleteTitle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                        <TextBlock Text="{Binding DeleteBody}" TextWrapping="Wrap" />
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Classes="secondary" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding CancelDeleteCommand}"
+                                    Content="{v:Text SkillCancel}" AutomationProperties.Name="{v:Text SkillCancel}" />
+                            <Button Classes="primary" Command="{Binding ConfirmDeleteCommand}" Content="{v:Text SkillDelete}"
+                                    AutomationProperties.Name="{v:Text SkillDelete}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Import: what the checks found, nothing written yet. Enter presses Import when every check passed. -->
+                <Border Classes="card" IsVisible="{Binding PendingImport, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        b:WizardFocus.Step="{Binding PendingImport}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Classes="strong" Text="{Binding ImportTitle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                        <TextBlock Text="{Binding ImportBody}" TextWrapping="Wrap" />
+                        <ItemsControl ItemsSource="{Binding ImportIssues}" AutomationProperties.LiveSetting="Polite">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                                    <Border Classes="banner" Classes.error="{Binding IsError}" Classes.warning="{Binding !IsError}">
+                                        <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Classes="secondary" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding CancelImportCommand}"
+                                    Content="{v:Text SkillCancel}" AutomationProperties.Name="{v:Text SkillCancel}" />
+                            <Button Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
+                                    IsVisible="{Binding !ImportReplaces}" Content="{v:Text SkillImport}" AutomationProperties.Name="{v:Text SkillImport}" />
+                            <Button Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
+                                    IsVisible="{Binding ImportReplaces}" Content="{v:Text SkillReplace}" AutomationProperties.Name="{v:Text SkillReplace}" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- The skills. -->
+                <ItemsControl ItemsSource="{Binding Rows}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="sk:SkillRowViewModel">
+                            <Border Classes="card" AutomationProperties.Name="{Binding Name}">
+                                <StackPanel Spacing="8">
+                                    <DockPanel>
+                                        <ToggleSwitch DockPanel.Dock="Right" VerticalAlignment="Top" IsVisible="{Binding CanSwitch}" IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                                      CommandParameter="{Binding}" Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).ToggleCommand}"
+                                                      AutomationProperties.Name="{Binding Name}" />
+                                        <TextBlock DockPanel.Dock="Right" Classes="caption muted" VerticalAlignment="Center" Margin="8,0" Text="{Binding SwitchLabel}"
+                                                   IsVisible="{Binding CanSwitch}" />
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Classes="strong" Text="{Binding Name}" TextWrapping="Wrap" />
+                                            <TextBlock Classes="caption" Text="{Binding Description}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Border Classes="badge" Margin="0,0,8,0"><TextBlock Text="{Binding OriginLabel}" /></Border>
+                                        <Border Classes="badge write" IsVisible="{Binding IsNotReviewed}"><TextBlock Text="{Binding StatusLabel}" /></Border>
+                                    </WrapPanel>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="secondary" Margin="0,0,8,0" IsVisible="{Binding !IsReadOnly}" CommandParameter="{Binding}"
+                                                Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).EditCommand}"
+                                                Content="{v:Text SkillEdit}" AutomationProperties.Name="{v:Text SkillEdit}" />
+                                        <Button Classes="secondary" Margin="0,0,8,0" IsVisible="{Binding IsReadOnly}" CommandParameter="{Binding}"
+                                                Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).EditCommand}"
+                                                Content="{v:Text SkillView}" AutomationProperties.Name="{v:Text SkillView}" />
+                                        <Button Classes="quiet" Margin="0,0,8,0" IsVisible="{Binding CanDuplicate}" CommandParameter="{Binding}"
+                                                Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).DuplicateCommand}"
+                                                Content="{v:Text SkillDuplicate}" AutomationProperties.Name="{v:Text SkillDuplicate}" />
+                                        <Button Classes="quiet" Margin="0,0,8,0" IsVisible="{Binding CanExport}" CommandParameter="{Binding}"
+                                                Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).ExportCommand}"
+                                                Content="{v:Text SkillExport}" AutomationProperties.Name="{v:Text SkillExport}" />
+                                        <Button Classes="quiet" IsVisible="{Binding CanDelete}" CommandParameter="{Binding}"
+                                                Command="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).AskDeleteCommand}"
+                                                Content="{v:Text SkillDelete}" AutomationProperties.Name="{v:Text SkillDelete}" />
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- The open editor (new, edit, duplicate, a bundled skill to read, or a draft's proposal). -->
+        <v:SkillEditorView Name="EditorHost" DataContext="{Binding Editor}" Strings="{Binding $parent[v:SkillLibraryView].Strings}"
+                           IsVisible="{Binding $parent[v:SkillLibraryView].((sk:SkillLibraryViewModel)DataContext).Editor, Converter={x:Static ObjectConverters.IsNotNull}}" />
+    </Panel>
+</UserControl>

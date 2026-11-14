@@ -1,0 +1,249 @@
+<UserControl x:Class="Fadenstack.UI.Wpf.Views.SkillEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sk="clr-namespace:Fadenstack.UI.Skills;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Wpf.Behaviors"
+             xmlns:local="clr-namespace:Fadenstack.UI.Wpf.Views"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=sk:SkillEditorViewModel}"
+             d:DesignWidth="560" d:DesignHeight="900"
+             Background="{DynamicResource Fadenstack.Background}" Foreground="{DynamicResource Fadenstack.Foreground}"
+             FontFamily="{DynamicResource Fadenstack.Font}" FontSize="13" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" Focusable="True"
+             b:WizardFocus.Step="{Binding Mode}">
+    <!--
+        The skill editor (sdk/51 F04): one view for a SkillEditorViewModel. The name and the description with the checks' words as you
+        type, the instructions in Markdown with a preview (the chat's Markdown templates), the faden.yaml fields, the files (add, rename,
+        remove), the checks, Save (on only when the checks pass) and Cancel, and the Try panel (a message, the listed, matched and
+        pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings through the view's
+        Strings. It works on .NET Framework 4.7.2 and on .NET 8.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Colors.Light.xaml" />
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Skills.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="Skill.Area" TargetType="TextBox" BasedOn="{StaticResource Fadenstack.TextBox}">
+                <Setter Property="AcceptsReturn" Value="True" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="MinHeight" Value="160" />
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16">
+            <TextBlock Style="{StaticResource Skill.Title}" Text="{Binding Heading}" Margin="0,0,0,12" />
+
+            <!-- A model's draft: not saved until Save. -->
+            <Border Style="{StaticResource Skill.Banner}" Margin="0,0,0,12" Visibility="{Binding IsProposal, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <TextBlock Text="{Binding ProposalNote}" TextWrapping="Wrap" />
+            </Border>
+
+            <!-- What the last action said (the skill could not be written). -->
+            <Border Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12" Visibility="{Binding Message, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
+                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+            </Border>
+
+            <!-- The name is taken: Save asked, and replaces only after this answer. -->
+            <Border x:Name="ReplaceCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" b:WizardFocus.Step="{Binding NeedsReplaceConfirmation}"
+                    Visibility="{Binding NeedsReplaceConfirmation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding ReplaceTitle}" Margin="0,0,0,8" AutomationProperties.LiveSetting="Assertive" />
+                    <TextBlock Text="{Binding ReplaceBody}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding DismissReplaceCommand}"
+                                Content="{local:Text SkillCancel}" AutomationProperties.Name="{local:Text SkillCancel}" />
+                        <Button Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmReplaceCommand}"
+                                Content="{local:Text SkillReplace}" AutomationProperties.Name="{local:Text SkillReplace}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Name and description ======================================================================== -->
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillName}" Margin="0,0,0,4" />
+            <TextBox x:Name="NameBox" Style="{StaticResource Fadenstack.TextBox}" b:WizardFocus.IsFirst="True" Margin="0,0,0,4"
+                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
+                     AutomationProperties.Name="{local:Text SkillName}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}" Focusable="False" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillDescription}" Margin="0,0,0,4" />
+            <TextBox x:Name="DescriptionBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,4" TextWrapping="Wrap"
+                     Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
+                     AutomationProperties.Name="{local:Text SkillDescription}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}" Focusable="False" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Instructions and their preview ============================================================== -->
+            <DockPanel Margin="0,0,0,4">
+                <CheckBox x:Name="PreviewBox" DockPanel.Dock="Right" IsChecked="{Binding ShowPreview, Mode=TwoWay}" AutomationProperties.Name="{local:Text SkillPreview}">
+                    <TextBlock Text="{local:Text SkillPreview}" />
+                </CheckBox>
+                <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillInstructions}" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBox x:Name="InstructionsBox" Style="{StaticResource Skill.Area}" Margin="0,0,0,4"
+                     Text="{Binding Instructions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
+                     AutomationProperties.Name="{local:Text SkillInstructions}" />
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}" Focusable="False" Margin="0,0,0,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border x:Name="PreviewCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" Visibility="{Binding ShowPreview, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <ItemsControl x:Name="PreviewBlocks" ItemsSource="{Binding PreviewBlocks}" Focusable="False" />
+            </Border>
+
+            <!-- ===== faden.yaml: when to use it ================================================================== -->
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillMatching}" Margin="0,0,0,4" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTitleField}" Margin="0,0,0,2" />
+            <TextBox x:Name="TitleBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding ExtensionTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillTitleField}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillKeywords}" Margin="0,0,0,2" />
+            <TextBox x:Name="KeywordsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding KeywordsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillKeywords}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTags}" Margin="0,0,0,2" />
+            <TextBox x:Name="TagsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding TagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillTags}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillFileTypes}" Margin="0,0,0,2" />
+            <TextBox x:Name="FileTypesBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding FileTypesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillFileTypes}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPreferredTools}" Margin="0,0,0,2" />
+            <TextBox x:Name="PreferredToolsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding PreferredToolsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillPreferredTools}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPriority}" Margin="0,0,0,2" />
+            <TextBox x:Name="PriorityBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding Priority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillPriority}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillActivation}" Margin="0,0,0,2" />
+            <ComboBox x:Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" Padding="8,6" Margin="0,0,0,8"
+                      SelectedValue="{Binding Activation, Mode=TwoWay}" IsEnabled="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBool}}"
+                      AutomationProperties.Name="{local:Text SkillActivation}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillLicense}" Margin="0,0,0,2" />
+            <TextBox x:Name="LicenseBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding License, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillLicense}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillCompatibility}" Margin="0,0,0,2" />
+            <TextBox x:Name="CompatibilityBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding Compatibility, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillCompatibility}" />
+            <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12" Command="{Binding DropUnknownKeysCommand}"
+                    Visibility="{Binding HasUnknownKeys, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                    Content="{local:Text SkillDropUnknownKeys}" AutomationProperties.Name="{local:Text SkillDropUnknownKeys}" />
+
+            <!-- ===== The files ==================================================================================== -->
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillResources}" Margin="0,0,0,4" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillNoResources}" Margin="0,0,0,8"
+                       Visibility="{Binding HasResources, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+            <ItemsControl ItemsSource="{Binding Resources}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Skill.Card}" Margin="0,0,0,8" AutomationProperties.Name="{Binding Path}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding Path}" Margin="0,0,0,8" />
+                                <TextBox Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType={x:Type local:SkillEditorView}}}"
+                                         AutomationProperties.Name="{Binding Path}" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" Command="{Binding RenameCommand}" Content="{local:Text SkillRenameFile}"
+                                            AutomationProperties.Name="{local:Text SkillRenameFile}" />
+                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding RemoveCommand}" Content="{local:Text SkillRemoveFile}"
+                                            AutomationProperties.Name="{local:Text SkillRemoveFile}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12" Command="{Binding AddResourceCommand}"
+                    Content="{local:Text SkillAddFile}" AutomationProperties.Name="{local:Text SkillAddFile}" />
+
+            <!-- ===== The checks =================================================================================== -->
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillChecksHeading}" Margin="0,0,0,4" />
+            <Border Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12" Visibility="{Binding HasIssues, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
+                <TextBlock Text="{local:Text SkillChecksOk}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </Border>
+            <ItemsControl x:Name="IssuesList" ItemsSource="{Binding Issues}" Focusable="False" Margin="0,0,0,12"
+                          Visibility="{Binding HasIssues, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Skill.Banner.Issue}" Margin="0,0,0,4">
+                            <TextBlock Text="{Binding Text}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- ===== Save and Cancel ============================================================================== -->
+            <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Button x:Name="SaveButton" Style="{StaticResource Fadenstack.PrimaryButton}" Margin="0,0,8,0" b:WizardFocus.IsPrimary="True"
+                        Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}"
+                        Command="{Binding SaveCommand}" Content="{local:Text SkillSave}" AutomationProperties.Name="{local:Text SkillSave}" />
+                <Button x:Name="CancelButton" Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding CancelCommand}" Content="{local:Text SkillCancel}"
+                        AutomationProperties.Name="{local:Text SkillCancel}" />
+            </WrapPanel>
+
+            <!-- ===== Try it ======================================================================================= -->
+            <Border Style="{StaticResource Skill.Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestHeading}" Margin="0,0,0,4" />
+                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTestPrompt}" Margin="0,0,0,2" />
+                    <TextBox x:Name="TestBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding TestPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{local:Text SkillTestPrompt}" />
+                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button x:Name="TestButton" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" Command="{Binding RunTestCommand}" Content="{local:Text SkillTestRun}"
+                                AutomationProperties.Name="{local:Text SkillTestRun}" />
+                        <Button x:Name="AskModelButton" Style="{StaticResource Fadenstack.SecondaryButton}" Command="{Binding AskModelCommand}"
+                                Visibility="{Binding CanAskModel, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                                Content="{local:Text SkillAskModel}" AutomationProperties.Name="{local:Text SkillAskModel}" />
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding ModelNote}" Margin="0,0,0,8"
+                               Visibility="{Binding CanAskModel, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                    <TextBlock x:Name="ModelAnswerText" Text="{Binding ModelAnswerText}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite"
+                               Visibility="{Binding ModelAnswerText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                    <StackPanel x:Name="TestResult" Visibility="{Binding HasTestResult, Converter={StaticResource Fadenstack.BoolToVisibility}}" AutomationProperties.LiveSetting="Polite">
+                        <TextBlock x:Name="TestNoteText" Text="{Binding TestNote}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                   Visibility="{Binding TestNote, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestListed}" Margin="0,0,0,2"
+                                   Visibility="{Binding TestListed.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                        <ItemsControl ItemsSource="{Binding TestListed}" Focusable="False" Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding TestMatches}" Focusable="False" Margin="0,0,0,8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestPreloaded}" Margin="0,0,0,2"
+                                   Visibility="{Binding TestPreloaded.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                        <ItemsControl ItemsSource="{Binding TestPreloaded}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

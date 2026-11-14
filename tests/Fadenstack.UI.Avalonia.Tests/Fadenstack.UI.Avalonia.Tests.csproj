@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fadenstack.UI.Avalonia\Fadenstack.UI.Avalonia.csproj" />
+    <ProjectReference Include="..\..\src\Fadenstack.Skills\Fadenstack.Skills.csproj" />
     <!-- The harness' session and gateway: the tests drive the same real view models the sample app does. -->
     <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\SyntheticSession.cs" Link="Harness\SyntheticSession.cs" />
     <Compile Include="..\..\samples\Fadenstack.UI.Avalonia.Sample\HarnessGateway.cs" Link="Harness\HarnessGateway.cs" />
@@ -29,5 +30,7 @@
     <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="Harness\DemoTools.cs" />
     <!-- The wizard's fakes (the server, the endpoint checks, the stores, the clock): the tests drive the same real view model as the UI tests do. -->
     <Compile Include="..\Fadenstack.UI.Tests\WizardFakes.cs" Link="Harness\WizardFakes.cs" />
+    <!-- The skill editor's fakes (a real workshop on a temporary folder, a scripted model, the file dialogs): the tests drive the same real view models as the UI tests do. -->
+    <Compile Include="..\Fadenstack.UI.Tests\SkillEditorFakes.cs" Link="Harness\SkillEditorFakes.cs" />
   </ItemGroup>
 </Project>
