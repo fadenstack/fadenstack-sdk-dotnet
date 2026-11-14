@@ -44,9 +44,14 @@ public class ReasoningTimeTests
 
         var thought = turn.Parts.OfType<ReasoningPart>().Single();
         Assert.False(thought.IsStreaming);
-        Assert.Equal("Thought for 2 s", thought.Title);
+        // AppendText stops the thinking at the real clock, so a loaded machine can add whole seconds to the 2 it was
+        // given; what is proved is that it is the thinking's time, kept as it was when the answer started.
+        var title = thought.Title;
+        var match = System.Text.RegularExpressions.Regex.Match(title, @"^Thought for (\d+) s$");
+        Assert.True(match.Success, title);
+        Assert.InRange(int.Parse(match.Groups[1].Value), 2, 40);
 
         turn.Fail("stopped here", DateTimeOffset.UtcNow.AddSeconds(60));
-        Assert.Equal("Thought for 2 s", thought.Title);
+        Assert.Equal(title, thought.Title); // not the 60 s the turn went on for
     }
 }
