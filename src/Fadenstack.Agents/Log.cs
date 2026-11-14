@@ -116,6 +116,10 @@ internal static partial class Log
         Message = "An approval answer got no word back ({Kind}); it is sent once more")]
     internal static partial void ApprovalAnswerRetried(ILogger logger, string kind);
 
+    [LoggerMessage(EventId = 2054, Level = LogLevel.Warning,
+        Message = "Agent {Agent} runs on its own model endpoint without the provenance module: what it places in documents carries no mark. Add Fadenstack.Provenance (builder.UseProvenance)")]
+    internal static partial void NoProvenanceModule(ILogger logger, string agent);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);

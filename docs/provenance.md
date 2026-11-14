@@ -115,9 +115,15 @@ backend, `LocalProvenanceBackend`, unless the app set one with `UseBackend`:
 - **The key:** one per installation and OS user, made on first use, kept only encrypted by the OS key store (DPAPI on
   Windows; the Keychain or libsecret with `Fadenstack.Secrets`). Where nothing encrypts, it lives in memory for as long as
   the app runs. It never goes into a file as such or a log.
-- **The time-stamp:** an RFC 3161 token from a public authority, over the signature (only its SHA-256 leaves the device);
-  `UseLocalBackend(new LocalProvenanceOptions { TimestampAuthority = ..., Timestamping = false })` names another or switches
-  it off. Offline, or switched off, the record carries no token and its signed `created_at` is the device's clock.
+- **The time-stamp:** an RFC 3161 token from DigiCert (`http://timestamp.digicert.com`; plain http is fine, the token is
+  signed and only the signature's SHA-256 leaves the device). A machine policy's `timestamping` names the organisation's
+  own server instead, or `off` sends nothing (`TimestampRoots` adds the roots an own server's certificate chains to). A
+  token counts only when its CMS signature checks out, its certificate is made for time-stamping and chains to a trusted
+  root, and it covers the signature's hash with the request's nonce: the answer is input from outside.
+- **The local backup:** every record is kept on the device with its token (`KeptRecords()`, in the `records` folder).
+  When the authority cannot be reached, the record keeps the device's clock, labelled `device-clock`, and waits in a queue
+  that survives a restart; it is stamped when the authority answers again (signing the next record, or
+  `FlushTimestampQueueAsync` at the app's start), and then also proves it existed no later than that time.
 - **Placements:** appended to `placements.jsonl` in the standalone user's `provenance` folder, which rotates (1 MiB, three
   kept). Nothing leaves the device.
 

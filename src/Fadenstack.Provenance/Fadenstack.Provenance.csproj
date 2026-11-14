@@ -12,6 +12,8 @@
     <!-- The device certificate's DER and the RFC 3161 messages for records signed on the device (F10): netstandard2.0, what
          .NET Framework hosts load, has neither CertificateRequest nor Rfc3161TimestampRequest. -->
     <PackageReference Include="System.Formats.Asn1" Version="10.0.13" />
+    <!-- SignedCms: the RFC 3161 token's CMS signature (netstandard2.0 has it; it has no Rfc3161TimestampRequest). -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
   <!-- The words a mark shows people are the module's own: Resources/ProvenanceText.resx (English) and its translations,
        built into satellite assemblies (sdk/52 P1: a module owns its texts). -->

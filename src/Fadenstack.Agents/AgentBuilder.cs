@@ -431,6 +431,12 @@ public sealed class AgentBuilder
             // An endpoint's client is the agent's (disposed with it); a host's own chat client stays the host's.
             backend = new LocalAgentBackend(definition, _chatClient ?? new DirectChatClient(endpoint!), ownsChat: _chatClient is null,
                 endpoint, _endpointReport, local);
+            // Marking by default as far as the layering allows (owner, 14 Nov): the agent package cannot load the provenance
+            // module, so it says so once, here, when a standalone agent goes without it.
+            if (!_modules.Contains(ProvenanceModuleName))
+            {
+                Log.NoProvenanceModule((_loggerFactory ?? NullLoggerFactory.Instance).CreateLogger(Log.Category), agent);
+            }
             // D7: the person's own instructions come after the definition's.
             instructions = string.Join("\n\n", new[] { definition.Instructions, _ownInstructions?.Trim() }.Where(s => !string.IsNullOrEmpty(s)));
         }
@@ -500,6 +506,9 @@ public sealed class AgentBuilder
             AppDescribed = _app is not null,
         });
     }
+
+    /// <summary>The name <c>Fadenstack.Provenance</c>'s module registers with (<c>ProvenanceModule.ModuleName</c>).</summary>
+    internal const string ProvenanceModuleName = "provenance";
 
     private void AssertNoDuplicateTools()
     {

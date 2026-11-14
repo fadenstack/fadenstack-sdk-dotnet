@@ -339,17 +339,101 @@ public class EndpointClientTests
     // ---- commit 6: the transport rules ----
 
     [Theory]
-    [InlineData("http://localhost:11434/v1")]
-    [InlineData("http://127.0.0.1:1234/v1")]
-    [InlineData("http://192.168.1.20:8000/v1")]
-    public async Task A_key_never_goes_over_plain_http(string baseUrl)
+    [InlineData("http://127.0.0.1:1234/v1", "127.0.0.1")]
+    [InlineData("http://[::1]:8000/v1", "[::1]")]
+    public async Task A_key_goes_over_plain_http_to_this_computers_address(string baseUrl, string host)
     {
-        var (client, fake) = Make(baseUrl, key: new StaticTokenProvider("k-123"), lan: true);
+        var (client, fake) = Make(baseUrl, key: new StaticTokenProvider("k-123"));
+
+        await StreamAsync(client);
+
+        var request = Assert.Single(fake.Requests);
+        Assert.Equal(host, request.Url.Host);
+        Assert.Equal("Bearer k-123", request.Header("authorization"));
+    }
+
+    [Fact]
+    public async Task A_key_to_localhost_goes_to_the_address_it_resolves_to_and_the_name_stays_in_the_host_header()
+    {
+        var fake = new OpenAiFake();
+        var client = new DirectChatClient(new ModelEndpoint
+        {
+            BaseUrl = new Uri("http://localhost:4000/v1"), Model = "m", Key = new StaticTokenProvider("k"), Handler = fake,
+            Resolve = _ => Task.FromResult(new[] { IPAddress.Loopback }),
+        });
+
+        await StreamAsync(client);
+
+        Assert.Equal("127.0.0.1", fake.Requests[0].Url.Host);
+        Assert.Equal("localhost:4000", fake.Requests[0].Header("host"));
+    }
+
+    [Theory]
+    [InlineData("http://192.168.1.20:8000/v1", true)]
+    [InlineData("http://10.0.0.5/v1", true)]
+    [InlineData("http://203.0.113.5/v1", false)]
+    public async Task A_key_never_goes_over_plain_http_beyond_this_computer_opt_in_or_not(string baseUrl, bool lan)
+    {
+        var (client, fake) = Make(baseUrl, key: new StaticTokenProvider("k-123"), lan: lan);
 
         var e = await Assert.ThrowsAsync<EndpointPlainHttpRefusedException>(() => StreamAsync(client));
 
         Assert.Equal(PlainHttpRefusal.KeyOverPlainHttp, e.Reason);
         Assert.Empty(fake.Requests);
+    }
+
+    [Theory]
+    [InlineData("10.0.0.5")]
+    [InlineData("127.0.0.1,192.168.1.9")]
+    public async Task A_key_to_a_name_that_resolves_beyond_this_computer_is_refused(string resolvesTo)
+    {
+        var fake = new OpenAiFake();
+        var client = new DirectChatClient(new ModelEndpoint
+        {
+            BaseUrl = new Uri("http://llm.lan:8000/v1"), Model = "m", Key = new StaticTokenProvider("k"), Handler = fake, AllowPlainHttpInLan = true,
+            Resolve = _ => Task.FromResult(resolvesTo.Split(',').Select(IPAddress.Parse).ToArray()),
+        });
+
+        var e = await Assert.ThrowsAsync<EndpointPlainHttpRefusedException>(() => StreamAsync(client));
+
+        Assert.Equal(PlainHttpRefusal.KeyOverPlainHttp, e.Reason);
+        Assert.Empty(fake.Requests);
+    }
+
+    [Fact]
+    public async Task A_second_dns_answer_cannot_move_a_keyed_connection()
+    {
+        var fake = new OpenAiFake();
+        var answers = new Queue<IPAddress[]>([[IPAddress.Loopback], [IPAddress.Parse("10.0.0.5")], [IPAddress.Parse("10.0.0.5")]]);
+        var client = new DirectChatClient(new ModelEndpoint
+        {
+            BaseUrl = new Uri("http://model-box:8000/v1"), Model = "m", Key = new StaticTokenProvider("k"), Handler = fake,
+            Resolve = _ => Task.FromResult(answers.Count > 1 ? answers.Dequeue() : answers.Peek()),
+        });
+
+        await StreamAsync(client);
+        var second = await Assert.ThrowsAsync<EndpointPlainHttpRefusedException>(() => StreamAsync(client));
+
+        Assert.Single(fake.Requests); // the first went to 127.0.0.1; the moved name is refused, never connected to
+        Assert.Equal("127.0.0.1", fake.Requests[0].Url.Host);
+        Assert.Equal(PlainHttpRefusal.KeyOverPlainHttp, second.Reason);
+    }
+
+    [Fact]
+    public async Task A_name_that_keeps_resolving_to_this_computer_stays_on_the_first_address()
+    {
+        var fake = new OpenAiFake();
+        var answers = new Queue<IPAddress[]>([[IPAddress.Parse("127.0.0.1")], [IPAddress.Parse("127.0.0.2")]]);
+        var client = new DirectChatClient(new ModelEndpoint
+        {
+            BaseUrl = new Uri("http://model-box:8000/v1"), Model = "m", Key = new StaticTokenProvider("k"), Handler = fake,
+            Resolve = _ => Task.FromResult(answers.Count > 1 ? answers.Dequeue() : answers.Peek()),
+        });
+
+        await StreamAsync(client);
+        await StreamAsync(client);
+
+        Assert.All(fake.Requests, r => Assert.Equal("127.0.0.1", r.Url.Host)); // resolved once
     }
 
     [Theory]
