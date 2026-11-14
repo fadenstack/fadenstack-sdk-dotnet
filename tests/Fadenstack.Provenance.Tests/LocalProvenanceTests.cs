@@ -78,6 +78,27 @@ public class LocalProvenanceTests : IDisposable
         Assert.Equal("r-1", verified!.Value.GetProperty("id").GetString());
     }
 
+    /// <summary>
+    /// An ECDSA r or s, like a nonce, starts with a zero byte about once in 256: the certificate and the time-stamp request must
+    /// encode it all the same (a redundant leading zero is no valid DER integer).
+    /// </summary>
+    [Fact]
+    public async Task Thousands_of_keys_and_records_never_fail_on_a_leading_zero()
+    {
+        for (var i = 0; i < 2000; i++)
+        {
+            using var signer = DeviceSigner.Ephemeral();
+            Assert.NotNull(DeviceSigner.Verify(signer.Sign(new JsonObject { ["i"] = i })));
+        }
+        var tsa = new TsaFake();
+        using var backend = Backend(tsa);
+        using var agent = Agent();
+        for (var i = 0; i < 600; i++)
+        {
+            Assert.NotNull((await backend.SignRecordAsync(agent, Request(), default)).Timestamp);
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -267,8 +267,8 @@ public sealed class DeviceSigner : IDisposable
         var raw = key.SignData(toBeSigned, HashAlgorithmName.SHA256);
         var der = new AsnWriter(AsnEncodingRules.DER);
         der.PushSequence();
-        der.WriteIntegerUnsigned(raw.Take(Coordinate).ToArray());
-        der.WriteIntegerUnsigned(raw.Skip(Coordinate).ToArray());
+        der.WriteIntegerUnsigned(Minimal(raw.Take(Coordinate)));
+        der.WriteIntegerUnsigned(Minimal(raw.Skip(Coordinate)));
         der.PopSequence();
 
         var certificate = new AsnWriter(AsnEncodingRules.DER);
@@ -297,6 +297,16 @@ public sealed class DeviceSigner : IDisposable
             w.PopSetOf();
             w.PopSequence();
         }
+    }
+
+    /// <summary>
+    /// An unsigned big-endian integer without its redundant leading zero bytes, at least one byte: DER refuses them, and an
+    /// ECDSA r or s starts with one about once in 256.
+    /// </summary>
+    internal static byte[] Minimal(IEnumerable<byte> value)
+    {
+        var bytes = value.SkipWhile(b => b == 0).ToArray();
+        return bytes.Length == 0 ? new byte[] { 0 } : bytes;
     }
 
     private static string Base64Url(byte[] data) => Convert.ToBase64String(data).TrimEnd('=').Replace('+', '-').Replace('/', '_');

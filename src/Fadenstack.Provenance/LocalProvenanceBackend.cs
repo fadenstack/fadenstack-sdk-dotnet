@@ -180,7 +180,7 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
         {
             random.GetBytes(nonce);
         }
-        nonce[0] &= 0x7F;
+        nonce[0] = (byte)((nonce[0] & 0x7F) | 0x40); // positive, and never a leading zero
         byte[] hash;
         using (var sha = SHA256.Create())
         {

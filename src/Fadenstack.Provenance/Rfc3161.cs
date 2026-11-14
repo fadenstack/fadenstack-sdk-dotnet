@@ -28,7 +28,7 @@ internal static class Rfc3161
         w.PopSequence();
         w.WriteOctetString(sha256);
         w.PopSequence();
-        w.WriteIntegerUnsigned(nonce);
+        w.WriteIntegerUnsigned(DeviceSigner.Minimal(nonce));
         w.WriteBoolean(true); // certReq
         w.PopSequence();
         return w.Encode();
