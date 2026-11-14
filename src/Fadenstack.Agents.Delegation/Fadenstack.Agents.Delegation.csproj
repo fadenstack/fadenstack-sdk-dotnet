@@ -3,13 +3,20 @@
     <RootNamespace>Fadenstack.Agents.Delegation</RootNamespace>
     <PackageId>Fadenstack.Agents.Delegation</PackageId>
     <Description>Delegation between agents on one device: an add-in's agent takes tasks from another agent (DelegationHost), a caller hands them over (LocalAgentDelegate), and the one delegate tool for the model. Local pipe for the current user only.</Description>
-    <!-- Not published to nuget.org with the SDK (release.yml leaves it out): the transport becomes the A2A library's, which has
-         no netstandard2.0 build upstream yet (a2aproject/a2a-dotnet issue #197); only apps use this package. The
-         interface (IAgentDelegate) is in Fadenstack.Agents. See sdk/08 decision 11. -->
+    <!-- For applications. Not on nuget.org: release.yml publishes it to the fadenstack organisation's GitHub Packages
+         feed, where the A2A fork it needs is too; upstream A2A has no netstandard2.0 build yet (a2aproject/a2a-dotnet
+         issue #197). The interface (IAgentDelegate) is in Fadenstack.Agents. See sdk/08 decision 11. -->
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Version.Contains(`-`))' == 'False'">
+    <!-- A2A is a preview, and a stable package must not depend on one (NU5104, an error with TreatWarningsAsErrors).
+         While it is, a stable SDK version packs this package as a preview of that version: 0.3.0 gives 0.3.0-preview.
+         A prerelease such as 0.3.0-rc.2 stays as it is. Remove this when A2A 1.0 is out. -->
+    <PackageVersion>$(Version)-preview</PackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- The A2A library, in the Fadenstack fork with a netstandard2.0 build (a2aproject/a2a-dotnet issue #197); only apps use it.
-         Until it is on nuget.org the fork's package comes from the local feed that sits next to the repositories. -->
+         It comes from the fadenstack GitHub Packages feed (release.yml maps A2A to it), or from the local feed next to
+         the repositories when that folder exists (CONTRIBUTING.md). -->
     <PackageReference Include="A2A" Version="1.0.0-preview4-fs.1" />
   </ItemGroup>
   <PropertyGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\.local\sdk-feed')">

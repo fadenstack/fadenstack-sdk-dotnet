@@ -40,7 +40,7 @@ public class LayerTests
         ["Fadenstack.Mcp"] = Module("ModelContextProtocol"),
         ["Fadenstack.Provenance"] = Module(),
         ["Fadenstack.Workspaces"] = Module(),
-        // the desktop branch's delegation between agents on one device, over the A2A library (apps only, off nuget.org)
+        // delegation between agents on one device, over the A2A library (apps only; on the private feed, not nuget.org)
         ["Fadenstack.Agents.Delegation"] = Module("A2A"),
         // 4 · UI logic: view models and texts, no UI framework, no module
         [Ui] = new(new[] { Agents, Client }, new[] { "CommunityToolkit.Mvvm", "Microsoft.Extensions.AI.Abstractions" }),

@@ -2,7 +2,7 @@
 
 This page covers how one agent hands a task to another agent on the same computer with `Fadenstack.Agents`: for example a desktop agent that gives Office work to the add-in agent running in Word.
 
-`IAgentDelegate` and its request and result types are in `Fadenstack.Agents`. The implementation (`DelegationHost`, `LocalAgentDelegate`, `DelegateToolModule`) is in `Fadenstack.Agents.Delegation`, a package for applications that is not published to nuget.org with the SDK.
+`IAgentDelegate` and its request and result types are in `Fadenstack.Agents`. The implementation (`DelegationHost`, `LocalAgentDelegate`, `DelegateToolModule`) is in `Fadenstack.Agents.Delegation`, a package for applications that is not on nuget.org ([Getting the package](#getting-the-package)).
 
 The other agent runs the task as a new session of its own: its own server agent, tool contract, tool modes and approvals. Only the task text and the references you choose go over, and only its final answer comes back. An approval the other agent needs is asked of the caller's person.
 
@@ -65,3 +65,29 @@ Each call is reported to the server as a `tool.executed` event for the tool `del
 ## On the wire
 
 The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview}`; the answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
+
+## Getting the package
+
+`Fadenstack.Agents.Delegation` and the A2A library it uses are on the fadenstack organisation's GitHub Packages feed: A2A in the Fadenstack fork, which has the `netstandard2.0` build that .NET Framework hosts need (a2aproject/a2a-dotnet issue #197). Map both packages to that feed, so neither can come from anywhere else:
+
+```xml
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    <add key="fadenstack" value="https://nuget.pkg.github.com/fadenstack/index.json" />
+  </packageSources>
+  <packageSourceMapping>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+    <packageSource key="fadenstack">
+      <package pattern="A2A" />
+      <package pattern="Fadenstack.Agents.Delegation" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>
+```
+
+The feed needs a GitHub token that may read the organisation's packages. In GitHub Actions that is the job's `GITHUB_TOKEN`, once both packages give the repository read access.
+
+While A2A is a preview, a stable SDK version has this package as a preview of it: with SDK 0.3.0, reference `Fadenstack.Agents.Delegation` 0.3.0-preview. A prerelease of the SDK, such as 0.3.0-rc.2, has the same version for both.

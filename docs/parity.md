@@ -13,6 +13,7 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | View models of the chat | `Fadenstack.UI` | `@fadenstack/ui` | |
 | The skin of the chat | `Fadenstack.UI.Wpf`, `Fadenstack.UI.Avalonia` | `@fadenstack/ui-web` (the look), `@fadenstack/ui-react`, `@fadenstack/ui-vue` | |
 | Local MCP servers | `Fadenstack.Mcp` | — | A browser has no local MCP process. |
+| Delegation between agents on one device | `Fadenstack.Agents.Delegation` (for applications, not on nuget.org: [Delegating to agents](delegation.md)) | — | A browser has no local pipe. A TypeScript A2A client comes later. |
 | Content provenance | `Fadenstack.Provenance` | `@fadenstack/provenance` | |
 | Encryption at rest on macOS and Linux | `Fadenstack.Secrets` | — | A browser encrypts its stores with a WebCrypto key ([Stores](#stores-and-data-rights)). |
 | Test helpers | Seams and the provenance kit ([Testing](testing.md)) | `@fadenstack/testing` (`FakeGateway`) | |

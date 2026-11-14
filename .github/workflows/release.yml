@@ -6,6 +6,11 @@ name: Release
 # nuget.org trusts this workflow (trusted publishing): NuGet/login trades the job's GitHub OIDC token for an API key
 # that lasts an hour, so no key is stored. The policy on nuget.org names this file (release.yml) and the
 # environment `nuget`; NUGET_USER is the nuget.org account the policy belongs to.
+#
+# Fadenstack.Agents.Delegation goes to the fadenstack organisation's GitHub Packages feed instead, where the A2A fork it
+# needs is (upstream A2A has no netstandard2.0 build yet: a2aproject/a2a-dotnet issue #197; sdk/08 decision 11). The
+# job's GITHUB_TOKEN reads A2A and writes the delegation package: the A2A package must give this repository read access
+# (its package settings, "Manage Actions access").
 
 on:
   push:
@@ -26,6 +31,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,22 +49,59 @@ jobs:
             throw "The tag $env:GITHUB_REF_NAME does not match the version $version in Directory.Build.props."
           }
 
+      # A2A only from the fadenstack feed, everything else only from nuget.org: no package can come from the other source
+      # (dependency confusion). NuGet reads the token from the environment of the step that restores.
+      - name: Package sources
+        shell: pwsh
+        run: |
+          @'
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              <add key="fadenstack" value="https://nuget.pkg.github.com/fadenstack/index.json" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="nuget.org">
+                <package pattern="*" />
+              </packageSource>
+              <packageSource key="fadenstack">
+                <package pattern="A2A" />
+              </packageSource>
+            </packageSourceMapping>
+            <packageSourceCredentials>
+              <fadenstack>
+                <add key="Username" value="github-actions" />
+                <add key="ClearTextPassword" value="%GITHUB_TOKEN%" />
+              </fadenstack>
+            </packageSourceCredentials>
+          </configuration>
+          '@ | Set-Content -Path nuget.config -Encoding utf8NoBOM
+
       - name: Test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dotnet test Fadenstack.slnx -c Release
 
       - name: Pack
         run: dotnet pack Fadenstack.slnx -c Release --no-build -o artifacts
 
-      # Fadenstack.Agents.Delegation is for applications and stays off nuget.org until the A2A library it will use ships a
-      # netstandard2.0 build (sdk/08 decision 11; upstream a2aproject/a2a-dotnet issue #197). The SDK keeps only IAgentDelegate.
-      - name: Leave out the delegation package
+      # The delegation package goes to the fadenstack feed, not to nuget.org (see the top of this file).
+      - name: Set the delegation package apart
         shell: pwsh
-        run: Remove-Item artifacts/Fadenstack.Agents.Delegation.* -ErrorAction Stop
+        run: |
+          New-Item -ItemType Directory -Force private | Out-Null
+          $delegation = Get-ChildItem artifacts -Filter 'Fadenstack.Agents.Delegation.*'
+          if (-not ($delegation | Where-Object Extension -eq '.nupkg')) { throw "No delegation package in artifacts." }
+          $delegation | Move-Item -Destination private
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages
-          path: artifacts/
+          path: |
+            artifacts/
+            private/
 
       - name: Sign in to nuget.org
         id: login
@@ -79,5 +122,18 @@ jobs:
           foreach ($package in $packages) {
             dotnet nuget push $package.FullName --api-key $env:NUGET_API_KEY `
               --source https://api.nuget.org/v3/index.json --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Pushing $($package.Name) failed." }
+          }
+
+      # After nuget.org: the delegation package depends on Fadenstack.Agents of the same version. GitHub Packages takes no
+      # symbol packages. --skip-duplicate, as above, lets a rerun finish.
+      - name: Publish the delegation package to the fadenstack feed
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          foreach ($package in Get-ChildItem private -Filter *.nupkg) {
+            dotnet nuget push $package.FullName --api-key $env:GITHUB_TOKEN --no-symbols `
+              --source https://nuget.pkg.github.com/fadenstack/index.json --skip-duplicate
             if ($LASTEXITCODE -ne 0) { throw "Pushing $($package.Name) failed." }
           }

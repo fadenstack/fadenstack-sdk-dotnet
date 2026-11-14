@@ -8,6 +8,11 @@ this file says where it does.
 
 ### Added
 
+- `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
+  (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
+  OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
+  it needs (a2aproject/a2a-dotnet issue #197). While A2A is a preview, a stable SDK version has it as a preview
+  (0.3.0-preview). See [Delegating to agents](docs/delegation.md).
 - `ITokenStoreLock`: a token store lets one holder at a time renew a sign-in. `FileTokenStore` (a lock file, across
   processes) and `MemoryTokenStore` implement it, and `AgentTokenProvider` renews under it.
 - `FadenstackClientOptions.StreamIdleTimeout` (5 minutes): a streamed answer that sends nothing at all for that long is

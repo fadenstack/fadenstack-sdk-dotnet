@@ -87,7 +87,12 @@ cd fadenstack-sdk-dotnet
 dotnet test Fadenstack.slnx
 ```
 
-The tests run against a fake server and need no Fadenstack installation. To preview the documentation:
+The tests run against a fake server and need no Fadenstack installation. `Fadenstack.Agents.Delegation` and the tests that
+use it need the A2A library from the Fadenstack fork, which is not on nuget.org: with access to the fadenstack GitHub
+Packages feed, add it with A2A mapped to it ([Delegating to agents](docs/delegation.md#getting-the-package)). Without,
+clone `https://github.com/fadenstack/a2a-dotnet` (branch `feat/netstandard2.0`) next to this repository and pack it into
+the folder `.local/sdk-feed` beside both clones, which the project picks up:
+`dotnet pack src/A2A/A2A.csproj -c Release -p:Version=1.0.0-preview4-fs.1 -o ../.local/sdk-feed`. To preview the documentation:
 `pip install zensical`, then `zensical serve`.
 
 ## Licence
