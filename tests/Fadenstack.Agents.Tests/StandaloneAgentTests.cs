@@ -110,6 +110,35 @@ public class StandaloneAgentTests : IDisposable
     }
 
     [Fact]
+    public void A_standalone_agent_without_the_provenance_module_says_so_once_at_build()
+    {
+        var logs = new CapturingLoggerFactory();
+        var (builder, _) = Standalone();
+        using var agent = builder.UseLogging(logs).Build();
+
+        var notice = Assert.Single(logs.Entries, e => e.EventId == 2054);
+        Assert.Contains("Fadenstack.Provenance", notice.Message);
+
+        var withModule = new CapturingLoggerFactory();
+        var (other, _) = Standalone();
+        using var marked = other.UseLogging(withModule).Use(new NamedModule("provenance")).Build();
+        Assert.DoesNotContain(withModule.Entries, e => e.EventId == 2054);
+
+        var governed = new CapturingLoggerFactory();
+        using var server = new Gateway().Builder().UseLogging(governed).Build();
+        Assert.DoesNotContain(governed.Entries, e => e.EventId == 2054);
+    }
+
+    private sealed class NamedModule(string name) : IFadenstackModule
+    {
+        public string? Name => name;
+
+        public void Configure(AgentBuilder builder)
+        {
+        }
+    }
+
+    [Fact]
     public void The_slug_comes_from_the_definition()
     {
         var (builder, _) = Standalone();

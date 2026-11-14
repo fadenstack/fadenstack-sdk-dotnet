@@ -193,7 +193,9 @@ All but the last three are `FadenstackApiException`s with the status.
 ## Marks and records on the device
 
 With `Fadenstack.Provenance` added (`Use(new ProvenanceModule())`), content placed in documents is marked as with a server,
-and each record is signed on the device with an RFC 3161 time-stamp when the device is online: see
+and each record is signed on the device with an RFC 3161 time-stamp from DigiCert, kept on the device, and queued for a
+later stamp when offline. The agent package cannot load the module itself, so `Build()` logs one notice (event 2054) for
+a standalone agent without it. See
 [Content provenance](provenance.md#without-a-server-records-signed-on-the-device).
 
 ## What a server adds
