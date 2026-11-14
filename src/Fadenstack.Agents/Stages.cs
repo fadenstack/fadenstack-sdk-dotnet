@@ -121,10 +121,10 @@ public interface IChangingToolSource : IToolSource
 /// <summary>What a tool source or module can see of the running agent.</summary>
 public sealed class AgentContext
 {
-    internal AgentContext(FadenstackClient client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report,
+    internal AgentContext(FadenstackClient? client, Models.AgentProfile profile, Func<IReadOnlyList<Models.AgentClientEvent>, Task> report,
         ILoggerFactory loggerFactory)
     {
-        Client = client;
+        ServerClient = client;
         Profile = profile;
         _report = report;
         LoggerFactory = loggerFactory;
@@ -132,7 +132,18 @@ public sealed class AgentContext
 
     private readonly Func<IReadOnlyList<Models.AgentClientEvent>, Task> _report;
 
-    public FadenstackClient Client { get; }
+    /// <summary>
+    /// The agent's Fadenstack client. An agent on the person's own endpoint has none: this throws an
+    /// <see cref="InvalidOperationException"/> there, and <see cref="ServerClient"/> is the way to ask (sdk/51 F02).
+    /// </summary>
+    public FadenstackClient Client => ServerClient
+        ?? throw new InvalidOperationException("This agent has no Fadenstack server, so it has no server client (ServerClient is null).");
+
+    /// <summary>The agent's Fadenstack client; null for an agent without a server.</summary>
+    public FadenstackClient? ServerClient { get; }
+
+    /// <summary>How the agent is connected: for showing or hiding the server's parts, never for deciding security.</summary>
+    public AgentConnection Connection => ServerClient is null ? AgentConnection.Standalone : AgentConnection.Governed;
 
     public Models.AgentProfile Profile { get; }
 

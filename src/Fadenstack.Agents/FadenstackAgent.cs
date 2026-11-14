@@ -69,6 +69,12 @@ public sealed class FadenstackAgent : IDisposable
     public FadenstackClient? ServerClient => _settings.Backend.ServerClient;
 
     /// <summary>
+    /// The person's own model endpoint (its base) for a standalone agent built with <see cref="AgentBuilder.UseEndpoint"/>;
+    /// null with a server, or with a host's own chat client (<see cref="AgentBuilder.UseChatClient"/>).
+    /// </summary>
+    public Uri? EndpointUrl => (_settings.Backend as LocalAgentBackend)?.EndpointUrl;
+
+    /// <summary>
     /// How the agent is connected: <see cref="AgentConnection.Governed"/> to an organisation's Fadenstack server, or
     /// <see cref="AgentConnection.Standalone"/> to the person's own model endpoint. For showing or hiding the server's parts.
     /// </summary>
@@ -184,7 +190,7 @@ public sealed class FadenstackAgent : IDisposable
                 Log.ToolDropped(Logger, name);
             }
             var hostTools = tools.Count;
-            var context = new AgentContext(Client, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            var context = new AgentContext(ServerClient, profile, Reporter.ReportNowAsync, _settings.LoggerFactory);
             var fromSources = new List<(IToolSource Source, IReadOnlyList<AgentTool> Tools)>();
             foreach (var source in _settings.Sources)
             {
@@ -296,7 +302,7 @@ public sealed class FadenstackAgent : IDisposable
         _profileRead = Clock();
         if (_context is not null)
         {
-            _context = new AgentContext(Client, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
+            _context = new AgentContext(ServerClient, fresh, Reporter.ReportNowAsync, _settings.LoggerFactory);
         }
     }
 

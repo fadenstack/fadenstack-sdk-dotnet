@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\Fadenstack.Mcp\Fadenstack.Mcp.csproj" />
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Client.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
+    <Compile Include="..\Fadenstack.Client.Tests\OpenAiFake.cs" Link="OpenAiFake.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- Core's agent templates (release/0.7.1): the apps' contracts/*.json with local_skills_mode, as AgentDefinition reads them. -->

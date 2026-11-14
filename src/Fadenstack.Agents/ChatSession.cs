@@ -1055,7 +1055,14 @@ public sealed class ChatSession
             }
             // On every call of the turn, not the first only: the gateway gives a request the skills it names.
             options.WithSkills(_skills);
-            var history = _session._context.Build(_session._entries);
+            // A standalone agent's instructions (its definition's, then the person's own, D7): set here, above the chat stages,
+            // so the stages see them and the history budget counts them (review R2). With a server the gateway adds the agent's.
+            var instructions = Agent.Settings.Instructions;
+            if (!string.IsNullOrEmpty(instructions))
+            {
+                options.Instructions = instructions;
+            }
+            var history = _session._context.Build(_session._entries, Agent.Settings.InstructionsTokens);
             if (_bypassEnded)
             {
                 // Before the person's newest message, every round of this turn: what the model may and may not do now.
