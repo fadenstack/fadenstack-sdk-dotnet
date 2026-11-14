@@ -4,45 +4,90 @@
 //   dotnet run -- --server https://ai.example.internal --agent docs-assistant [--api https://...] [--login-token <jwt>]
 //                 [--insecure] [--mcp label=command arg ...] [--session <id>]
 //
+// Standalone, on the person's own model endpoint, with no Fadenstack server (sdk/51 F03):
+//
+//   dotnet run -- --endpoint http://localhost:11434/v1 --model qwen3:14b [--dialect ollama] [--key-env NAME]
+//                 [--definition agent.json] [--instructions "Answer in German."] [--check] [--session <id>]
+//
+// --key-env names an environment variable that holds the key: a key never goes on the command line. --check runs the
+// endpoint check first and prints its report.
+//
 // Commands: /mode off|read_only|ask|auto, /sessions, /quit. Anything else is sent to the agent.
 using Fadenstack;
 using Fadenstack.Agents;
 using Fadenstack.Auth;
+using Fadenstack.Endpoints;
 using Fadenstack.Mcp;
 using Fadenstack.Samples;
 using Fadenstack.Tools;
 
 var arguments = Arguments.Parse(args);
-var server = new Uri(arguments.Get("server", "FADEN_SERVER") ?? throw Usage("--server"));
-var slug = arguments.Get("agent", "FADEN_AGENT") ?? throw Usage("--agent");
-var api = arguments.Get("api", "FADEN_API") is { } a ? new Uri(a) : null;
-var insecure = arguments.Has("insecure");
-
-using var client = FadenstackClient.ForAgent(server, slug, out var tokens, configure: o =>
+FadenstackAgent agent;
+FadenstackClient? client = null;
+if (arguments.Get("endpoint", "FADEN_ENDPOINT") is { } endpointUrl)
 {
-    o.ApiUrl = api;
-    o.AllowInsecureHttp = insecure;
-});
-if (!await tokens.IsSignedInAsync())
-{
-    var login = arguments.Get("login-token", "FADEN_LOGIN_TOKEN") ?? throw Usage("--login-token (first run only)");
-    var device = await tokens.SignInAsync(login, $"{Environment.MachineName} console");
-    Console.WriteLine($"Signed in for {slug} on this device ({device.DeviceId}).");
+    var keyName = arguments.Get("key-env", null);
+    var key = keyName is null ? null : Environment.GetEnvironmentVariable(keyName) is { Length: > 0 } k
+        ? new StaticTokenProvider(k) : throw new ArgumentException($"The environment variable {keyName} holds no key.");
+    var preset = EndpointPreset.Named(arguments.Get("dialect", null));
+    var endpoint = new ModelEndpoint
+    {
+        BaseUrl = new Uri(endpointUrl),
+        Model = arguments.Get("model", "FADEN_MODEL") ?? throw Usage("--model"),
+        Key = key,
+        Dialect = preset?.Dialect ?? EndpointDialect.Named(arguments.Get("dialect", null)),
+    };
+    EndpointReport? report = null;
+    if (arguments.Has("check"))
+    {
+        report = await new EndpointCheck(endpoint).RunAsync(new EndpointCheckOptions { RequiredContextTokens = 8000 });
+        Console.WriteLine(report.ToJson());
+    }
+    var definition = arguments.Get("definition", null) is { } file
+        ? AgentDefinition.FromJson(File.ReadAllText(file))
+        : AgentDefinition.FromJson(DemoTools.Definition);
+    var standalone = FadenstackAgent.CreateBuilder()
+        .UseEndpoint(endpoint, report)
+        .UseLocalProfile(definition, arguments.Get("instructions", null))
+        .AddTools(new DemoTools())
+        .UseApprovals(AskOnConsole);
+    agent = standalone.Build();
 }
-
-var builder = FadenstackAgent.CreateBuilder()
-    .UseClient(client)
-    .UseAgent(slug)
-    .AddTools(new DemoTools())
-    .UseApprovals(AskOnConsole);
-if (arguments.Get("mcp", null) is { } mcp && mcp.Split(new[] { '=' }, 2) is [var label, var command])
+else
 {
-    var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-    builder.AddLocalMcp(LocalMcpServer.Stdio(label, parts[0], parts.Skip(1)));
+    var server = new Uri(arguments.Get("server", "FADEN_SERVER") ?? throw Usage("--server or --endpoint"));
+    var slug = arguments.Get("agent", "FADEN_AGENT") ?? throw Usage("--agent");
+    var api = arguments.Get("api", "FADEN_API") is { } a ? new Uri(a) : null;
+    var insecure = arguments.Has("insecure");
+
+    client = FadenstackClient.ForAgent(server, slug, out var tokens, configure: o =>
+    {
+        o.ApiUrl = api;
+        o.AllowInsecureHttp = insecure;
+    });
+    if (!await tokens.IsSignedInAsync())
+    {
+        var login = arguments.Get("login-token", "FADEN_LOGIN_TOKEN") ?? throw Usage("--login-token (first run only)");
+        var device = await tokens.SignInAsync(login, $"{Environment.MachineName} console");
+        Console.WriteLine($"Signed in for {slug} on this device ({device.DeviceId}).");
+    }
+
+    var builder = FadenstackAgent.CreateBuilder()
+        .UseClient(client)
+        .UseAgent(slug)
+        .AddTools(new DemoTools())
+        .UseApprovals(AskOnConsole);
+    if (arguments.Get("mcp", null) is { } mcp && mcp.Split(new[] { '=' }, 2) is [var label, var command])
+    {
+        var parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        builder.AddLocalMcp(LocalMcpServer.Stdio(label, parts[0], parts.Skip(1)));
+    }
+    agent = builder.Build();
 }
-using var agent = builder.Build();
+using var disposeAgent = agent;
+using var disposeClient = client;
 await agent.StartAsync();
-Console.WriteLine($"{agent.Profile.Name} v{agent.Profile.Version} -- tools: {string.Join(", ", agent.Tools.Select(t => $"{t.Name} ({t.Class.ToWire()})"))}");
+Console.WriteLine($"{agent.Profile.Name} v{agent.Profile.Version} ({agent.Connection}) -- tools: {string.Join(", ", agent.Tools.Select(t => $"{t.Name} ({t.Class.ToWire()})"))}");
 
 var session = arguments.Get("session", null) is { } id ? await agent.OpenSessionAsync(id) : await agent.StartSessionAsync();
 Console.WriteLine($"Session {session.Id}, tool mode {session.EffectiveToolMode.ToWire()}. /mode, /sessions, /quit.");
