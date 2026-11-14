@@ -61,7 +61,7 @@ internal sealed class ProvenanceState
             var fresh = false;
             try
             {
-                policy = agent is null ? new ProvenancePolicy() : await Options.Backend.GetPolicyAsync(agent, cancellationToken).ConfigureAwait(false);
+                policy = agent is null ? new ProvenancePolicy() : await Options.BackendFor(agent).GetPolicyAsync(agent, cancellationToken).ConfigureAwait(false);
                 fresh = agent is not null;
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
@@ -292,7 +292,7 @@ internal sealed class OutputCheckStage : IToolStage
         limit.CancelAfter(ReportTimeout);
         try
         {
-            await _state.Options.Backend.ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
+            await _state.Options.BackendFor(agent).ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
             return true;
         }
         catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

@@ -427,7 +427,7 @@ internal sealed class ProvenanceCall : IProvenance
         };
         try
         {
-            var signed = await Options.Backend.SignRecordAsync(agent, request, cancellationToken).ConfigureAwait(false);
+            var signed = await Options.BackendFor(agent).SignRecordAsync(agent, request, cancellationToken).ConfigureAwait(false);
             // Marks carry the id: one that is not the server's kind of id is no record to carry.
             return ProvenanceJson.IsRecordId(signed?.Record.Id) ? signed : null;
         }
@@ -568,7 +568,7 @@ internal sealed class ProvenanceCall : IProvenance
             limit.CancelAfter(ReportTimeout);
             try
             {
-                await Options.Backend.ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
+                await Options.BackendFor(agent).ReportPlacementAsync(agent, report, limit.Token).ConfigureAwait(false);
                 reported = true;
             }
             catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)

@@ -27,6 +27,10 @@ this file says where it does.
 - **The agent is a Microsoft Agent Framework `AIAgent`** (`Microsoft.Agents.AI.Abstractions` 1.28): MAF's `RunAsync`,
   `RunStreamingAsync`, sessions (`FadenstackAgentSession`, which serializes only the session's id) and workflows run it as a
   turn of a `ChatSession`. A run needs an approval handler. `Microsoft.Extensions.AI` is 10.11.
+- **Records signed on the device** (`Fadenstack.Provenance`): `LocalProvenanceBackend` for an agent without a server
+  (chosen by the agent's connection), with `DeviceSigner` (the engine's JWS format, ES256, a key per installation kept by
+  the OS key store), RFC 3161 time-stamps (`LocalProvenanceOptions`, `ProvenanceOptions.UseLocalBackend`) and a local
+  placement log that rotates.
 - `Fadenstack.Agents.Delegation`, for applications: one agent hands a task to another on the same device
   (`DelegationHost`, `LocalAgentDelegate`, the model's `delegate` tool), A2A 1.0 over a local pipe that only the current
   OS user can open. It is not on nuget.org: it is on the fadenstack organisation's GitHub Packages feed with the A2A fork
@@ -80,6 +84,8 @@ this file says where it does.
 - `AgentPairing.WaitAsync`: in a pairing for several agents, a first agent the person did not approve is reported with
   `FadenstackPairingAgentException` (it was "expired"); the first approved other agent is signed in on the way.
 - The request timeout (`FadenstackClientOptions.Timeout`) also covers a stream's wait for its headers.
+- **Breaking (unlikely to matter):** `ProvenanceOptions.Backend` is null unless the app set one; the module then picks the
+  server's or, without a server, the device's backend.
 - `AgentContext.Client` throws `InvalidOperationException` for an agent without a server (it is unchanged with one);
   `AgentContext.ServerClient` is the way to ask.
 - A stream whose data is not JSON breaks off with a `FadenstackStreamException` (code `invalid_stream`) instead of a

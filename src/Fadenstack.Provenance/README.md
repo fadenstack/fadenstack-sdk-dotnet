@@ -135,8 +135,12 @@ EU AI Act (Art. 50(2)): the module makes marking easy, it does not do it for you
 that writes content people read, place that content through `PlaceAsync`, and tell your users that marks must not be
 removed.
 
-It targets `netstandard2.0` (.NET Framework 4.7.2 and later) and `net8.0`, and needs a Fadenstack server with the
-provenance module for signed records (without it, content is placed and the report says `server-unavailable`).
+**Do not remove or alter the marks** this module places, and do not switch a model server's text watermark off for text
+people read (EU Code of Practice on marking AI-generated content, Measure 1.2).
+
+It targets `netstandard2.0` (.NET Framework 4.7.2 and later) and `net8.0`. With a Fadenstack server the server signs the
+records (without its provenance module, content is placed and the report says `server-unavailable`); for an agent on the
+person's own endpoint the device signs them (`LocalProvenanceBackend`).
 
 - Documentation: <https://developers.fadenstack.com/sdk/dotnet/provenance/>
 - Source and issues: <https://github.com/fadenstack/fadenstack-sdk-dotnet>

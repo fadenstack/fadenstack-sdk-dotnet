@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!-- net48 too: Office runs the netstandard2.0 build, its crypto (the device signer, RFC 3161) among it. -->
+    <TargetFrameworks>net10.0;net48</TargetFrameworks>
     <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
@@ -17,6 +18,11 @@
     <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
     <Compile Include="..\Fadenstack.Client.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\FakeGrants.cs" Link="FakeGrants.cs" />
+    <Compile Include="..\Fadenstack.Client.Tests\OpenAiFake.cs" Link="OpenAiFake.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="System.Net.Http" />
+    <Using Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
     <!-- The vectors both SDKs test against: the TypeScript SDK has the same file. -->

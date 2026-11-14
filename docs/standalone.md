@@ -172,6 +172,12 @@ OWASP ASVS 5.0 V12 (secure communication) and V13 (secrets):
 
 All but the last three are `FadenstackApiException`s with the status.
 
+## Marks and records on the device
+
+With `Fadenstack.Provenance` added (`Use(new ProvenanceModule())`), content placed in documents is marked as with a server,
+and each record is signed on the device with an RFC 3161 time-stamp when the device is online: see
+[Content provenance](provenance.md#without-a-server-records-signed-on-the-device).
+
 ## What a server adds
 
 A Fadenstack server governs the agent centrally: the organisation's policy, PII masking and intent checks before the
