@@ -12,6 +12,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fadenstack.UI\Fadenstack.UI.csproj" />
+    <!-- The real skills workshop for the skill editor's view model tests (a temporary folder). -->
+    <ProjectReference Include="..\..\src\Fadenstack.Skills\Fadenstack.Skills.csproj" />
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\PageTools.cs" Link="PageTools.cs" />

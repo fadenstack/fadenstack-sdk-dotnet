@@ -1252,4 +1252,352 @@
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>Auch die auf diesem Computer gespeicherten Chats löschen</value>
   </data>
+  <data name="SkillLibraryTitle" xml:space="preserve">
+    <value>Skills auf diesem Gerät</value>
+  </data>
+  <data name="SkillLibraryLoading" xml:space="preserve">
+    <value>Skills werden gelesen…</value>
+  </data>
+  <data name="SkillLibraryFailed" xml:space="preserve">
+    <value>Die Skills konnten nicht gelesen werden.</value>
+  </data>
+  <data name="SkillLibraryEmpty" xml:space="preserve">
+    <value>Es gibt noch keine Skills. Legen Sie einen an oder importieren Sie einen Ordner oder eine Zip-Datei.</value>
+  </data>
+  <data name="SkillOriginBundled" xml:space="preserve">
+    <value>Eingebaut</value>
+  </data>
+  <data name="SkillOriginOwn" xml:space="preserve">
+    <value>Eigene</value>
+  </data>
+  <data name="SkillOriginOrganisation" xml:space="preserve">
+    <value>Ihre Organisation</value>
+  </data>
+  <data name="SkillNotReviewed" xml:space="preserve">
+    <value>Nicht geprüft</value>
+  </data>
+  <data name="SkillOn" xml:space="preserve">
+    <value>An</value>
+  </data>
+  <data name="SkillOff" xml:space="preserve">
+    <value>Aus</value>
+  </data>
+  <data name="SkillNew" xml:space="preserve">
+    <value>Neuer Skill</value>
+  </data>
+  <data name="SkillEdit" xml:space="preserve">
+    <value>Bearbeiten</value>
+  </data>
+  <data name="SkillView" xml:space="preserve">
+    <value>Ansehen</value>
+  </data>
+  <data name="SkillDuplicate" xml:space="preserve">
+    <value>Duplizieren</value>
+  </data>
+  <data name="SkillDelete" xml:space="preserve">
+    <value>Löschen</value>
+  </data>
+  <data name="SkillImport" xml:space="preserve">
+    <value>Importieren…</value>
+  </data>
+  <data name="SkillExport" xml:space="preserve">
+    <value>Exportieren</value>
+  </data>
+  <data name="SkillCancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="SkillSave" xml:space="preserve">
+    <value>Speichern</value>
+  </data>
+  <data name="SkillReplace" xml:space="preserve">
+    <value>Ersetzen</value>
+  </data>
+  <data name="SkillDeleteTitle" xml:space="preserve">
+    <value>{0} löschen?</value>
+  </data>
+  <data name="SkillDeleteBody" xml:space="preserve">
+    <value>Der Ordner und seine Dateien werden von diesem Computer entfernt. Das lässt sich nicht rückgängig machen.</value>
+  </data>
+  <data name="SkillImportTitle" xml:space="preserve">
+    <value>{0} importieren?</value>
+  </data>
+  <data name="SkillImportBody" xml:space="preserve">
+    <value>Er wird Ihren Skills hinzugefügt und als nicht geprüft markiert. Lesen Sie ihn zuerst: Es ist Text von außen, und das Modell wird ihm folgen.</value>
+  </data>
+  <data name="SkillImportReplaceBody" xml:space="preserve">
+    <value>Ein Skill namens {0} ist schon vorhanden. Der Import ersetzt ihn.</value>
+  </data>
+  <data name="SkillImportRefused" xml:space="preserve">
+    <value>Das lässt sich nicht importieren. Es wurde nichts geschrieben.</value>
+  </data>
+  <data name="SkillImported" xml:space="preserve">
+    <value>{0} wurde importiert.</value>
+  </data>
+  <data name="SkillSaved" xml:space="preserve">
+    <value>{0} wurde gespeichert.</value>
+  </data>
+  <data name="SkillDeleted" xml:space="preserve">
+    <value>{0} wurde gelöscht.</value>
+  </data>
+  <data name="SkillExported" xml:space="preserve">
+    <value>{0} wurde exportiert.</value>
+  </data>
+  <data name="SkillExportFailed" xml:space="preserve">
+    <value>{0} konnte nicht exportiert werden.</value>
+  </data>
+  <data name="SkillSaveFailed" xml:space="preserve">
+    <value>Der Skill konnte nicht geschrieben werden. Es wurde nichts geändert.</value>
+  </data>
+  <data name="SkillExistsTitle" xml:space="preserve">
+    <value>{0} ersetzen?</value>
+  </data>
+  <data name="SkillExistsBody" xml:space="preserve">
+    <value>Ein Skill mit diesem Namen gibt es schon. Das Speichern ersetzt ihn.</value>
+  </data>
+  <data name="SkillEditorEditing" xml:space="preserve">
+    <value>{0} bearbeiten</value>
+  </data>
+  <data name="SkillEditorReadOnly" xml:space="preserve">
+    <value>{0} ist schreibgeschützt.</value>
+  </data>
+  <data name="SkillEditorProposal" xml:space="preserve">
+    <value>Ein Vorschlag für einen Skill. Lesen Sie ihn und speichern Sie ihn nur, wenn Sie ihn behalten möchten.</value>
+  </data>
+  <data name="SkillName" xml:space="preserve">
+    <value>Bezeichnung</value>
+  </data>
+  <data name="SkillDescription" xml:space="preserve">
+    <value>Beschreibung</value>
+  </data>
+  <data name="SkillInstructions" xml:space="preserve">
+    <value>Anweisungen</value>
+  </data>
+  <data name="SkillPreview" xml:space="preserve">
+    <value>Vorschau</value>
+  </data>
+  <data name="SkillLicense" xml:space="preserve">
+    <value>Lizenz</value>
+  </data>
+  <data name="SkillCompatibility" xml:space="preserve">
+    <value>Kompatibilität</value>
+  </data>
+  <data name="SkillMatching" xml:space="preserve">
+    <value>Wann er zum Einsatz kommt</value>
+  </data>
+  <data name="SkillTitleField" xml:space="preserve">
+    <value>Titel</value>
+  </data>
+  <data name="SkillTags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="SkillKeywords" xml:space="preserve">
+    <value>Schlüsselwörter</value>
+  </data>
+  <data name="SkillFileTypes" xml:space="preserve">
+    <value>Dateitypen</value>
+  </data>
+  <data name="SkillPreferredTools" xml:space="preserve">
+    <value>Bevorzugte Werkzeuge</value>
+  </data>
+  <data name="SkillPriority" xml:space="preserve">
+    <value>Priorität</value>
+  </data>
+  <data name="SkillActivation" xml:space="preserve">
+    <value>Aktivierung</value>
+  </data>
+  <data name="SkillActivationAuto" xml:space="preserve">
+    <value>Wenn die Nachricht passt</value>
+  </data>
+  <data name="SkillActivationAlways" xml:space="preserve">
+    <value>Immer</value>
+  </data>
+  <data name="SkillActivationManual" xml:space="preserve">
+    <value>Nur wenn genannt</value>
+  </data>
+  <data name="SkillResources" xml:space="preserve">
+    <value>Dateien</value>
+  </data>
+  <data name="SkillNoResources" xml:space="preserve">
+    <value>Keine weiteren Dateien.</value>
+  </data>
+  <data name="SkillAddFile" xml:space="preserve">
+    <value>Datei hinzufügen…</value>
+  </data>
+  <data name="SkillRenameFile" xml:space="preserve">
+    <value>Umbenennen</value>
+  </data>
+  <data name="SkillRemoveFile" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="SkillDropUnknownKeys" xml:space="preserve">
+    <value>Zusätzliche Felder entfernen</value>
+  </data>
+  <data name="SkillChecksHeading" xml:space="preserve">
+    <value>Prüfungen</value>
+  </data>
+  <data name="SkillChecksOk" xml:space="preserve">
+    <value>Alle Prüfungen bestanden.</value>
+  </data>
+  <data name="SkillTestHeading" xml:space="preserve">
+    <value>Ausprobieren</value>
+  </data>
+  <data name="SkillTestPrompt" xml:space="preserve">
+    <value>Eine Nachricht zum Ausprobieren</value>
+  </data>
+  <data name="SkillTestRun" xml:space="preserve">
+    <value>Testen</value>
+  </data>
+  <data name="SkillTestListed" xml:space="preserve">
+    <value>Dem Modell werden genannt:</value>
+  </data>
+  <data name="SkillTestPreloaded" xml:space="preserve">
+    <value>Sofort geladen:</value>
+  </data>
+  <data name="SkillTestNone" xml:space="preserve">
+    <value>Für diese Nachricht wird kein Skill angeboten.</value>
+  </data>
+  <data name="SkillTestEditedNotListed" xml:space="preserve">
+    <value>Dieser Skill wird für diese Nachricht nicht angeboten.</value>
+  </data>
+  <data name="SkillMatchExplicit" xml:space="preserve">
+    <value>in der Nachricht genannt</value>
+  </data>
+  <data name="SkillMatchAlways" xml:space="preserve">
+    <value>immer aktiv</value>
+  </data>
+  <data name="SkillMatchTrigger" xml:space="preserve">
+    <value>passt zu den Schlüsselwörtern</value>
+  </data>
+  <data name="SkillAskModel" xml:space="preserve">
+    <value>Das Modell einmal fragen</value>
+  </data>
+  <data name="SkillModelNote" xml:space="preserve">
+    <value>Ein Modellaufruf. Es läuft kein Werkzeug.</value>
+  </data>
+  <data name="SkillModelAsking" xml:space="preserve">
+    <value>Das Modell wird gefragt…</value>
+  </data>
+  <data name="SkillModelWouldLoad" xml:space="preserve">
+    <value>Das Modell würde {0} laden.</value>
+  </data>
+  <data name="SkillModelWouldLoadOther" xml:space="preserve">
+    <value>Das Modell würde stattdessen einen anderen Skill laden: {0}.</value>
+  </data>
+  <data name="SkillModelWouldNot" xml:space="preserve">
+    <value>Das Modell würde für diese Nachricht keinen Skill laden.</value>
+  </data>
+  <data name="SkillModelFailed" xml:space="preserve">
+    <value>Das Modell konnte nicht gefragt werden.</value>
+  </data>
+  <data name="SkillDraftTitle" xml:space="preserve">
+    <value>Entwurf aus diesem Chat</value>
+  </data>
+  <data name="SkillDraftGuidance" xml:space="preserve">
+    <value>Wofür soll der Skill sein? (optional)</value>
+  </data>
+  <data name="SkillDraftStart" xml:space="preserve">
+    <value>Entwurf schreiben</value>
+  </data>
+  <data name="SkillDraftWorking" xml:space="preserve">
+    <value>Der Entwurf wird geschrieben…</value>
+  </data>
+  <data name="SkillDraftReady" xml:space="preserve">
+    <value>Der Entwurf liegt zur Durchsicht bereit. Gespeichert wird erst, wenn Sie auf „Speichern“ klicken.</value>
+  </data>
+  <data name="SkillDraftNoChat" xml:space="preserve">
+    <value>In diesem Chat gibt es noch nichts, woraus sich ein Entwurf machen ließe.</value>
+  </data>
+  <data name="SkillDraftNoModel" xml:space="preserve">
+    <value>Es ist kein Modell verfügbar, das einen Entwurf schreiben könnte.</value>
+  </data>
+  <data name="SkillDraftFailed" xml:space="preserve">
+    <value>Der Entwurf konnte nicht geschrieben werden.</value>
+  </data>
+  <data name="SkillDraftUnreadable" xml:space="preserve">
+    <value>Die Antwort des Modells ist kein Skill. Versuchen Sie es noch einmal.</value>
+  </data>
+  <data name="SkillDraftBroken" xml:space="preserve">
+    <value>Der Entwurf verstößt gegen die unten genannten Regeln. Beheben Sie das im Editor, bevor Sie speichern.</value>
+  </data>
+  <data name="SkillIssueNameMissing" xml:space="preserve">
+    <value>Der Name ist leer.</value>
+  </data>
+  <data name="SkillIssueNameForm" xml:space="preserve">
+    <value>Der Name darf nur Kleinbuchstaben, Ziffern und einzelne Bindestriche enthalten.</value>
+  </data>
+  <data name="SkillIssueNameTooLong" xml:space="preserve">
+    <value>Der Name hat {2} Zeichen; erlaubt sind {1}.</value>
+  </data>
+  <data name="SkillIssueNameNotFolder" xml:space="preserve">
+    <value>Der Name ist nicht der Ordnername ({3}).</value>
+  </data>
+  <data name="SkillIssueNameReserved" xml:space="preserve">
+    <value>Ein eingebauter Skill hat diesen Namen bereits.</value>
+  </data>
+  <data name="SkillIssueDescriptionMissing" xml:space="preserve">
+    <value>Die Beschreibung ist leer. Sie sagt dem Modell, wann der Skill zu verwenden ist.</value>
+  </data>
+  <data name="SkillIssueDescriptionTooLong" xml:space="preserve">
+    <value>Die Beschreibung hat {2} Zeichen; erlaubt sind {1}.</value>
+  </data>
+  <data name="SkillIssueCompatibilityTooLong" xml:space="preserve">
+    <value>Der Kompatibilitätshinweis hat {2} Zeichen; erlaubt sind {1}.</value>
+  </data>
+  <data name="SkillIssueUnknownKey" xml:space="preserve">
+    <value>SKILL.md enthält ein Feld, das der Standard nicht kennt: {3}. Entfernen Sie es.</value>
+  </data>
+  <data name="SkillIssueInvisibleCharacter" xml:space="preserve">
+    <value>{0} enthält ein unsichtbares Zeichen ({3}). Entfernen Sie es.</value>
+  </data>
+  <data name="SkillIssueControlCharacter" xml:space="preserve">
+    <value>{0} enthält ein Steuerzeichen ({3}). Entfernen Sie es.</value>
+  </data>
+  <data name="SkillIssueBodyEmpty" xml:space="preserve">
+    <value>Die Anweisungen sind leer.</value>
+  </data>
+  <data name="SkillIssueBodyLarge" xml:space="preserve">
+    <value>Die Anweisungen sind lang (etwa {2} Token; ratsam sind etwa {1}). Das Modell befolgt sie womöglich schlechter.</value>
+  </data>
+  <data name="SkillIssueTotalTooLarge" xml:space="preserve">
+    <value>Der Skill ist insgesamt größer als {1} Byte.</value>
+  </data>
+  <data name="SkillIssueFileTooLarge" xml:space="preserve">
+    <value>{0} ist größer als {1} Byte.</value>
+  </data>
+  <data name="SkillIssueTooManyFiles" xml:space="preserve">
+    <value>Der Skill hat mehr als {1} Dateien.</value>
+  </data>
+  <data name="SkillIssueScriptFile" xml:space="preserve">
+    <value>{0} ist ein Skript oder ein Programm. Skripte laufen hier nie; entfernen Sie die Datei.</value>
+  </data>
+  <data name="SkillIssueUnsafePath" xml:space="preserve">
+    <value>Der Dateiname {0} ist nicht erlaubt ({3}).</value>
+  </data>
+  <data name="SkillIssueDuplicatePath" xml:space="preserve">
+    <value>Der Dateiname {0} kommt doppelt vor.</value>
+  </data>
+  <data name="SkillIssueLinkEntry" xml:space="preserve">
+    <value>{0} ist eine Verknüpfung. Verknüpfungen werden nicht übernommen.</value>
+  </data>
+  <data name="SkillIssueZipBomb" xml:space="preserve">
+    <value>Die Zip-Datei würde sich auf viel mehr entpacken, als sie dürfte. Sie wurde nicht geöffnet.</value>
+  </data>
+  <data name="SkillIssueNotAZip" xml:space="preserve">
+    <value>{0} ist keine Zip-Datei.</value>
+  </data>
+  <data name="SkillIssueSkillMdMissing" xml:space="preserve">
+    <value>Es gibt keine SKILL.md.</value>
+  </data>
+  <data name="SkillIssueSkillMdUnreadable" xml:space="preserve">
+    <value>SKILL.md lässt sich nicht lesen: {3}</value>
+  </data>
+  <data name="SkillIssueFadenYamlUnreadable" xml:space="preserve">
+    <value>faden.yaml lässt sich nicht lesen: {3}</value>
+  </data>
+  <data name="SkillIssueFadenYamlUnknownKey" xml:space="preserve">
+    <value>faden.yaml enthält ein Feld, das dieser Editor nicht behält: {3}. Beim Speichern entfällt es.</value>
+  </data>
+  <data name="SkillIssueReadFailed" xml:space="preserve">
+    <value>{0} konnte nicht gelesen werden.</value>
+  </data>
 </root>
