@@ -1,0 +1,1 @@
+Copied from faden-agent-msoffice/skills/slide-design (the Office agent's real skill): SKILL.md byte for byte, faden.yaml with a leading comment.

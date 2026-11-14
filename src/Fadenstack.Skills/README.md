@@ -27,5 +27,10 @@ builder.Use(new SkillsModule(skills));
   turned them off; a machine policy that lists folders keeps only those.
 - **The six fields.** A SKILL.md may carry `name` (the folder's name), `description`, `license`, `compatibility`, `metadata`
   and `allowed-tools`. A skill with another key, or one that cannot be read, is skipped and logged; the others stay.
+- **`faden.yaml` pre-selection.** A `faden.yaml` beside a SKILL.md (or `BundledSkill.FadenYaml`) is read once per `Refresh`, by core's rules
+  (`activation`, `priority`, `tags`, `trigger_rules.keywords` and `file_types`, `preferred_tools`), with the limits of core's `safe_yaml`: 32 KiB, 8 levels,
+  no anchors, aliases or tags. Each turn the model is listed the skills its message matches (up to 3, named ones first) and the skills without
+  triggers; a skill named with `$slug`, always on, or matched on a keyword gets its instructions loaded for the turn, marked as skill text. The
+  preferred tools are a hint in that text. A skill without a `faden.yaml`, or with one that does not read (logged), is listed as before.
 - **Skill text is untrusted.** It never changes a tool's class, a mode or a grant.
 - **Heavier than the core.** The package takes `Microsoft.Agents.AI` and its dependencies on; the rest of the SDK does not.
