@@ -218,6 +218,61 @@ public class ToolsViewTests
     }
 
     [AvaloniaFact]
+    public async Task The_app_tab_is_first_and_draws_the_apps_tools_read_only()
+    {
+        using var host = await ToolsHost.OpenAsync("app");
+        var s = host.Page.Strings;
+        var texts = host.Texts();
+        Assert.True(host.BindingErrors.Count == 0, string.Join("\n", host.BindingErrors));
+        Assert.Equal(["AppTab", "LocalTab", "ServerTab"], host.Find<Border>("ToolsTabs").GetVisualDescendants().OfType<RadioButton>().Select(r => r.Name));
+        Assert.True(host.Find<RadioButton>("AppTab").IsChecked);
+        Assert.Equal(host.Page.AppTabText, global::Avalonia.Automation.AutomationProperties.GetName(host.Find<RadioButton>("AppTab")));
+        Assert.True(host.Find<RadioButton>("AppTab").Focusable);
+        Assert.Contains("read_page", texts);
+        Assert.Contains("click_button", texts);
+        Assert.Contains("Reads the page that is open in the browser. Returns its text.", texts);
+        Assert.Contains(s.ApprovalClassLabel(Fadenstack.Tools.ToolClass.Destructive), texts);
+        Assert.Equal(4, host.Find<ItemsControl>("AppTools").ItemCount);
+        Assert.False(host.Has("AppEmpty"));
+        Assert.False(host.Has("PolicyChip"));
+        Assert.Empty(host.Visible().OfType<ToggleSwitch>());
+    }
+
+    [AvaloniaFact]
+    public async Task The_server_tab_is_there_only_when_governed()
+    {
+        using (var host = await ToolsHost.OpenAsync("app"))
+        {
+            Assert.True(host.Has("ServerTab"));
+        }
+        using (var host = await ToolsHost.OpenAsync("app-standalone"))
+        {
+            Assert.False(host.Has("ServerTab"));
+            Assert.True(host.Has("AppTab"));
+            Assert.True(host.Has("LocalTab"));
+            Assert.Equal(0, host.Catalog.CloudCalls);
+            Assert.True(host.BindingErrors.Count == 0, string.Join("\n", host.BindingErrors));
+        }
+        using (var host = await ToolsHost.OpenAsync("standalone"))
+        {
+            Assert.False(host.Has("ServerTab"));
+            Assert.True(host.Page.ShowsLocal);
+            Assert.True(host.Has("PolicyChip"));
+        }
+    }
+
+    [AvaloniaFact]
+    public async Task The_app_tab_without_tools_has_its_one_line()
+    {
+        using var host = await ToolsHost.OpenAsync("app");
+        host.Catalog.App.Clear();
+        host.Page.Refresh();
+        await host.PumpAsync();
+        Assert.True(host.Has("AppEmpty"));
+        Assert.Contains(host.Page.Strings.ToolsAppNone, host.Texts());
+    }
+
+    [AvaloniaFact]
     public async Task The_cloud_tab_lists_the_governed_tools_read_only()
     {
         using var host = await ToolsHost.OpenAsync("cloud");

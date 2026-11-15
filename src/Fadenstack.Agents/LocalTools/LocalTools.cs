@@ -1,9 +1,31 @@
+using Fadenstack.Tools;
+
 namespace Fadenstack.LocalTools;
 
 // What the Tools view and the MCP module share (sdk/51 F05). The layers keep the UI layer from referencing a module, so the
 // contract sits here, in the core: Fadenstack.UI builds its view models on ILocalToolsCatalog, and Fadenstack.Mcp implements it
 // over the person's servers (McpToolsCatalog). It is the desktop app's Tools page contract, without what only the desktop has
 // (its built-in tools, the other assistants, its Settings).
+
+/// <summary>A tool the app itself gives the agent (a host tool), as the Tools view's "In this app" lists it. Never a local MCP server's tool, a server's tool or one of the SDK's own built-ins.</summary>
+public sealed class AppToolInfo
+{
+    public AppToolInfo(string name, string description, ToolClass toolClass)
+    {
+        Name = name;
+        Description = description;
+        Class = toolClass;
+    }
+
+    /// <summary>The tool's name, as the model sees it.</summary>
+    public string Name { get; }
+
+    /// <summary>What the app says the tool does; may be long and may hold line breaks (the view cleans it).</summary>
+    public string Description { get; }
+
+    /// <summary>The class the tool has now (what decides whether a call asks).</summary>
+    public ToolClass Class { get; }
+}
 
 /// <summary>What the agent's local MCP policy says; the page's banner.</summary>
 public enum ToolsPolicy
@@ -507,6 +529,16 @@ public interface ILocalToolsCatalog
     bool SignedIn { get; }
 
     ToolsPolicy Policy { get; }
+
+    /// <summary>
+    /// The agent is connected to an organisation's Fadenstack server. False while that is not known (nobody is signed in, the agent
+    /// has not started) and for a standalone agent (the person's own model endpoint): the view then shows no "On your server" and
+    /// asks for no cloud tools.
+    /// </summary>
+    bool IsGoverned { get; }
+
+    /// <summary>The tools the app itself gives the agent (host tools only); empty while the agent is not running.</summary>
+    IReadOnlyList<AppToolInfo> AppTools { get; }
 
     /// <summary>The list of servers is written to disk (encrypted); false: it is kept in memory until the app closes.</summary>
     bool ServersKeptOnDisk { get; }

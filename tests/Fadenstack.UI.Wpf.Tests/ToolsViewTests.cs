@@ -246,6 +246,68 @@ public class ToolsViewTests
     });
 
     [Fact]
+    public void The_app_tab_is_first_and_draws_the_apps_tools_read_only() => Sta.Run(() =>
+    {
+        using var host = new ToolsHost("app");
+        var s = host.Page.Strings;
+        var texts = host.Texts();
+        Assert.True(host.BindingErrors.Count == 0, string.Join("\n", host.BindingErrors));
+        Assert.Equal(["AppTab", "LocalTab", "ServerTab"], host.Tree().OfType<RadioButton>().Where(r => r.Name.EndsWith("Tab", StringComparison.Ordinal)).Select(r => r.Name));
+        Assert.True(host.Find<RadioButton>("AppTab").IsChecked);
+        Assert.Equal(host.Page.AppTabText, System.Windows.Automation.AutomationProperties.GetName(host.Find<RadioButton>("AppTab")));
+        Assert.True(host.Find<RadioButton>("AppTab").Focusable && host.Find<RadioButton>("AppTab").IsTabStop);
+        Assert.Contains("read_page", texts);
+        Assert.Contains("click_button", texts);
+        Assert.Contains("Reads the page that is open in the browser. Returns its text.", texts);
+        Assert.Contains(s.ApprovalClassLabel(Fadenstack.Tools.ToolClass.Destructive), texts);
+        Assert.Equal(4, host.Find<ItemsControl>("AppTools").Items.Count);
+        Assert.False(host.Has("AppEmpty"));
+        // The computer's own tab content, the header's buttons and the policy chip are not on this tab.
+        Assert.False(host.Has("PolicyChip"));
+        Assert.DoesNotContain(host.Visible().OfType<ToggleButton>(), t => t is not RadioButton && t is not CheckBox);
+
+        host.Page.Filter = "zzz";
+        host.Pump();
+        Assert.True(host.Has("AppNoMatch"));
+        host.Page.Filter = "";
+    });
+
+    [Fact]
+    public void The_server_tab_is_there_only_when_governed() => Sta.Run(() =>
+    {
+        using (var host = new ToolsHost("app"))
+        {
+            Assert.True(host.Has("ServerTab"));
+            Assert.Contains(host.Page.ServerTabText, host.Texts());
+        }
+        using (var host = new ToolsHost("app-standalone"))
+        {
+            Assert.False(host.Has("ServerTab"));
+            Assert.True(host.Has("AppTab"));
+            Assert.True(host.Has("LocalTab"));
+            Assert.Equal(0, host.Catalog.CloudCalls);
+            Assert.True(host.BindingErrors.Count == 0, string.Join("\n", host.BindingErrors));
+        }
+        using (var host = new ToolsHost("standalone"))
+        {
+            Assert.False(host.Has("ServerTab"));
+            Assert.True(host.Page.ShowsLocal);
+            Assert.True(host.Has("PolicyChip"));
+        }
+    });
+
+    [Fact]
+    public void The_app_tab_without_tools_has_its_one_line() => Sta.Run(() =>
+    {
+        using var host = new ToolsHost("app");
+        host.Catalog.App.Clear();
+        host.Page.Refresh();
+        host.Pump();
+        Assert.True(host.Has("AppEmpty"));
+        Assert.Contains(host.Page.Strings.ToolsAppNone, host.Texts());
+    });
+
+    [Fact]
     public void The_cards_take_as_many_columns_as_the_width_allows_and_the_drawer_never_wider_than_the_view() => Sta.Run(() =>
     {
         using var host = new ToolsHost("drawer");

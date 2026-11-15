@@ -380,6 +380,9 @@
     <Style x:Key="Tools.StateChip.Muted" TargetType="Border" BasedOn="{StaticResource Tools.StateChip}">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
     </Style>
+    <Style x:Key="Tools.StateChip.Warning" TargetType="Border" BasedOn="{StaticResource Tools.StateChip}">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+    </Style>
     <Style x:Key="Tools.Says" TargetType="Border">
         <Setter Property="MinHeight" Value="20" />
         <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />

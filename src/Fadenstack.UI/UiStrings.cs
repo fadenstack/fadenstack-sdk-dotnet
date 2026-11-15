@@ -1258,6 +1258,12 @@ public sealed class UiStrings
     /// <summary>"Not allowed for this assistant"</summary>
     public string ToolsPolicyNotAllowed => Text();
 
+    /// <summary>"In this app · {0}"</summary>
+    public string ToolsTabApp(int count) => Fill(count);
+
+    /// <summary>"This app gives the assistant no tools of its own."</summary>
+    public string ToolsAppNone => Text();
+
     /// <summary>"On this computer · {0}"</summary>
     public string ToolsTabLocal(int count) => Fill(count);
 

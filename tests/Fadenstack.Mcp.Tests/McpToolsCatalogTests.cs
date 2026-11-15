@@ -66,7 +66,8 @@ public sealed class McpToolsCatalogTests : IDisposable
     };
 
     private async Task<Scene> StartAsync(string localMcp = Allow, McpRig? rig = null, IMcpScanner? scanner = null, Func<DateTimeOffset>? now = null,
-        IEnumerable<McpServerEntry>? more = null, MachinePolicy? policy = null, Func<McpServerEntry, McpServerMarks?>? marks = null)
+        IEnumerable<McpServerEntry>? more = null, MachinePolicy? policy = null, Func<McpServerEntry, McpServerMarks?>? marks = null,
+        Action<AgentBuilder>? configure = null)
     {
         var store = new McpServerStore(Path.Combine(_root, "user"), new Reversing());
         store.Add(McpStoreTests.Program("alpha"));
@@ -79,6 +80,7 @@ public sealed class McpToolsCatalogTests : IDisposable
         var builder = gateway.Builder().AddLocalMcp(host.NewModule());
         if (policy is not null)
             builder.UseMachinePolicy(policy);
+        configure?.Invoke(builder);
         var agent = builder.Build();
         await host.UseUserAsync("anna");
         await host.Loaded;
@@ -204,6 +206,61 @@ public sealed class McpToolsCatalogTests : IDisposable
         Assert.False(scene.Catalog.LocalServers[0].Enabled);
         await scene.Catalog.RemoveAsync("alpha");
         Assert.Empty(scene.Catalog.LocalServers);
+    }
+
+    [Fact]
+    public async Task The_apps_tools_are_the_host_tools_of_a_running_agent_and_nothing_else()
+    {
+        using var scene = await StartAsync(rig: HintedRig(), configure: b => b
+            .AddTool(Microsoft.Extensions.AI.AIFunctionFactory.Create(() => "ok", "app_write", "Changes the app."), ToolClass.Write)
+            .AddTool(Microsoft.Extensions.AI.AIFunctionFactory.Create(() => "ok", "app_read", "Reads the app."), ToolClass.Read));
+
+        var app = scene.Catalog.AppTools;
+
+        Assert.Equal([("app_read", "Reads the app."), ("app_write", "Changes the app.")],
+            app.Select(t => (t.Name, t.Description)).OrderBy(t => t.Name, StringComparer.Ordinal));
+        // The class is the agent's effective one (the profile's tool rules may make it stricter than the app said).
+        Assert.All(app, t => Assert.Equal(scene.Agent.Tools.Single(x => x.Name == t.Name).Class, t.Class));
+        // The local server's tools and the SDK's own find_tool are on the agent but are not the app's.
+        Assert.Contains(scene.Agent.Tools, t => t.Source == "mcp");
+        Assert.DoesNotContain(app, t => t.Name is "look" or "wipe" or "plain" or "find_tool");
+    }
+
+    [Fact]
+    public async Task Without_a_running_agent_the_app_has_no_tools_and_the_connection_is_not_governed()
+    {
+        var host = new McpHost();
+        using var none = new McpToolsCatalog(host, null);
+        Assert.Empty(none.AppTools);
+        Assert.False(none.IsGoverned);
+
+        var agent = new ScriptedGateway("[]", Allow).Builder().Build();
+        using var notStarted = new McpToolsCatalog(host, new FadenstackAgentToolsView(agent));
+        Assert.Empty(notStarted.AppTools);
+        Assert.False(notStarted.IsGoverned);
+        agent.Dispose();
+        host.Dispose();
+    }
+
+    [Fact]
+    public async Task The_catalog_is_governed_for_a_server_and_not_for_the_persons_own_endpoint()
+    {
+        using (var scene = await StartAsync())
+        {
+            Assert.True(scene.Catalog.IsGoverned);
+        }
+
+        var host = new McpHost();
+        using var agent = FadenstackAgent.CreateBuilder()
+            .UseChatClient(new Fadenstack.Endpoints.DirectChatClient(new Fadenstack.Endpoints.ModelEndpoint { BaseUrl = new Uri("http://localhost:11434/v1"), Model = "m" }))
+            .UseLocalProfile(AgentDefinition.FromJson("""{"slug":"docs-assistant","version":{"instructions":"Hi."}}"""))
+            .UseSessionStore(new Fadenstack.Agents.Sessions.MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore())
+            .Build();
+        await agent.StartAsync();
+        using var catalog = new McpToolsCatalog(host, new FadenstackAgentToolsView(agent));
+
+        Assert.False(catalog.IsGoverned);
+        host.Dispose();
     }
 
     [Fact]

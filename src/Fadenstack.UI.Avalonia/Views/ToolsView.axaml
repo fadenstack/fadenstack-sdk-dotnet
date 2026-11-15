@@ -213,6 +213,12 @@
         <Style Selector="Border.state.muted">
             <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
         </Style>
+        <Style Selector="Border.state.warn">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        </Style>
+        <Style Selector="Border.state.warn TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        </Style>
         <Style Selector="Border.state c|FsIcon">
             <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
             <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
@@ -697,10 +703,12 @@
                     <WrapPanel ItemSpacing="8" LineSpacing="8">
                         <Border x:Name="ToolsTabs" Classes="segmented" AutomationProperties.Name="{v:Text ToolsTitle}">
                             <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="AppTab" Classes="segment" IsChecked="{Binding ShowsApp}" Content="{Binding AppTabText}"
+                                             AutomationProperties.Name="{Binding AppTabText}" />
                                 <RadioButton x:Name="LocalTab" Classes="segment" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
                                              AutomationProperties.Name="{Binding LocalTabText}" />
                                 <RadioButton x:Name="ServerTab" Classes="segment" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
-                                             AutomationProperties.Name="{Binding ServerTabText}" />
+                                             AutomationProperties.Name="{Binding ServerTabText}" IsVisible="{Binding ShowsServerTab}" />
                             </StackPanel>
                         </Border>
                         <Border x:Name="PolicyChip" Classes="policy" Classes.warn="{Binding PolicyIsWarning}" IsVisible="{Binding ShowsLocalChip}"
@@ -727,6 +735,43 @@
                             <TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                         </DockPanel>
                     </Border>
+
+                    <!-- ===== In this app: the tools the app itself gives the assistant, read only ===== -->
+                    <StackPanel x:Name="AppSection" Spacing="12" IsVisible="{Binding ShowsApp}">
+                        <TextBlock x:Name="AppEmpty" Classes="muted" Text="{v:Text ToolsAppNone}" IsVisible="{Binding ShowsAppEmpty}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="AppNoMatch" Classes="muted" Text="{v:Text ToolsNoToolsMatch}" IsVisible="{Binding ShowsAppNoMatch}" />
+                        <ItemsControl x:Name="AppTools" ItemsSource="{Binding AppTools}" AutomationProperties.Name="{Binding AppTabText}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="12" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="t:AppToolViewModel">
+                                    <Border Classes="listcard" Padding="12,8">
+                                        <StackPanel Spacing="2">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBlock Classes="mono cloudname" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                <Border Grid.Column="1" Classes="state" IsVisible="{Binding IsRead}">
+                                                    <TextBlock Text="{Binding ClassLabel}" />
+                                                </Border>
+                                                <Border Grid.Column="1" Classes="state outlined" IsVisible="{Binding IsWrite}">
+                                                    <TextBlock Text="{Binding ClassLabel}" />
+                                                </Border>
+                                                <Border Grid.Column="1" Classes="state warn" IsVisible="{Binding IsDestructive}">
+                                                    <TextBlock Text="{Binding ClassLabel}" />
+                                                </Border>
+                                                <Border Grid.Column="1" Classes="state muted" IsVisible="{Binding IsUnmarked}">
+                                                    <TextBlock Text="{Binding ClassLabel}" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Classes="caption muted" Text="{Binding Description}" IsVisible="{Binding HasDescription}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
 
                     <!-- ===== On this computer ===== -->
                     <StackPanel Spacing="12" IsVisible="{Binding ShowsLocal}">

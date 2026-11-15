@@ -424,10 +424,13 @@
                     <!-- The bar: where tools run, the policy, the filter. -->
                     <WrapPanel Margin="{StaticResource Fadenstack.Space.WrapBlock}">
                         <StackPanel x:Name="ToolsTabs" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8" AutomationProperties.Name="{local:Text ToolsTitle}">
+                            <RadioButton x:Name="AppTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsApp}" Content="{Binding AppTabText}"
+                                         AutomationProperties.Name="{Binding AppTabText}" />
                             <RadioButton x:Name="LocalTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
                                          AutomationProperties.Name="{Binding LocalTabText}" />
                             <RadioButton x:Name="ServerTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
-                                         AutomationProperties.Name="{Binding ServerTabText}" />
+                                         AutomationProperties.Name="{Binding ServerTabText}"
+                                         Visibility="{Binding ShowsServerTab, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                         </StackPanel>
                         <Border x:Name="PolicyChip" Style="{StaticResource Tools.Policy}" ToolTip="{Binding PolicyTip}" AutomationProperties.Name="{Binding PolicyTip}"
                                 Visibility="{Binding ShowsLocalChip, Converter={StaticResource Fadenstack.BoolToVisibility}}">
@@ -455,6 +458,47 @@
                             <TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                         </DockPanel>
                     </Border>
+
+                    <!-- ===== In this app: the tools the app itself gives the assistant, read only ===== -->
+                    <StackPanel x:Name="AppSection" Visibility="{Binding ShowsApp, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                        <TextBlock x:Name="AppEmpty" Style="{StaticResource Form.Caption}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="{local:Text ToolsAppNone}"
+                                   Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding ShowsAppEmpty, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                        <TextBlock x:Name="AppNoMatch" Style="{StaticResource Form.Caption}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="{local:Text ToolsNoToolsMatch}"
+                                   Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding ShowsAppNoMatch, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                        <ItemsControl x:Name="AppTools" ItemsSource="{Binding AppTools}" Focusable="False" AutomationProperties.Name="{Binding AppTabText}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource Tools.ListCard}" Margin="{StaticResource Fadenstack.Space.Block}" Padding="12,8">
+                                            <StackPanel>
+                                                <DockPanel LastChildFill="True">
+                                                    <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                        <Border Style="{StaticResource Tools.StateChip}" Visibility="{Binding IsRead, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                                            <TextBlock Style="{StaticResource Tools.MicroText}" Text="{Binding ClassLabel}" />
+                                                        </Border>
+                                                        <Border Style="{StaticResource Tools.StateChip.Outlined}" Visibility="{Binding IsWrite, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                                            <TextBlock Style="{StaticResource Tools.Micro}" Text="{Binding ClassLabel}" />
+                                                        </Border>
+                                                        <Border Style="{StaticResource Tools.StateChip.Warning}" Visibility="{Binding IsDestructive, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                                            <TextBlock Style="{StaticResource Tools.MicroText}" Text="{Binding ClassLabel}" />
+                                                        </Border>
+                                                        <Border Style="{StaticResource Tools.StateChip.Muted}" Visibility="{Binding IsUnmarked, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                                            <TextBlock Style="{StaticResource Tools.MicroText}" Text="{Binding ClassLabel}" />
+                                                        </Border>
+                                                    </Grid>
+                                                    <TextBlock Style="{StaticResource Tools.Mono}" Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center">
+                                                        <TextBlock.Resources>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Tools.Mono}" />
+                                                        </TextBlock.Resources>
+                                                    </TextBlock>
+                                                </DockPanel>
+                                                <TextBlock Style="{StaticResource Form.Caption}" Text="{Binding Description}"
+                                                           Visibility="{Binding HasDescription, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
 
                     <!-- ===== On this computer ===== -->
                     <StackPanel Visibility="{Binding ShowsLocal, Converter={StaticResource Fadenstack.BoolToVisibility}}">

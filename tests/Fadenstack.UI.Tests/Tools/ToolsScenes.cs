@@ -38,7 +38,7 @@ internal static class ToolsScenes
         "empty", "sign-in", "list", "refusals", "banner", "filtered",
         "drawer", "drawer-tools", "drawer-advanced", "drawer-warning", "drawer-governed", "drawer-remove",
         "add-program", "add-address", "edit-kept", "edit-address", "import", "scan-running", "scan-done",
-        "cloud", "cloud-unavailable",
+        "cloud", "cloud-unavailable", "app", "app-standalone", "standalone",
     };
 
     public static ToolsScene Create(string state, string language = "en")
@@ -130,6 +130,9 @@ internal static class ToolsScenes
             case "scan-done":
                 catalog.ScanAnswer = ScanAnswer();
                 break;
+            case "app-standalone" or "standalone":
+                catalog.IsGoverned = false;
+                break;
             case "cloud-unavailable":
                 catalog.CloudAnswers.Clear();
                 catalog.CloudAnswers.Add(new CloudToolsResult(CloudToolsStatus.Unavailable, Array.Empty<CloudToolInfo>()));
@@ -204,7 +207,10 @@ internal static class ToolsScenes
                 page.ScanCommand.Execute(null);
                 break;
             case "cloud" or "cloud-unavailable":
-                page.ShowsLocal = false;
+                page.ShowsServer = true;
+                break;
+            case "app" or "app-standalone":
+                page.ShowsApp = true;
                 break;
         }
         return scene;

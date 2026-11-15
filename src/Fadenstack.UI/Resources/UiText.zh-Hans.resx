@@ -1660,6 +1660,12 @@
   <data name="ToolsPolicyNotAllowed" xml:space="preserve">
     <value>此助手不被允许</value>
   </data>
+  <data name="ToolsTabApp" xml:space="preserve">
+    <value>在此应用中 · {0}</value>
+  </data>
+  <data name="ToolsAppNone" xml:space="preserve">
+    <value>此应用没有为助手提供任何自带工具。</value>
+  </data>
   <data name="ToolsTabLocal" xml:space="preserve">
     <value>在这台电脑上 · {0}</value>
   </data>
