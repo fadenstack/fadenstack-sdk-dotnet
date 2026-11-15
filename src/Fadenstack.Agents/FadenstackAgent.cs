@@ -43,7 +43,11 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         Reporter = new EventReporter(settings.Backend, settings.Report);
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
+        Hooks = new HookRunner(settings.Hooks, settings.HookContent, () => Logger);
     }
+
+    /// <summary>The app's hooks (<see cref="AgentBuilder.AddHooks"/>), in order.</summary>
+    internal HookRunner Hooks { get; }
 
     /// <summary>The proof of a fresh sign-in for Bypass while it lasts, in memory only (sdk/41).</summary>
     internal StepUpProofs StepUps { get; }

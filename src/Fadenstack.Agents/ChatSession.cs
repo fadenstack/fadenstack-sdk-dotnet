@@ -1079,48 +1079,68 @@ public sealed class ChatSession
             Endpoints.EndpointMarking? marking = null;
             ChatFinishReason? finish = null;
             _grantsSince = Agent.Grants.Generation;
-            await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
-                .ConfigureAwait(false))
+            var callUsage = new UsageDetails();
+            var hooks = Agent.Hooks;
+            var modelCall = Stopwatch.StartNew();
+            var toolCount = options.Tools?.Count ?? 0;
+            await hooks.BeforeModelAsync(new ModelCallContext(Agent.Slug, _session.Id, _id, round + 1, Agent.Profile.Model, history.Count, toolCount,
+                hooks.Content ? history.ToList() : null), cancellationToken).ConfigureAwait(false);
+            try
             {
-                finish = update.FinishReason ?? finish;
-                if (update.AdditionalProperties?.TryGetValue(FadenstackChatOptions.EndpointMarking, out var m) == true
-                    && m is Endpoints.EndpointMarking endpointMarking)
+                await foreach (var update in Agent.Settings.Chat.GetStreamingResponseAsync(history, options, cancellationToken)
+                    .ConfigureAwait(false))
                 {
-                    marking = endpointMarking; // a person's own endpoint says what it did about its watermark (F10)
-                }
-                foreach (var content in update.Contents)
-                {
-                    switch (content)
+                    finish = update.FinishReason ?? finish;
+                    if (update.AdditionalProperties?.TryGetValue(FadenstackChatOptions.EndpointMarking, out var m) == true
+                        && m is Endpoints.EndpointMarking endpointMarking)
                     {
-                        case ProvenanceReceiptContent p:
-                            receipts.Add(p);
-                            break;
-                        case TextContent t when !string.IsNullOrEmpty(t.Text):
-                            text.Append(t.Text);
-                            Emit(new TextDelta(t.Text));
-                            break;
-                        case TextReasoningContent r when !string.IsNullOrEmpty(r.Text):
-                            Emit(new ReasoningDelta(r.Text));
-                            break;
-                        case FunctionCallContent f when !f.InformationalOnly:
-                            calls.Add(f);
-                            break;
-                        case UsageContent u:
-                            AddUsage(u.Details);
-                            break;
-                        case GovernanceNoticeContent g:
-                            _blocked = g.Notice;
-                            break;
-                        case FadenstackEventContent e:
-                            await OnGatewayEventAsync(e, cancellationToken).ConfigureAwait(false);
-                            break;
+                        marking = endpointMarking; // a person's own endpoint says what it did about its watermark (F10)
+                    }
+                    foreach (var content in update.Contents)
+                    {
+                        switch (content)
+                        {
+                            case ProvenanceReceiptContent p:
+                                receipts.Add(p);
+                                break;
+                            case TextContent t when !string.IsNullOrEmpty(t.Text):
+                                text.Append(t.Text);
+                                Emit(new TextDelta(t.Text));
+                                break;
+                            case TextReasoningContent r when !string.IsNullOrEmpty(r.Text):
+                                Emit(new ReasoningDelta(r.Text));
+                                break;
+                            case FunctionCallContent f when !f.InformationalOnly:
+                                calls.Add(f);
+                                break;
+                            case UsageContent u:
+                                AddUsage(u.Details);
+                                callUsage.Add(u.Details);
+                                break;
+                            case GovernanceNoticeContent g:
+                                _blocked = g.Notice;
+                                break;
+                            case FadenstackEventContent e:
+                                await OnGatewayEventAsync(e, cancellationToken).ConfigureAwait(false);
+                                break;
+                        }
+                    }
+                    if (update.FinishReason == ChatFinishReason.ContentFilter && _blocked is null)
+                    {
+                        _blocked = new GovernanceNotice { Outcome = "response_blocked", Stage = "output", Message = "The answer was stopped." };
                     }
                 }
-                if (update.FinishReason == ChatFinishReason.ContentFilter && _blocked is null)
-                {
-                    _blocked = new GovernanceNotice { Outcome = "response_blocked", Stage = "output", Message = "The answer was stopped." };
-                }
             }
+            catch (Exception e)
+            {
+                await hooks.AfterModelAsync(new ModelCallResult(Agent.Slug, _session.Id, _id, round + 1, Agent.Profile.Model,
+                    e is OperationCanceledException && cancellationToken.IsCancellationRequested ? HookOutcome.Cancelled : HookOutcome.Error,
+                    modelCall.Elapsed, callUsage.InputTokenCount, callUsage.OutputTokenCount, calls.Count, null), cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+            await hooks.AfterModelAsync(new ModelCallResult(Agent.Slug, _session.Id, _id, round + 1, Agent.Profile.Model,
+                _blocked is null ? HookOutcome.Ok : HookOutcome.Denied, modelCall.Elapsed, callUsage.InputTokenCount, callUsage.OutputTokenCount,
+                calls.Count, hooks.Content ? text.ToString() : null), cancellationToken).ConfigureAwait(false);
             if (_blocked is not null)
             {
                 calls.Clear(); // a refused answer's tool calls never run
@@ -1485,12 +1505,15 @@ public sealed class ChatSession
             string? approval = null;
             var waited = TimeSpan.Zero;
             IReadOnlyList<DataContent> pictures = Array.Empty<DataContent>();
+            var hookState = new ToolHookState();
             if (tool is null)
             {
                 (result, outcome) = (Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
             }
             else if (planned.Denied)
             {
+                // The gateway refused the call: the hooks are told, and cannot change it.
+                await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                 if (planned.Hidden)
                 {
                     _toolDenied = true;
@@ -1511,8 +1534,16 @@ public sealed class ChatSession
             }
             else
             {
-                (result, outcome, waited, pictures, approval) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, cancellationToken)
-                    .ConfigureAwait(false);
+                try
+                {
+                    (result, outcome, waited, pictures, approval) = await DecideAndRunAsync(tool, toolClass, mark, call, arguments, hookState, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    await AfterToolHooksAsync(hookState, tool, call, HookOutcome.Cancelled, watch.Elapsed, null, cancellationToken).ConfigureAwait(false);
+                    throw;
+                }
             }
             if (pictures.Count > 0)
             {
@@ -1529,10 +1560,17 @@ public sealed class ChatSession
             watch.Stop();
             // The tool's own time: the user's time on the approval card is reported apart (ApprovalDecidedEvent).
             var ran = watch.Elapsed > waited ? watch.Elapsed - waited : TimeSpan.Zero;
+            if (tool is not null)
+            {
+                await AfterToolHooksAsync(hookState, tool, call, outcome switch { "ok" => HookOutcome.Ok, "denied" => HookOutcome.Denied, _ => HookOutcome.Error },
+                    ran, result, cancellationToken).ConfigureAwait(false);
+            }
             await _session.AppendAsync(EntryTypes.ToolComplete, _id, new
             {
                 call_id = call.CallId, name = call.Name, source, result, outcome,
                 duration_ms = (long)ran.TotalMilliseconds, origin = "client", pictures = pictures.Count,
+                // A hook's notes (short, bounded), kept here in the device's own transcript and never sent to the server.
+                notes = hookState.Notes.Count == 0 ? null : hookState.NotesByKey(),
             }).ConfigureAwait(false);
             Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
             RecordToolCall(activity, loggedName, toolClass.ToWire(), source, outcome, approval ?? "none", ran, waited);
@@ -1576,7 +1614,7 @@ public sealed class ChatSession
         /// </summary>
         private async Task<(string Result, string Outcome, TimeSpan Waited, IReadOnlyList<DataContent> Pictures, string? Approval)> DecideAndRunAsync(
             AgentTool tool, ToolClass toolClass, GatewayMark? mark, FunctionCallContent call, Dictionary<string, object?> arguments,
-            CancellationToken cancellationToken)
+            ToolHookState hookState, CancellationToken cancellationToken)
         {
             var asking = Stopwatch.StartNew();
             PreparedHostPolicy? policy = null;
@@ -1597,6 +1635,7 @@ public sealed class ChatSession
                     if (prepared.Decision == HostToolVerdict.Deny)
                     {
                         _toolDenied = true;
+                        await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                         await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Message = prepared.Message }).ConfigureAwait(false);
                         return (prepared.Message, "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
                     }
@@ -1618,6 +1657,7 @@ public sealed class ChatSession
             if (decided == ToolModeDecision.Hidden)
             {
                 _toolDenied = true;
+                await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                 var why = $"the tool mode is {_mode.ToWire()}";
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
                 return ($"Tool '{tool.Name}' is not allowed here: {why}.", "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
@@ -1643,6 +1683,25 @@ public sealed class ChatSession
             // (L-60); one a time or work grant settled belongs to that grant.
             var unanswered = true;
             var centralAsks = policy?.Decision.Decision == HostToolVerdict.Ask;
+            // The hooks speak last, after the policy: a hook can make the call stricter (ask, deny) and nothing else. Its answer is never
+            // read as an approval: `rule` only ever goes from false to true here, and a deny returns before the call can run (ASVS 5.0 V8).
+            var hookAsks = false;
+            string? hookReason = null;
+            var policySays = rule || decided == ToolModeDecision.Ask || centralAsks ? ToolPolicyDecision.Asks : ToolPolicyDecision.Runs;
+            if (_command is null)
+            {
+                var hooked = await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, policySays, cancellationToken).ConfigureAwait(false);
+                if (hooked.Deny)
+                {
+                    _toolDenied = true;
+                    return ($"'{tool.Name}' was declined by the app ({hooked.Reason ?? "declined by the app"}).", "denied", TimeSpan.Zero,
+                        Array.Empty<DataContent>(), null);
+                }
+                if (hooked.Ask && policySays == ToolPolicyDecision.Runs)
+                {
+                    (rule, hookAsks, hookReason) = (true, true, hooked.Reason);
+                }
+            }
             // A command asks inside its own check (InvokeCommandAsync), once the server has said whether it must.
             if (_command is null && (rule || decided == ToolModeDecision.Ask || centralAsks))
             {
@@ -1657,7 +1716,8 @@ public sealed class ChatSession
                     Server = tool.Server,
                     ReadOnlyHint = tool.ReadOnlyHint,
                     DestructiveHint = tool.DestructiveHint,
-                    Reason = mark is { Rule: true } ? mark.Message
+                    Reason = hookAsks ? hookReason ?? $"The app asks before it uses '{tool.Name}'."
+                        : mark is { Rule: true } ? mark.Message
                         : centralRule || (centralAsks && decided != ToolModeDecision.Ask) ? policy!.Decision.Message
                         : always ? $"This agent asks every time before it uses '{tool.Name}'."
                         : tool.Approval == "ask" ? $"This agent asks before it uses '{tool.Name}'."
@@ -1729,6 +1789,59 @@ public sealed class ChatSession
                     return;
                 }
             }
+        }
+
+        /// <summary>What the hooks saw of one tool call, so the after-hooks match the before-hooks.</summary>
+        private sealed class ToolHookState
+        {
+            internal bool Called { get; set; }
+
+            internal ToolPolicyDecision Decision { get; set; }
+
+            internal ToolClass Class { get; set; }
+
+            internal List<KeyValuePair<string, string>> Notes { get; } = new();
+
+            internal Dictionary<string, string> NotesByKey()
+            {
+                var notes = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var note in Notes)
+                {
+                    notes[note.Key] = note.Value;
+                }
+                return notes;
+            }
+        }
+
+        /// <summary>
+        /// Tells the before-tool hooks about a call, after the policy decided. For a call the policy refused the hooks only watch: their
+        /// answers are dropped (<see cref="HookRunner.BeforeToolAsync"/>). A person's own command is not hooked.
+        /// </summary>
+        private async Task<ToolHookAnswer> BeforeToolHooksAsync(ToolHookState state, AgentTool tool, ToolClass toolClass, FunctionCallContent call,
+            Dictionary<string, object?> arguments, ToolPolicyDecision decision, CancellationToken cancellationToken)
+        {
+            var hooks = Agent.Hooks;
+            if (!hooks.Any || _command is not null)
+            {
+                return ToolHookAnswer.GoOn;
+            }
+            (state.Called, state.Decision, state.Class) = (true, decision, toolClass);
+            var answer = await hooks.BeforeToolAsync(new ToolCallContext(Agent.Slug, _session.Id, _id, tool.Name, tool.Source, tool.Server, toolClass,
+                call.CallId, new Dictionary<string, object?>(arguments), decision), decision != ToolPolicyDecision.Refused, cancellationToken)
+                .ConfigureAwait(false);
+            state.Notes.AddRange(answer.Notes);
+            return answer;
+        }
+
+        private async Task AfterToolHooksAsync(ToolHookState state, AgentTool tool, FunctionCallContent call, HookOutcome outcome, TimeSpan ran,
+            string? result, CancellationToken cancellationToken)
+        {
+            if (!state.Called)
+            {
+                return;
+            }
+            await Agent.Hooks.AfterToolAsync(new ToolCallResult(Agent.Slug, _session.Id, _id, tool.Name, tool.Source, tool.Server, state.Class,
+                call.CallId, state.Decision, outcome, ran, tool.Source == "host" ? result : null), cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>How long a tool may take to say what a call acts on before the card is shown without it.</summary>

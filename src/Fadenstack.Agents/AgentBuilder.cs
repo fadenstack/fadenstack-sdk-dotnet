@@ -19,6 +19,9 @@ public sealed class AgentBuilder
     private readonly List<IToolSource> _sources = new();
     private readonly List<(int Order, Func<IChatClient, IChatClient> Wrap)> _chatStages = new();
     private readonly List<(int Order, IToolStage Stage)> _toolStages = new();
+    private readonly List<(int Order, IAgentHooks Hooks)> _hooks = new();
+    private bool _hookContent;
+    private AgentOpenTelemetryOptions? _openTelemetry;
     private readonly Dictionary<Type, Func<ToolInvocation, object>> _toolServices = new();
     private readonly List<string> _modules = new();
     private FadenstackClient? _client;
@@ -337,6 +340,43 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
+    /// Adds hooks (<see cref="IAgentHooks"/>): code of the app that sees each model call and each tool call, and may make a tool call
+    /// stricter. Before-hooks run in ascending <paramref name="order"/>, then in the order added; after-hooks in the reverse order.
+    /// A hook can never approve a call the policy asks about or refuses (<see cref="ToolHookVerdict"/> has no such answer), and one that
+    /// throws is logged and ignored. See docs/interop.md.
+    /// </summary>
+    public AgentBuilder AddHooks(IAgentHooks hooks, int order = 0)
+    {
+        _hooks.Add((order, hooks ?? throw new ArgumentNullException(nameof(hooks))));
+        return this;
+    }
+
+    /// <summary>
+    /// Whether the model-call hooks see the messages and the answer text (<see cref="ModelCallContext.Messages"/>,
+    /// <see cref="ModelCallResult.Text"/>). Off by default: hooks see names, ids, counts, outcomes and times only.
+    /// </summary>
+    public AgentBuilder UseHookContent(bool enabled = true)
+    {
+        _hookContent = enabled;
+        return this;
+    }
+
+    /// <summary>
+    /// Switches OpenTelemetry on (off by default): model calls through Microsoft.Extensions.AI's OpenTelemetry chat client (source
+    /// <see cref="AgentOpenTelemetryOptions.ModelSourceName"/>), and GenAI attributes on the SDK's <c>invoke_agent</c> and <c>execute_tool</c> spans
+    /// (<see cref="FadenstackTelemetry.AgentsSource"/>). No exporter is bundled: the app wires OTLP or anything else, and until it does
+    /// nothing leaves the process. No prompt or answer content unless <see cref="AgentOpenTelemetryOptions.EnableSensitiveData"/> is set. The
+    /// GenAI conventions are in "Development" status and may change.
+    /// </summary>
+    public AgentBuilder UseOpenTelemetry(Action<AgentOpenTelemetryOptions>? configure = null)
+    {
+        var options = new AgentOpenTelemetryOptions();
+        configure?.Invoke(options);
+        _openTelemetry = options;
+        return this;
+    }
+
+    /// <summary>
     /// A service each tool call gets (<see cref="AIFunctionArguments.Services"/>), made by <paramref name="factory"/> the
     /// first time the call or one of its stages asks for it, and the same instance for both. A tool method's
     /// parameter of a type marked <see cref="ToolServiceAttribute"/> is bound to it and left out of the tool's schema;
@@ -472,6 +512,16 @@ public sealed class AgentBuilder
             AssertNoDuplicateTools();
         }
         IChatClient chat = backend.ChatClient; // the model, under the chat stages
+        if (_openTelemetry is { } telemetry)
+        {
+            // Innermost: it sees what goes out after the stages (masking, marking), not what they were given.
+            chat = new OpenTelemetryChatClient(chat, sourceName: telemetry.ModelSourceName) { EnableSensitiveData = telemetry.EnableSensitiveData };
+        }
+        var hooks = _hooks.Select((h, i) => (h.Order, Index: i, h.Hooks)).ToList();
+        if (_openTelemetry is { } traced)
+        {
+            hooks.Add((int.MinValue, -1, new OpenTelemetryHooks(traced.EnableSensitiveData)));
+        }
         foreach (var stage in _chatStages.OrderByDescending(s => s.Order))
         {
             chat = stage.Wrap(chat);
@@ -487,6 +537,8 @@ public sealed class AgentBuilder
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
+            Hooks = hooks.OrderBy(h => h.Order).ThenBy(h => h.Index).Select(h => h.Hooks).ToList(),
+            HookContent = _hookContent,
             ToolServices = new Dictionary<Type, Func<ToolInvocation, object>>(_toolServices),
             Modules = _modules.ToList(),
             Approvals = _approvals,
@@ -559,6 +611,8 @@ internal sealed class AgentSettings
     public List<AgentTool> Tools { get; init; } = new();
     public List<IToolSource> Sources { get; init; } = new();
     public List<IToolStage> ToolStages { get; init; } = new();
+    public List<IAgentHooks> Hooks { get; init; } = new();
+    public bool HookContent { get; init; }
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
