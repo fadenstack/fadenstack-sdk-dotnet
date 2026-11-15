@@ -22,6 +22,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
     standalone/                       the person's own AI (standalone mode)
       sessions/<agent>/<session id>.jsonl
       approvals/<agent>.json
+      approvals/approvals-seal.key
       preferences/reasoning.json
       language
       skills/<skill>/SKILL.md
@@ -37,6 +38,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
     <user>/                           each person a server names (governed mode)
       sessions/<agent>/<session id>.jsonl
       approvals/<agent>.json
+      approvals/approvals-seal.key
       preferences/reasoning.json
       skills/<skill>/SKILL.md
       preferences/skills.json
@@ -65,7 +67,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | In the folder | What it holds | How it is protected | How long it is kept | Export and delete |
 |---|---|---|---|---|
 | `sessions/<agent>/<session id>.jsonl` | The chats: one append-only file per session, one transcript entry per line, with the messages, attachments, tool calls and results, approval decisions and notices ([What a session holds](sessions.md#what-a-session-holds)). | Every line encrypted: DPAPI for the current user on Windows; AES-256-GCM on macOS and Linux with `Fadenstack.Secrets`, the data key in the Keychain or the Secret Service. Without either, nothing is written: the chat stays in memory (event 2040). | The newest 50 sessions per agent, none older than 90 days; the others go when a new session starts. `UseSessionRetention` and the server's `local_retention` lower the limits ([Retention](sessions.md#retention)). | Exported, decrypted; deleted. |
-| `approvals/<agent>.json` | "Allow always": each tool, its class, and when it was allowed. | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
+| `approvals/<agent>.json` | "Allow always": each tool, its class, its source and server, when it was allowed, and its seal ([Host tools](tools.md#allow-always)). | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
+| `approvals/approvals-seal.key` | The key that seals the approvals beside it: 32 random bytes. | Encrypted as the approvals. | As long as the approvals. | Never exported; deleted. |
 | `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Exported; deleted. |
 | `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Exported as the files (the editor also exports one skill as a zip); deleted. |
 | `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Exported; deleted. |

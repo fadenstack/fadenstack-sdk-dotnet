@@ -61,7 +61,7 @@ public class UserStorageTests : IDisposable
         using var agent = Plain(new Gateway { Principal = Principal }).Build();
         await Use(agent);
         Assert.Single(Directory.GetFiles(Data("users", "u-1", "sessions", Gateway.Slug)));
-        Assert.Single(Directory.GetFiles(Data("users", "u-1", "approvals")));
+        Assert.Single(Directory.GetFiles(Data("users", "u-1", "approvals"), "*.json")); // and the seal key beside it
         Assert.False(Directory.Exists(Data("sessions")));
         Assert.False(Directory.Exists(Data("approvals")));
     }
@@ -86,7 +86,7 @@ public class UserStorageTests : IDisposable
         using var agent = Plain(new Gateway()).Build();
         await Use(agent);
         Assert.Single(Directory.GetFiles(Data("sessions", Gateway.Slug)));
-        Assert.Single(Directory.GetFiles(Data("approvals")));
+        Assert.Single(Directory.GetFiles(Data("approvals"), "*.json"));
         Assert.False(Directory.Exists(Data("users")));
     }
 

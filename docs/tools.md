@@ -198,7 +198,7 @@ The decision is one of five:
 | `ApprovalDecision.ApproveForSession()` | Runs this call, and the tool runs without asking for the rest of this session. This is kept in memory only: when the session is opened again with `OpenSessionAsync`, the tool asks again. |
 | `ApprovalDecision.ApproveAlways()` | Runs this call, and the tool runs without asking on this device, in this and later sessions, until the approvals are reset. |
 | `ApprovalDecision.ApproveFor(duration)` | Runs this call, and asks the server for a grant: the tool runs without asking on this device for that long (see [Grants](#grants-for-a-time-and-working-alongside)). Only for a duration in `GrantDurations`. If the server does not confirm the grant, this call alone runs and the turn gets a `grant_failed` notice. |
-| `ApprovalDecision.Deny(reason)` | Does not run the call. The model is told the user declined, with your reason if you gave one. |
+| `ApprovalDecision.Deny(reason)` | Does not run the call. The model is told the user declined, with the reason if there is one: the person's own words, not fenced as untrusted data, but cleaned of control characters and invisible marks and cut to 500 characters (`ApprovalDecision.MaxReasonChars`). The transcript keeps the same text as `reason`. |
 
 "For this chat", "always" and "for a time" are taken only where the request offers them (`CanAllowForSession`, `CanAllowAlways`, `GrantDurations`). Elsewhere they approve this call only, so a handler cannot widen what the request allows. They are never offered for a `Destructive` or `Unknown` tool, nor for a call an administrator's rule covers: those ask every time. The agent's author may also allow fewer of them: the profile's `approvals.standing` lists which (`chat`, `time`, `grant`, `always`), and the agent offers only those.
 
@@ -251,9 +251,13 @@ for LLM Applications 2025, LLM02 and LLM06). So:
 
 ### Allow always
 
-"Allow always" is kept per device, per agent, per tool and per class, in an approval store. When the tool's class changes, for example when an administrator makes it destructive, the stored approval no longer matches and the user is asked again.
+"Allow always" is kept per device, per agent, per tool and per class, in an approval store, with where the tool comes from: its source (`host`, `mcp`, `skills`, `web`) and, for an MCP tool, its server. When the tool's class changes, for example when an administrator makes it destructive, the stored approval no longer matches and the user is asked again. A tool of the same name from another source or server is asked about on its own, so a new MCP server bringing a tool of that name inherits no "always". "Allow for this chat" works the same way. An approval kept before 0.3.0 has no source and answers nothing: the person is asked once more.
 
-By default the approvals are kept in files in the signed-in user's own folder (`users\<user>\approvals` in the data folder, see [Sessions on the device](sessions.md#where-they-are-stored)), one per agent, protected like the sessions. To keep them elsewhere, implement `IApprovalStore` (`ListAsync`, `AddAsync`, `RemoveAsync`) and pass it to `UseApprovalStore`. `MemoryApprovalStore` keeps them in memory only, which suits tests. Each `StoredApproval` holds the tool's name, its class and when it was allowed.
+By default the approvals are kept in files in the signed-in user's own folder (`users\<user>\approvals` in the data folder, see [Sessions on the device](sessions.md#where-they-are-stored)), one per agent, protected like the sessions. To keep them elsewhere, implement `IApprovalStore` (`ListAsync`, `AddAsync`, `RemoveAsync`) and pass it to `UseApprovalStore`. `MemoryApprovalStore` keeps them in memory only, which suits tests. Each `StoredApproval` holds the tool's name, its class, when it was allowed, its `Source` and its `Server`.
+
+**Sealed.** `FileApprovalStore` seals each approval: an HMAC over the agent, the tool, its class, source and server and the time, under a key of the folder's own (`approvals-seal.key`, encrypted like the approvals). An approval whose seal does not hold answers nothing and the person is asked again: one written into the file by hand, one copied from another agent's file or another person's folder, or one kept before 0.3.0. With `Fadenstack.Secrets` on macOS and Linux, data without the encryption header is refused once the owner-only files from before were moved, so no plain "always" can be planted (OWASP ASVS 5.0 V8, V14).
+
+**Answered once.** A pending approval takes the first answer only: a second answer to the same card changes nothing (`PendingApproval.Resolve` returns false). Pending approvals live in memory: when the app closes, the turn ends and no card comes back.
 
 To forget approvals:
 
@@ -291,6 +295,7 @@ Every call that needed approval leaves an `approval.decision` entry in the trans
 | `rule` | Whether an administrator's rule required approval. |
 | `for_session` | True when the user picked "Allow for this chat" for this call, for older readers. |
 | `wait_ms` | How long the user took; 0 when nobody was asked. |
+| `reason` | The person's reason for declining, cleaned and cut to 500 characters; missing otherwise. The TypeScript SDK writes the same key. It stays on the device. |
 
 With event reporting on, the server gets an `approval.decided` event for the same calls: the tool's name, the decision, how long the user took (not sent when nobody was asked), the `scope`, and with `grant` the `grant_id`.
 

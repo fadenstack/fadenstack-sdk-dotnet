@@ -15,8 +15,10 @@ internal interface IKeyStore
 /// <summary>
 /// Encrypts with AES-256-GCM under a random data key that lives in the OS key store (Keychain, Secret Service), one
 /// key per OS user. Layout: <c>0xFA 0xDE version(1) nonce(12) tag(16) ciphertext</c>; the header is authenticated.
-/// Data without the header is read as it is: it was written by <see cref="OwnerOnlyFileProtector"/>, and the next
-/// write encrypts it. (0xFA never starts UTF-8 text, so clear JSON cannot be mistaken for the header.)
+/// Data without the header is refused (sdk/51 F08 §1, review R1 and N5): someone able to write the person's files could
+/// otherwise plant a plain "always allow". It is read as it is only during the one move of the files
+/// <see cref="OwnerOnlyFileProtector"/> wrote before the key store was on (<see cref="PlainMigration"/>, recorded once per OS
+/// user). (0xFA never starts UTF-8 text, so clear JSON cannot be mistaken for the header.)
 /// </summary>
 internal sealed class OsKeyStoreProtector : ISecretProtector
 {
@@ -33,6 +35,9 @@ internal sealed class OsKeyStoreProtector : ISecretProtector
 
     public bool Encrypts => true;
 
+    /// <summary>Plain data is read as it is: only while <see cref="PlainMigration"/> moves the owner-only files, once.</summary>
+    internal bool AcceptsPlain { get; set; }
+
     public byte[] Protect(byte[] data)
     {
         var key = Key();
@@ -48,9 +53,15 @@ internal sealed class OsKeyStoreProtector : ISecretProtector
 
     public byte[] Unprotect(byte[] data)
     {
+        if (data.Length == 0)
+        {
+            return data; // nothing kept: nothing to plant
+        }
         if (!IsEncrypted(data))
         {
-            return data; // clear text from before the key store was on
+            return AcceptsPlain
+                ? data // the one move of the owner-only files from before the key store was on
+                : throw new CryptographicException("The data is not protected; plain data is not read once the key store is on.");
         }
         if (data.Length < Header.Length + NonceSize + TagSize)
         {
@@ -71,7 +82,7 @@ internal sealed class OsKeyStoreProtector : ISecretProtector
         return plain;
     }
 
-    private static bool IsEncrypted(byte[] data) => data.Length >= 2 && data[0] == Header[0] && data[1] == Header[1];
+    internal static bool IsEncrypted(byte[] data) => data.Length >= 2 && data[0] == Header[0] && data[1] == Header[1];
 
     private byte[] Key()
     {

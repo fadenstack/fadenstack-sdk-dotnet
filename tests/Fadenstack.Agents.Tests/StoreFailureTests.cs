@@ -77,7 +77,7 @@ public sealed class StoreFailureTests : IDisposable
         var store = new FileApprovalStore(_directory, logger: logs.CreateLogger("Fadenstack.Agents"));
         await store.AddAsync("a", new StoredApproval("read_page", ToolClass.Read, DateTimeOffset.UtcNow));
 
-        using (new FileStream(Directory.GetFiles(_directory).Single(), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        using (new FileStream(Directory.GetFiles(_directory, "*.json").Single(), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
             Assert.Empty(await store.ListAsync("a"));
         }
@@ -93,7 +93,7 @@ public sealed class StoreFailureTests : IDisposable
         var store = new FileApprovalStore(_directory);
         await store.AddAsync("a", new StoredApproval("read_page", ToolClass.Read, DateTimeOffset.UtcNow));
 
-        using (new FileStream(Directory.GetFiles(_directory).Single(), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        using (new FileStream(Directory.GetFiles(_directory, "*.json").Single(), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
             await Assert.ThrowsAnyAsync<IOException>(() =>
                 store.AddAsync("a", new StoredApproval("edit_page", ToolClass.Write, DateTimeOffset.UtcNow)));

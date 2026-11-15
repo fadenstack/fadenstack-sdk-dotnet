@@ -100,18 +100,63 @@ public class OsKeyStoreProtectorTests
     }
 
     [Fact]
-    public void Clear_text_from_the_owner_only_protector_is_read_and_encrypted_on_the_next_write()
+    public void Clear_text_is_refused_except_during_the_one_move_of_the_owner_only_files()
     {
         var keys = new FakeKeyStore();
         var protector = Make(keys);
         var old = new OwnerOnlyFileProtector().Protect(Plain);
 
+        Assert.ThrowsAny<CryptographicException>(() => protector.Unprotect(old)); // a plain "always allow" planted later is never read
+
+        protector.AcceptsPlain = true;
         Assert.Equal(Plain, protector.Unprotect(old));
         Assert.Equal(0, keys.Writes); // reading old data needs no key
-
-        var rewritten = protector.Protect(protector.Unprotect(old));
+        protector.AcceptsPlain = false;
+        var rewritten = protector.Protect(Plain);
         Assert.NotEqual(old, rewritten);
         Assert.Equal(Plain, protector.Unprotect(rewritten));
+    }
+
+    [Fact]
+    public void The_move_encrypts_the_owner_only_files_once_and_records_it()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "faden-plainmove-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            void Plant(string relative)
+            {
+                var path = Path.Combine(root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllBytes(path, Plain);
+            }
+            Plant("tokens/abc.token");
+            Plant("approvals/docs.json");
+            Plant("users/u-1/approvals/docs.json");
+            Plant("users/u-1/approvals/approvals-seal.key");
+            Plant("users/u-1/sessions/docs/s1.jsonl"); // sessions are never written in the clear: not the move's
+            var protector = Make();
+
+            Assert.True(PlainMigration.Run(protector, root));
+
+            foreach (var moved in new[] { "tokens/abc.token", "approvals/docs.json", "users/u-1/approvals/docs.json", "users/u-1/approvals/approvals-seal.key" })
+            {
+                var bytes = File.ReadAllBytes(Path.Combine(root, moved));
+                Assert.True(OsKeyStoreProtector.IsEncrypted(bytes), moved);
+                Assert.Equal(Plain, protector.Unprotect(bytes));
+            }
+            Assert.Equal(Plain, File.ReadAllBytes(Path.Combine(root, "users/u-1/sessions/docs/s1.jsonl")));
+            Assert.True(File.Exists(Path.Combine(root, "keystore", PlainMigration.MarkerName)));
+            Assert.False(protector.AcceptsPlain);
+
+            Plant("users/u-1/approvals/planted.json"); // after the move: refused, and the move does not run again
+            Assert.True(PlainMigration.Run(protector, root));
+            Assert.ThrowsAny<CryptographicException>(() => protector.Unprotect(File.ReadAllBytes(Path.Combine(root, "users/u-1/approvals/planted.json"))));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]
