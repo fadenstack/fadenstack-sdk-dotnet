@@ -19,6 +19,11 @@
     <!-- Inside a 12 frame with 4 padding (menu items, segments) and the tooltip: 8. The checkbox: 4 (22 section 5.2). -->
     <CornerRadius x:Key="Fadenstack.Radius.Inner">8</CornerRadius>
     <CornerRadius x:Key="Fadenstack.Radius.Check">4</CornerRadius>
+    <!-- The form views (the wizard, the skill library, editor and draft; Forms.axaml), as the WPF skin (sdk/51 F15): a container 12, a
+         control 6, a chip or badge 8; an element inside a container has the container's radius minus its inset. -->
+    <CornerRadius x:Key="Fadenstack.Radius.Container">12</CornerRadius>
+    <CornerRadius x:Key="Fadenstack.Radius.Control">6</CornerRadius>
+    <CornerRadius x:Key="Fadenstack.Radius.Chip">8</CornerRadius>
     <!-- Room around a popup's surface for its shadow, and the offsets that put the surface (not the room) at the anchor. -->
     <Thickness x:Key="Fadenstack.Popup.ShadowMargin">12,6,12,18</Thickness>
     <x:Double x:Key="Fadenstack.Popup.OffsetX">-12</x:Double>
@@ -69,6 +74,10 @@
     <x:Double x:Key="Fadenstack.Sheet.Width">480</x:Double>
     <x:Double x:Key="Fadenstack.Drawer.Width">400</x:Double>
     <ResourceDictionary.ThemeDictionaries>
+        <!-- WCAG 2.2 AA in each variant (sdk/51 F15; StyleContrastTests): text 4.5:1 on the grounds it is drawn on (the status
+             texts on their own tinted banner over the page or a card), icons, edges and the scroll thumb 3:1. Where doc 22's value
+             fell short it moved the least along its own hue: light DangerText, WarningText, SuccessText and the thumb; dark
+             DangerText, Success and the thumb. -->
         <ResourceDictionary x:Key="Light">
             <SolidColorBrush x:Key="Fadenstack.Background" Color="#F5F7FB" />
             <SolidColorBrush x:Key="Fadenstack.Surface" Color="#FFFFFF" />
@@ -97,11 +106,11 @@
             <SolidColorBrush x:Key="Fadenstack.Link" Color="#3B5478" />
             <SolidColorBrush x:Key="Fadenstack.Focus" Color="#3B5478" />
             <SolidColorBrush x:Key="Fadenstack.Danger" Color="#E53935" />
-            <SolidColorBrush x:Key="Fadenstack.DangerText" Color="#C62828" />
+            <SolidColorBrush x:Key="Fadenstack.DangerText" Color="#C02727" />
             <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FB8C00" />
-            <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#B26A00" />
+            <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#985B00" />
             <SolidColorBrush x:Key="Fadenstack.Success" Color="#2E7D32" />
-            <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#2E7D32" />
+            <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#2A722E" />
             <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#F7F7F7" />
             <SolidColorBrush x:Key="Fadenstack.CodeInlineBackground" Color="#EEEEEE" />
             <SolidColorBrush x:Key="Fadenstack.UserBubble" Color="#1F4C6A92" />
@@ -113,8 +122,8 @@
             <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#1F2E7D32" />
             <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#1FE53935" />
             <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#5905080F" />
-            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#664B5565" />
-            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#994B5565" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#AA4B5565" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#E64B5565" />
             <SolidColorBrush x:Key="Fadenstack.BrandPlate" Color="#0A0E1A" />
             <SolidColorBrush x:Key="Fadenstack.BrandThread" Color="#E2325A" />
             <BoxShadows x:Key="Fadenstack.Elevation">0 8 24 0 #29000000</BoxShadows>
@@ -147,10 +156,10 @@
             <SolidColorBrush x:Key="Fadenstack.Link" Color="#A9C0D8" />
             <SolidColorBrush x:Key="Fadenstack.Focus" Color="#A9C0D8" />
             <SolidColorBrush x:Key="Fadenstack.Danger" Color="#E53935" />
-            <SolidColorBrush x:Key="Fadenstack.DangerText" Color="#EF5350" />
+            <SolidColorBrush x:Key="Fadenstack.DangerText" Color="#F05A57" />
             <SolidColorBrush x:Key="Fadenstack.Warning" Color="#FB8C00" />
             <SolidColorBrush x:Key="Fadenstack.WarningText" Color="#FB8C00" />
-            <SolidColorBrush x:Key="Fadenstack.Success" Color="#2E7D32" />
+            <SolidColorBrush x:Key="Fadenstack.Success" Color="#2F8133" />
             <!-- The success green as text on the dark surfaces: #2E7D32 is about 3:1 there; MUI's success.light reaches 4.5:1. -->
             <SolidColorBrush x:Key="Fadenstack.SuccessText" Color="#66BB6A" />
             <SolidColorBrush x:Key="Fadenstack.CodeBackground" Color="#262626" />
@@ -164,8 +173,8 @@
             <SolidColorBrush x:Key="Fadenstack.AddedBackground" Color="#292E7D32" />
             <SolidColorBrush x:Key="Fadenstack.RemovedBackground" Color="#29E53935" />
             <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#80000000" />
-            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#669E9E9E" />
-            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#999E9E9E" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#999E9E9E" />
+            <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#CC9E9E9E" />
             <SolidColorBrush x:Key="Fadenstack.BrandPlate" Color="#F3F4F6" />
             <SolidColorBrush x:Key="Fadenstack.BrandThread" Color="#FF4D6D" />
             <BoxShadows x:Key="Fadenstack.Elevation">0 8 24 0 #66000000</BoxShadows>

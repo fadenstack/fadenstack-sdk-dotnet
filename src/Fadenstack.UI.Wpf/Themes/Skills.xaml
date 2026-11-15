@@ -1,58 +1,29 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
-        What the skill views (library, editor, draft) share: the chat's styles and templates (Chat.xaml: the Markdown blocks the
-        preview uses, the buttons, the text box), and the text, banner and card styles of the wizard's look. The colours come from
-        Colors.*.xaml, which the view merges first.
+        What the skill views (library, editor, draft) share: the forms' styles and shape (Controls.xaml, which brings the chat's styles and the
+        Markdown blocks the preview uses), under the skill views' names. The colours come from Colors.*.xaml, which the view merges first.
     -->
     <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Chat.xaml" />
+        <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Controls.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <Style x:Key="Skill.Title" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="20" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-    <Style x:Key="Skill.Strong" TargetType="TextBlock">
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-    <Style x:Key="Skill.Caption" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
+    <Style x:Key="Skill.Title" TargetType="TextBlock" BasedOn="{StaticResource Form.Title}" />
+    <Style x:Key="Skill.Strong" TargetType="TextBlock" BasedOn="{StaticResource Form.Strong}" />
+    <Style x:Key="Skill.Caption" TargetType="TextBlock" BasedOn="{StaticResource Form.Caption}" />
 
-    <!-- Buttons that disappear while their command cannot run. -->
-    <Style x:Key="Skill.SecondaryHide" TargetType="Button" BasedOn="{StaticResource Fadenstack.SecondaryButton}">
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Visibility" Value="Collapsed" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
+    <!-- Buttons: the forms' own; the one that disappears while its command cannot run. -->
+    <Style x:Key="Skill.Primary" TargetType="Button" BasedOn="{StaticResource Form.Primary}" />
+    <Style x:Key="Skill.Secondary" TargetType="Button" BasedOn="{StaticResource Form.Secondary}" />
+    <Style x:Key="Skill.Quiet" TargetType="Button" BasedOn="{StaticResource Form.Quiet}" />
+    <Style x:Key="Skill.SecondaryHide" TargetType="Button" BasedOn="{StaticResource Form.SecondaryHide}" />
 
-    <!-- The skin's banner: a rounded container with a status bar at its start. -->
-    <Style x:Key="Skill.Banner" TargetType="Border">
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
-        <Setter Property="Padding" Value="12" />
-        <Setter Property="BorderThickness" Value="3,0,0,0" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentIcon}" />
-        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
-    </Style>
-    <Style x:Key="Skill.Banner.Error" TargetType="Border" BasedOn="{StaticResource Skill.Banner}">
-        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
-        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
-    </Style>
-    <Style x:Key="Skill.Banner.Warning" TargetType="Border" BasedOn="{StaticResource Skill.Banner}">
-        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
-        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
-    </Style>
-    <Style x:Key="Skill.Banner.Success" TargetType="Border" BasedOn="{StaticResource Skill.Banner}">
-        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Success}" />
-        <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
-    </Style>
+    <Style x:Key="Skill.Banner" TargetType="Border" BasedOn="{StaticResource Form.Banner}" />
+    <Style x:Key="Skill.Banner.Error" TargetType="Border" BasedOn="{StaticResource Form.Banner.Error}" />
+    <Style x:Key="Skill.Banner.Warning" TargetType="Border" BasedOn="{StaticResource Form.Banner.Warning}" />
+    <Style x:Key="Skill.Banner.Success" TargetType="Border" BasedOn="{StaticResource Form.Banner.Success}" />
     <!-- One finding of the checks: an error stops the save, a warning only says. -->
-    <Style x:Key="Skill.Banner.Issue" TargetType="Border" BasedOn="{StaticResource Skill.Banner.Warning}">
+    <Style x:Key="Skill.Banner.Issue" TargetType="Border" BasedOn="{StaticResource Form.Banner.Warning}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsError}" Value="True">
                 <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
@@ -60,11 +31,5 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="Skill.Card" TargetType="Border">
-        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
-        <Setter Property="Padding" Value="12" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
-        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
-    </Style>
+    <Style x:Key="Skill.Card" TargetType="Border" BasedOn="{StaticResource Form.Card}" />
 </ResourceDictionary>

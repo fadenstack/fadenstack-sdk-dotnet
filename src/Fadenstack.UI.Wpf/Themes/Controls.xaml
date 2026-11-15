@@ -1,0 +1,734 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    mc:Ignorable="po">
+    <!--
+        The forms' look (the wizard and the three skill views, sdk/51 F15): the shape and the spacing as keys, a style for every control
+        the forms use, in the palette's colours (Colors.*.xaml), so no control is left with WPF's grey or the system's colours.
+
+        The shape is one system: containers 12, controls 6, chips 8 (Fadenstack.Radius.*, in Chat.xaml); an element inside a container has the
+        container's radius minus its inset (Fadenstack.Radius.Inner: a control 6 in from a container's 12). Spacing is tight and even: the
+        page 12, a block 12, a row 8, a label 4. Contrast: text 4.5:1 (3:1 large), the edge of a control 3:1 (Fadenstack.ControlBorder), the
+        focus ring 3:1 (Fadenstack.Focus), in each palette (tests: StyleContrastTests).
+
+        The implicit styles (check box, radio button, combo box, list, scroll viewer, progress bar, tool tip, text boxes) apply wherever
+        these forms are; the chat does not merge this file. A part named "Boundary" is what draws a control's edge, "FocusRing" its focus.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Chat.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ===== Shape and spacing ============================================================================= -->
+    <CornerRadius x:Key="Fadenstack.Radius.Inner">6</CornerRadius>
+    <sys:Double x:Key="Fadenstack.Size.Control">32</sys:Double>
+    <sys:Double x:Key="Fadenstack.Size.Mark">20</sys:Double>
+    <Thickness x:Key="Fadenstack.Space.Page">12</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Title">0,0,0,8</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Block">0,0,0,12</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Item">0,0,0,8</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Tight">0,0,0,4</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Bar">0,8,0,0</Thickness>
+    <Thickness x:Key="Fadenstack.Space.Beside">0,0,8,0</Thickness>
+    <Thickness x:Key="Fadenstack.Space.BesideItem">0,0,8,8</Thickness>
+    <Thickness x:Key="Fadenstack.Space.WrapBlock">0,0,0,4</Thickness>
+    <Thickness x:Key="Fadenstack.Space.WrapEnd">0,0,0,-8</Thickness>
+    <Thickness x:Key="Fadenstack.Padding.Container">12</Thickness>
+    <Thickness x:Key="Fadenstack.Padding.Button">12,6</Thickness>
+    <Thickness x:Key="Fadenstack.Padding.Field">8,6</Thickness>
+
+    <!-- ===== Text ========================================================================================== -->
+    <Style x:Key="Form.Title" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource Fadenstack.Space.Title}" />
+    </Style>
+    <Style x:Key="Form.Strong" TargetType="TextBlock">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style x:Key="Form.Caption" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- ===== Containers: the banner (a bar at its start) and the card ====================================== -->
+    <Style x:Key="Form.Banner" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Container}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentIcon}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+    </Style>
+    <Style x:Key="Form.Banner.Error" TargetType="Border" BasedOn="{StaticResource Form.Banner}">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+    </Style>
+    <Style x:Key="Form.Banner.Warning" TargetType="Border" BasedOn="{StaticResource Form.Banner}">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+    </Style>
+    <Style x:Key="Form.Banner.Success" TargetType="Border" BasedOn="{StaticResource Form.Banner}">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Success}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
+    </Style>
+    <Style x:Key="Form.Card" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Container}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+    </Style>
+
+    <!-- ===== Buttons ======================================================================================= -->
+    <!--
+        One template for the primary, secondary and quiet buttons: the edge ("Boundary", 1 px), the focus ring inside it ("FocusRing", 2 px,
+        the colour of the focus; white on the accent fill), the content centred. The colours of a state are the variant's style triggers.
+    -->
+    <ControlTemplate x:Key="Form.ButtonTemplate" TargetType="Button">
+        <Grid SnapsToDevicePixels="True">
+            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  RecognizesAccessKey="True" />
+            </Border>
+            <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- The primary button's template: its focus ring is the accent's foreground (white), which shows on the accent fill. -->
+    <ControlTemplate x:Key="Form.PrimaryTemplate" TargetType="Button">
+        <Grid SnapsToDevicePixels="True">
+            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  RecognizesAccessKey="True" />
+            </Border>
+            <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.AccentForeground}" IsHitTestVisible="False" Visibility="Collapsed"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="Form.Button" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Button}" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template" Value="{StaticResource Form.ButtonTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Form.Primary" TargetType="Button" BasedOn="{StaticResource Form.Button}">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentForeground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentBorder}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Template" Value="{StaticResource Form.PrimaryTemplate}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Form.Secondary" TargetType="Button" BasedOn="{StaticResource Form.Button}" />
+    <Style x:Key="Form.Quiet" TargetType="Button" BasedOn="{StaticResource Form.Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style x:Key="Form.PrimaryHide" TargetType="Button" BasedOn="{StaticResource Form.Primary}">
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Form.SecondaryHide" TargetType="Button" BasedOn="{StaticResource Form.Secondary}">
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Form.QuietHide" TargetType="Button" BasedOn="{StaticResource Form.Quiet}">
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A choice: a button that is a small card (a title and what it means). A container's radius, its content 12 in from the edge. -->
+    <ControlTemplate x:Key="Form.ChoiceTemplate" TargetType="Button">
+        <Grid SnapsToDevicePixels="True">
+            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+            <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Container}" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <Style x:Key="Form.Choice" TargetType="Button" BasedOn="{StaticResource Form.Button}">
+        <Setter Property="Template" Value="{StaticResource Form.ChoiceTemplate}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Container}" />
+    </Style>
+
+    <!-- A chip: a small choice among many (a provider). The chip radius, a field's height less four. -->
+    <ControlTemplate x:Key="Form.ChipTemplate" TargetType="Button">
+        <Grid SnapsToDevicePixels="True">
+            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Chip}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+            </Border>
+            <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Chip}" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <Style x:Key="Form.Chip" TargetType="Button" BasedOn="{StaticResource Form.Button}">
+        <Setter Property="Template" Value="{StaticResource Form.ChipTemplate}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="MinHeight" Value="28" />
+    </Style>
+
+    <!-- A square icon button: the icon (a path or a glyph) is centred exactly in the square. -->
+    <Style x:Key="Form.IconButton" TargetType="Button" BasedOn="{StaticResource Form.Quiet}">
+        <Setter Property="Width" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="Height" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <!-- ===== Text fields =================================================================================== -->
+    <Style x:Key="Form.TextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Field}" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Hidden" />
+        <Setter Property="VerticalScrollBarVisibility" Value="Hidden" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Fadenstack.Radius.Control}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                          HorizontalScrollBarVisibility="{TemplateBinding HorizontalScrollBarVisibility}"
+                                          VerticalScrollBarVisibility="{TemplateBinding VerticalScrollBarVisibility}" />
+                        </Border>
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="TextBox" BasedOn="{StaticResource Form.TextBox}" />
+
+    <Style x:Key="Form.PasswordBox" TargetType="PasswordBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Field}" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Fadenstack.Radius.Control}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                        </Border>
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="PasswordBox" BasedOn="{StaticResource Form.PasswordBox}" />
+
+    <!-- ===== Check box and radio button ==================================================================== -->
+    <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Mark}" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent" SnapsToDevicePixels="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="{StaticResource Fadenstack.Size.Mark}" Height="{StaticResource Fadenstack.Size.Mark}" VerticalAlignment="Top">
+                            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                    CornerRadius="{StaticResource Fadenstack.Radius.Control}">
+                                <Path x:Name="Tick" Width="10" Height="8" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Data="M 0,4 L 3.5,7.5 L 10,0.5" Stroke="{DynamicResource Fadenstack.AccentForeground}" StrokeThickness="2"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" />
+                            </Border>
+                            <Rectangle x:Name="Dash" Width="10" Height="2" RadiusX="1" RadiusY="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Fill="{DynamicResource Fadenstack.AccentForeground}" Visibility="Collapsed" />
+                            <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                    CornerRadius="10" Margin="-4" />
+                        </Grid>
+                        <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Top" RecognizesAccessKey="True" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+                            <Setter TargetName="Boundary" Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentBorder}" />
+                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Accent}" />
+                            <Setter TargetName="Boundary" Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentBorder}" />
+                            <Setter TargetName="Dash" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.AccentHover}" />
+                        </MultiTrigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="8,0,0,0" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Mark}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent" SnapsToDevicePixels="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="{StaticResource Fadenstack.Size.Mark}" Height="{StaticResource Fadenstack.Size.Mark}" VerticalAlignment="Top">
+                            <Ellipse x:Name="Boundary" Fill="{TemplateBinding Background}" Stroke="{TemplateBinding BorderBrush}" StrokeThickness="1" />
+                            <Ellipse x:Name="Dot" Width="10" Height="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                     Fill="{DynamicResource Fadenstack.AccentIcon}" Visibility="Collapsed" />
+                            <Ellipse x:Name="FocusRing" Stroke="{DynamicResource Fadenstack.Focus}" StrokeThickness="2" IsHitTestVisible="False" Visibility="Collapsed" Margin="-4" />
+                        </Grid>
+                        <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}" HorizontalAlignment="Left" VerticalAlignment="Top" RecognizesAccessKey="True" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Boundary" Property="Stroke" Value="{DynamicResource Fadenstack.AccentBorder}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Boundary" Property="Fill" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Combo box and list ============================================================================ -->
+    <!-- The drop-down's item: a control's radius, in from the list's 12 by its 6 padding (12 - 6 = 6). -->
+    <Style x:Key="Form.ListItem" TargetType="ListBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="0"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Inner}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <Border x:Name="Marker" Width="3" HorizontalAlignment="Left" Margin="0,6" CornerRadius="1.5"
+                                Background="{DynamicResource Fadenstack.AccentIcon}" Visibility="Collapsed" />
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Inner}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+                            <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ListBoxItem" BasedOn="{StaticResource Form.ListItem}" />
+
+    <Style x:Key="Form.ComboItem" TargetType="ComboBoxItem">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="0"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Inner}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <Border x:Name="Marker" Width="3" HorizontalAlignment="Left" Margin="0,6" CornerRadius="1.5"
+                                Background="{DynamicResource Fadenstack.AccentIcon}" Visibility="Collapsed" />
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Inner}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+                            <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource Form.ComboItem}" />
+
+    <Style x:Key="Form.ListBox" TargetType="ListBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Fadenstack.Radius.Container}"
+                                Padding="{TemplateBinding Padding}">
+                            <ScrollViewer Focusable="False" Padding="0" HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                          VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </Border>
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ListBox" BasedOn="{StaticResource Form.ListBox}" />
+
+    <!-- The combo box's toggle: the closed box, with its arrow centred in a square at the end. -->
+    <ControlTemplate x:Key="Form.ComboToggle" TargetType="ToggleButton">
+        <Grid SnapsToDevicePixels="True" Background="Transparent">
+            <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+            <Grid HorizontalAlignment="Right" Width="{StaticResource Fadenstack.Size.Control}">
+                <Path x:Name="Arrow" Width="10" Height="6" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Data="M 0,0 L 5,5 L 10,0" Stroke="{DynamicResource Fadenstack.Foreground}" StrokeThickness="1.5"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+            </Grid>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style x:Key="Form.ComboBox" TargetType="ComboBox">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="8,6,40,6" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Form.ComboItem}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid x:Name="Root" SnapsToDevicePixels="True">
+                        <ToggleButton x:Name="Toggle" Focusable="False" ClickMode="Press" Template="{StaticResource Form.ComboToggle}"
+                                      Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" Margin="{TemplateBinding Padding}"
+                                          Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+                        <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False"
+                               PopupAnimation="Fade" SnapsToDevicePixels="True">
+                            <Grid MinWidth="{Binding ActualWidth, ElementName=Root}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <Border x:Name="DropDown" Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.ControlBorder}"
+                                        BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="6" Margin="0,4,0,12">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                                    </Border.Effect>
+                                    <ScrollViewer Focusable="False">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="ComboBox" BasedOn="{StaticResource Form.ComboBox}" />
+
+    <!-- ===== Scrolling ===================================================================================== -->
+    <Style TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollViewer">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Grid.Row="0" Grid.Column="0"
+                                                CanContentScroll="{TemplateBinding CanContentScroll}" CanHorizontallyScroll="False" CanVerticallyScroll="False"
+                                                Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" Orientation="Vertical" Minimum="0"
+                                   Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}"
+                                   Value="{TemplateBinding VerticalOffset}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                   AutomationProperties.AutomationId="VerticalScrollBar" />
+                        <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Minimum="0"
+                                   Maximum="{TemplateBinding ScrollableWidth}" ViewportSize="{TemplateBinding ViewportWidth}"
+                                   Value="{TemplateBinding HorizontalOffset}" Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                   AutomationProperties.AutomationId="HorizontalScrollBar" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Progress ====================================================================================== -->
+    <Style TargetType="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentIcon}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Track}" />
+        <Setter Property="Height" Value="4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid x:Name="TemplateRoot" SnapsToDevicePixels="True">
+                        <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="2" />
+                        <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}" CornerRadius="2" />
+                        <Rectangle x:Name="Moving" RadiusX="2" RadiusY="2" Visibility="Collapsed">
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <LinearGradientBrush.RelativeTransform>
+                                        <TranslateTransform x:Name="Shift" X="-1" />
+                                    </LinearGradientBrush.RelativeTransform>
+                                    <GradientStop Offset="0" Color="Transparent" />
+                                    <GradientStop Offset="0.35" Color="Transparent" />
+                                    <GradientStop Offset="0.351" Color="{Binding Foreground.Color, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <GradientStop Offset="0.65" Color="{Binding Foreground.Color, RelativeSource={RelativeSource TemplatedParent}}" />
+                                    <GradientStop Offset="0.651" Color="Transparent" />
+                                    <GradientStop Offset="1" Color="Transparent" />
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsIndeterminate" Value="True">
+                            <Setter TargetName="PART_Indicator" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Moving" Property="Visibility" Value="Visible" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard x:Name="Sweep">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Shift" Storyboard.TargetProperty="X" From="-0.65" To="0.65" Duration="0:0:1.4" RepeatBehavior="Forever" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="Sweep" />
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Tool tip ====================================================================================== -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                            CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

@@ -27,46 +27,46 @@
     </UserControl.Resources>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
-        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="16">
-            <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text SkillDraftTitle}" Margin="0,0,0,12" />
+        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}">
+            <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text SkillDraftTitle}" />
 
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillDraftGuidance}" Margin="0,0,0,4" />
-            <TextBox x:Name="GuidanceBox" Style="{StaticResource Fadenstack.TextBox}" b:WizardFocus.IsFirst="True" Margin="0,0,0,12" TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillDraftGuidance}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="GuidanceBox" Style="{StaticResource Form.TextBox}" b:WizardFocus.IsFirst="True" Margin="{StaticResource Fadenstack.Space.Block}" TextWrapping="Wrap"
                      Text="{Binding Guidance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsWorking, Converter={StaticResource Fadenstack.InverseBool}}"
                      AutomationProperties.Name="{local:Text SkillDraftGuidance}" />
 
             <!-- In every state: nothing is saved until Save. -->
-            <TextBlock x:Name="StandingNote" Style="{StaticResource Skill.Caption}" Text="{Binding StandingNote}" Margin="0,0,0,12" />
+            <TextBlock x:Name="StandingNote" Style="{StaticResource Skill.Caption}" Text="{Binding StandingNote}" Margin="{StaticResource Fadenstack.Space.Block}" />
 
-            <Button x:Name="StartButton" Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,12" Command="{Binding DraftCommand}"
+            <Button x:Name="StartButton" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Block}" Command="{Binding DraftCommand}"
                     Content="{local:Text SkillDraftStart}" AutomationProperties.Name="{local:Text SkillDraftStart}" />
 
-            <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,12" Foreground="{DynamicResource Fadenstack.Accent}"
+            <ProgressBar IsIndeterminate="True" Margin="{StaticResource Fadenstack.Space.Block}"
                          Visibility="{Binding IsWorking, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                          AutomationProperties.Name="{local:Text SkillDraftWorking}" />
 
             <!-- The state in words, in the colour of what it means. -->
-            <Border Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
+            <Border Style="{StaticResource Skill.Banner.Success}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding State, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Ready'}">
                 <TextBlock x:Name="ReadyText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             </Border>
-            <Border Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,12"
+            <Border Style="{StaticResource Skill.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding State, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='ReadyWithProblems,NoChat,NoModel'}">
                 <TextBlock x:Name="WarningText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             </Border>
-            <Border Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12"
+            <Border Style="{StaticResource Skill.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding State, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Failed,Unreadable'}">
                 <TextBlock x:Name="ErrorText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
             </Border>
-            <TextBlock x:Name="WorkingText" Style="{StaticResource Skill.Caption}" Text="{Binding StatusText}" Margin="0,0,0,12" AutomationProperties.LiveSetting="Polite"
+            <TextBlock x:Name="WorkingText" Style="{StaticResource Skill.Caption}" Text="{Binding StatusText}" Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.LiveSetting="Polite"
                        Visibility="{Binding IsWorking, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
 
             <!-- The proposal: where it is, and that it is not saved. -->
             <Border x:Name="ProposalCard" Style="{StaticResource Skill.Card}"
                     Visibility="{Binding Proposal, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                 <StackPanel>
-                    <TextBlock x:Name="ProposalText" Text="{Binding Proposal.ProposalNote}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                    <Button x:Name="OpenButton" Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Command="{Binding OpenProposalCommand}"
+                    <TextBlock x:Name="ProposalText" Text="{Binding Proposal.ProposalNote}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                    <Button x:Name="OpenButton" Style="{StaticResource Form.Secondary}" HorizontalAlignment="Left" Command="{Binding OpenProposalCommand}"
                             Content="{local:Text SkillDraftOpen}" AutomationProperties.Name="{local:Text SkillDraftOpen}" />
                 </StackPanel>
             </Border>

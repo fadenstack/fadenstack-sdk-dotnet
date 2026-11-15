@@ -68,7 +68,7 @@ public sealed class BypassPart : ObservableObject
             OnPropertyChanged(nameof(IsShown));
             CloseCommand!.NotifyCanExecuteChanged();
         }, () => _state == BypassCardState.NotConfirmed && !_closed);
-        PickDurationCommand = new RelayCommand<DurationOption>(d =>
+        PickDurationCommand = new ItemCommand<DurationOption>(d =>
         {
             SelectedDuration = d;
             IsDurationMenuOpen = false;

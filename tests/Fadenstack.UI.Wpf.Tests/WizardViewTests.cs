@@ -41,7 +41,7 @@ public class WizardViewTests
         Enum.GetValues(typeof(WizardStep)).Cast<WizardStep>().SelectMany(step => new[] { "en", "de" }.Select(language => new object[] { step, language }));
 
     /// <summary>A real view model, with every offer on, shown at <paramref name="step"/> with the state that step reads.</summary>
-    private static WizardHost At(WizardStep step, string language)
+    internal static WizardHost At(WizardStep step, string language)
     {
         var host = new WizardHost(o => o with { Current = EndpointConnection }, language);
         var endpoint = new Uri("http://localhost:11434/v1");

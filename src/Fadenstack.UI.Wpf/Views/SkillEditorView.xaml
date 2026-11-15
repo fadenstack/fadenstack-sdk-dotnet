@@ -35,49 +35,49 @@
     </UserControl.Resources>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
-        <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16">
-            <TextBlock Style="{StaticResource Skill.Title}" Text="{Binding Heading}" Margin="0,0,0,12" />
+        <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}">
+            <TextBlock Style="{StaticResource Skill.Title}" Text="{Binding Heading}" />
 
             <!-- A model's draft: not saved until Save. -->
-            <Border Style="{StaticResource Skill.Banner}" Margin="0,0,0,12" Visibility="{Binding IsProposal, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <Border Style="{StaticResource Skill.Banner}" Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding IsProposal, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding ProposalNote}" TextWrapping="Wrap" />
             </Border>
 
             <!-- What the last action said: an error is an alert (assertive), information and a warning a status (polite). -->
-            <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
+            <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding MessageIsInformation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             </Border>
-            <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,12"
+            <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding MessageIsWarning, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             </Border>
-            <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12"
+            <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                     Visibility="{Binding MessageIsError, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
             </Border>
 
             <!-- The name is taken: Save asked, and replaces only after this answer. -->
-            <Border x:Name="ReplaceCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" b:WizardFocus.Step="{Binding NeedsReplaceConfirmation}"
+            <Border x:Name="ReplaceCard" Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Block}" b:WizardFocus.Step="{Binding NeedsReplaceConfirmation}"
                     Visibility="{Binding NeedsReplaceConfirmation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding ReplaceTitle}" Margin="0,0,0,8" AutomationProperties.LiveSetting="Assertive" />
-                    <TextBlock Text="{Binding ReplaceBody}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                    <WrapPanel Orientation="Horizontal">
-                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding DismissReplaceCommand}"
+                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding ReplaceTitle}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.LiveSetting="Assertive" />
+                    <TextBlock Text="{Binding ReplaceBody}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                    <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" b:WizardFocus.IsFirst="True" Command="{Binding DismissReplaceCommand}"
                                 Content="{local:Text SkillCancel}" AutomationProperties.Name="{local:Text SkillCancel}" />
-                        <Button Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmReplaceCommand}"
+                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmReplaceCommand}"
                                 Content="{local:Text SkillReplace}" AutomationProperties.Name="{local:Text SkillReplace}" />
                     </WrapPanel>
                 </StackPanel>
             </Border>
 
             <!-- ===== Name and description ======================================================================== -->
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillName}" Margin="0,0,0,4" />
-            <TextBox x:Name="NameBox" Style="{StaticResource Fadenstack.TextBox}" b:WizardFocus.IsFirst="True" Margin="0,0,0,4"
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillName}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="NameBox" Style="{StaticResource Form.TextBox}" b:WizardFocus.IsFirst="True" Margin="{StaticResource Fadenstack.Space.Tight}"
                      Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
                      AutomationProperties.Name="{local:Text SkillName}" />
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}" Focusable="False" Margin="0,0,0,8">
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
@@ -85,11 +85,11 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillDescription}" Margin="0,0,0,4" />
-            <TextBox x:Name="DescriptionBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,4" TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillDescription}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="DescriptionBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Tight}" TextWrapping="Wrap"
                      Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
                      AutomationProperties.Name="{local:Text SkillDescription}" />
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}" Focusable="False" Margin="0,0,0,8">
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
@@ -98,84 +98,84 @@
             </ItemsControl>
 
             <!-- ===== Instructions and their preview ============================================================== -->
-            <DockPanel Margin="0,0,0,4">
+            <DockPanel Margin="{StaticResource Fadenstack.Space.Tight}">
                 <CheckBox x:Name="PreviewBox" DockPanel.Dock="Right" IsChecked="{Binding ShowPreview, Mode=TwoWay}" AutomationProperties.Name="{local:Text SkillPreview}">
                     <TextBlock Text="{local:Text SkillPreview}" />
                 </CheckBox>
                 <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillInstructions}" VerticalAlignment="Center" />
             </DockPanel>
-            <TextBox x:Name="InstructionsBox" Style="{StaticResource Skill.Area}" Margin="0,0,0,4"
+            <TextBox x:Name="InstructionsBox" Style="{StaticResource Skill.Area}" Margin="{StaticResource Fadenstack.Space.Tight}"
                      Text="{Binding Instructions, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsReadOnly, Mode=OneWay}"
                      AutomationProperties.Name="{local:Text SkillInstructions}" />
             <!-- The size against the advisory limit: a note, and a warning when over. -->
-            <TextBlock x:Name="TokensText" Style="{StaticResource Skill.Caption}" Text="{Binding InstructionsTokensText}" Margin="0,0,0,8"
+            <TextBlock x:Name="TokensText" Style="{StaticResource Skill.Caption}" Text="{Binding InstructionsTokensText}" Margin="{StaticResource Fadenstack.Space.Item}"
                        Visibility="{Binding InstructionsOverLimit, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
-            <Border x:Name="TokensWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,8"
+            <Border x:Name="TokensWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Item}"
                     Visibility="{Binding InstructionsOverLimit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <TextBlock Text="{Binding InstructionsTokensText}" TextWrapping="Wrap" />
             </Border>
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}" Focusable="False" Margin="0,0,0,8">
+            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Text}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Border x:Name="PreviewCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" Visibility="{Binding ShowPreview, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <Border x:Name="PreviewCard" Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding ShowPreview, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <ItemsControl x:Name="PreviewBlocks" ItemsSource="{Binding PreviewBlocks}" Focusable="False" />
             </Border>
 
             <!-- ===== faden.yaml: when to use it ================================================================== -->
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillMatching}" Margin="0,0,0,4" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTitleField}" Margin="0,0,0,2" />
-            <TextBox x:Name="TitleBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding ExtensionTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillMatching}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTitleField}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="TitleBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding ExtensionTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillTitleField}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillKeywords}" Margin="0,0,0,2" />
-            <TextBox x:Name="KeywordsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding KeywordsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillKeywords}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="KeywordsBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding KeywordsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillKeywords}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTags}" Margin="0,0,0,2" />
-            <TextBox x:Name="TagsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding TagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTags}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="TagsBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding TagsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillTags}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillFileTypes}" Margin="0,0,0,2" />
-            <TextBox x:Name="FileTypesBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding FileTypesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillFileTypes}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="FileTypesBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding FileTypesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillFileTypes}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPreferredTools}" Margin="0,0,0,2" />
-            <TextBox x:Name="PreferredToolsBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding PreferredToolsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPreferredTools}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="PreferredToolsBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding PreferredToolsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillPreferredTools}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPriority}" Margin="0,0,0,2" />
-            <TextBox x:Name="PriorityBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding Priority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillPriority}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="PriorityBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding Priority, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillPriority}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillActivation}" Margin="0,0,0,2" />
-            <ComboBox x:Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" Padding="8,6" Margin="0,0,0,8"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillActivation}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <ComboBox x:Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" Margin="{StaticResource Fadenstack.Space.Item}"
                       SelectedValue="{Binding Activation, Mode=TwoWay}" IsEnabled="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBool}}"
                       AutomationProperties.Name="{local:Text SkillActivation}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillLicense}" Margin="0,0,0,2" />
-            <TextBox x:Name="LicenseBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding License, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillLicense}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="LicenseBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding License, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillLicense}" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillCompatibility}" Margin="0,0,0,2" />
-            <TextBox x:Name="CompatibilityBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding Compatibility, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillCompatibility}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBox x:Name="CompatibilityBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding Compatibility, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      IsReadOnly="{Binding IsReadOnly, Mode=OneWay}" AutomationProperties.Name="{local:Text SkillCompatibility}" />
-            <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12" Command="{Binding DropUnknownKeysCommand}"
+            <Button Style="{StaticResource Form.Secondary}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Block}" Command="{Binding DropUnknownKeysCommand}"
                     Visibility="{Binding HasUnknownKeys, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                     Content="{local:Text SkillDropUnknownKeys}" AutomationProperties.Name="{local:Text SkillDropUnknownKeys}" />
 
             <!-- ===== The files ==================================================================================== -->
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillResources}" Margin="0,0,0,4" />
-            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillNoResources}" Margin="0,0,0,8"
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillResources}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillNoResources}" Margin="{StaticResource Fadenstack.Space.Item}"
                        Visibility="{Binding HasResources, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
             <ItemsControl ItemsSource="{Binding Resources}" Focusable="False">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource Skill.Card}" Margin="0,0,0,8" AutomationProperties.Name="{Binding Path}">
+                        <Border Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.Name="{Binding Path}">
                             <StackPanel>
-                                <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding Path}" Margin="0,0,0,8" />
-                                <TextBox Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding Path}" Margin="{StaticResource Fadenstack.Space.Item}" />
+                                <TextBox Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding NewPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          IsReadOnly="{Binding DataContext.IsReadOnly, RelativeSource={RelativeSource AncestorType={x:Type local:SkillEditorView}}}"
                                          AutomationProperties.Name="{Binding Path}" />
-                                <WrapPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" Command="{Binding RenameCommand}" Content="{local:Text SkillRenameFile}"
+                                <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                                    <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" Command="{Binding RenameCommand}" Content="{local:Text SkillRenameFile}"
                                             AutomationProperties.Name="{local:Text SkillRenameFile}" />
-                                    <Button Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding RemoveCommand}" Content="{local:Text SkillRemoveFile}"
+                                    <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Quiet}" Command="{Binding RemoveCommand}" Content="{local:Text SkillRemoveFile}"
                                             AutomationProperties.Name="{local:Text SkillRemoveFile}" />
                                 </WrapPanel>
                             </StackPanel>
@@ -183,19 +183,19 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,0,0,12" Command="{Binding AddResourceCommand}"
+            <Button Style="{StaticResource Form.Secondary}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Block}" Command="{Binding AddResourceCommand}"
                     Content="{local:Text SkillAddFile}" AutomationProperties.Name="{local:Text SkillAddFile}" />
 
             <!-- ===== The checks =================================================================================== -->
-            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillChecksHeading}" Margin="0,0,0,4" />
-            <Border Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12" Visibility="{Binding HasIssues, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillChecksHeading}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <Border Style="{StaticResource Skill.Banner.Success}" Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding HasIssues, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">
                 <TextBlock Text="{local:Text SkillChecksOk}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             </Border>
-            <ItemsControl x:Name="IssuesList" ItemsSource="{Binding Issues}" Focusable="False" Margin="0,0,0,12"
+            <ItemsControl x:Name="IssuesList" ItemsSource="{Binding Issues}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Block}"
                           Visibility="{Binding HasIssues, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource Skill.Banner.Issue}" Margin="0,0,0,4">
+                        <Border Style="{StaticResource Skill.Banner.Issue}" Margin="{StaticResource Fadenstack.Space.Tight}">
                             <TextBlock Text="{Binding Text}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                         </Border>
                     </DataTemplate>
@@ -203,54 +203,54 @@
             </ItemsControl>
 
             <!-- ===== Save and Cancel ============================================================================== -->
-            <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
-                <Button x:Name="SaveButton" Style="{StaticResource Fadenstack.PrimaryButton}" Margin="0,0,8,0" b:WizardFocus.IsPrimary="True"
+            <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapBlock}">
+                <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" x:Name="SaveButton" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True"
                         Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}"
                         Command="{Binding SaveCommand}" Content="{local:Text SkillSave}" AutomationProperties.Name="{local:Text SkillSave}" />
-                <Button x:Name="CancelButton" Style="{StaticResource Fadenstack.GhostButton}" Command="{Binding CancelCommand}" Content="{local:Text SkillCancel}"
+                <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" x:Name="CancelButton" Style="{StaticResource Form.Quiet}" Command="{Binding CancelCommand}" Content="{local:Text SkillCancel}"
                         AutomationProperties.Name="{local:Text SkillCancel}" />
             </WrapPanel>
 
             <!-- ===== Try it ======================================================================================= -->
             <Border Style="{StaticResource Skill.Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestHeading}" Margin="0,0,0,4" />
-                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTestPrompt}" Margin="0,0,0,2" />
-                    <TextBox x:Name="TestBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8" Text="{Binding TestPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestHeading}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text SkillTestPrompt}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                    <TextBox x:Name="TestBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}" Text="{Binding TestPrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              AutomationProperties.Name="{local:Text SkillTestPrompt}" />
-                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button x:Name="TestButton" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" Command="{Binding RunTestCommand}" Content="{local:Text SkillTestRun}"
+                    <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapBlock}">
+                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" x:Name="TestButton" Style="{StaticResource Form.Secondary}" Command="{Binding RunTestCommand}" Content="{local:Text SkillTestRun}"
                                 AutomationProperties.Name="{local:Text SkillTestRun}" />
-                        <Button x:Name="AskModelButton" Style="{StaticResource Fadenstack.SecondaryButton}" Command="{Binding AskModelCommand}"
+                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" x:Name="AskModelButton" Style="{StaticResource Form.Secondary}" Command="{Binding AskModelCommand}"
                                 Visibility="{Binding CanAskModel, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                 Content="{local:Text SkillAskModel}" AutomationProperties.Name="{local:Text SkillAskModel}" />
                     </WrapPanel>
-                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding ModelNote}" Margin="0,0,0,8"
+                    <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding ModelNote}" Margin="{StaticResource Fadenstack.Space.Item}"
                                Visibility="{Binding CanAskModel, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                    <TextBlock x:Name="ModelAnswerText" Text="{Binding ModelAnswerText}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite"
+                    <TextBlock x:Name="ModelAnswerText" Text="{Binding ModelAnswerText}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.LiveSetting="Polite"
                                Visibility="{Binding ModelAnswerText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                     <StackPanel x:Name="TestResult" Visibility="{Binding HasTestResult, Converter={StaticResource Fadenstack.BoolToVisibility}}" AutomationProperties.LiveSetting="Polite">
-                        <TextBlock x:Name="TestNoteText" Text="{Binding TestNote}" TextWrapping="Wrap" Margin="0,0,0,8"
+                        <TextBlock x:Name="TestNoteText" Text="{Binding TestNote}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}"
                                    Visibility="{Binding TestNote, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestListed}" Margin="0,0,0,2"
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestListed}" Margin="{StaticResource Fadenstack.Space.Tight}"
                                    Visibility="{Binding TestListed.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                        <ItemsControl ItemsSource="{Binding TestListed}" Focusable="False" Margin="0,0,0,8">
+                        <ItemsControl ItemsSource="{Binding TestListed}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding}" TextWrapping="Wrap" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock x:Name="TestMatchesHeading" Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestMatchesHeading}" Margin="0,0,0,2"
+                        <TextBlock x:Name="TestMatchesHeading" Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestMatchesHeading}" Margin="{StaticResource Fadenstack.Space.Tight}"
                                    Visibility="{Binding TestMatches.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                        <ItemsControl ItemsSource="{Binding TestMatches}" Focusable="False" Margin="0,0,0,8">
+                        <ItemsControl ItemsSource="{Binding TestMatches}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestPreloaded}" Margin="0,0,0,2"
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text SkillTestPreloaded}" Margin="{StaticResource Fadenstack.Space.Tight}"
                                    Visibility="{Binding TestPreloaded.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                         <ItemsControl ItemsSource="{Binding TestPreloaded}" Focusable="False">
                             <ItemsControl.ItemTemplate>

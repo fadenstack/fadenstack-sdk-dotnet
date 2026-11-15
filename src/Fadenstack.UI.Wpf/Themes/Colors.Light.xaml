@@ -40,7 +40,7 @@
     <Style x:Key="Fadenstack.LinkFocusVisual" BasedOn="{StaticResource {x:Static SystemParameters.FocusVisualStyleKey}}" />
     <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#33000000" po:Freeze="True" />
     <!-- The scroll thumb shows where the conversation is: 3:1 or more on the background and the surfaces. -->
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#8C8C8C" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#848484" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#7A7A7A" po:Freeze="True" />
     <!-- The agent avatar (AgentAvatar): navy plates, the rose thread plate, the hollow under the lid. -->
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateTop" Color="#1C2436" po:Freeze="True" />
@@ -48,6 +48,14 @@
     <SolidColorBrush x:Key="Fadenstack.Avatar.Thread" Color="#E2325A" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.ThreadSide" Color="#A8143E" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.Hollow" Color="#610A0E1A" po:Freeze="True" />
+    <!--
+        The edge of a control that takes input or is switched (a field, a check box, a list, a secondary button): 3:1 or more on the background
+        and on each surface (WCAG 1.4.11). Border stays for the quiet lines between cards and rows. AccentBorder: the edge of an accent fill (the
+        primary button, a checked box), 3:1 or more on the background and the surfaces. Track: the unfilled part of a progress bar.
+    -->
+    <SolidColorBrush x:Key="Fadenstack.ControlBorder" Color="#767676" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentBorder" Color="#0F6CBD" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.Track" Color="#D4D4D4" po:Freeze="True" />
     <FontFamily x:Key="Fadenstack.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="Fadenstack.CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
     <FontFamily x:Key="Fadenstack.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
