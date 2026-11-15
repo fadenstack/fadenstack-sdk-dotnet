@@ -195,16 +195,16 @@ public sealed class SkillLibraryViewModel : ObservableObject, ISkillTexts
 
         RefreshCommand = new AsyncRelayCommand(RefreshAsync);
         NewCommand = new RelayCommand(New, () => _editor is null);
-        EditCommand = new AsyncRelayCommand<SkillRowViewModel>(EditAsync, row => row is { CanOpen: true } && _editor is null);
-        DuplicateCommand = new AsyncRelayCommand<SkillRowViewModel>(DuplicateAsync, row => row is { CanDuplicate: true } && _editor is null);
-        AskDeleteCommand = new RelayCommand<SkillRowViewModel>(row => PendingDelete = row, row => row is { CanDelete: true });
+        EditCommand = new AsyncItemCommand<SkillRowViewModel>(EditAsync, row => row is { CanOpen: true } && _editor is null);
+        DuplicateCommand = new AsyncItemCommand<SkillRowViewModel>(DuplicateAsync, row => row is { CanDuplicate: true } && _editor is null);
+        AskDeleteCommand = new ItemCommand<SkillRowViewModel>(row => PendingDelete = row, row => row is { CanDelete: true });
         ConfirmDeleteCommand = new AsyncRelayCommand(ConfirmDeleteAsync, () => _pendingDelete is not null);
         CancelDeleteCommand = new RelayCommand(() => PendingDelete = null, () => _pendingDelete is not null);
-        ToggleCommand = new AsyncRelayCommand<SkillRowViewModel>(ToggleAsync, row => row is { CanSwitch: true });
+        ToggleCommand = new AsyncItemCommand<SkillRowViewModel>(ToggleAsync, row => row is { CanSwitch: true });
         ImportCommand = new AsyncRelayCommand(ImportAsync, () => _files is not null && !_importBusy && _editor is null);
         ConfirmImportCommand = new AsyncRelayCommand(ConfirmImportAsync, () => _pendingImport is { Ok: true } && !_importBusy);
         CancelImportCommand = new RelayCommand(CancelImport, () => _pendingImport is not null);
-        ExportCommand = new AsyncRelayCommand<SkillRowViewModel>(ExportAsync, row => _files is not null && row is { CanExport: true });
+        ExportCommand = new AsyncItemCommand<SkillRowViewModel>(ExportAsync, row => _files is not null && row is { CanExport: true });
         if (draftSource is not null)
         {
             _draft = CreateDraft(draftSource);
@@ -279,8 +279,7 @@ public sealed class SkillLibraryViewModel : ObservableObject, ISkillTexts
             if (SetProperty(ref _pendingDelete, value))
             {
                 OnPropertyChanged(nameof(DeleteTitle));
-                ConfirmDeleteCommand.NotifyCanExecuteChanged();
-                CancelDeleteCommand.NotifyCanExecuteChanged();
+                CommandNotify.All(ConfirmDeleteCommand, CancelDeleteCommand);
             }
         }
     }
@@ -314,11 +313,7 @@ public sealed class SkillLibraryViewModel : ObservableObject, ISkillTexts
         {
             if (SetProperty(ref _editor, value))
             {
-                NewCommand.NotifyCanExecuteChanged();
-                EditCommand.NotifyCanExecuteChanged();
-                DuplicateCommand.NotifyCanExecuteChanged();
-                ImportCommand.NotifyCanExecuteChanged();
-                DraftFromChatCommand.NotifyCanExecuteChanged();
+                CommandNotify.All(NewCommand, EditCommand, DuplicateCommand, ImportCommand, DraftFromChatCommand);
             }
         }
     }
@@ -595,8 +590,7 @@ public sealed class SkillLibraryViewModel : ObservableObject, ISkillTexts
         OnPropertyChanged(nameof(ImportReplaces));
         OnPropertyChanged(nameof(ImportTitle));
         OnPropertyChanged(nameof(ImportBody));
-        ConfirmImportCommand.NotifyCanExecuteChanged();
-        CancelImportCommand.NotifyCanExecuteChanged();
+        CommandNotify.All(ConfirmImportCommand, CancelImportCommand);
     }
 
     private void CancelImport()

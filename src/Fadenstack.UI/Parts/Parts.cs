@@ -33,7 +33,7 @@ public sealed class MarkdownPart : ResponsePart
         Document = new MarkdownDocument(text);
         _isStreaming = isStreaming;
         var copyTo = clipboard ?? NoClipboard.Instance;
-        CopyCodeCommand = new RelayCommand<CodeBlock>(block =>
+        CopyCodeCommand = new ItemCommand<CodeBlock>(block =>
         {
             if (block is not null)
             {
@@ -366,7 +366,7 @@ public sealed class ApprovalPart : ResponsePart
         AllowAlwaysCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveAlways(), ApprovalState.ApprovedAlways),
             () => IsPending && CanAllowAlways);
         DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(), ApprovalState.Denied), () => IsPending);
-        AllowForTimeCommand = new RelayCommand<DurationOption>(d =>
+        AllowForTimeCommand = new ItemCommand<DurationOption>(d =>
         {
             if (d is not null)
             {

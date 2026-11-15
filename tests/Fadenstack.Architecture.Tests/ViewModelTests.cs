@@ -28,12 +28,12 @@ public class ViewModelTests
     private static bool InFramework(string? ns) =>
         ns is not null && Frameworks.Any(f => ns == f || ns.StartsWith(f + ".", StringComparison.Ordinal));
 
-    /// <summary>A2: no type of the UI layer depends on a UI framework's type -- in its members, fields or method bodies.</summary>
+    /// <summary>A2: no type of the UI layer depends on a UI framework's type -- in its members, fields or method bodies.The one namespace let through is System.Windows.Input, which holds ICommand: the interface every MVVM command implements, in System.ObjectModel and neutral to the frameworks (the item commands in Services implement it).</summary>
     [Fact]
     public void The_UI_layer_depends_on_no_UI_framework()
     {
         Types().That().ResideInAssembly(UiLayer)
-            .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^(System\.Windows|Avalonia|Microsoft\.Maui|Microsoft\.UI\.Xaml|Windows\.UI)(\..*)?$")
+            .Should().NotDependOnAnyTypesThat().ResideInNamespaceMatching(@"^(?!System\.Windows\.Input$)(System\.Windows|Avalonia|Microsoft\.Maui|Microsoft\.UI\.Xaml|Windows\.UI)(\..*)?$")
             .Check(Loaded);
     }
 
