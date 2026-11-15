@@ -51,6 +51,9 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
     private AgentSkillsProvider? _provider;
     private Catalog? _catalog;
     private bool _disposed;
+    private string? _person;
+    private string? _ownFolder;
+    private ISkillSwitches? _ownSwitches;
 
     public SkillsModule(SkillsOptions? options = null)
     {
@@ -61,6 +64,40 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
 
     /// <summary>Raised when <see cref="Refresh"/> was called: the agent asks again at the start of the next turn.</summary>
     public event EventHandler? Changed;
+
+    /// <summary>
+    /// The person's own skills folder (<see cref="SkillsOptions.FolderOf"/>: <c>users/&lt;user&gt;/skills</c>, standalone
+    /// <c>users/standalone/skills</c>) once the module has read the agent's profile, which names the person; null before that, with
+    /// <see cref="SkillsOptions.OwnSkills"/> off, or for a server that names no user. The editor (<see cref="SkillWorkshop"/>) follows it.
+    /// </summary>
+    public string? OwnFolder
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _ownFolder;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The switches in force: the app's (<see cref="SkillsOptions.Switches"/>), else the person's own beside their skills
+    /// (<see cref="FileSkillSwitches.ForUser"/>) once the module knows whose; null: every skill is on.
+    /// </summary>
+    public ISkillSwitches? Switches
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _options.Switches ?? _ownSwitches;
+            }
+        }
+    }
+
+    /// <summary>The options the module was made with (the editor reads the bundled skills and the limits from them).</summary>
+    public SkillsOptions Options => _options;
 
     /// <summary>
     /// What the model is told about the skills now, for a message that matches none of them: the skills the pre-selection does not filter
@@ -96,6 +133,7 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
     public async Task<IReadOnlyList<AgentTool>> GetToolsAsync(AgentContext context, CancellationToken cancellationToken)
     {
         var logger = context.LoggerFactory.CreateLogger(Log.Category);
+        Settle(context.Profile.Principal?.UserId);
         var decision = (_options.Policy ?? CoreLocalSkillsPolicy.Instance).Decide(context.Profile);
         if (!decision.Allowed)
         {
@@ -262,12 +300,35 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
         return blocks is { Count: > 0 } ? text + "\n\n" + string.Join("\n\n", blocks) : text;
     }
 
-    /// <summary>The folders to read: those that exist, and under a machine policy that lists folders, only the listed ones.</summary>
+    /// <summary>
+    /// Whose skills these are: the person the profile names (standalone: the standalone principal). Their folder and switches follow; a
+    /// server that names no user has none, and nothing of another person's is read.
+    /// </summary>
+    private void Settle(string? userId)
+    {
+        var person = _options.OwnSkills && !string.IsNullOrEmpty(userId) ? userId : null;
+        lock (_gate)
+        {
+            if (string.Equals(person, _person, StringComparison.Ordinal) && (person is null) == (_ownFolder is null))
+            {
+                return;
+            }
+            _person = person;
+            _ownFolder = person is null ? null : SkillsOptions.FolderOf(person);
+            _ownSwitches = person is null ? null : FileSkillSwitches.ForUser(person);
+        }
+    }
+
+    /// <summary>
+    /// The folders to read: the person's own first, then the ones they added; those that exist, and under a machine policy that lists
+    /// folders, only the listed ones.
+    /// </summary>
     private List<string> FoldersAllowed(AgentContext context, ILogger logger)
     {
         var rule = context.MachinePolicy.Skills;
         var folders = new List<string>();
-        foreach (var folder in _options.Folders.Where(f => !string.IsNullOrWhiteSpace(f)))
+        var own = OwnFolder is { } person ? new[] { person } : Array.Empty<string>();
+        foreach (var folder in own.Concat(_options.Folders).Where(f => !string.IsNullOrWhiteSpace(f)))
         {
             var full = Path.GetFullPath(folder);
             if (rule.Access == PolicyAccess.Listed && !rule.Items.Any(item => Same(item, full)))
@@ -304,7 +365,8 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
         // bring its own.
         var extensions = new Dictionary<string, RawExtension>(StringComparer.Ordinal);
         var bundledNames = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var bundled in _options.Bundled.Where(b => _options.Switches?.IsEnabled(b.Name) != false))
+        var switches = Switches;
+        foreach (var bundled in _options.Bundled.Where(b => switches?.IsEnabled(b.Name) != false))
         {
             sources.Add(Guarded(new AgentInMemorySkillsSource(new[] { Inline(bundled) }), bundled.Name, logger));
             if (bundledNames.Add(bundled.Name) && bundled.FadenYaml is not null)
@@ -319,7 +381,7 @@ public sealed class SkillsModule : IFadenstackModule, ICoreToolSource, IChanging
             foreach (var directory in SkillRules.SkillFolders(folder))
             {
                 var name = Path.GetFileName(directory);
-                if (_options.Switches?.IsEnabled(name) == false)
+                if (switches?.IsEnabled(name) == false)
                 {
                     continue; // the person switched it off
                 }
