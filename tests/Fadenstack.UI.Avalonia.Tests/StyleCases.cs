@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using Fadenstack.UI.Avalonia.Services;
 using Fadenstack.UI.Avalonia.Views;
 using Fadenstack.UI.Tests;
+using Fadenstack.UI.Tests.ToolsView;
 using Fadenstack.UI.Wizard;
 
 namespace Fadenstack.UI.Avalonia.Tests;
@@ -101,6 +102,9 @@ internal static class StyleCases
 
     public static readonly string[] DraftStates = { "idle", "working", "ready", "ready-with-problems", "failed", "unreadable", "no-chat", "no-model" };
 
+    /// <summary>The states of the Tools view (see <see cref="ToolsScenes"/>).</summary>
+    public static readonly string[] ToolsStates = ToolsScenes.States;
+
     private const string Proposal = "---\nname: contract-review\ndescription: Reviews a contract clause by clause.\n---\n\n## Goal\nReview the contract.\n";
 
     /// <summary>(view, state) for each; the wizard's views are named by the step.</summary>
@@ -121,6 +125,10 @@ internal static class StyleCases
         foreach (var state in DraftStates)
         {
             yield return ("draft", state);
+        }
+        foreach (var state in ToolsStates)
+        {
+            yield return ("tools", state);
         }
     }
 
@@ -150,6 +158,11 @@ internal static class StyleCases
             }
             case "draft":
                 return Wrap(await SkillViewTests.DraftAtAsync(state, language));
+            case "tools":
+            {
+                var host = await ToolsHost.OpenAsync(state, language);
+                return new StyleHost(host, host.Window, () => host.BindingErrors);
+            }
             default:
                 throw new ArgumentException(view);
         }

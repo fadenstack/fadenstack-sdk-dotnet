@@ -37,6 +37,28 @@
         <Setter Property="Padding" Value="12,8" />
     </Style>
 
+    <!-- A square icon button is a control: 6, not the chat's round one (the icon is centred in the square either way). -->
+    <Style Selector="Button.icon, ToggleButton.icon">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+    <!-- A segmented choice: a chip-sized frame (8) with its 2 px inset, and segments of a control's radius (8 - 2 = 6). -->
+    <Style Selector="Border.segmented">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Padding" Value="2" />
+    </Style>
+    <Style Selector="RadioButton.segment, ToggleButton.segment">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+    <!-- The chosen segment has an edge (the accent, 3:1 on the page and the surfaces), as every control that shows a fill does (WCAG 1.4.11). -->
+    <Style Selector="RadioButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Accent}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <!-- Fluent colours a disabled box's text itself; the text stays Foreground (the control's opacity says it is off). -->
+    <Style Selector="CheckBox:disabled, RadioButton:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+
     <!-- ===== Containers: 12, with 12 inside ================================================================== -->
     <Style Selector="Border.card">
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
