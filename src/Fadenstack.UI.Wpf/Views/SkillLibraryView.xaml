@@ -30,79 +30,79 @@
     <Grid>
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False"
                       Visibility="{Binding Editor, Converter={StaticResource Fadenstack.EmptyToCollapsed}, ConverterParameter=invert}">
-            <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16">
-                <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text SkillLibraryTitle}" Margin="0,0,0,12" />
+            <StackPanel x:Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}">
+                <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text SkillLibraryTitle}" />
 
                 <!-- What the last action did: information is a status (polite), a warning too, an error is an alert (assertive). -->
-                <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="0,0,0,12"
+                <Border x:Name="MessageInfo" Style="{StaticResource Skill.Banner.Success}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding MessageIsInformation, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                 </Border>
-                <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="0,0,0,12"
+                <Border x:Name="MessageWarning" Style="{StaticResource Skill.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding MessageIsWarning, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
                 </Border>
-                <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,12"
+                <Border x:Name="MessageError" Style="{StaticResource Skill.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding MessageIsError, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <TextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                 </Border>
 
                 <!-- Reading, could not read, none yet. -->
-                <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Note}" Margin="0,0,0,12" AutomationProperties.LiveSetting="Polite"
+                <TextBlock Style="{StaticResource Skill.Caption}" Text="{Binding Note}" Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.LiveSetting="Polite"
                            Visibility="{Binding Note, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
 
-                <WrapPanel Orientation="Horizontal">
-                    <Button Style="{StaticResource Fadenstack.PrimaryButton}" Margin="0,0,8,8" b:WizardFocus.IsFirst="True" Command="{Binding NewCommand}" Content="{local:Text SkillNew}"
+                <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapBlock}">
+                    <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Primary}" b:WizardFocus.IsFirst="True" Command="{Binding NewCommand}" Content="{local:Text SkillNew}"
                             AutomationProperties.Name="{local:Text SkillNew}" />
-                    <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,8" Command="{Binding ImportCommand}" Content="{local:Text SkillImport}"
+                    <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" Command="{Binding ImportCommand}" Content="{local:Text SkillImport}"
                             AutomationProperties.Name="{local:Text SkillImport}" />
-                    <Button x:Name="DraftButton" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,8" Command="{Binding DraftFromChatCommand}"
+                    <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" x:Name="DraftButton" Style="{StaticResource Form.Secondary}" Command="{Binding DraftFromChatCommand}"
                             Visibility="{Binding HasDraft, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                             Content="{local:Text SkillDraftTitle}" AutomationProperties.Name="{local:Text SkillDraftTitle}" />
                 </WrapPanel>
 
                 <!-- "Draft from this chat": only when the app gave the library its conversation. -->
-                <local:SkillDraftView x:Name="DraftHost" DataContext="{Binding Draft}" Margin="0,0,0,12"
+                <local:SkillDraftView x:Name="DraftHost" DataContext="{Binding Draft}" Margin="{StaticResource Fadenstack.Space.Block}"
                                       Visibility="{Binding DataContext.DraftOpen, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                       Theme="{Binding Theme, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}" />
 
                 <!-- Delete: the question first. Cancel has the focus. -->
-                <Border x:Name="DeleteCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" b:WizardFocus.Step="{Binding PendingDelete}"
+                <Border x:Name="DeleteCard" Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Block}" b:WizardFocus.Step="{Binding PendingDelete}"
                         Visibility="{Binding PendingDelete, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding DeleteTitle}" Margin="0,0,0,8" AutomationProperties.LiveSetting="Assertive" />
-                        <TextBlock Text="{Binding DeleteBody}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                        <WrapPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding CancelDeleteCommand}"
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding DeleteTitle}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.LiveSetting="Assertive" />
+                        <TextBlock Text="{Binding DeleteBody}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                        <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                            <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" b:WizardFocus.IsFirst="True" Command="{Binding CancelDeleteCommand}"
                                     Content="{local:Text SkillCancel}" AutomationProperties.Name="{local:Text SkillCancel}" />
-                            <Button Style="{StaticResource Fadenstack.PrimaryButton}" Command="{Binding ConfirmDeleteCommand}" Content="{local:Text SkillDelete}"
+                            <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Primary}" Command="{Binding ConfirmDeleteCommand}" Content="{local:Text SkillDelete}"
                                     AutomationProperties.Name="{local:Text SkillDelete}" />
                         </WrapPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- Import: what the checks found, nothing written yet. Enter presses Import when every check passed. -->
-                <Border x:Name="ImportCard" Style="{StaticResource Skill.Card}" Margin="0,0,0,12" b:WizardFocus.Step="{Binding PendingImport}"
+                <Border x:Name="ImportCard" Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Block}" b:WizardFocus.Step="{Binding PendingImport}"
                         Visibility="{Binding PendingImport, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding ImportTitle}" Margin="0,0,0,8" AutomationProperties.LiveSetting="Assertive" />
-                        <TextBlock Text="{Binding ImportBody}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                        <ItemsControl ItemsSource="{Binding ImportIssues}" Focusable="False" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite">
+                        <TextBlock Style="{StaticResource Skill.Strong}" Text="{Binding ImportTitle}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.LiveSetting="Assertive" />
+                        <TextBlock Text="{Binding ImportBody}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                        <ItemsControl ItemsSource="{Binding ImportIssues}" Focusable="False" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource Skill.Banner.Issue}" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource Skill.Banner.Issue}" Margin="{StaticResource Fadenstack.Space.Tight}">
                                         <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <WrapPanel Orientation="Horizontal">
-                            <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" b:WizardFocus.IsFirst="True" Command="{Binding CancelImportCommand}"
+                        <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                            <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" b:WizardFocus.IsFirst="True" Command="{Binding CancelImportCommand}"
                                     Content="{local:Text SkillCancel}" AutomationProperties.Name="{local:Text SkillCancel}" />
-                            <Button Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
+                            <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
                                     Visibility="{Binding ImportReplaces, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}"
                                     Content="{local:Text SkillImport}" AutomationProperties.Name="{local:Text SkillImport}" />
-                            <Button Style="{StaticResource Fadenstack.PrimaryButton}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
+                            <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Command="{Binding ConfirmImportCommand}"
                                     Visibility="{Binding ImportReplaces, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                     Content="{local:Text SkillReplace}" AutomationProperties.Name="{local:Text SkillReplace}" />
                         </WrapPanel>
@@ -113,9 +113,9 @@
                 <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource Skill.Card}" Margin="0,0,0,8" AutomationProperties.Name="{Binding Name}">
+                            <Border Style="{StaticResource Skill.Card}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.Name="{Binding Name}">
                                 <StackPanel>
-                                    <DockPanel Margin="0,0,0,8">
+                                    <DockPanel Margin="{StaticResource Fadenstack.Space.Item}">
                                         <CheckBox DockPanel.Dock="Right" VerticalAlignment="Top" Margin="8,0,0,0" IsChecked="{Binding IsEnabled, Mode=OneWay}"
                                                   Visibility="{Binding CanSwitch, Converter={StaticResource Fadenstack.BoolToVisibility}}" CommandParameter="{Binding}"
                                                   Command="{Binding DataContext.ToggleCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
@@ -128,12 +128,12 @@
                                         </StackPanel>
                                     </DockPanel>
                                     <!-- A skill that cannot be read: why, and that it can be opened or deleted. -->
-                                    <Border Style="{StaticResource Skill.Banner.Error}" Margin="0,0,0,8"
+                                    <Border Style="{StaticResource Skill.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Item}"
                                             Visibility="{Binding IsBroken, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                                         <TextBlock x:Name="BrokenText" Text="{Binding BrokenText}" TextWrapping="Wrap" />
                                     </Border>
-                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                        <Border Style="{StaticResource Fadenstack.Badge}" Margin="0,0,8,0">
+                                    <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.Item}">
+                                        <Border Style="{StaticResource Fadenstack.Badge}" Margin="{StaticResource Fadenstack.Space.BesideItem}">
                                             <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding OriginLabel}" />
                                         </Border>
                                         <Border Style="{StaticResource Fadenstack.Badge}" Margin="0"
@@ -141,24 +141,24 @@
                                             <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Text="{Binding StatusLabel}" />
                                         </Border>
                                     </WrapPanel>
-                                    <WrapPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
+                                    <WrapPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" CommandParameter="{Binding}"
                                                 Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                                 Content="{local:Text SkillEdit}" AutomationProperties.Name="{Binding EditLabel}" />
-                                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
+                                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Secondary}" CommandParameter="{Binding}"
                                                 Visibility="{Binding IsReadOnly, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                                 Content="{local:Text SkillView}" AutomationProperties.Name="{Binding ViewLabel}" />
-                                        <Button Style="{StaticResource Fadenstack.GhostButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
+                                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Quiet}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanDuplicate, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.DuplicateCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                                 Content="{local:Text SkillDuplicate}" AutomationProperties.Name="{Binding DuplicateLabel}" />
-                                        <Button Style="{StaticResource Fadenstack.GhostButton}" Margin="0,0,8,0" CommandParameter="{Binding}"
+                                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Quiet}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanExport, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                                 Content="{local:Text SkillExport}" AutomationProperties.Name="{Binding ExportLabel}" />
-                                        <Button Style="{StaticResource Fadenstack.GhostButton}" CommandParameter="{Binding}"
+                                        <Button Margin="{StaticResource Fadenstack.Space.BesideItem}" Style="{StaticResource Form.Quiet}" CommandParameter="{Binding}"
                                                 Visibility="{Binding CanDelete, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                                 Command="{Binding DataContext.AskDeleteCommand, RelativeSource={RelativeSource AncestorType={x:Type local:SkillLibraryView}}}"
                                                 Content="{local:Text SkillDelete}" AutomationProperties.Name="{Binding DeleteLabel}" />

@@ -11,6 +11,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The automation names and ids before the styling pass (StyleRenderTests): a restyle must keep them. -->
+    <None Include="automation-before.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <!-- Avalonia.Headless.XUnit is built on xunit v3 (a test project there is an executable). -->
     <PackageReference Include="xunit.v3" Version="3.2.2" />

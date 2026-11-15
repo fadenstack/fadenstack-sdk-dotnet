@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Fadenstack.UI.Services;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Models;
 
@@ -83,7 +84,7 @@ public sealed class SkillPickerViewModel : ObservableObject
         _strings = strings ?? (() => current);
         _clock = clock ?? (() => DateTimeOffset.Now);
         Key = "fdn-skills-" + Interlocked.Increment(ref _counter).ToString(CultureInfo.InvariantCulture);
-        PickCommand = new RelayCommand<SkillOption>(skill => Pick(skill));
+        PickCommand = new ItemCommand<SkillOption>(skill => Pick(skill));
     }
 
     /// <summary>Unique among the pickers of the process: for the automation ids a skin gives the list and its options.</summary>

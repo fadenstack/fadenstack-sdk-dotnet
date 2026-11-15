@@ -12,6 +12,7 @@
              x:DataType="vm:ConnectionWizardViewModel"
              Focusable="True"
              FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}"
              b:WizardFocus.Step="{Binding Step}">
     <!--
         The connection wizard (sdk/51 F15, I15): one view for a ConnectionWizardViewModel, one panel for each group of its
@@ -19,14 +20,12 @@
         model's (UiStrings, five languages). It is a narrow column that stays centred whatever the width (an Office task
         pane, a Chrome side panel, the desktop's window). A password or a key never goes through a binding: the button that
         sends it names its box (b:WizardSecret) and the box is empty right after. Every look is a style class of the skin's
-        (Controls.axaml) or a theme key; there is no colour, size or radius here.
+        (Controls.axaml, and Forms.axaml for the form views' shapes and rhythm) or a theme key; there is no colour or radius here.
     -->
     <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
         <Style Selector="StackPanel.step > Button">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
-        </Style>
-        <Style Selector="Button.choice">
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
         <Style Selector="Button.hide-disabled:disabled">
             <Setter Property="IsVisible" Value="False" />
@@ -43,7 +42,7 @@
     </UserControl.KeyBindings>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="12" Spacing="8">
 
             <!-- The app could not keep what the wizard handed it (any step that saves). -->
             <Border Classes="banner error" IsVisible="{Binding StoreFailed}">
@@ -54,10 +53,10 @@
             </Border>
 
             <!-- ===== The app's own steps and every step that is running: progress, its line, Cancel ================ -->
-            <StackPanel Classes="step" Spacing="12"
+            <StackPanel Classes="step" Spacing="8"
                         IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='BeforeChoice,AppPrecondition,Checking,ServerAccepted,PairStarting,Approved,Redeeming,OwnSearching,BeforeCheck,OwnChecking,OwnDone,AfterConnect'}">
                 <ContentControl Content="{Binding AppStep}" IsVisible="{Binding AppStep, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                <StackPanel Spacing="12" IsVisible="{Binding AppStep, Converter={x:Static ObjectConverters.IsNull}}">
+                <StackPanel Spacing="8" IsVisible="{Binding AppStep, Converter={x:Static ObjectConverters.IsNull}}">
                     <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="{v:Text WizardChecking}" />
                     <StackPanel AutomationProperties.LiveSetting="Polite">
                         <TextBlock TextWrapping="Wrap" Text="{v:Text WizardChecking}"
@@ -79,7 +78,7 @@
             </StackPanel>
 
             <!-- ===== Choose ====================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Choose'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Choose'}">
                 <TextBlock Name="ChooseTitle" Classes="title" TextWrapping="Wrap" />
                 <Button Classes="secondary choice" Command="{Binding ChooseServerCommand}" IsVisible="{Binding CanChooseServer}"
                         AutomationProperties.Name="{v:Text WizardChooseServer}" AutomationProperties.HelpText="{v:Text WizardChooseServerHelp}">
@@ -115,13 +114,15 @@
             </StackPanel>
 
             <!-- ===== ServerAddress =============================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='ServerAddress'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='ServerAddress'}">
                 <TextBlock Classes="title" Text="{v:Text WizardServerTitle}" TextWrapping="Wrap" />
-                <TextBlock Classes="strong" Text="{v:Text WizardServerLabel}" />
-                <TextBox Name="ServerBox" Text="{Binding ServerAddressText, Mode=TwoWay}" IsReadOnly="{Binding ServerLocked}"
-                         PlaceholderText="{v:Text WizardServerPlaceholder}" AutomationProperties.Name="{v:Text WizardServerLabel}" />
-                <TextBlock Classes="caption muted" Text="{v:Text WizardServerLocked}" TextWrapping="Wrap" IsVisible="{Binding ServerLocked}" />
-                <TextBlock Classes="caption muted" Text="{v:Text WizardServerHelp}" TextWrapping="Wrap" />
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardServerLabel}" />
+                    <TextBox Name="ServerBox" Text="{Binding ServerAddressText, Mode=TwoWay}" IsReadOnly="{Binding ServerLocked}"
+                             PlaceholderText="{v:Text WizardServerPlaceholder}" AutomationProperties.Name="{v:Text WizardServerLabel}" />
+                    <TextBlock Classes="caption muted" Text="{v:Text WizardServerLocked}" TextWrapping="Wrap" IsVisible="{Binding ServerLocked}" />
+                    <TextBlock Classes="caption muted" Text="{v:Text WizardServerHelp}" TextWrapping="Wrap" />
+                </StackPanel>
                 <Border Classes="banner error" IsVisible="{Binding AddressErrorText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                     <DockPanel>
                         <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.ErrorOutline}" Margin="0,0,12,0" />
@@ -141,7 +142,7 @@
             </StackPanel>
 
             <!-- ===== A step that went wrong: the banner, then what can be done ========================================= -->
-            <StackPanel Classes="step" Spacing="12"
+            <StackPanel Classes="step" Spacing="8"
                         IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Unreachable,CertificateNotTrusted,NotFadenstack,StartFailed,ServerTooOld,Denied,Expired,PairFailed,NoAccess,PasswordError,OwnFailed'}">
                 <Border Classes="banner error">
                     <DockPanel>
@@ -201,7 +202,7 @@
             </StackPanel>
 
             <!-- ===== PairCode ==================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='PairCode'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='PairCode'}">
                 <Border Classes="banner warning" IsVisible="{Binding SignInEnded}">
                     <DockPanel>
                         <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
@@ -234,13 +235,17 @@
             </StackPanel>
 
             <!-- ===== Password ==================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Password'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Password'}">
                 <TextBlock Classes="title" Text="{v:Text WizardSignIn}" TextWrapping="Wrap" />
-                <TextBlock Classes="strong" Text="{v:Text WizardEmail}" />
-                <TextBox Name="EmailBox" Text="{Binding Email, Mode=TwoWay}" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{v:Text WizardEmail}" />
-                <TextBlock Classes="strong" Text="{v:Text WizardPassword}" />
-                <!-- The password is never bound: the Sign in button reads it when it is pressed and empties the box. -->
-                <TextBox Name="PasswordBox" PasswordChar="*" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{v:Text WizardPassword}" />
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardEmail}" />
+                    <TextBox Name="EmailBox" Text="{Binding Email, Mode=TwoWay}" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{v:Text WizardEmail}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardPassword}" />
+                    <!-- The password is never bound: the Sign in button reads it when it is pressed and empties the box. -->
+                    <TextBox Name="PasswordBox" PasswordChar="*" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{v:Text WizardPassword}" />
+                </StackPanel>
                 <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" AutomationProperties.Name="{v:Text WizardRedeeming}" />
                 <Button Name="SignInButton" Classes="primary" b:WizardFocus.IsPrimary="True" Content="{v:Text WizardSignIn}" AutomationProperties.Name="{v:Text WizardSignIn}"
                         b:WizardSecret.Box="{Binding #PasswordBox}" b:WizardSecret.EnterFrom="{Binding #EmailBox}"
@@ -260,7 +265,7 @@
             </Border>
 
             <!-- ===== OwnAccept =================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnAccept'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnAccept'}">
                 <TextBlock Classes="title" Text="{v:Text WizardOwnTitle}" TextWrapping="Wrap" />
                 <TextBlock Text="{v:Text WizardOwnDataFlow}" TextWrapping="Wrap" />
                 <TextBlock Text="{v:Text WizardOwnProviderTerms}" TextWrapping="Wrap" />
@@ -295,48 +300,55 @@
             </StackPanel>
 
             <!-- ===== OwnPick ===================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnPick'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnPick'}">
                 <TextBlock Classes="title" Text="{v:Text WizardOwnPickTitle}" TextWrapping="Wrap" />
-                <TextBlock Classes="strong" Text="{v:Text WizardOwnFound}" IsVisible="{Binding Found.Count, Converter={x:Static v:Counts.Any}}" />
-                <ItemsControl ItemsSource="{Binding Found}" IsVisible="{Binding Found.Count, Converter={x:Static v:Counts.Any}}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="8" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="ep:LocalEndpoint">
-                            <Button Classes="secondary choice" HorizontalAlignment="Stretch" CommandParameter="{Binding}"
-                                    Command="{Binding $parent[v:WizardView].((vm:ConnectionWizardViewModel)DataContext).SelectFoundCommand}"
-                                    AutomationProperties.Name="{Binding Preset.Name}">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Classes="strong" Text="{Binding Preset.Name}" TextWrapping="Wrap" />
-                                    <TextBlock Classes="caption" Text="{Binding BaseUrl}" TextWrapping="Wrap" />
-                                </StackPanel>
-                            </Button>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel Spacing="4" IsVisible="{Binding Found.Count, Converter={x:Static v:Counts.Any}}">
+                    <TextBlock Classes="strong" Text="{v:Text WizardOwnFound}" />
+                    <ItemsControl ItemsSource="{Binding Found}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="6" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="ep:LocalEndpoint">
+                                <Button Classes="secondary choice" HorizontalAlignment="Stretch" CommandParameter="{Binding}"
+                                        Command="{Binding $parent[v:WizardView].((vm:ConnectionWizardViewModel)DataContext).SelectFoundCommand}"
+                                        AutomationProperties.Name="{Binding Preset.Name}">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Classes="strong" Text="{Binding Preset.Name}" TextWrapping="Wrap" />
+                                        <TextBlock Classes="caption" Text="{Binding BaseUrl}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
                 <TextBlock Classes="muted" Text="{v:Text WizardOwnNothingFound}" TextWrapping="Wrap"
                            IsVisible="{Binding Found.Count, Converter={x:Static v:Counts.None}}" />
-                <TextBlock Classes="strong" Text="{v:Text WizardOwnPresets}" />
-                <ItemsControl ItemsSource="{Binding Presets}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="4" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="ep:EndpointPreset">
-                            <Button Classes="quiet choice" HorizontalAlignment="Stretch" CommandParameter="{Binding}"
-                                    Command="{Binding $parent[v:WizardView].((vm:ConnectionWizardViewModel)DataContext).SelectPresetCommand}"
-                                    AutomationProperties.Name="{Binding Name}" Content="{Binding Name}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Classes="strong" Text="{v:Text WizardOwnAddress}" />
-                <TextBox Name="EndpointBox" b:WizardFocus.IsFirst="True" Text="{Binding EndpointAddressText, Mode=TwoWay}"
-                         PlaceholderText="{v:Text WizardOwnAddressPlaceholder}" AutomationProperties.Name="{v:Text WizardOwnAddress}" />
+                <!-- The providers and servers: a wrapping row of chips; the chips' 6 below the last row is taken back, so the step's spacing follows. -->
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardOwnPresets}" />
+                    <ItemsControl ItemsSource="{Binding Presets}" Margin="0,0,0,-6">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="ep:EndpointPreset">
+                                <Button Classes="secondary chip" CommandParameter="{Binding}"
+                                        Command="{Binding $parent[v:WizardView].((vm:ConnectionWizardViewModel)DataContext).SelectPresetCommand}"
+                                        AutomationProperties.Name="{Binding Name}" Content="{Binding Name}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardOwnAddress}" />
+                    <TextBox Name="EndpointBox" b:WizardFocus.IsFirst="True" Text="{Binding EndpointAddressText, Mode=TwoWay}"
+                             PlaceholderText="{v:Text WizardOwnAddressPlaceholder}" AutomationProperties.Name="{v:Text WizardOwnAddress}" />
+                </StackPanel>
                 <CheckBox IsChecked="{Binding NeedsKey, Mode=TwoWay}" AutomationProperties.Name="{v:Text WizardOwnNeedsKey}">
                     <TextBlock Text="{v:Text WizardOwnNeedsKey}" TextWrapping="Wrap" />
                 </CheckBox>
@@ -359,7 +371,7 @@
             </StackPanel>
 
             <!-- ===== OwnPlainHttp ================================================================================ -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnPlainHttp'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnPlainHttp'}">
                 <TextBlock Classes="title" Text="{v:Text WizardPlainHttpTitle}" TextWrapping="Wrap" />
                 <Border Classes="banner warning">
                     <DockPanel>
@@ -374,12 +386,14 @@
             </StackPanel>
 
             <!-- ===== OwnKey ====================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnKey'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnKey'}">
                 <TextBlock Classes="title" Text="{v:Text WizardKeyTitle}" TextWrapping="Wrap" />
-                <TextBlock Classes="strong" Text="{v:Text WizardKeyLabel}" />
-                <!-- The key is never bound: the Continue button reads it when it is pressed and empties the box. -->
-                <TextBox Name="KeyBox" PasswordChar="*" AutomationProperties.Name="{v:Text WizardKeyLabel}" />
-                <TextBlock Classes="caption muted" Text="{v:Text WizardKeyHelp}" TextWrapping="Wrap" />
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardKeyLabel}" />
+                    <!-- The key is never bound: the Continue button reads it when it is pressed and empties the box. -->
+                    <TextBox Name="KeyBox" PasswordChar="*" AutomationProperties.Name="{v:Text WizardKeyLabel}" />
+                    <TextBlock Classes="caption muted" Text="{v:Text WizardKeyHelp}" TextWrapping="Wrap" />
+                </StackPanel>
                 <Button Classes="primary" b:WizardFocus.IsPrimary="True" Content="{v:Text WizardContinue}" AutomationProperties.Name="{v:Text WizardContinue}"
                         b:WizardSecret.Box="{Binding #KeyBox}" b:WizardSecret.Command="{Binding SubmitKeyCommand}" />
                 <Button Classes="quiet hide-disabled" Command="{Binding BackCommand}" Content="{v:Text WizardBack}"
@@ -387,7 +401,7 @@
             </StackPanel>
 
             <!-- ===== OwnHelp ===================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnHelp'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnHelp'}">
                 <TextBlock Classes="title" Text="{v:Text WizardOwnHelpTitle}" TextWrapping="Wrap" />
                 <SelectableTextBlock Text="{v:Text WizardOwnHelp}" TextWrapping="Wrap" />
                 <Button Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding RetryCommand}" Content="{v:Text WizardTryAgain}"
@@ -397,7 +411,7 @@
             </StackPanel>
 
             <!-- ===== OwnResult =================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnResult'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnResult'}">
                 <Border Classes="banner success">
                     <DockPanel>
                         <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />
@@ -422,11 +436,13 @@
             </StackPanel>
 
             <!-- ===== OwnModel ==================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnModel'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='OwnModel'}">
                 <TextBlock Classes="title" Text="{v:Text WizardModelTitle}" TextWrapping="Wrap" />
-                <TextBlock Classes="strong" Text="{v:Text WizardModelLabel}" />
-                <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                          AutomationProperties.Name="{v:Text WizardModelLabel}" />
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="strong" Text="{v:Text WizardModelLabel}" />
+                    <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" HorizontalAlignment="Stretch"
+                              AutomationProperties.Name="{v:Text WizardModelLabel}" />
+                </StackPanel>
                 <Button Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding ContinueCommand}" Content="{v:Text WizardContinue}"
                         AutomationProperties.Name="{v:Text WizardContinue}" />
                 <Button Classes="quiet hide-disabled" Command="{Binding BackCommand}" Content="{v:Text WizardBack}"
@@ -434,7 +450,7 @@
             </StackPanel>
 
             <!-- ===== Settings ==================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Settings'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='Settings'}">
                 <TextBlock Classes="title" Text="{v:Text WizardSettingsTitle}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding ConnectedText}" TextWrapping="Wrap" IsVisible="{Binding ConnectedText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <Button Classes="secondary hide-disabled" Command="{Binding ConnectOrganisationCommand}" Content="{v:Text WizardConnectOrganisation}"
@@ -452,12 +468,12 @@
             </StackPanel>
 
             <!-- ===== SignOut ===================================================================================== -->
-            <StackPanel Classes="step" Spacing="12" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='SignOut'}">
-                <StackPanel Spacing="12" IsVisible="{Binding Current.Mode, Converter={x:Static b:WizardIs.NotIn}, ConverterParameter='Endpoint'}">
+            <StackPanel Classes="step" Spacing="8" IsVisible="{Binding Step, Converter={x:Static b:WizardIs.In}, ConverterParameter='SignOut'}">
+                <StackPanel Spacing="8" IsVisible="{Binding Current.Mode, Converter={x:Static b:WizardIs.NotIn}, ConverterParameter='Endpoint'}">
                     <TextBlock Classes="title" Text="{v:Text WizardSignOutTitle}" TextWrapping="Wrap" />
                     <TextBlock Text="{v:Text WizardSignOutBody}" TextWrapping="Wrap" />
                 </StackPanel>
-                <StackPanel Spacing="12" IsVisible="{Binding Current.Mode, Converter={x:Static b:WizardIs.In}, ConverterParameter='Endpoint'}">
+                <StackPanel Spacing="8" IsVisible="{Binding Current.Mode, Converter={x:Static b:WizardIs.In}, ConverterParameter='Endpoint'}">
                     <TextBlock Classes="title" Text="{v:Text WizardRemoveTitle}" TextWrapping="Wrap" />
                     <TextBlock Text="{v:Text WizardRemoveBody}" TextWrapping="Wrap" />
                 </StackPanel>

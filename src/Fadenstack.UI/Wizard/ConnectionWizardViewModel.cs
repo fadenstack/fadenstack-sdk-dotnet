@@ -197,17 +197,17 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
             () => _options.PasswordFallback && Is(WizardStep.PairCode, WizardStep.ServerTooOld));
         BackToCodeCommand = new AsyncRelayCommand(StartPairingAsync,
             () => !_passwordBusy && Is(WizardStep.Password, WizardStep.PasswordError));
-        SignInWithPasswordCommand = new AsyncRelayCommand<string>(SignInWithPasswordAsync,
+        SignInWithPasswordCommand = new AsyncItemCommand<string>(SignInWithPasswordAsync,
             _ => !_passwordBusy && Is(WizardStep.Password));
         OpenPairingPageCommand = new RelayCommand(() => _links?.TryOpen(_pairingPage!), () => Is(WizardStep.PairCode) && _pairingPage is not null);
         CopyCodeCommand = new RelayCommand(() => _clipboard.SetText(_userCode!), () => Is(WizardStep.PairCode) && _userCode is not null);
         AcceptCommand = new AsyncRelayCommand(AcceptAsync, () => Is(WizardStep.OwnAccept) && _accepted);
         ServerModeInsteadCommand = new RelayCommand(OpenServerAddress, () => Is(WizardStep.OwnAccept) && CanChooseServer);
-        SelectPresetCommand = new RelayCommand<EndpointPreset>(SelectPreset, p => p is not null && Is(WizardStep.OwnPick));
-        SelectFoundCommand = new RelayCommand<LocalEndpoint>(SelectFound, f => f is not null && Is(WizardStep.OwnPick));
+        SelectPresetCommand = new ItemCommand<EndpointPreset>(SelectPreset, p => p is not null && Is(WizardStep.OwnPick));
+        SelectFoundCommand = new ItemCommand<LocalEndpoint>(SelectFound, f => f is not null && Is(WizardStep.OwnPick));
         UseEndpointCommand = new AsyncRelayCommand(UseEndpointAsync, () => Is(WizardStep.OwnPick));
         ConfirmPlainHttpCommand = new AsyncRelayCommand(RunCheckAsync, () => Is(WizardStep.OwnPlainHttp));
-        SubmitKeyCommand = new AsyncRelayCommand<string>(SubmitKeyAsync, _ => Is(WizardStep.OwnKey));
+        SubmitKeyCommand = new AsyncItemCommand<string>(SubmitKeyAsync, _ => Is(WizardStep.OwnKey));
         EnterKeyCommand = new RelayCommand(() =>
         {
             NeedsKey = true;
@@ -1572,17 +1572,13 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
 
     private void Refresh()
     {
-        foreach (var command in new IRelayCommand[]
-        {
+        // One command's handler that throws must not stop the others: each is told on its own (see CommandNotify).
+        CommandNotify.All(
             ChooseServerCommand, ChooseOwnAiCommand, ChooseDemoCommand, CloseCommand, CancelCommand, BackCommand, SubmitServerCommand,
             ChangeServerCommand, RetryCommand, NewCodeCommand, UsePasswordCommand, BackToCodeCommand, SignInWithPasswordCommand,
             OpenPairingPageCommand, CopyCodeCommand, AcceptCommand, ServerModeInsteadCommand, SelectPresetCommand, SelectFoundCommand,
             UseEndpointCommand, ConfirmPlainHttpCommand, SubmitKeyCommand, EnterKeyCommand, ShowHelpCommand, ContinueCommand,
-            ConnectOrganisationCommand, ChangeEndpointCommand, SignOutCommand, ConfirmSignOutCommand,
-        })
-        {
-            command?.NotifyCanExecuteChanged();
-        }
+            ConnectOrganisationCommand, ChangeEndpointCommand, SignOutCommand, ConfirmSignOutCommand);
     }
 
     public void Dispose()

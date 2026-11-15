@@ -85,7 +85,7 @@ public class SkillViewTests
 
     // ---- the library -------------------------------------------------------------------------------------------------
 
-    private static SkillHost LibraryAt(string state, string language)
+    internal static SkillHost LibraryAt(string state, string language)
     {
         var host = SkillHost.OpenLibrary(language, own: state != "empty", bundled: state != "empty");
         var library = host.Library;
@@ -311,7 +311,7 @@ public class SkillViewTests
 
     // ---- the editor --------------------------------------------------------------------------------------------------
 
-    private static SkillHost EditorAt(string state, string language)
+    internal static SkillHost EditorAt(string state, string language)
     {
         var mode = state is "edit" or "tested" or "asked" or "files" ? "edit" : state == "view" ? "view" : "new";
         var model = state == "asked" ? new ScriptedChat().Loads("contract-review") : null;
@@ -575,7 +575,7 @@ public class SkillViewTests
 
     // ---- the draft ---------------------------------------------------------------------------------------------------
 
-    private static SkillHost DraftAt(string state, string language)
+    internal static SkillHost DraftAt(string state, string language)
     {
         IChatClient? model = state switch
         {

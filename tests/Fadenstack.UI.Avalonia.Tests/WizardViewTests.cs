@@ -46,7 +46,7 @@ public class WizardViewTests
     }
 
     /// <summary>A real view model, with every offer on, shown at <paramref name="step"/> with the state that step reads.</summary>
-    private static async Task<WizardHost> AtAsync(WizardStep step, string language)
+    internal static async Task<WizardHost> AtAsync(WizardStep step, string language)
     {
         var host = await WizardHost.OpenAsync(o => o with { Current = EndpointConnection }, language);
         var endpoint = new Uri("http://localhost:11434/v1");

@@ -93,32 +93,32 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
 
         InitializeCommand = new AsyncRelayCommand(InitializeAsync);
-        SetLanguageCommand = new RelayCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
+        SetLanguageCommand = new ItemCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
         ToggleTellUnmarkedCommand = new RelayCommand(() => TellUnmarked = !TellUnmarked);
         SendCommand = new AsyncRelayCommand(() => SendAsync(Input), () => CanSend);
-        SendSuggestionCommand = new AsyncRelayCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy);
+        SendSuggestionCommand = new AsyncItemCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy);
         StopCommand = new RelayCommand(Stop, () => _isBusy);
         NewChatCommand = new RelayCommand(NewChat, () => _isReady && !_isBusy);
-        OpenSessionCommand = new AsyncRelayCommand<SessionItemViewModel>(s => s is null ? Task.CompletedTask : OpenSessionAsync(s.Id),
+        OpenSessionCommand = new AsyncItemCommand<SessionItemViewModel>(s => s is null ? Task.CompletedTask : OpenSessionAsync(s.Id),
             _ => _isReady && !_isBusy);
-        DeleteSessionCommand = new AsyncRelayCommand<SessionItemViewModel>(DeleteSessionAsync, _ => !_isBusy);
+        DeleteSessionCommand = new AsyncItemCommand<SessionItemViewModel>(DeleteSessionAsync, _ => !_isBusy);
         LoadEarlierCommand = new AsyncRelayCommand(LoadEarlierAsync, () => HasEarlierTurns);
         ToggleHistoryCommand = new AsyncRelayCommand(ToggleHistoryAsync);
-        RemoveAttachmentCommand = new RelayCommand<AttachmentViewModel>(a =>
+        RemoveAttachmentCommand = new ItemCommand<AttachmentViewModel>(a =>
         {
             if (a is not null)
             {
                 Attachments.Remove(a);
             }
         });
-        RemoveSkillCommand = new RelayCommand<SkillOption>(s =>
+        RemoveSkillCommand = new ItemCommand<SkillOption>(s =>
         {
             if (s is not null)
             {
                 RemoveSkill(s.Slug);
             }
         });
-        SelectToolModeCommand = new RelayCommand<ToolModeOption>(option =>
+        SelectToolModeCommand = new ItemCommand<ToolModeOption>(option =>
         {
             if (option is { Mode: ToolMode.Bypass, IsAvailable: true })
             {
@@ -130,7 +130,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             }
             IsModeMenuOpen = false;
         }, option => option is { IsAvailable: true });
-        SelectReasoningCommand = new RelayCommand<ReasoningOption>(option =>
+        SelectReasoningCommand = new ItemCommand<ReasoningOption>(option =>
         {
             if (option is not null)
             {
@@ -142,7 +142,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         OpenAboutCommand = new RelayCommand(OpenAbout);
         CloseAboutCommand = new RelayCommand(() => IsAboutOpen = false);
         CopyDetailsCommand = new RelayCommand(() => Clipboard.SetText(About.Details));
-        OpenLinkCommand = new RelayCommand<PanelLink>(OpenLink, link => link is not null);
+        OpenLinkCommand = new ItemCommand<PanelLink>(OpenLink, link => link is not null);
     }
 
     // -- state ---------------------------------------------------------------------------------------

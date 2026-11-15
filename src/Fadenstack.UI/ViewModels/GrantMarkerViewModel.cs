@@ -88,7 +88,7 @@ public sealed class GrantMarkerViewModel : ObservableObject, IDisposable
         _stopTurn = stopTurn ?? (_ => { });
         _placeLabel = placeLabel ?? ((_, _) => null);
         StopCommand = new AsyncRelayCommand(StopAsync, () => IsOn);
-        KeepGoingCommand = new AsyncRelayCommand<string?>(KeepGoingAsync, _ => IsEnding);
+        KeepGoingCommand = new AsyncItemCommand<string?>(KeepGoingAsync, _ => IsEnding);
         DismissMessageCommand = new RelayCommand(() => Problem = "");
         _lifecycle.Changed += OnChanged;
         _lifecycle.Ended += OnEnded;

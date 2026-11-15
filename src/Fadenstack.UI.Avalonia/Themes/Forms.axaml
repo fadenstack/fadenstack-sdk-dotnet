@@ -1,0 +1,62 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        The shape and rhythm of the form views: the connection wizard and the skill library, editor and draft (sdk/51 F15, the
+        styling pass, as the WPF skin). Only those views include this file (UserControl.Styles), so it applies inside them and
+        nowhere else: the chat keeps design 22's shapes. A style here is closer to the control than Controls.axaml's and wins;
+        within this file the later of two wins, so the chip comes after the controls.
+
+        One radius system: a container (card, banner) 12, a control (button, field, check box) 6, a chip or badge 8; an element
+        inside a container has the container's radius minus its inset. Spacing is compact: 12 inside a container, 8 between the
+        parts of a step, 4 between a label and its field (the views group them). Colours stay the skin's (Controls.axaml).
+    -->
+
+    <!-- ===== Controls: 6 =================================================================================== -->
+    <Style Selector="Button.primary:not(.icon), Button.secondary:not(.icon), Button.quiet:not(.icon)">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+    <Style Selector="TextBox">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+        <Setter Property="Padding" Value="10,0,8,0" />
+    </Style>
+    <Style Selector="CheckBox">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+    <!-- The box's own radius is set in the template (a template value beats a plain style), so the selector carries a state, as the skin's own state styles do. -->
+    <Style Selector="CheckBox:not(:checked) /template/ Border#FsBox, CheckBox:checked /template/ Border#FsBox">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+
+    <!-- A choice (the wizard's ways, a server found on this computer): a line or two of text, left, with room around it. -->
+    <Style Selector="Button.choice">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+
+    <!-- ===== Containers: 12, with 12 inside ================================================================== -->
+    <Style Selector="Border.card">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.3}" />
+    </Style>
+    <Style Selector="Border.banner">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.3}" />
+    </Style>
+
+    <!-- ===== Chips and badges: 8 ============================================================================= -->
+    <!-- A chip is a secondary button (its colours, hover, focus ring) in a wrapping row: 28 high, normal weight. -->
+    <Style Selector="Button.secondary.chip:not(.icon)">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+    <Style Selector="Border.badge">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+    </Style>
+</Styles>

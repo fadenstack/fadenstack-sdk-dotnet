@@ -71,7 +71,7 @@ public sealed class GrantPart : ObservableObject
         _duration = Durations.FirstOrDefault(d => d.Value == pending.Offer.Preselected) ?? Durations.FirstOrDefault();
         AllowCommand = new RelayCommand(Allow, CanAllow);
         NotNowCommand = new RelayCommand(() => Answer(GrantAnswer.NotNow, GrantCardState.Declined), () => IsPending);
-        PickDurationCommand = new RelayCommand<DurationOption>(d =>
+        PickDurationCommand = new ItemCommand<DurationOption>(d =>
         {
             SelectedDuration = d;
             IsDurationMenuOpen = false;
