@@ -32,7 +32,7 @@ public class ChatCommandTests
         configure?.Invoke(options);
         rig.Chat = new AgentChatViewModel(rig.Agent, broker, InlineDispatcher.Instance, options);
         await rig.Chat.InitializeAsync();
-        rig.Chat.SelectedToolMode = rig.Chat.ToolModes.First(m => m.Mode == Tools.ToolMode.Auto);
+        rig.Chat.SelectedToolMode = rig.Chat.ToolModes.First(m => m.Mode == Fadenstack.Tools.ToolMode.Auto);
         return rig;
     }
 

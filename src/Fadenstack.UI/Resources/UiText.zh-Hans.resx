@@ -1633,4 +1633,703 @@
   <data name="SkillIssueReadFailed" xml:space="preserve">
     <value>无法读取 {0}。</value>
   </data>
+  <data name="ToolsTitle" xml:space="preserve">
+    <value>工具</value>
+  </data>
+  <data name="ToolsIntro" xml:space="preserve">
+    <value>您的助手可以使用的内容，以及它是否已开启。</value>
+  </data>
+  <data name="ToolsBannerNotAllowed" xml:space="preserve">
+    <value>您的组织未允许此助手使用此计算机上的 MCP 服务器。请咨询您的管理员。</value>
+  </data>
+  <data name="ToolsSignInNeeded" xml:space="preserve">
+    <value>登录后即可查看此助手的工具。</value>
+  </data>
+  <data name="ToolsPolicyAllowed" xml:space="preserve">
+    <value>已获贵组织允许</value>
+  </data>
+  <data name="ToolsPolicyAllowedTip" xml:space="preserve">
+    <value>贵组织允许此助手使用这台电脑上的 MCP 服务器。</value>
+  </data>
+  <data name="ToolsPolicyDeveloper" xml:space="preserve">
+    <value>开发者模式</value>
+  </data>
+  <data name="ToolsPolicyDeveloperTip" xml:space="preserve">
+    <value>开发者模式：任何服务器，仅限您本人使用。</value>
+  </data>
+  <data name="ToolsPolicyNotAllowed" xml:space="preserve">
+    <value>此助手不被允许</value>
+  </data>
+  <data name="ToolsTabLocal" xml:space="preserve">
+    <value>在这台电脑上 · {0}</value>
+  </data>
+  <data name="ToolsTabServer" xml:space="preserve">
+    <value>在您的服务器上 · {0}</value>
+  </data>
+  <data name="ToolsFilterPlaceholder" xml:space="preserve">
+    <value>筛选工具</value>
+  </data>
+  <data name="ToolsAddServer" xml:space="preserve">
+    <value>添加服务器</value>
+  </data>
+  <data name="ToolsScanThisComputer" xml:space="preserve">
+    <value>扫描这台电脑</value>
+  </data>
+  <data name="ToolsSectionServers" xml:space="preserve">
+    <value>MCP 服务器</value>
+  </data>
+  <data name="ToolsSectionServersHelp" xml:space="preserve">
+    <value>这台电脑上提供工具的程序。助手需要时会查找它们，每次调用都会先征求您的同意。</value>
+  </data>
+  <data name="ToolsKeptInMemory" xml:space="preserve">
+    <value>此计算机没有密钥存储，因此您的服务器仅保留到关闭应用为止。</value>
+  </data>
+  <data name="ToolsListUnreadable" xml:space="preserve">
+    <value>无法读取已保存的服务器列表。它已被另行保存，列表现在为空。</value>
+  </data>
+  <data name="ToolsCloudIntro" xml:space="preserve">
+    <value>这些工具由贵组织的服务器运行，您的数据会经过其检查。由您的管理员决定此助手可以使用哪些。</value>
+  </data>
+  <data name="ToolsCloudNotListed" xml:space="preserve">
+    <value>此服务器尚未列出其工具。</value>
+  </data>
+  <data name="ToolsCloudUnavailable" xml:space="preserve">
+    <value>暂时无法加载服务器的工具。</value>
+  </data>
+  <data name="ToolsCloudNone" xml:space="preserve">
+    <value>您的服务器没有向此助手提供工具。</value>
+  </data>
+  <data name="ToolsCloudForThis" xml:space="preserve">
+    <value>适用于此助手</value>
+  </data>
+  <data name="ToolsCloudNotFor" xml:space="preserve">
+    <value>不适用于此助手</value>
+  </data>
+  <data name="ToolsCloudOffByAdmin" xml:space="preserve">
+    <value>已被管理员关闭</value>
+  </data>
+  <data name="ToolsForThisAssistant" xml:space="preserve">
+    <value>{0} 个适用于此助手</value>
+  </data>
+  <data name="ToolsSwitchedOffCount" xml:space="preserve">
+    <value>{0} 个已关闭</value>
+  </data>
+  <data name="ToolsCollapse" xml:space="preserve">
+    <value>收起 {0}</value>
+  </data>
+  <data name="ToolsExpand" xml:space="preserve">
+    <value>展开 {0}</value>
+  </data>
+  <data name="ToolsTryAgain" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="ToolsLoading" xml:space="preserve">
+    <value>正在加载...</value>
+  </data>
+  <data name="ToolsEmptyTitle" xml:space="preserve">
+    <value>为您的助手提供这台电脑上的工具</value>
+  </data>
+  <data name="ToolsEmptyText" xml:space="preserve">
+    <value>MCP 服务器是提供工具的小程序，例如您的笔记、数据库或日历。可以查找您在其他应用中已在使用的服务器，也可以自己添加一个。</value>
+  </data>
+  <data name="ToolsStateRunning" xml:space="preserve">
+    <value>运行中</value>
+  </data>
+  <data name="ToolsStateOff" xml:space="preserve">
+    <value>已关闭</value>
+  </data>
+  <data name="ToolsStateStarting" xml:space="preserve">
+    <value>正在启动</value>
+  </data>
+  <data name="ToolsStateFailed" xml:space="preserve">
+    <value>无法启动：{0}</value>
+  </data>
+  <data name="ToolsStateNotAllowed" xml:space="preserve">
+    <value>不被允许</value>
+  </data>
+  <data name="ToolsStateChangedTools" xml:space="preserve">
+    <value>更改了其工具</value>
+  </data>
+  <data name="ToolsStateMissingValue" xml:space="preserve">
+    <value>无法启动：{0} 没有值</value>
+  </data>
+  <data name="ToolsStateNotAllowedBecause" xml:space="preserve">
+    <value>不允许：{0}</value>
+  </data>
+  <data name="ToolsReasonPolicy" xml:space="preserve">
+    <value>您的组织未允许在此计算机上使用 MCP 服务器</value>
+  </data>
+  <data name="ToolsReasonUnknown" xml:space="preserve">
+    <value>未说明原因</value>
+  </data>
+  <data name="ToolsCountOne" xml:space="preserve">
+    <value>1 个工具</value>
+  </data>
+  <data name="ToolsCountMany" xml:space="preserve">
+    <value>{0} 个工具</value>
+  </data>
+  <data name="ToolsToldFoldersOne" xml:space="preserve">
+    <value>已告知 1 个文件夹</value>
+  </data>
+  <data name="ToolsToldFoldersMany" xml:space="preserve">
+    <value>已告知 {0} 个文件夹</value>
+  </data>
+  <data name="ToolsMoreTools" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="ToolsFixAddValue" xml:space="preserve">
+    <value>填写该值</value>
+  </data>
+  <data name="ToolsOriginTyped" xml:space="preserve">
+    <value>由您添加</value>
+  </data>
+  <data name="ToolsOriginScan" xml:space="preserve">
+    <value>通过扫描发现</value>
+  </data>
+  <data name="ToolsOriginImported" xml:space="preserve">
+    <value>来自 {0}</value>
+  </data>
+  <data name="ToolsOriginLine" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="ToolsSwitchName" xml:space="preserve">
+    <value>开启或关闭 {0}</value>
+  </data>
+  <data name="ToolsOpenDetails" xml:space="preserve">
+    <value>显示 {0} 的详情</value>
+  </data>
+  <data name="ToolsToolMayDelete" xml:space="preserve">
+    <value>{0}，可能删除内容</value>
+  </data>
+  <data name="ToolsDrawerName" xml:space="preserve">
+    <value>{0}，MCP 服务器</value>
+  </data>
+  <data name="ToolsRunningSince" xml:space="preserve">
+    <value>自 {0} 起运行</value>
+  </data>
+  <data name="ToolsFactAdded" xml:space="preserve">
+    <value>添加方式</value>
+  </data>
+  <data name="ToolsFactRuns" xml:space="preserve">
+    <value>运行</value>
+  </data>
+  <data name="ToolsFactAddress" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="ToolsFactFolders" xml:space="preserve">
+    <value>已告知的文件夹</value>
+  </data>
+  <data name="ToolsFactSecrets" xml:space="preserve">
+    <value>机密</value>
+  </data>
+  <data name="ToolsFactLongestCall" xml:space="preserve">
+    <value>最长调用</value>
+  </data>
+  <data name="ToolsAddedByYou" xml:space="preserve">
+    <value>由您添加</value>
+  </data>
+  <data name="ToolsAddedFrom" xml:space="preserve">
+    <value>来自 {0}</value>
+  </data>
+  <data name="ToolsAddedByScan" xml:space="preserve">
+    <value>通过扫描发现</value>
+  </data>
+  <data name="ToolsNoneText" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="ToolsNoFoldersTold" xml:space="preserve">
+    <value>无（未允许任何文件夹）</value>
+  </data>
+  <data name="ToolsSecondsOne" xml:space="preserve">
+    <value>1 秒</value>
+  </data>
+  <data name="ToolsSecondsMany" xml:space="preserve">
+    <value>{0} 秒</value>
+  </data>
+  <data name="ToolsMinutesOne" xml:space="preserve">
+    <value>1 分钟</value>
+  </data>
+  <data name="ToolsMinutesMany" xml:space="preserve">
+    <value>{0} 分钟</value>
+  </data>
+  <data name="ToolsDrawerNote" xml:space="preserve">
+    <value>服务器自行描述其工具。贵组织中没有人审查过它们，因此每次调用都会先征求您的同意。</value>
+  </data>
+  <data name="ToolsListHeading" xml:space="preserve">
+    <value>工具 · {0}</value>
+  </data>
+  <data name="ToolsDrawerFilterPlaceholder" xml:space="preserve">
+    <value>筛选</value>
+  </data>
+  <data name="ToolsDrawerFilterName" xml:space="preserve">
+    <value>筛选工具</value>
+  </data>
+  <data name="ToolsNoTools" xml:space="preserve">
+    <value>暂无工具。</value>
+  </data>
+  <data name="ToolsNoToolsMatch" xml:space="preserve">
+    <value>没有匹配的工具。</value>
+  </data>
+  <data name="ToolsSaysReadOnly" xml:space="preserve">
+    <value>自述：只读</value>
+  </data>
+  <data name="ToolsSaysDestructive" xml:space="preserve">
+    <value>自述：可能删除内容</value>
+  </data>
+  <data name="ToolsSaysIdempotent" xml:space="preserve">
+    <value>自述：可重复执行</value>
+  </data>
+  <data name="ToolsSaysOpenWorld" xml:space="preserve">
+    <value>自述：会访问这台电脑之外</value>
+  </data>
+  <data name="ToolsTestTooltip" xml:space="preserve">
+    <value>测试服务器</value>
+  </data>
+  <data name="ToolsRestartTooltip" xml:space="preserve">
+    <value>重新启动</value>
+  </data>
+  <data name="ToolsEditTooltip" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="ToolsRemoveTooltip" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ToolsRestartedLine" xml:space="preserve">
+    <value>已重新启动。</value>
+  </data>
+  <data name="ToolsRemoveConfirm" xml:space="preserve">
+    <value>移除 {0}？</value>
+  </data>
+  <data name="ToolsRemoveYes" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ToolsRemoveKeep" xml:space="preserve">
+    <value>保留</value>
+  </data>
+  <data name="ToolsRemoveName" xml:space="preserve">
+    <value>移除 {0}</value>
+  </data>
+  <data name="ToolsCloseDetails" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="ToolsSheetAddTitle" xml:space="preserve">
+    <value>添加服务器</value>
+  </data>
+  <data name="ToolsSheetEditTitle" xml:space="preserve">
+    <value>编辑 {0}</value>
+  </data>
+  <data name="ToolsFieldLabel" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="ToolsFieldLabelHelp" xml:space="preserve">
+    <value>小写字母、数字和连字符，最多 32 个。</value>
+  </data>
+  <data name="ToolsKindProgram" xml:space="preserve">
+    <value>程序</value>
+  </data>
+  <data name="ToolsKindAddress" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="ToolsFieldCommand" xml:space="preserve">
+    <value>程序</value>
+  </data>
+  <data name="ToolsFieldArguments" xml:space="preserve">
+    <value>参数（每行一个）</value>
+  </data>
+  <data name="ToolsFieldFolder" xml:space="preserve">
+    <value>工作文件夹（可选）</value>
+  </data>
+  <data name="ToolsChooseFolder" xml:space="preserve">
+    <value>选择...</value>
+  </data>
+  <data name="ToolsFieldEnvironment" xml:space="preserve">
+    <value>环境变量</value>
+  </data>
+  <data name="ToolsFieldHeaders" xml:space="preserve">
+    <value>标头</value>
+  </data>
+  <data name="ToolsAddRow" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="ToolsRowName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="ToolsRowValue" xml:space="preserve">
+    <value>值</value>
+  </data>
+  <data name="ToolsValueSaved" xml:space="preserve">
+    <value>••••••••</value>
+  </data>
+  <data name="ToolsReplaceValue" xml:space="preserve">
+    <value>替换</value>
+  </data>
+  <data name="ToolsRemoveRow" xml:space="preserve">
+    <value>移除</value>
+  </data>
+  <data name="ToolsFieldUrl" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="ToolsFieldTimeout" xml:space="preserve">
+    <value>最长调用时间（秒）</value>
+  </data>
+  <data name="ToolsFieldEnabled" xml:space="preserve">
+    <value>保存后开启</value>
+  </data>
+  <data name="ToolsSecretsNote" xml:space="preserve">
+    <value>这些值会加密保存在此计算机上，不会再次显示，也不会发送到其他任何地方。</value>
+  </data>
+  <data name="ToolsSave" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="ToolsCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="ToolsCloseSheet" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="ToolsKindName" xml:space="preserve">
+    <value>服务器类型</value>
+  </data>
+  <data name="ToolsAddButton" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="ToolsTestButton" xml:space="preserve">
+    <value>测试</value>
+  </data>
+  <data name="ToolsValueSavedName" xml:space="preserve">
+    <value>已保存的值（已隐藏）</value>
+  </data>
+  <data name="ToolsImportMore" xml:space="preserve">
+    <value>从文件导入…</value>
+  </data>
+  <data name="ToolsProblemLabelMissing" xml:space="preserve">
+    <value>请为服务器命名。</value>
+  </data>
+  <data name="ToolsProblemLabelInvalid" xml:space="preserve">
+    <value>请使用小写字母、数字和连字符，最多 32 个。</value>
+  </data>
+  <data name="ToolsProblemLabelTaken" xml:space="preserve">
+    <value>您已有同名的服务器。</value>
+  </data>
+  <data name="ToolsProblemCommandMissing" xml:space="preserve">
+    <value>请输入要启动的程序。</value>
+  </data>
+  <data name="ToolsProblemCommandInvalid" xml:space="preserve">
+    <value>程序名称不能包含换行符。</value>
+  </data>
+  <data name="ToolsProblemFolder" xml:space="preserve">
+    <value>工作文件夹必须是完整路径。</value>
+  </data>
+  <data name="ToolsProblemName" xml:space="preserve">
+    <value>名称只能包含字母、数字和下划线（标头还可包含连字符）。</value>
+  </data>
+  <data name="ToolsProblemValue" xml:space="preserve">
+    <value>值不能包含换行符。</value>
+  </data>
+  <data name="ToolsProblemAddressMissing" xml:space="preserve">
+    <value>请输入地址。</value>
+  </data>
+  <data name="ToolsProblemAddressInvalid" xml:space="preserve">
+    <value>这不是有效地址（例如 http://localhost:8123/mcp）。</value>
+  </data>
+  <data name="ToolsProblemTimeout" xml:space="preserve">
+    <value>请输入 5 到 600 之间的秒数。</value>
+  </data>
+  <data name="ToolsTestRunning" xml:space="preserve">
+    <value>正在测试...</value>
+  </data>
+  <data name="ToolsTestOk" xml:space="preserve">
+    <value>已启动。工具：{0}</value>
+  </data>
+  <data name="ToolsTestOkNoTools" xml:space="preserve">
+    <value>已启动，但没有提供工具。</value>
+  </data>
+  <data name="ToolsTestFailed" xml:space="preserve">
+    <value>无法启动：{0}</value>
+  </data>
+  <data name="ToolsTestNotAllowed" xml:space="preserve">
+    <value>未启动：您的组织未允许在此计算机上使用 MCP 服务器。</value>
+  </data>
+  <data name="ToolsImportTitle" xml:space="preserve">
+    <value>导入服务器</value>
+  </data>
+  <data name="ToolsImportIntro" xml:space="preserve">
+    <value>请选择导入来源。在您勾选服务器并点击“导入”之前，不会复制任何内容。</value>
+  </data>
+  <data name="ToolsSourceClaude" xml:space="preserve">
+    <value>Claude Desktop</value>
+  </data>
+  <data name="ToolsSourceVsCode" xml:space="preserve">
+    <value>VS Code</value>
+  </data>
+  <data name="ToolsSourceCursor" xml:space="preserve">
+    <value>Cursor</value>
+  </data>
+  <data name="ToolsSourceFile" xml:space="preserve">
+    <value>.mcp.json 文件...</value>
+  </data>
+  <data name="ToolsChooseFileTitle" xml:space="preserve">
+    <value>选择 .mcp.json 文件</value>
+  </data>
+  <data name="ToolsImportRead" xml:space="preserve">
+    <value>已读取 {0}</value>
+  </data>
+  <data name="ToolsImportProblemNotFound" xml:space="preserve">
+    <value>在此计算机上找不到该文件。</value>
+  </data>
+  <data name="ToolsImportProblemUnreadable" xml:space="preserve">
+    <value>无法读取该文件。</value>
+  </data>
+  <data name="ToolsImportProblemNoList" xml:space="preserve">
+    <value>该文件没有服务器列表。</value>
+  </data>
+  <data name="ToolsImportProblemTooLarge" xml:space="preserve">
+    <value>该文件过大。</value>
+  </data>
+  <data name="ToolsImportNothingToAdd" xml:space="preserve">
+    <value>该文件中没有可导入的内容。</value>
+  </data>
+  <data name="ToolsImportButton" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="ToolsImportTick" xml:space="preserve">
+    <value>导入 {0}</value>
+  </data>
+  <data name="ToolsImportNoteNeedsValue" xml:space="preserve">
+    <value>需要您填写一个值；将以关闭状态添加。</value>
+  </data>
+  <data name="ToolsImportNotePlaceholders" xml:space="preserve">
+    <value>包含 ${env:NAME} 等占位符，将按原样保留。</value>
+  </data>
+  <data name="ToolsImportNoteIgnored" xml:space="preserve">
+    <value>已忽略：{0}</value>
+  </data>
+  <data name="ToolsImportNoteRenamed" xml:space="preserve">
+    <value>已重命名以符合命名规则。</value>
+  </data>
+  <data name="ToolsImportNoteWasOff" xml:space="preserve">
+    <value>它在原处是关闭的。</value>
+  </data>
+  <data name="ToolsSkippedTitle" xml:space="preserve">
+    <value>已跳过</value>
+  </data>
+  <data name="ToolsSkipNothing" xml:space="preserve">
+    <value>它没有程序或地址。</value>
+  </data>
+  <data name="ToolsSkipNotUnderstood" xml:space="preserve">
+    <value>无法理解该条目。</value>
+  </data>
+  <data name="ToolsSkipNotValid" xml:space="preserve">
+    <value>违反了一条规则：{0}</value>
+  </data>
+  <data name="ToolsImported" xml:space="preserve">
+    <value>已添加：{0}</value>
+  </data>
+  <data name="ToolsScanTitle" xml:space="preserve">
+    <value>扫描这台电脑</value>
+  </data>
+  <data name="ToolsScanIntro" xml:space="preserve">
+    <value>查找您已在其他应用中使用的 MCP 服务器，以及正在这台电脑上运行的服务器。</value>
+  </data>
+  <data name="ToolsScanOtherApps" xml:space="preserve">
+    <value>其他应用的设置</value>
+  </data>
+  <data name="ToolsScanChip" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="ToolsScanNotInstalled" xml:space="preserve">
+    <value>{0}：未安装</value>
+  </data>
+  <data name="ToolsScanThisComputerOption" xml:space="preserve">
+    <value>正在这台电脑上运行的服务器</value>
+  </data>
+  <data name="ToolsScanPorts" xml:space="preserve">
+    <value>localhost，端口 {0}。只以 MCP 打招呼，不发送任何内容。</value>
+  </data>
+  <data name="ToolsScanPortRange" xml:space="preserve">
+    <value>{0}–{1}</value>
+  </data>
+  <data name="ToolsScanAnd" xml:space="preserve">
+    <value>和</value>
+  </data>
+  <data name="ToolsScanProgressName" xml:space="preserve">
+    <value>扫描进度</value>
+  </data>
+  <data name="ToolsScanRunning" xml:space="preserve">
+    <value>正在扫描…已完成 {0} / {1}</value>
+  </data>
+  <data name="ToolsScanStarting" xml:space="preserve">
+    <value>正在扫描…</value>
+  </data>
+  <data name="ToolsScanDone" xml:space="preserve">
+    <value>用时 {0} 秒 · {1}</value>
+  </data>
+  <data name="ToolsScanFoundOne" xml:space="preserve">
+    <value>找到 1 个服务器</value>
+  </data>
+  <data name="ToolsScanFoundMany" xml:space="preserve">
+    <value>找到 {0} 个服务器</value>
+  </data>
+  <data name="ToolsScanFoundNone" xml:space="preserve">
+    <value>没有找到任何内容</value>
+  </data>
+  <data name="ToolsScanAgain" xml:space="preserve">
+    <value>重新扫描</value>
+  </data>
+  <data name="ToolsScanStopped" xml:space="preserve">
+    <value>已停止。</value>
+  </data>
+  <data name="ToolsScanFailed" xml:space="preserve">
+    <value>扫描未能完成，请重试。</value>
+  </data>
+  <data name="ToolsScanNothingFoundHelp" xml:space="preserve">
+    <value>没有找到 MCP 服务器。您可以自己添加一个。</value>
+  </data>
+  <data name="ToolsScanNothingToLookAt" xml:space="preserve">
+    <value>请至少勾选一个要查找的位置。</value>
+  </data>
+  <data name="ToolsScanFoundIn" xml:space="preserve">
+    <value>在 {0} 中找到</value>
+  </data>
+  <data name="ToolsScanRunningHere" xml:space="preserve">
+    <value>正在这台电脑上运行</value>
+  </data>
+  <data name="ToolsScanKindProgram" xml:space="preserve">
+    <value>程序</value>
+  </data>
+  <data name="ToolsScanKindAddress" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="ToolsScanStateAlready" xml:space="preserve">
+    <value>已添加</value>
+  </data>
+  <data name="ToolsScanStateNeedsValue" xml:space="preserve">
+    <value>需要填写一个值；添加后保持关闭</value>
+  </data>
+  <data name="ToolsScanStateNotUnderstood" xml:space="preserve">
+    <value>无法识别</value>
+  </data>
+  <data name="ToolsScanTakes" xml:space="preserve">
+    <value>从 {1} 的设置中取用 {0}；在此加密保存</value>
+  </data>
+  <data name="ToolsScanAnswered" xml:space="preserve">
+    <value>自称 {0}</value>
+  </data>
+  <data name="ToolsScanAnsweredTools" xml:space="preserve">
+    <value>自称 {0} · {1}</value>
+  </data>
+  <data name="ToolsScanTick" xml:space="preserve">
+    <value>添加 {0}</value>
+  </data>
+  <data name="ToolsScanTickAlready" xml:space="preserve">
+    <value>{0}，已添加</value>
+  </data>
+  <data name="ToolsScanFooter" xml:space="preserve">
+    <value>任何内容都不会离开这台电脑。服务器只有在您添加之后才会启动，并且只在贵组织允许时启动。</value>
+  </data>
+  <data name="ToolsScanAddOne" xml:space="preserve">
+    <value>添加 1 个服务器</value>
+  </data>
+  <data name="ToolsScanAddMany" xml:space="preserve">
+    <value>添加 {0} 个服务器</value>
+  </data>
+  <data name="ToolsScanClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="ToolsScanOptionsName" xml:space="preserve">
+    <value>查找位置</value>
+  </data>
+  <data name="ToolsSkipNetwork" xml:space="preserve">
+    <value>其他电脑上的服务器不会被导入。如有需要，请自行添加。</value>
+  </data>
+  <data name="ToolsScanStateLater" xml:space="preserve">
+    <value>在其他电脑上：请自行添加</value>
+  </data>
+  <data name="ToolsScanTickLater" xml:space="preserve">
+    <value>{0}，扫描不会添加</value>
+  </data>
+  <data name="ToolsFieldUrlHelp" xml:space="preserve">
+    <value>任何位置的服务器请使用 https。明文 http 可用于这台电脑；在“高级”中允许后，也可用于局域网。</value>
+  </data>
+  <data name="ToolsProblemPlainHttpWithHeaders" xml:space="preserve">
+    <value>标头中含有机密，因此这台电脑之外的明文 http 地址不能带标头。请使用 https 或移除标头。</value>
+  </data>
+  <data name="ToolsProblemPlainHttpNotLocal" xml:space="preserve">
+    <value>明文 http 只能用于这台电脑或局域网。其他地方的地址请使用 https。</value>
+  </data>
+  <data name="ToolsTrusted" xml:space="preserve">
+    <value>已信任</value>
+  </data>
+  <data name="ToolsTrustedHelp" xml:space="preserve">
+    <value>只有已信任服务器的“只读”提示才算数。服务器的一面之词永远不够。</value>
+  </data>
+  <data name="ToolsTrustedByAdmin" xml:space="preserve">
+    <value>由管理员设定</value>
+  </data>
+  <data name="ToolsTrustedName" xml:space="preserve">
+    <value>信任 {0}</value>
+  </data>
+  <data name="ToolsClassUnknown" xml:space="preserve">
+    <value>每次都询问</value>
+  </data>
+  <data name="ToolsClassRead" xml:space="preserve">
+    <value>读取</value>
+  </data>
+  <data name="ToolsClassWrite" xml:space="preserve">
+    <value>会更改内容</value>
+  </data>
+  <data name="ToolsClassDestructive" xml:space="preserve">
+    <value>破坏性</value>
+  </data>
+  <data name="ToolsRaiseLabel" xml:space="preserve">
+    <value>视为</value>
+  </data>
+  <data name="ToolsRaiseNone" xml:space="preserve">
+    <value>保持原样</value>
+  </data>
+  <data name="ToolsRaiseRead" xml:space="preserve">
+    <value>只读</value>
+  </data>
+  <data name="ToolsRaiseWrite" xml:space="preserve">
+    <value>会更改内容</value>
+  </data>
+  <data name="ToolsRaiseName" xml:space="preserve">
+    <value>{0} 的类别</value>
+  </data>
+  <data name="ToolsDestructiveHelp" xml:space="preserve">
+    <value>服务器表示此工具可能删除或覆盖内容。它总是会询问，任何设置都无法降低这一点。</value>
+  </data>
+  <data name="ToolsAdvanced" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="McpPlainHttpSwitch" xml:space="preserve">
+    <value>允许在局域网中使用明文 http</value>
+  </data>
+  <data name="McpPlainHttpSwitchHelp" xml:space="preserve">
+    <value>适用于您自己网络中没有 https 的服务器。绝不用于带有标头值的服务器。</value>
+  </data>
+  <data name="McpPlainHttpWarningTitle" xml:space="preserve">
+    <value>允许明文 http？</value>
+  </data>
+  <data name="McpPlainHttpWarning" xml:space="preserve">
+    <value>明文 http 没有加密。您网络中的任何人都可以读取并更改往返于此服务器的内容：工具调用、其参数和结果，其中可能包含文档内容。被篡改的回答可能会操纵智能体。服务器提供 https 时，请使用 https。</value>
+  </data>
+  <data name="McpPlainHttpConfirm" xml:space="preserve">
+    <value>允许</value>
+  </data>
+  <data name="McpPlainHttpCancel" xml:space="preserve">
+    <value>保持关闭</value>
+  </data>
+  <data name="McpPlainHttpNoOptIn" xml:space="preserve">
+    <value>明文 http 只会发送到这台电脑。请在“高级”中打开“允许在局域网中使用明文 http”。</value>
+  </data>
+  <data name="McpPlainHttpNotLocal" xml:space="preserve">
+    <value>此地址不在局域网中。</value>
+  </data>
+  <data name="McpPlainHttpSecret" xml:space="preserve">
+    <value>带有标头值的服务器需要 https。</value>
+  </data>
+  <data name="McpPlainHttpNotAllowed" xml:space="preserve">
+    <value>此处不允许使用明文 http。</value>
+  </data>
 </root>

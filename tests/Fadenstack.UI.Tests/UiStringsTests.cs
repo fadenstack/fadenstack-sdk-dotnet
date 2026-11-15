@@ -24,6 +24,16 @@ public class UiStringsTests
         Package.GetResourceSet(culture, createIfNotExists: true, tryParents: false)!.Cast<DictionaryEntry>()
             .ToDictionary(e => (string)e.Key, e => (string)e.Value!);
 
+    /// <summary>
+    /// Texts of the Tools view that are the same in a translation for a good reason: product names (VS Code, Cursor, Claude Desktop), a
+    /// format of symbols and placeholders only, and the word "Name" or "1 minute" where the language spells it so.
+    /// </summary>
+    private static readonly HashSet<string> SameInEveryLanguage = new(StringComparer.Ordinal)
+    {
+        "ToolsSourceVsCode", "ToolsSourceCursor", "ToolsSourceClaude", "ToolsOriginLine", "ToolsValueSaved", "ToolsScanChip", "ToolsScanPortRange",
+        "ToolsMoreTools", "ToolsRowName", "ToolsFieldLabel", "ToolsMinutesOne",
+    };
+
     public static TheoryData<string> Translations() => new() { "de", "fr", "es", "zh-Hans" };
 
     [Theory]
@@ -39,7 +49,7 @@ public class UiStringsTests
             Assert.True(Holes(text) == Holes(translated[name]), $"{language} {name}: '{translated[name]}' fills other places than '{text}'");
         }
         // Translated, not left in English (a few words are the same in both, like "Source").
-        var same = english.Where(e => translated[e.Key] == e.Value && !Regex.IsMatch(e.Value, @"^[\{\d:.,}\s\w]*(s|ms)$")).Select(e => e.Key).ToList();
+        var same = english.Where(e => translated[e.Key] == e.Value && !Regex.IsMatch(e.Value, @"^[\{\d:.,}\s\w]*(s|ms)$") && !SameInEveryLanguage.Contains(e.Key)).Select(e => e.Key).ToList();
         Assert.True(same.Count <= 6, $"{language} keeps English: {string.Join(", ", same)}");
     }
 
