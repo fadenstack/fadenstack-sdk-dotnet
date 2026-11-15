@@ -33,21 +33,44 @@ public sealed record McpTestResult(bool Started, IReadOnlyList<string> Tools, st
 /// Whose word counts for trust (H4): by default the person's, from the entry (<see cref="McpServerEntry.Trusted"/>,
 /// <see cref="McpServerEntry.ToolClasses"/>). A governed host passes <c>marks</c> instead, which says what the administrator marked.
 /// </para>
+/// <para>
+/// The module follows the store, whoever changed it: this host, another host on the same store (an Office window beside another),
+/// or another app on the same file (Word and Excel, Office and the desktop), which the host notices when the file changes and
+/// reads again (<see cref="ReloadAsync"/> does it at once). A server added elsewhere joins the running agent at its next turn, one
+/// removed leaves it, a switch holds; nobody has to start again.
+/// </para>
 /// </summary>
 public sealed class McpHost : IDisposable
 {
+    /// <summary>How long the host waits after the file changed before it reads it (a save is one rename, but watchers say it more than once).</summary>
+    private static readonly TimeSpan FollowDelay = TimeSpan.FromMilliseconds(150);
+
     private readonly Func<string, McpServerStore> _openStore;
     private readonly McpRootsSource? _roots;
     private readonly Func<McpServerEntry, McpServerMarks?> _marks;
     private readonly Func<McpServerEntry, McpConnection, CancellationToken, Task<IClientTransport>> _transport;
     private readonly Func<McpServerEntry, LocalMcpServer> _server;
     private readonly object _gate = new();
+    private readonly SemaphoreSlim _syncing = new(1, 1);
     private LocalMcpModule? _module;
     private McpServerStore? _store;
+    private Pairing? _pairing;
+    private FileSystemWatcher? _watcher;
+    private Timer? _follow;
     private string? _userId;
     private McpAuditLog? _audit;
     private Task _loading = Task.CompletedTask;
     private bool _disposed;
+
+    /// <summary>One module with one store, and the entries the module was given from it, by label (changed under <see cref="_syncing"/>).</summary>
+    private sealed class Pairing(LocalMcpModule module, McpServerStore store)
+    {
+        public LocalMcpModule Module { get; } = module;
+
+        public McpServerStore Store { get; } = store;
+
+        public Dictionary<string, McpServerEntry> Given { get; } = new(StringComparer.Ordinal);
+    }
 
     /// <param name="openStore">Opens the store of a Fadenstack user; <see cref="McpServerStore.ForUser"/> if not given.</param>
     /// <param name="roots">The folders the host tells servers they may work in, followed live; none if not given.</param>
@@ -158,11 +181,13 @@ public sealed class McpHost : IDisposable
                 return _loading;
             _userId = userId;
             DropStore();
-            _store = userId is null ? McpServerStore.InMemory() : _openStore(userId);
-            _audit = new McpAuditLog(_store.AuditFolder);
-            _store.Changed += OnStoreChanged;
-            var entries = _store.Entries;
-            _loading = LoadAsync(module, entries);
+            var store = userId is null ? McpServerStore.InMemory() : _openStore(userId);
+            _store = store;
+            _pairing = new Pairing(module, store);
+            _audit = new McpAuditLog(store.AuditFolder);
+            store.Changed += OnStoreChanged;
+            Follow(store);
+            _loading = LoadAsync();
             return _loading;
         }
     }
@@ -173,20 +198,143 @@ public sealed class McpHost : IDisposable
     /// </summary>
     public Task UseStandaloneAsync() => UseUserAsync(LocalAgentBackend.StandaloneId);
 
-    private async Task LoadAsync(LocalMcpModule module, IReadOnlyList<McpServerEntry> entries)
+    /// <summary>
+    /// Reads the list again (another app may have changed it) and brings the module in line. The host does this by itself when the
+    /// file changes; a Tools page may call it when it opens.
+    /// </summary>
+    public Task ReloadAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var entry in entries)
+        Store?.Reload();
+        return SyncAsync(cancellationToken);
+    }
+
+    private async Task LoadAsync()
+    {
+        await SyncAsync().ConfigureAwait(false);
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Brings the module in line with the store: servers the module lacks are added (on or off as kept), servers gone are
+    /// removed, a switch is set, new marks reclassify, and a server whose program, address or settings changed starts again.
+    /// One at a time; a module or store replaced meanwhile is left to its own next sync.
+    /// </summary>
+    private async Task SyncAsync(CancellationToken cancellationToken = default)
+    {
+        await _syncing.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            try
+            Pairing? pairing;
+            lock (_gate)
+                pairing = _disposed ? null : _pairing;
+            if (pairing is null)
+                return;
+            var (module, given) = (pairing.Module, pairing.Given);
+            var wanted = pairing.Store.Entries;
+            var labels = new HashSet<string>(wanted.Select(e => e.Label), StringComparer.Ordinal);
+            foreach (var gone in given.Keys.Where(l => !labels.Contains(l)).ToList())
             {
-                await module.AddAsync(_server(entry), entry.Enabled).ConfigureAwait(false);
+                given.Remove(gone);
+                await Quietly(() => module.RemoveAsync(gone, cancellationToken)).ConfigureAwait(false);
             }
-            catch (Exception e) when (e is ArgumentException or ObjectDisposedException or InvalidOperationException)
+            foreach (var entry in wanted)
             {
-                // a label twice, or the module is gone: the row shows what the store has
+                if (!given.TryGetValue(entry.Label, out var had))
+                {
+                    given[entry.Label] = entry;
+                    await Quietly(() => module.AddAsync(_server(entry), entry.Enabled, cancellationToken)).ConfigureAwait(false);
+                    continue;
+                }
+                if (McpServerStore.Canonical(had) == McpServerStore.Canonical(entry))
+                    continue;
+                given[entry.Label] = entry;
+                if (McpServerStore.Canonical(Settings(had)) != McpServerStore.Canonical(Settings(entry)))
+                {
+                    await Quietly(() => module.RemoveAsync(entry.Label, cancellationToken)).ConfigureAwait(false);
+                    await Quietly(() => module.AddAsync(_server(entry), entry.Enabled, cancellationToken)).ConfigureAwait(false);
+                    continue;
+                }
+                if ((had.Trusted != entry.Trusted || !SameRaises(had, entry)) && _marks(entry) is { } marks)
+                    module.UpdateClasses(entry.Label, marks);
+                if (had.Enabled != entry.Enabled && module.GetStatus(entry.Label) is not null)
+                    await Quietly(() => module.SetEnabledAsync(entry.Label, entry.Enabled, cancellationToken)).ConfigureAwait(false);
             }
         }
-        Changed?.Invoke(this, EventArgs.Empty);
+        finally
+        {
+            _syncing.Release();
+        }
+    }
+
+    /// <summary>The entry without its switch and marks: what the server is started with.</summary>
+    private static McpServerEntry Settings(McpServerEntry entry) =>
+        entry with { Enabled = true, Trusted = false, ToolClasses = new Dictionary<string, ToolClass>() };
+
+    private static bool SameRaises(McpServerEntry a, McpServerEntry b) =>
+        a.ToolClasses.Count == b.ToolClasses.Count
+        && a.ToolClasses.All(p => b.ToolClasses.TryGetValue(p.Key, out var other) && other == p.Value);
+
+    private static async Task Quietly(Func<Task> step)
+    {
+        try
+        {
+            await step().ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is ArgumentException or ObjectDisposedException or InvalidOperationException)
+        {
+            // a label twice, or the module is gone: the row shows what the store has
+        }
+    }
+
+    /// <summary>Watches the store's file (another app's save) and reads it again shortly after it changed. Under the gate.</summary>
+    private void Follow(McpServerStore store)
+    {
+        if (store.FileOnDisk is not { } file)
+            return;
+        try
+        {
+            var folder = Path.GetDirectoryName(file)!;
+            Directory.CreateDirectory(folder);
+            var follow = new Timer(_ => FollowNow(store), null, Timeout.Infinite, Timeout.Infinite);
+            var watcher = new FileSystemWatcher(folder, McpServerStore.FileName)
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime,
+            };
+            void Soon(object? sender, EventArgs e)
+            {
+                try
+                {
+                    follow.Change(FollowDelay, Timeout.InfiniteTimeSpan);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // the host let the store go meanwhile
+                }
+            }
+            watcher.Changed += Soon;
+            watcher.Created += Soon;
+            watcher.Deleted += Soon;
+            watcher.Renamed += Soon;
+            watcher.Error += Soon; // missed events: read it anyway
+            watcher.EnableRaisingEvents = true;
+            _watcher = watcher;
+            _follow = follow;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or PlatformNotSupportedException)
+        {
+            // no watcher here: the list is still read again before every change, and ReloadAsync reads it on request
+        }
+    }
+
+    private void FollowNow(McpServerStore store)
+    {
+        lock (_gate)
+        {
+            if (_disposed || !ReferenceEquals(_store, store))
+                return;
+        }
+        // The store raises Changed when the list is different, and the host syncs from that.
+        store.Reload();
     }
 
     /// <summary>Every server of the signed-in user, with its status.</summary>
@@ -210,29 +358,28 @@ public sealed class McpHost : IDisposable
     {
         var store = Store ?? throw new InvalidOperationException("No user is loaded.");
         var check = store.Add(entry);
-        if (check.IsValid && Module is { } module)
-            await module.AddAsync(_server(entry), entry.Enabled, cancellationToken).ConfigureAwait(false);
+        if (check.IsValid)
+            await SyncAsync(cancellationToken).ConfigureAwait(false);
         return check;
     }
 
-    /// <summary>Replaces the server <paramref name="label"/> (it is stopped and started again with the new entry).</summary>
+    /// <summary>
+    /// Replaces the server <paramref name="label"/>: it starts again with the new entry when what it is started with changed (a
+    /// rename too); a change of the switch or the marks alone holds as <see cref="SetEnabledAsync"/> and the marks do.
+    /// </summary>
     public async Task<McpValidation> UpdateAsync(string label, McpServerEntry entry, CancellationToken cancellationToken = default)
     {
         var store = Store ?? throw new InvalidOperationException("No user is loaded.");
         var check = store.Update(label, entry);
-        if (check.IsValid && Module is { } module)
-        {
-            await module.RemoveAsync(label, cancellationToken).ConfigureAwait(false);
-            await module.AddAsync(_server(entry), entry.Enabled, cancellationToken).ConfigureAwait(false);
-        }
+        if (check.IsValid)
+            await SyncAsync(cancellationToken).ConfigureAwait(false);
         return check;
     }
 
     public async Task RemoveAsync(string label, CancellationToken cancellationToken = default)
     {
         Store?.Remove(label);
-        if (Module is { } module)
-            await module.RemoveAsync(label, cancellationToken).ConfigureAwait(false);
+        await SyncAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The switch: it holds from the next message (the module raises <c>Changed</c>, the agent asks again).</summary>
@@ -240,8 +387,7 @@ public sealed class McpHost : IDisposable
     {
         if (Store is not { } store || !store.SetEnabled(label, enabled))
             return;
-        if (Module is { } module && module.GetStatus(label) is not null)
-            await module.SetEnabledAsync(label, enabled, cancellationToken).ConfigureAwait(false);
+        await SyncAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The device's audit log of the loaded list's switches (sdk/51 F05); null before a user is loaded.</summary>
@@ -315,6 +461,7 @@ public sealed class McpHost : IDisposable
             Reclassify(label);
     }
 
+    // At once, not through the sync (these two are not awaited): the sync started by the store's Changed finds the same marks.
     private void Reclassify(string label)
     {
         if (Module is { } module && Store?.Find(label) is { } entry && _marks(entry) is { } marks)
@@ -417,13 +564,18 @@ public sealed class McpHost : IDisposable
         module?.Dispose();
     }
 
-    // Under the gate.
+    // Under the gate. The store is not the host's to close (a host may share one with other windows); its watcher is.
     private void DropStore()
     {
         if (_store is not null)
             _store.Changed -= OnStoreChanged;
         _store = null;
+        _pairing = null;
         _audit = null;
+        _watcher?.Dispose();
+        _watcher = null;
+        _follow?.Dispose();
+        _follow = null;
     }
 
     private static string Clean(string text)
@@ -438,7 +590,21 @@ public sealed class McpHost : IDisposable
 
     private void OnStatusChanged(object? sender, McpServerStatusEventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
 
-    private void OnStoreChanged(object? sender, EventArgs e) => Changed?.Invoke(this, EventArgs.Empty);
+    // A change by this host, another host on the same store, or another app (read again): the module follows, then the page.
+    private void OnStoreChanged(object? sender, EventArgs e) => _ = FollowStoreAsync();
+
+    private async Task FollowStoreAsync()
+    {
+        try
+        {
+            await SyncAsync().ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is ObjectDisposedException or OperationCanceledException)
+        {
+            // the host is gone
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }
 
 /// <summary>
