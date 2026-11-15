@@ -171,6 +171,10 @@ An MCP server describes its own tools, and the agent does not take that descript
 - `TestAsync`, which starts a server for a moment under the same rules;
 - the switch above.
 
+**One list in several apps.** Standalone, every app of one OS user keeps the same list (Word and Excel, Office and the desktop), and a host's windows may share one store:
+- every change reads the file again first, under a lock on `servers.dat.lock` beside it, and is made to the list as it is then, so no app's change is lost to another's save;
+- `McpHost` watches the file and brings its agent in line when another app changed it: a server added elsewhere joins at the next turn, one removed leaves, a switch holds, and nobody starts again. `ReloadAsync` does it at once (a page that opens may call it).
+
 **Import** (`McpImporter`) reads the MCP servers of Claude Desktop, VS Code and Cursor, and a `.mcp.json` the person picks:
 - servers arrive off, not trusted, and with the switch off;
 - a server on another computer is left out: those files often carry a token in the URL, and such servers mostly need OAuth, so the person types them in.

@@ -27,6 +27,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       skills/<skill>/SKILL.md
       preferences/skills.json
       mcp/servers.dat
+      mcp/servers.dat.lock
       mcp/audit.jsonl
       keys/provenance-signing.key
       provenance/records/<record id>.json
@@ -38,6 +39,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       skills/<skill>/SKILL.md
       preferences/skills.json
       mcp/servers.dat
+      mcp/servers.dat.lock
       mcp/audit.jsonl
   tokens/<hash>.token                 shared by everyone on the OS account
   keystore/                           shared (macOS and Linux, with Fadenstack.Secrets)
@@ -65,6 +67,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
 | `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Not exported; deleted. |
 | `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Not exported; deleted. |
+| `mcp/servers.dat.lock` | Nothing: an empty file whose lock keeps two apps' changes to the list apart. | Owner-only. | As long as the list. | Deleted. |
 | `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
 | `keys/provenance-signing.key` (standalone) | The device's key that signs provenance records ([Content provenance](provenance.md)). | Encrypted by DPAPI or the OS key store. Without either it is never written: a new key lives in memory for the run. | Until deleted. | Never exported; deleted. |
 | `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Not exported (`KeptRecords()` reads them); deleted. |
