@@ -22,6 +22,8 @@
         The look is the form views' (Controls.axaml, Forms.axaml) and theme keys only; the module's own icons are Material Icons (Apache-2.0).
     -->
     <UserControl.Resources>
+        <!-- The scrim is the whole panel: square. -->
+        <CornerRadius x:Key="Tools.Scrim.Radius">0</CornerRadius>
         <StreamGeometry x:Key="Icon.Tools.Radar">M19.74 18.33C21.15 16.6 22 14.4 22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10c2.4 0 4.6-.85 6.33-2.26.27-.22.53-.46.78-.71.03-.03.05-.06.07-.08.2-.2.39-.41.56-.62M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8c0 1.85-.63 3.54-1.69 4.9l-1.43-1.43c.69-.98 1.1-2.17 1.1-3.46 0-3.31-2.69-6-6-6s-6 2.69-6 6 2.69 6 6 6c1.3 0 2.51-.42 3.49-1.13l1.42 1.42C15.54 19.37 13.85 20 12 20m1.92-7.49c.17-.66.02-1.38-.49-1.9l-.02-.02c-.77-.77-2-.78-2.78-.04-.01.01-.03.02-.05.04-.78.78-.78 2.05 0 2.83l.02.02c.52.51 1.25.67 1.91.49l1.51 1.51c-.6.36-1.29.58-2.04.58-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4c0 .73-.21 1.41-.56 2z</StreamGeometry>
         <StreamGeometry x:Key="Icon.Tools.Terminal">M20 4H4c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 14H4V8h16zm-2-1h-6v-2h6zM7.5 17l-1.41-1.41L8.67 13l-2.59-2.59L7.5 9l4 4z</StreamGeometry>
         <StreamGeometry x:Key="Icon.Tools.Cable">M20 5V4c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1v1h-1v4c0 .55.45 1 1 1h1v7c0 1.1-.9 2-2 2s-2-.9-2-2V7c0-2.21-1.79-4-4-4S5 4.79 5 7v7H4c-.55 0-1 .45-1 1v4h1v1c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-1h1v-4c0-.55-.45-1-1-1H7V7c0-1.1.9-2 2-2s2 .9 2 2v10c0 2.21 1.79 4 4 4s4-1.79 4-4v-7h1c.55 0 1-.45 1-1V5z</StreamGeometry>
@@ -60,7 +62,7 @@
         <Style Selector="Button.scrim">
             <Setter Property="Background" Value="{DynamicResource Fadenstack.Scrim}" />
             <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
-            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Tools.Scrim.Radius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
             <Setter Property="Focusable" Value="False" />
@@ -556,7 +558,7 @@
                             <!-- Where it looks and how far it got. -->
                             <Border Classes="note">
                                 <StackPanel Spacing="8" AutomationProperties.Name="{v:Text ToolsScanOptionsName}">
-                                    <CheckBox x:Name="ScanOtherAppsBox" IsChecked="{Binding OtherApps}" IsEnabled="{Binding CanScanAgain}"
+                                    <CheckBox x:Name="ScanOtherAppsBox" Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding OtherApps}" IsEnabled="{Binding CanScanAgain}"
                                               AutomationProperties.Name="{v:Text ToolsScanOtherApps}">
                                         <StackPanel Spacing="4">
                                             <TextBlock Classes="strong" Text="{v:Text ToolsScanOtherApps}" />
@@ -575,7 +577,7 @@
                                             <TextBlock Classes="caption muted" Text="{Binding NotInstalledText}" IsVisible="{Binding HasNotInstalled}" TextWrapping="Wrap" />
                                         </StackPanel>
                                     </CheckBox>
-                                    <CheckBox x:Name="ScanThisComputerBox" IsChecked="{Binding ThisComputer}" IsEnabled="{Binding CanScanAgain}"
+                                    <CheckBox x:Name="ScanThisComputerBox" Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding ThisComputer}" IsEnabled="{Binding CanScanAgain}"
                                               AutomationProperties.Name="{v:Text ToolsScanThisComputerOption}">
                                         <StackPanel Spacing="2">
                                             <TextBlock Classes="strong" Text="{v:Text ToolsScanThisComputerOption}" />
@@ -625,7 +627,7 @@
                                                         <DataTemplate x:DataType="t:ScanRowViewModel">
                                                             <Border Classes="sep">
                                                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="12,8">
-                                                                    <CheckBox IsChecked="{Binding IsTicked}" IsEnabled="{Binding CanTick}" VerticalAlignment="Top"
+                                                                    <CheckBox Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding IsTicked}" IsEnabled="{Binding CanTick}" VerticalAlignment="Top"
                                                                               AutomationProperties.Name="{Binding TickName}" />
                                                                     <StackPanel Grid.Column="1" Spacing="2">
                                                                         <TextBlock Classes="strong" Classes.muted="{Binding IsMutedName}" Text="{Binding Label}" />
@@ -633,12 +635,12 @@
                                                                         <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
                                                                             <ItemsControl.ItemTemplate>
                                                                                 <DataTemplate x:DataType="t:ScanNoteViewModel">
-                                                                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                                                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" Margin="0,4,0,0">
                                                                                         <c:FsIcon Data="{DynamicResource Icon.Lock}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
                                                                                                   Foreground="{DynamicResource Fadenstack.ForegroundMuted}" IsVisible="{Binding IsSecret}"
                                                                                                   VerticalAlignment="Top" Margin="0,1,0,0" />
-                                                                                        <TextBlock Classes="caption muted" Text="{Binding Text}" TextWrapping="Wrap" />
-                                                                                    </StackPanel>
+                                                                                        <TextBlock Grid.Column="1" Classes="caption muted" Text="{Binding Text}" TextWrapping="Wrap" />
+                                                                                    </Grid>
                                                                                 </DataTemplate>
                                                                             </ItemsControl.ItemTemplate>
                                                                         </ItemsControl>

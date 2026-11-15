@@ -628,7 +628,7 @@ public class StyleContrastTests
                     case ISolidColorBrush s when palette.Contains(s.Color):
                         break;
                     case ISolidColorBrush s:
-                        problems.Add($"{label}: {Where(element)} {property} is {s.Color} (not a colour of the palette)");
+                        problems.Add($"{label}: {element.GetType().Name} in {Where(element)} {property} is {s.Color} (not a colour of the palette)");
                         break;
                     default:
                         problems.Add($"{label}: {Where(element)} {property} is a {brush.GetType().Name} (not a palette brush)");

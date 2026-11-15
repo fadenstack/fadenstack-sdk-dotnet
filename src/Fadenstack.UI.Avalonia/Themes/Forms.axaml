@@ -55,7 +55,13 @@
         <Setter Property="BorderThickness" Value="1" />
     </Style>
     <!-- Fluent colours a disabled box's text itself; the text stays Foreground (the control's opacity says it is off). -->
+    <Style Selector="CheckBox:checked, CheckBox:indeterminate, CheckBox:pointerover, CheckBox:pressed, RadioButton:checked, RadioButton:pointerover, RadioButton:pressed">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
     <Style Selector="CheckBox:disabled, RadioButton:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style Selector="CheckBox /template/ ContentPresenter#PART_ContentPresenter, RadioButton:not(.segment) /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
     </Style>
 
