@@ -264,6 +264,13 @@ public sealed record LocalMcpSettings
 
     /// <summary>The user's developer mode: any local MCP server, for themselves.</summary>
     public bool DeveloperMode { get; init; }
+
+    /// <summary>
+    /// Plain http to MCP servers on the local network (sdk/51 F05; core 0.7.1rc19): <c>allow</c>, or <c>deny</c> (the default).
+    /// Only exactly <c>allow</c> allows; absent (an older core) or anything else denies, and developer mode does not override it.
+    /// The person's switch per server is still needed.
+    /// </summary>
+    public string PlainHttp { get; init; } = "deny";
 }
 
 /// <summary>The profile's <c>local_skills</c>: the same shape as <c>local_mcp</c>.</summary>

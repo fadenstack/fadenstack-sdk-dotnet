@@ -127,10 +127,10 @@ public sealed class McpStoreTests : IDisposable
 
     [Theory]
     [InlineData("http://10.0.0.5:8000/mcp")]
-    [InlineData("https://mcp.example.com/")]
+    [InlineData("http://mcp.example.com/")]
     [InlineData("http://192.168.1.2/mcp")]
     [InlineData("http://localhost.evil.example/mcp")]
-    public void An_address_that_is_not_on_this_computer_is_refused(string url)
+    public void Plain_http_to_an_address_not_on_this_computer_is_refused_without_the_switch(string url)
     {
         var store = new McpServerStore(_root, new Reversing(true));
 

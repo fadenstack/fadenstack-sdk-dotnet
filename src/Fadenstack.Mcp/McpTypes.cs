@@ -47,6 +47,12 @@ public sealed record McpServerStatus(string Label, McpServerState State)
 
     /// <summary>How often it was started again after a crash.</summary>
     public int Reconnects { get; init; }
+
+    /// <summary>
+    /// Why plain http to it was refused (sdk/51 F05), with <see cref="McpServerState.NotAllowed"/>: the app shows its own words for
+    /// it, such as "Plain http is not allowed here" for <see cref="McpPlainHttpRefusal.NotAllowed"/>. Null otherwise.
+    /// </summary>
+    public McpPlainHttpRefusal? PlainHttp { get; init; }
 }
 
 /// <summary>Raised when a server's status changed, or it was added or removed.</summary>

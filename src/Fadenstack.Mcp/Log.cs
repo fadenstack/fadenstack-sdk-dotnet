@@ -37,4 +37,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 3008, Level = LogLevel.Warning, Message = "MCP server {Label} brought a tool whose name MCP server {Winner} already brings; the first server's is kept")]
     internal static partial void ToolNameTaken(ILogger logger, string label, string winner);
+
+    [LoggerMessage(EventId = 3009, Level = LogLevel.Information, Message = "MCP server {Label} was not reached over plain http ({Reason})")]
+    internal static partial void PlainHttpRefused(ILogger logger, string label, McpPlainHttpRefusal reason);
 }

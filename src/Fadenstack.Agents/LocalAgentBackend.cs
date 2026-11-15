@@ -94,7 +94,8 @@ internal sealed class LocalAgentBackend : IAgentBackend
             InstructionsSha256 = Sha256(_definition.Instructions),
             HostToolContract = _definition.HostToolContract.ToList(),
             ServerTools = null,
-            LocalMcp = new LocalMcpSettings { Mode = _options.LocalMcp ? "allow" : "disable" },
+            // Standalone: the person decides per server; this computer's policy can still forbid it (FadenstackAgent narrows).
+            LocalMcp = new LocalMcpSettings { Mode = _options.LocalMcp ? "allow" : "disable", PlainHttp = "allow" },
             LocalSkills = new LocalSkillsSettings { Mode = _options.LocalSkills ? "allow" : "disable" },
             // Ask to start, Auto at most: no local Bypass (D4 later).
             ToolModes = new ToolModeSettings { Default = "ask", Ceiling = "auto", Max = "auto" },

@@ -15,7 +15,11 @@ public sealed record McpServerRow(McpServerEntry Entry, McpServerStatus? Status)
 }
 
 /// <summary>How a test of a server went; <see cref="Error"/> is a short cleaned line, never a secret.</summary>
-public sealed record McpTestResult(bool Started, IReadOnlyList<string> Tools, string? Error = null, bool NotAllowed = false);
+public sealed record McpTestResult(bool Started, IReadOnlyList<string> Tools, string? Error = null, bool NotAllowed = false)
+{
+    /// <summary>Why plain http to it was refused (sdk/51 F05), when it was: nothing was sent.</summary>
+    public McpPlainHttpRefusal? PlainHttp { get; init; }
+}
 
 /// <summary>
 /// The person's local MCP servers in the running app (desktop-agent/31 §4.2 to §4.4, §4.7; sdk/51 F05, D14): the store of the
@@ -35,7 +39,7 @@ public sealed class McpHost : IDisposable
     private readonly Func<string, McpServerStore> _openStore;
     private readonly McpRootsSource? _roots;
     private readonly Func<McpServerEntry, McpServerMarks?> _marks;
-    private readonly Func<McpServerEntry, IClientTransport> _transport;
+    private readonly Func<McpServerEntry, McpConnection, CancellationToken, Task<IClientTransport>> _transport;
     private readonly Func<McpServerEntry, LocalMcpServer> _server;
     private readonly object _gate = new();
     private LocalMcpModule? _module;
@@ -67,7 +71,10 @@ public sealed class McpHost : IDisposable
         };
         _openStore = openStore ?? (id => McpServerStore.ForUser(id));
         _roots = roots;
-        _transport = transport ?? McpTransports.For;
+        // A test of an entry connects as the agent would: the same address rules (sdk/51 F05) through the SDK's server.
+        _transport = transport is null
+            ? (e, connection, cancellationToken) => ToServer(e, null).Connect(connection, cancellationToken)
+            : (e, _, _) => Task.FromResult(transport(e));
         if (_roots is not null)
         {
             _roots.Changed += OnRootsChanged;
@@ -260,8 +267,11 @@ public sealed class McpHost : IDisposable
     /// <summary>
     /// Starts the server for a moment, lists its tools and stops it (the Tools page's Test). Only where the agent's policy allows
     /// local servers (<paramref name="allowed"/> false: nothing is started); the person's own click starts it, nothing else does.
+    /// <paramref name="plainHttpPermitted"/>: this agent and computer allow plain http on the local network (the profile's
+    /// <c>local_mcp.plain_http</c> and the machine policy); a refusal comes back as <see cref="McpTestResult.PlainHttp"/>.
     /// </summary>
-    public async Task<McpTestResult> TestAsync(McpServerEntry entry, bool allowed, CancellationToken cancellationToken = default)
+    public async Task<McpTestResult> TestAsync(McpServerEntry entry, bool allowed, CancellationToken cancellationToken = default,
+        bool plainHttpPermitted = false)
     {
         if (!allowed)
             return new McpTestResult(false, [], null, NotAllowed: true);
@@ -270,9 +280,14 @@ public sealed class McpHost : IDisposable
         McpClient? client = null;
         try
         {
-            client = await McpClient.CreateAsync(_transport(entry), cancellationToken: limit.Token).ConfigureAwait(false);
+            var transport = await _transport(entry, new McpConnection(plainHttpPermitted), limit.Token).ConfigureAwait(false);
+            client = await McpClient.CreateAsync(transport, cancellationToken: limit.Token).ConfigureAwait(false);
             var tools = await client.ListToolsAsync(cancellationToken: limit.Token).ConfigureAwait(false);
             return new McpTestResult(true, [.. tools.Select(t => t.Name)]);
+        }
+        catch (McpPlainHttpRefusedException e)
+        {
+            return new McpTestResult(false, [], e.Message) { PlainHttp = e.Reason };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -312,6 +327,7 @@ public sealed class McpHost : IDisposable
             server = LocalMcpServer.Http(entry.Label, new Uri(entry.Url!), null, headers.Count == 0 ? null : headers);
         }
         server.CallTimeout = TimeSpan.FromSeconds(entry.CallTimeoutSeconds);
+        server.AllowPlainHttpInLan = entry.PlainHttpInLan;
         if (marks is not null)
         {
             server.Trusted = marks.Trusted;
@@ -383,37 +399,6 @@ public sealed class McpRootsSource
 
     /// <summary>The owner of the folders says they changed.</summary>
     public void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
-}
-
-/// <summary>The transports of a server entry, for a test of it.</summary>
-internal static class McpTransports
-{
-    public static IClientTransport For(McpServerEntry entry)
-    {
-        if (entry.IsProgram)
-        {
-            var environment = new Dictionary<string, string?>(StringComparer.Ordinal);
-            foreach (var pair in entry.Environment)
-                environment[pair.Name] = pair.Value;
-            return new StdioClientTransport(new StdioClientTransportOptions
-            {
-                Name = entry.Label,
-                Command = entry.Command!,
-                Arguments = [.. entry.Arguments],
-                EnvironmentVariables = environment.Count == 0 ? null : environment,
-                WorkingDirectory = string.IsNullOrWhiteSpace(entry.WorkingFolder) ? null : entry.WorkingFolder,
-            });
-        }
-        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var pair in entry.Headers)
-            headers[pair.Name] = pair.Value;
-        return new HttpClientTransport(new HttpClientTransportOptions
-        {
-            Name = entry.Label,
-            Endpoint = new Uri(entry.Url!),
-            AdditionalHeaders = headers.Count == 0 ? null : headers,
-        });
-    }
 }
 
 /// <summary>The readable folders as the roots servers are told (<c>file://</c> URIs).</summary>

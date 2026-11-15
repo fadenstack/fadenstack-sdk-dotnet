@@ -17,9 +17,18 @@ public enum McpProblem
     AddressMissing,
     AddressInvalid,
 
-    /// <summary>Not on this computer: "Network servers come in a later version." (desktop-agent/31 decision 1).</summary>
+    /// <summary>
+    /// Plain http to an address outside this computer without the switch "Allow plain http on the local network" (sdk/51 F05):
+    /// https goes anywhere, plain http only to this computer unless the person switches it on.
+    /// </summary>
     AddressNotLoopback,
     TimeoutOutOfRange,
+
+    /// <summary>Plain http on the local network with a header value: headers hold tokens, so they need https or this computer (sdk/51 F05).</summary>
+    PlainHttpWithHeaders,
+
+    /// <summary>Plain http with the switch on, to an address outside the local network (RFC 1918, link-local, fc00::/7).</summary>
+    PlainHttpNotLocal,
 }
 
 /// <summary>The first problem of an entry, and the field it is in.</summary>
@@ -31,9 +40,9 @@ public sealed record McpValidation(McpProblem Problem, string? Field = null)
 }
 
 /// <summary>
-/// The rules for a server entry (desktop-agent/31 §4.4): the label, a program with a list of arguments, or an address on this
-/// computer (loopback only in round 1), names of environment variables and headers that cannot smuggle a line break, and a call
-/// timeout the SDK accepts. Applied when a server is typed in, edited or imported.
+/// The rules for a server entry (desktop-agent/31 §4.4): the label, a program with a list of arguments, or an address (https
+/// anywhere; plain http on this computer, or on the local network with the person's switch and no header; sdk/51 F05), names
+/// of environment variables and headers that cannot smuggle a line break, and a call timeout the SDK accepts. Applied when a server is typed in, edited or imported.
 /// </summary>
 public static class McpServerValidator
 {
@@ -92,8 +101,18 @@ public static class McpServerValidator
             return new(McpProblem.AddressMissing, "address");
         if (!Uri.TryCreate(entry.Url!.Trim(), UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https") || url.UserInfo.Length > 0)
             return new(McpProblem.AddressInvalid, "address");
-        if (!LocalMcpServer.IsLoopback(url))
-            return new(McpProblem.AddressNotLoopback, "address");
+        if (url.Scheme == Uri.UriSchemeHttp && !LocalMcpServer.IsLoopback(url))
+        {
+            // Plain http beyond this computer (sdk/51 F05): only with the person's switch, never with a header value (a token),
+            // and never to an address that is outside the local network. A name is checked when the server connects.
+            if (!entry.PlainHttpInLan)
+                return new(McpProblem.AddressNotLoopback, "address");
+            if (entry.Headers.Count > 0)
+                return new(McpProblem.PlainHttpWithHeaders, "headers");
+            if (System.Net.IPAddress.TryParse(url.IdnHost.Trim('[', ']'), out var literal)
+                && Fadenstack.Endpoints.NetworkAddress.Of(literal) == Fadenstack.Endpoints.AddressScope.Public)
+                return new(McpProblem.PlainHttpNotLocal, "address");
+        }
         foreach (var pair in entry.Headers)
         {
             if (!HeaderName.IsMatch(pair.Name))

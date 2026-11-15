@@ -70,6 +70,13 @@ public sealed record McpServerEntry
     /// </summary>
     public IReadOnlyDictionary<string, ToolClass> ToolClasses { get; init; } = new Dictionary<string, ToolClass>();
 
+    /// <summary>
+    /// The person's switch under Advanced, "Allow plain http on the local network" (sdk/51 F05), for an address over plain http:
+    /// then it may be on the local network (not only this computer), never with a header, and only where the agent and this
+    /// computer's policy allow it. Off by default; imported servers arrive with it off.
+    /// </summary>
+    public bool PlainHttpInLan { get; init; }
+
     public bool IsProgram => Command is not null;
 
     /// <summary>The entry has a secret value to keep or show masked.</summary>

@@ -130,7 +130,10 @@ public sealed class McpImportLocations : IMcpImportLocations
 /// <summary>Why a server of a file was not offered for import; a view model turns it into a text.</summary>
 public enum McpSkipReason
 {
-    /// <summary>An address that is not on this computer: "Network servers come in a later version."</summary>
+    /// <summary>
+    /// An address beyond this computer: the person types such a server in (sdk/51 F05); another app's file often carries its token
+    /// in the URL, and plain http there needs the person's switch, which an import never sets.
+    /// </summary>
     NetworkServer,
 
     /// <summary>Neither a command nor an address.</summary>
@@ -343,6 +346,9 @@ public sealed class McpImporter
         var asAddress = url is not null && (command is null || type is "http" or "sse" or "streamable-http" or "streamablehttp");
         if (!asAddress && string.IsNullOrWhiteSpace(command))
             return (null, new McpSkip(name, McpSkipReason.NothingToStart));
+        // Only servers on this computer arrive (off). A server elsewhere is typed in by the person (sdk/51 F05): another app's file
+        // often carries its token in the URL, and such servers mostly need OAuth; plain http beyond this computer needs the
+        // person's switch, which an import never sets.
         if (asAddress && (!Uri.TryCreate(url!.Trim(), UriKind.Absolute, out var parsed) || !LocalMcpServer.IsLoopback(parsed)))
             return (null, new McpSkip(name, McpSkipReason.NetworkServer, McpAddresses.Display(url!)));
 

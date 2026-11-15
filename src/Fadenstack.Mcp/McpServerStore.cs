@@ -303,6 +303,10 @@ public sealed class McpServerStore
         [JsonPropertyName("toolClasses")]
         public Dictionary<string, string>? ToolClasses { get; set; }
 
+        // Written only when on (sdk/51 F05), so a file without it is byte for byte the desktop's.
+        [JsonPropertyName("plainHttpInLan")]
+        public bool? PlainHttpInLan { get; set; }
+
         public static EntryDto From(McpServerEntry e) => new()
         {
             Label = e.Label,
@@ -316,6 +320,7 @@ public sealed class McpServerStore
             CallTimeoutSeconds = e.CallTimeoutSeconds,
             Origin = e.Origin,
             Trusted = e.Trusted ? true : null,
+            PlainHttpInLan = e.PlainHttpInLan ? true : null,
             ToolClasses = e.ToolClasses.Count == 0 ? null : e.ToolClasses
                 .Where(p => p.Value is ToolClass.Read or ToolClass.Write)
                 .ToDictionary(p => p.Key, p => p.Value == ToolClass.Read ? "read" : "write", StringComparer.Ordinal),
@@ -334,6 +339,7 @@ public sealed class McpServerStore
             CallTimeoutSeconds = CallTimeoutSeconds,
             Origin = string.IsNullOrEmpty(Origin) ? McpServerEntry.TypedOrigin : Origin,
             Trusted = Trusted == true,
+            PlainHttpInLan = PlainHttpInLan == true,
             ToolClasses = RaisesOf(ToolClasses),
         };
 
