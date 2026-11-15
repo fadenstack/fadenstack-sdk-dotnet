@@ -15,5 +15,8 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Fadenstack.UI.Tests" />
+    <!-- The skins use the item commands for their own parameterized commands (ItemCommandRuleTests). -->
+    <InternalsVisibleTo Include="Fadenstack.UI.Avalonia" />
+    <InternalsVisibleTo Include="Fadenstack.UI.Wpf" />
   </ItemGroup>
 </Project>
