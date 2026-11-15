@@ -24,6 +24,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       approvals/<agent>.json
       preferences/reasoning.json
       language
+      skills/<skill>/SKILL.md
+      preferences/skills.json
       mcp/servers.dat
       mcp/audit.jsonl
       keys/provenance-signing.key
@@ -33,17 +35,17 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       sessions/<agent>/<session id>.jsonl
       approvals/<agent>.json
       preferences/reasoning.json
+      skills/<skill>/SKILL.md
+      preferences/skills.json
       mcp/servers.dat
       mcp/audit.jsonl
   tokens/<hash>.token                 shared by everyone on the OS account
   keystore/                           shared (macOS and Linux, with Fadenstack.Secrets)
-  skills/<skill>/SKILL.md             shared
   agents/<agent>-<process>-<instance>-<window>.json   shared
   leases/<hash>.json                  shared
   logs/                               Windows; on macOS and Linux in the log folder
 <settings folder>
   preferences.json                    shared: the chat panel's choices
-  skills.json                         shared: the skills turned off
 ```
 
 ## A person's folder
@@ -59,6 +61,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `sessions/<agent>/<session id>.jsonl` | The chats: one append-only file per session, one transcript entry per line, with the messages, attachments, tool calls and results, approval decisions and notices ([What a session holds](sessions.md#what-a-session-holds)). | Every line encrypted: DPAPI for the current user on Windows; AES-256-GCM on macOS and Linux with `Fadenstack.Secrets`, the data key in the Keychain or the Secret Service. Without either, nothing is written: the chat stays in memory (event 2040). | The newest 50 sessions per agent, none older than 90 days; the others go when a new session starts. `UseSessionRetention` and the server's `local_retention` lower the limits ([Retention](sessions.md#retention)). | Exported, decrypted; deleted. |
 | `approvals/<agent>.json` | "Allow always": each tool, its class, and when it was allowed. | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
 | `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
+| `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Not exported (the editor exports a skill as a zip); deleted. |
+| `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
 | `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Not exported; deleted. |
 | `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Not exported; deleted. |
 | `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
@@ -76,12 +80,10 @@ These folders belong to the OS user, not to one person: everyone who uses the SD
 |---|---|---|---|---|
 | `tokens/<hash>.token` | The sign-in for one server and agent: the access and refresh tokens and the device id. The name is a hash of the server and the agent; a `.lock` file sits beside it. | DPAPI or the OS key store; without either, a file only its owner may read. | Until sign-out. A second sign-in to the same server and agent replaces the first. | Never exported. `SignOutAsync` revokes the sign-in and deletes the file; `DeleteMyDataAsync` keeps it. |
 | `keystore/` | Only with `Fadenstack.Secrets` on macOS and Linux: the key store library's file. The data key itself, 32 random bytes and one per OS user, is in the Keychain or the Secret Service. | The OS key store. | As long as the OS account. | Never exported. Removing the key store's entry makes every file it encrypted unreadable. |
-| `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`). The skills module reads the folder when the app adds `SkillsOptions.UserFolder` ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Not in `ExportMyDataAsync` or `DeleteMyDataAsync`; the editor exports a skill as a zip. |
 | `agents/<...>.json` | The device agent registry: which agents run, in which process, with a heartbeat, so the desktop agent and the add-ins find each other. | A file only its owner may read. | Removed when its process ends or its heartbeat stops for 2 minutes. | No personal content. |
 | `leases/<hash>.json` | A short write lease on a document, so two agents never change it at once: the holder, its process and the expiry. | The folder's. | Removed when released; taken over once it expired or its holder ended. | No personal content. |
 | The log folder: `<app>-<yyyyMMdd>.log` | Only when the app adds the SDK's file log (`FadenstackFileLoggerProvider`): the SDK's events, with names, ids, counts and durations; never prompts, answers, tool arguments or results, tokens, or who the user is. What the app logs through the same logger is written as it is ([Logging](agent.md#logging)). | The folder's. | 5 MB per file, 14 days, 50 MB in all per app. | Not exported or deleted; the limits remove them. |
 | The settings folder: `preferences.json` | The chat panel's choices, such as the language picked in the panel; shared by every Fadenstack panel of the OS user. | Plain JSON. | Until changed. | Not exported or deleted. |
-| The settings folder: `skills.json` | The names of the skills the person turned off. | Plain JSON. | Until changed. | Not exported or deleted. |
 
 ## The move from before 0.3.0
 
@@ -97,7 +99,7 @@ A person can ask for the data a device holds about them (GDPR Art. 15 and 20) an
 
 | Call | What it covers | What it leaves |
 |---|---|---|
-| `agent.ExportMyDataAsync(stream)` | A ZIP with the person's sessions, decrypted, their "Allow always" approvals and a README. | Tokens and secrets, which are never exported; the thinking level and the language; the MCP servers and their audit log; the standalone provenance records and log; the shared folders, skills included; what the server keeps. |
+| `agent.ExportMyDataAsync(stream)` | A ZIP with the person's sessions, decrypted, their "Allow always" approvals and a README. | Tokens and secrets, which are never exported; the thinking level and the language; skills and their switches (the editor exports a skill as a zip); the MCP servers and their audit log; the standalone provenance records and log; the shared folders; what the server keeps. |
 | `agent.DeleteMyDataAsync()` | The person's whole folder, `users/<user>/`, with everything in it. From a server that names no user: the shared `sessions`, `approvals` and `preferences` folders. | The sign-in (sign out for that); the shared folders; another person's folder (deleting a governed person's data leaves `users/standalone/`, and the other way round); a store your app passed (`HostStoresLeft`); what the server keeps. |
 | `tokens.SignOutAsync()` | Revokes the sign-in on the server where it can be reached, and deletes the token file. | The person's folder. |
 | `agent.DeleteSessionAsync(id)`, `agent.ResetApprovalsAsync()` | One session; this agent's "Allow always". | |

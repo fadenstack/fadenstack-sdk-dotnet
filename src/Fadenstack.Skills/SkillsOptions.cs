@@ -18,12 +18,20 @@ public sealed record BundledSkill(string Name, string Description, string Instru
 /// <summary>What the skills module offers: folders and bundled skills. Which of them an agent may use is decided by its policy.</summary>
 public sealed class SkillsOptions
 {
-    /// <summary>The person's own skills: <c>&lt;DataRoot&gt;/skills</c>, per OS user. Add it to <see cref="Folders"/>.</summary>
-    public static string UserFolder => Path.Combine(FadenstackPaths.DataRoot, "skills");
+    /// <summary>
+    /// Whether the module reads the person's own skills, in the folder of whoever the agent's profile names:
+    /// <c>users/&lt;user&gt;/skills</c> in the SDK's data folder, <c>users/standalone/skills</c> for the person's own AI
+    /// (<see cref="FolderOf"/>). So two people on one OS account never see each other's skills, and deleting a person's data deletes
+    /// theirs. A server that names no user has no person's folder. Default true.
+    /// </summary>
+    public bool OwnSkills { get; set; } = true;
+
+    /// <summary>A person's own skills folder: <c>users/&lt;user&gt;/skills</c> in the SDK's data folder, created, readable by its owner only.</summary>
+    public static string FolderOf(string userId) => FadenstackPaths.User(userId, "skills");
 
     /// <summary>
-    /// Folders that hold skill folders (<c>&lt;folder&gt;/&lt;name&gt;/SKILL.md</c>): the person's own, and the ones they add in the
-    /// settings. A folder that does not exist is skipped. Under a machine policy that lists folders only those stay.
+    /// Further folders that hold skill folders (<c>&lt;folder&gt;/&lt;name&gt;/SKILL.md</c>): the ones the person adds in the settings.
+    /// A folder that does not exist is skipped. Under a machine policy that lists folders only those stay, the person's own included.
     /// </summary>
     public IList<string> Folders { get; } = new List<string>();
 
@@ -31,8 +39,9 @@ public sealed class SkillsOptions
     public IList<BundledSkill> Bundled { get; } = new List<BundledSkill>();
 
     /// <summary>
-    /// The person's on/off switch per skill, kept in their settings (<see cref="FileSkillSwitches"/>): the module does not list an off skill for the
-    /// model. Null: every skill is on.
+    /// The on/off switch per skill: the module does not list an off skill for the model. Null: the person's own, beside their skills
+    /// (<see cref="FileSkillSwitches.ForUser"/>, <c>users/&lt;user&gt;/preferences/skills.json</c>), once the module knows whose; every skill
+    /// is on where there is no person (<see cref="OwnSkills"/> off, or a server that names no user). Set it to keep the switches elsewhere.
     /// </summary>
     public ISkillSwitches? Switches { get; set; }
 

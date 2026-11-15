@@ -38,9 +38,8 @@ public sealed class MemorySkillSwitches : ISkillSwitches
 }
 
 /// <summary>
-/// The switches in a JSON file, by default <c>skills.json</c> in <see cref="FadenstackPaths.SettingsRoot"/> (the preferences, which hold no
-/// personal content): <c>{"disabled": ["name", ...]}</c>. A file that cannot be read means every skill is on; one that cannot be written
-/// keeps the change for this run only.
+/// The switches in a JSON file, <c>{"disabled": ["name", ...]}</c>; a person's own are beside their skills (<see cref="ForUser"/>). A file
+/// that cannot be read means every skill is on; one that cannot be written keeps the change for this run only.
 /// </summary>
 public sealed class FileSkillSwitches : ISkillSwitches
 {
@@ -48,9 +47,11 @@ public sealed class FileSkillSwitches : ISkillSwitches
     private HashSet<string>? _cache;
     private bool _unsaved;
 
-    public FileSkillSwitches(string? path = null) => Path = path ?? DefaultPath;
+    public FileSkillSwitches(string path) => Path = path ?? throw new ArgumentNullException(nameof(path));
 
-    public static string DefaultPath => System.IO.Path.Combine(FadenstackPaths.SettingsRoot, "skills.json");
+    /// <summary>A person's switches: <c>users/&lt;user&gt;/preferences/skills.json</c> in the SDK's data folder, deleted with their data.</summary>
+    public static FileSkillSwitches ForUser(string userId) =>
+        new(System.IO.Path.Combine(FadenstackPaths.User(userId, "preferences"), "skills.json"));
 
     public string Path { get; }
 

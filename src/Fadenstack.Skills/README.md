@@ -12,8 +12,7 @@ dotnet add package Fadenstack.Skills
 ```csharp
 using Fadenstack.Skills;
 
-var skills = new SkillsOptions();
-skills.Folders.Add(SkillsOptions.UserFolder);                      // <DataRoot>/skills, per OS user
+var skills = new SkillsOptions();                                   // the person's own: users/<user>/skills
 skills.Bundled.Add(new BundledSkill("slide-design", "Designs a slide.", "One idea per slide."));
 
 builder.Use(new SkillsModule(skills));
@@ -32,5 +31,9 @@ builder.Use(new SkillsModule(skills));
   no anchors, aliases or tags. Each turn the model is listed the skills its message matches (up to 3, named ones first) and the skills without
   triggers; a skill named with `$slug`, always on, or matched on a keyword gets its instructions loaded for the turn, marked as skill text. The
   preferred tools are a hint in that text. A skill without a `faden.yaml`, or with one that does not read (logged), is listed as before.
+- **The person's own skills** are in their own folder, `users/<user>/skills` in the SDK's data folder (standalone:
+  `users/standalone/skills`), for the person the agent's profile names, with their on/off switches beside them; two people
+  on one OS account never see each other's, and deleting a person's data deletes them. `SkillWorkshop(module)` is the
+  editor over that folder.
 - **Skill text is untrusted.** It never changes a tool's class, a mode or a grant.
 - **Heavier than the core.** The package takes `Microsoft.Agents.AI` and its dependencies on; the rest of the SDK does not.

@@ -5,7 +5,7 @@ using Fadenstack.SkillAuthoring;
 namespace Fadenstack.Skills;
 
 /// <summary>
-/// The skill editor's side of the module (sdk/51 F04): the person's skills as folders under <see cref="SkillsOptions.UserFolder"/>, with the
+/// The skill editor's side of the module (sdk/51 F04): the person's skills as folders in their own folder (<see cref="SkillsModule.OwnFolder"/>), with the
 /// bundled skills (read only), the organisation's (governed mode: read only, never their instructions), the on/off switches, the checks, the
 /// atomic save, import and export, and the test step over the module's own pre-selection. It writes only when the editor calls
 /// <see cref="SaveAsync"/>, <see cref="CommitImportAsync"/>, <see cref="DeleteAsync"/> or <see cref="SetEnabledAsync"/>, which the person
@@ -13,41 +13,88 @@ namespace Fadenstack.Skills;
 /// </summary>
 public sealed class SkillWorkshop : ISkillWorkshop
 {
-    private readonly SkillFolderStore _store;
+    private readonly SkillFolderStore? _fixed;
+    private readonly SkillsModule? _module;
     private readonly SkillsOptions _options;
-    private readonly ISkillSwitches _switches;
+    private readonly ISkillSwitches? _switches;
+    private SkillFolderStore? _current;
     private readonly Func<CancellationToken, Task<IReadOnlyList<SkillOption>>>? _organisation;
     private readonly Action? _changed;
     private readonly HashSet<string> _reserved;
 
-    /// <param name="options">The bundled skills (<see cref="SkillsOptions.Bundled"/>) and the switches (<see cref="SkillsOptions.Switches"/>).</param>
-    /// <param name="folder">The person's skills folder; <see cref="SkillsOptions.UserFolder"/> by default.</param>
+    /// <summary>
+    /// The editor over the module's person: their own folder and switches (<see cref="SkillsModule.OwnFolder"/>,
+    /// <see cref="SkillsModule.Switches"/>), as the profile names them, and the module's bundled skills. Until the agent has started,
+    /// whose they are is not known: the list holds the bundled skills only, and a change throws.
+    /// </summary>
+    /// <param name="module">The agent's skills module; it is told to read the folders again after a change.</param>
+    /// <param name="organisation">The organisation's skills in governed mode (<c>FadenstackAgent.ListSkillsAsync</c>); null: none are listed.</param>
+    public SkillWorkshop(SkillsModule module, Func<CancellationToken, Task<IReadOnlyList<SkillOption>>>? organisation = null)
+    {
+        _module = module ?? throw new ArgumentNullException(nameof(module));
+        _options = module.Options;
+        _organisation = organisation;
+        _changed = module.Refresh;
+        _reserved = new HashSet<string>(_options.Bundled.Select(b => b.Name), StringComparer.Ordinal);
+    }
+
+    /// <summary>The editor over a folder the app chooses (an app's own place, a test).</summary>
+    /// <param name="options">The bundled skills (<see cref="SkillsOptions.Bundled"/>) and the switches (<see cref="SkillsOptions.Switches"/>; in memory when null).</param>
+    /// <param name="folder">The skills folder.</param>
     /// <param name="organisation">The organisation's skills in governed mode (<c>FadenstackAgent.ListSkillsAsync</c>); null: none are listed.</param>
     /// <param name="changed">Called after a skill was saved, deleted or switched, so that the module reads the folders again (<see cref="SkillsModule.Refresh"/>).</param>
-    public SkillWorkshop(SkillsOptions options, string? folder = null, Func<CancellationToken, Task<IReadOnlyList<SkillOption>>>? organisation = null,
+    public SkillWorkshop(SkillsOptions options, string folder, Func<CancellationToken, Task<IReadOnlyList<SkillOption>>>? organisation = null,
         Action? changed = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _store = new SkillFolderStore(folder ?? SkillsOptions.UserFolder);
+        _fixed = new SkillFolderStore(folder ?? throw new ArgumentNullException(nameof(folder)));
         _switches = options.Switches ?? new MemorySkillSwitches();
         _organisation = organisation;
         _changed = changed;
         _reserved = new HashSet<string>(options.Bundled.Select(b => b.Name), StringComparer.Ordinal);
     }
 
-    /// <summary>The person's skills folder.</summary>
-    public string Folder => _store.Root;
+    /// <summary>The person's skills folder; null while the module has not read whose skills these are.</summary>
+    public string? Folder => StoreOrNull()?.Root;
+
+    /// <summary>The store now: the folder the app gave, or the module's person's; null while that is not known.</summary>
+    private SkillFolderStore? StoreOrNull()
+    {
+        if (_module is null)
+        {
+            return _fixed;
+        }
+        if (_module.OwnFolder is not { } folder)
+        {
+            return null;
+        }
+        var current = _current;
+        if (current is null || !string.Equals(current.Root, Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.Ordinal))
+        {
+            _current = current = new SkillFolderStore(folder);
+        }
+        return current;
+    }
+
+    /// <summary>The store for a change: it must be known whose skills these are.</summary>
+    private SkillFolderStore Store => StoreOrNull() ?? throw new InvalidOperationException(
+        "Whose skills these are is not known yet: start the agent first, so that the skills module has read its profile.");
+
+    /// <summary>The switches now: the app's or the person's; every skill on while the person is not known.</summary>
+    private ISkillSwitches Switches => _module is null ? _switches! : _module.Switches ?? new MemorySkillSwitches();
 
     public Task<IReadOnlyList<SkillEntry>> ListAsync(CancellationToken cancellationToken = default) => Task.Run<IReadOnlyList<SkillEntry>>(async () =>
     {
         var entries = new List<SkillEntry>();
+        var switches = Switches;
         foreach (var bundled in _options.Bundled.OrderBy(b => b.Name, StringComparer.Ordinal))
         {
-            entries.Add(new SkillEntry(bundled.Name, bundled.Description, SkillOrigin.Bundled, _switches.IsEnabled(bundled.Name)));
+            entries.Add(new SkillEntry(bundled.Name, bundled.Description, SkillOrigin.Bundled, switches.IsEnabled(bundled.Name)));
         }
-        foreach (var name in _store.Names())
+        var store = StoreOrNull();
+        foreach (var name in store?.Names() ?? Enumerable.Empty<string>())
         {
-            var (text, _, problem) = _store.ReadHead(name);
+            var (text, _, problem) = store!.ReadHead(name);
             var broken = problem is not null || _reserved.Contains(name);
             var reason = problem;
             string? parseError = null;
@@ -65,7 +112,7 @@ public sealed class SkillWorkshop : ISkillWorkshop
                     : new SkillIssue(SkillIssueCode.SkillMdUnreadable, SkillSeverity.Error, "SKILL.md", Detail: parseError ?? "");
                 broken = true;
             }
-            entries.Add(new SkillEntry(name, description, SkillOrigin.Own, _switches.IsEnabled(name)) { IsBroken = broken, BrokenIssue = broken ? reason : null });
+            entries.Add(new SkillEntry(name, description, SkillOrigin.Own, switches.IsEnabled(name)) { IsBroken = broken, BrokenIssue = broken ? reason : null });
         }
         if (_organisation is not null)
         {
@@ -101,7 +148,8 @@ public sealed class SkillWorkshop : ISkillWorkshop
             };
             return new SkillReadResult(document, SkillOrigin.Bundled, Array.Empty<SkillIssue>());
         }
-        var (text, yamlText, problem) = _store.ReadHead(name);
+        var store = Store;
+        var (text, yamlText, problem) = store.ReadHead(name);
         if (problem is not null || text is null)
         {
             return new SkillReadResult(null, SkillOrigin.Own, new[] { problem ?? new SkillIssue(SkillIssueCode.ReadFailed, SkillSeverity.Error, name) });
@@ -123,7 +171,7 @@ public sealed class SkillWorkshop : ISkillWorkshop
             // An unreadable faden.yaml is ignored by the module (the skill still works); a Save would replace it, so it is said.
             issues.AddRange(extension.Issues.Select(i => i with { Severity = SkillSeverity.Warning }));
         }
-        var (files, fileIssues) = _store.ReadResources(name);
+        var (files, fileIssues) = store.ReadResources(name);
         issues.AddRange(fileIssues);
         parsed = parsed with { Extension = fields, Resources = files };
         issues.AddRange(Check(parsed, name).Issues);
@@ -150,13 +198,14 @@ public sealed class SkillWorkshop : ISkillWorkshop
         {
             previousName = null;
         }
-        var status = _store.Write(document, previousName, replace);
+        var status = Store.Write(document, previousName, replace);
         if (status == SkillSaveStatus.Saved)
         {
-            if (previousName is not null && previousName != document.Name && !_switches.IsEnabled(previousName))
+            var switches = Switches;
+            if (previousName is not null && previousName != document.Name && !switches.IsEnabled(previousName))
             {
-                _switches.Set(previousName, true); // the switch follows the skill
-                _switches.Set(document.Name, false);
+                switches.Set(previousName, true); // the switch follows the skill
+                switches.Set(document.Name, false);
             }
             _changed?.Invoke();
         }
@@ -165,28 +214,30 @@ public sealed class SkillWorkshop : ISkillWorkshop
 
     public Task<bool> DeleteAsync(string name, CancellationToken cancellationToken = default) => Task.Run(() =>
     {
-        if (_reserved.Contains(name) || !_store.Delete(name))
+        var store = Store;
+        if (_reserved.Contains(name) || !store.Delete(name))
         {
             return false;
         }
-        _switches.Set(name, true);
+        Switches.Set(name, true);
         _changed?.Invoke();
         return true;
     }, cancellationToken);
 
     public Task SetEnabledAsync(string name, bool enabled, CancellationToken cancellationToken = default) => Task.Run(() =>
     {
-        if ((_reserved.Contains(name) || _store.Exists(name)) && _switches.Set(name, enabled))
+        var store = Store; // a switch is the person's: whose must be known
+        if ((_reserved.Contains(name) || store.Exists(name)) && Switches.Set(name, enabled))
         {
             _changed?.Invoke();
         }
     }, cancellationToken);
 
     public Task<ImportAnalysis> AnalyzeImportAsync(string path, CancellationToken cancellationToken = default) =>
-        Task.Run(() => SkillImport.FromPath(path, ParseExtension, name => _store.Exists(name), _reserved), cancellationToken);
+        Task.Run(() => SkillImport.FromPath(path, ParseExtension, Store.Exists, _reserved), cancellationToken);
 
     public Task<ImportAnalysis> AnalyzeZipAsync(byte[] zip, string source, CancellationToken cancellationToken = default) =>
-        Task.Run(() => SkillImport.FromZip(zip, source, ParseExtension, name => _store.Exists(name), _reserved), cancellationToken);
+        Task.Run(() => SkillImport.FromZip(zip, source, ParseExtension, Store.Exists, _reserved), cancellationToken);
 
     public async Task<SkillSaveResult> CommitImportAsync(ImportAnalysis analysis, bool replaceExisting, CancellationToken cancellationToken = default)
     {
@@ -274,13 +325,15 @@ public sealed class SkillWorkshop : ISkillWorkshop
     public SkillTestResult Test(string prompt, SkillDocument? edited, string? editedFrom = null)
     {
         var candidates = new List<SkillCandidate>();
-        foreach (var bundled in _options.Bundled.Where(b => _switches.IsEnabled(b.Name)))
+        var switches = Switches;
+        var store = StoreOrNull();
+        foreach (var bundled in _options.Bundled.Where(b => switches.IsEnabled(b.Name)))
         {
             candidates.Add(new SkillCandidate(bundled.Name, bundled.Description, Extension(bundled.FadenYaml)));
         }
-        foreach (var name in _store.Names().Where(n => _switches.IsEnabled(n) && !_reserved.Contains(n)))
+        foreach (var name in (store?.Names() ?? Enumerable.Empty<string>()).Where(n => switches.IsEnabled(n) && !_reserved.Contains(n)))
         {
-            var (text, yaml, problem) = _store.ReadHead(name);
+            var (text, yaml, problem) = store!.ReadHead(name);
             if (problem is null && SkillMarkdown.TryParse(text, out var head, out _) && head.Name == name && head.UnknownKeys.Count == 0
                 && !SkillValidator.Check(head with { Instructions = "x", Extension = new SkillExtensionFields() }, name, _reserved).HasErrors)
             {

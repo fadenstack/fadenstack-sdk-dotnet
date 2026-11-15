@@ -9,14 +9,17 @@ Scripts never run.
 ```csharp
 using Fadenstack.Skills;
 
-var options = new SkillsOptions { Switches = new FileSkillSwitches() };  // skills.json in the person's settings
-options.Folders.Add(SkillsOptions.UserFolder);                         // <DataRoot>/skills, per OS user
+var options = new SkillsOptions();  // the person's own skills and switches: in their folder, users/<user>/
 options.Bundled.Add(new BundledSkill("slide-design", "Designs slides ...", body) { FadenYaml = yaml });
+var skills = new SkillsModule(options);
 
 var agent = FadenstackAgent.CreateBuilder()
     .UseEndpoint(endpoint).UseLocalProfile(definition)
-    .Use(new SkillsModule(options))
+    .Use(skills)
     .Build();
+await agent.StartAsync();  // the profile names the person: their folder is known from here
+
+var editor = new SkillWorkshop(skills, ct => agent.ListSkillsAsync(cancellationToken: ct));  // the editor follows the module
 ```
 
 ## The format
@@ -53,8 +56,12 @@ keyword or file-type hit. The server gives every resolved skill's instructions; 
 ## Where skills come from, and who decides
 
 - **Bundled** with the app: read-only.
-- **The person's own:** `<DataRoot>/skills/<name>/`, per OS user, and folders the person adds. They show the label
-  "not reviewed".
+- **The person's own:** in their own folder, `users/<user>/skills/<name>/` in the SDK's data folder
+  (`users/standalone/skills/` for the person's own AI; `SkillsOptions.FolderOf`), with their switches beside them
+  (`users/<user>/preferences/skills.json`), so two people on one OS account never see each other's, and
+  `DeleteMyDataAsync` deletes them. Further folders the person adds in the settings (`SkillsOptions.Folders`). They show
+  the label "not reviewed". `SkillsOptions.OwnSkills = false` reads no person's folder; a server that names no user has
+  none. See [Data on the device](data-on-device.md).
 - **The organisation's,** with a server: listed beside the local ones (`ListSkillsAsync`), read-only.
 
 With a server, local skills are on only when the agent's profile allows them: `local_skills.mode` is `allow`, or
