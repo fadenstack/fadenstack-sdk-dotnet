@@ -125,7 +125,7 @@ The exception's message is written for the person ("This server does not support
 
 ### Where the sign-in is kept
 
-`FileTokenStore`, the default, keeps one file per server and agent in the user's local data folder (`%LOCALAPPDATA%\Fadenstack\tokens\` on Windows). On Windows the file is encrypted with DPAPI for the current user. On macOS and Linux it is encrypted when the app called `FadenstackSecrets.UseOsKeyStore()` (see [Sessions on the device](sessions.md#where-they-are-stored)), and otherwise it is not encrypted and only its owner may read it. A file that cannot be read, such as another user's or a damaged one, counts as no sign-in.
+`FileTokenStore`, the default, keeps one file per server and agent in the user's local data folder (`%LOCALAPPDATA%\Fadenstack\tokens\` on Windows). On Windows the file is encrypted with DPAPI for the current user. On macOS and Linux it is encrypted when the app called `FadenstackSecrets.UseOsKeyStore()` (see [Sessions on the device](sessions.md#where-they-are-stored)), and otherwise it is not encrypted and only its owner may read it. The folder is shared by everyone on the OS account; [Data on the device](data-on-device.md#shared-by-the-os-user) lists it with the others. A file that cannot be read, such as another user's or a damaged one, counts as no sign-in.
 
 To keep it elsewhere, pass a store:
 
@@ -460,7 +460,7 @@ A cancelled turn is recorded as cancelled in the session and is never sent to th
 
 ### How long it thinks: the person's choice
 
-The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto, Off (`none`), Low, Medium or High, as in other agents. The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder); a new chat starts from it and a change applies from the next message.
+The chat UIs show a "thinking" pill beside the tool mode, where the person picks how long the agent thinks: Auto, Off (`none`), Low, Medium or High, as in other agents. The choice is kept per person and per agent on the device (`users/<user>/preferences/reasoning.json` in the SDK's data folder; see [Data on the device](data-on-device.md)); a new chat starts from it and a change applies from the next message.
 
 The server can only set a maximum, in the agent version's `ui`:
 
