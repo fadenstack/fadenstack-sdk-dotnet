@@ -23,91 +23,46 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Colors.Light.xaml" />
-                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Chat.xaml" />
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Buttons: the skin's own, and each one that disappears while its command cannot run. -->
-            <Style x:Key="Wizard.Primary" TargetType="Button" BasedOn="{StaticResource Fadenstack.PrimaryButton}" />
-            <Style x:Key="Wizard.PrimaryHide" TargetType="Button" BasedOn="{StaticResource Fadenstack.PrimaryButton}">
-                <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-            <Style x:Key="Wizard.SecondaryHide" TargetType="Button" BasedOn="{StaticResource Fadenstack.SecondaryButton}">
-                <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-            <Style x:Key="Wizard.Choice" TargetType="Button" BasedOn="{StaticResource Fadenstack.SecondaryButton}">
-                <Setter Property="HorizontalContentAlignment" Value="Left" />
-                <Setter Property="Padding" Value="12,8" />
-            </Style>
-            <Style x:Key="Wizard.Quiet" TargetType="Button" BasedOn="{StaticResource Fadenstack.GhostButton}" />
-            <Style x:Key="Wizard.QuietHide" TargetType="Button" BasedOn="{StaticResource Fadenstack.GhostButton.HideDisabled}" />
+            <!-- The forms' styles (Controls.xaml) under the wizard's names; a button that disappears while its command cannot run. -->
+            <Style x:Key="Wizard.Primary" TargetType="Button" BasedOn="{StaticResource Form.Primary}" />
+            <Style x:Key="Wizard.PrimaryHide" TargetType="Button" BasedOn="{StaticResource Form.PrimaryHide}" />
+            <Style x:Key="Wizard.SecondaryHide" TargetType="Button" BasedOn="{StaticResource Form.SecondaryHide}" />
+            <Style x:Key="Wizard.Choice" TargetType="Button" BasedOn="{StaticResource Form.Choice}" />
+            <Style x:Key="Wizard.Quiet" TargetType="Button" BasedOn="{StaticResource Form.Quiet}" />
+            <Style x:Key="Wizard.QuietHide" TargetType="Button" BasedOn="{StaticResource Form.QuietHide}" />
 
             <!-- Text -->
-            <Style x:Key="Wizard.Title" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="20" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-            <Style x:Key="Wizard.Strong" TargetType="TextBlock">
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-            <Style x:Key="Wizard.Caption" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
-                <Setter Property="TextWrapping" Value="Wrap" />
-            </Style>
-            <Style x:Key="Wizard.Code" TargetType="TextBox">
+            <Style x:Key="Wizard.Title" TargetType="TextBlock" BasedOn="{StaticResource Form.Title}" />
+            <Style x:Key="Wizard.Strong" TargetType="TextBlock" BasedOn="{StaticResource Form.Strong}" />
+            <Style x:Key="Wizard.Caption" TargetType="TextBlock" BasedOn="{StaticResource Form.Caption}" />
+            <!-- The pairing code: large, in a read-only field with the card's own colour. -->
+            <Style x:Key="Wizard.Code" TargetType="TextBox" BasedOn="{StaticResource Form.TextBox}">
                 <Setter Property="IsReadOnly" Value="True" />
                 <Setter Property="BorderThickness" Value="0" />
-                <Setter Property="Background" Value="Transparent" />
-                <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
                 <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.CodeFont}" />
                 <Setter Property="FontSize" Value="28" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="TextAlignment" Value="Center" />
+                <Setter Property="Padding" Value="12,4" />
             </Style>
 
-            <!-- The skin's banner: a rounded container with a status bar at its start. -->
-            <Style x:Key="Wizard.Banner" TargetType="Border">
-                <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
-                <Setter Property="Padding" Value="12" />
-                <Setter Property="BorderThickness" Value="3,0,0,0" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentIcon}" />
-                <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
-            </Style>
-            <Style x:Key="Wizard.Banner.Error" TargetType="Border" BasedOn="{StaticResource Wizard.Banner}">
-                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Danger}" />
-                <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
-            </Style>
-            <Style x:Key="Wizard.Banner.Warning" TargetType="Border" BasedOn="{StaticResource Wizard.Banner}">
-                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
-                <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
-            </Style>
-            <Style x:Key="Wizard.Banner.Success" TargetType="Border" BasedOn="{StaticResource Wizard.Banner}">
-                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Success}" />
-                <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
-            </Style>
-            <Style x:Key="Wizard.Card" TargetType="Border">
-                <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
-                <Setter Property="Padding" Value="12" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
-                <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
-            </Style>
+            <!-- The banner: a rounded container with a status bar at its start; the card. -->
+            <Style x:Key="Wizard.Banner" TargetType="Border" BasedOn="{StaticResource Form.Banner}" />
+            <Style x:Key="Wizard.Banner.Error" TargetType="Border" BasedOn="{StaticResource Form.Banner.Error}" />
+            <Style x:Key="Wizard.Banner.Warning" TargetType="Border" BasedOn="{StaticResource Form.Banner.Warning}" />
+            <Style x:Key="Wizard.Banner.Success" TargetType="Border" BasedOn="{StaticResource Form.Banner.Success}" />
+            <Style x:Key="Wizard.Card" TargetType="Border" BasedOn="{StaticResource Form.Card}" />
         </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
-        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="16">
+        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}">
 
             <!-- The app could not keep what the wizard handed it (any step that saves). -->
-            <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12" Visibility="{Binding StoreFailed, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding StoreFailed, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                 <DockPanel>
                     <TextBlock Text="{local:Text WizardStoreFailed}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                 </DockPanel>
@@ -115,13 +70,13 @@
 
             <!-- ===== The app's own steps and every step that is running: progress, its line, Cancel ================ -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='BeforeChoice,AppPrecondition,Checking,ServerAccepted,PairStarting,Approved,Redeeming,OwnSearching,BeforeCheck,OwnChecking,OwnDone,AfterConnect'}">
-                <ContentControl Content="{Binding AppStep}" Margin="0,0,0,12" IsTabStop="False"
+                <ContentControl Content="{Binding AppStep}" Margin="{StaticResource Fadenstack.Space.Block}" IsTabStop="False"
                                 Visibility="{Binding AppStep, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                 <StackPanel Visibility="{Binding AppStep, Converter={StaticResource Fadenstack.EmptyToCollapsed}, ConverterParameter=invert}">
-                    <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,12" Foreground="{DynamicResource Fadenstack.Accent}"
+                    <ProgressBar IsIndeterminate="True" Margin="{StaticResource Fadenstack.Space.Block}"
                                  Visibility="{Binding IsBusy, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                                  AutomationProperties.Name="{local:Text WizardChecking}" />
-                    <StackPanel Margin="0,0,0,12" AutomationProperties.LiveSetting="Polite">
+                    <StackPanel Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.LiveSetting="Polite">
                         <TextBlock TextWrapping="Wrap" Text="{local:Text WizardChecking}"
                                    Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='AppPrecondition,Checking,ServerAccepted'}" />
                         <TextBlock TextWrapping="Wrap" Text="{local:Text WizardStarting}"
@@ -142,8 +97,8 @@
 
             <!-- ===== Choose ====================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Choose'}">
-                <TextBlock x:Name="ChooseTitle" Style="{StaticResource Wizard.Title}" Margin="0,0,0,12" />
-                <Button Style="{StaticResource Wizard.Choice}" Margin="0,0,0,8" Command="{Binding ChooseServerCommand}"
+                <TextBlock x:Name="ChooseTitle" Style="{StaticResource Wizard.Title}" />
+                <Button Style="{StaticResource Wizard.Choice}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChooseServerCommand}"
                         Visibility="{Binding CanChooseServer, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                         AutomationProperties.Name="{local:Text WizardChooseServer}" AutomationProperties.HelpText="{local:Text WizardChooseServerHelp}">
                     <StackPanel>
@@ -151,7 +106,7 @@
                         <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardChooseServerHelp}" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource Wizard.Choice}" Margin="0,0,0,8" Command="{Binding ChooseOwnAiCommand}"
+                <Button Style="{StaticResource Wizard.Choice}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChooseOwnAiCommand}"
                         Visibility="{Binding CanChooseOwnAi, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                         AutomationProperties.Name="{local:Text WizardChooseOwnAi}" AutomationProperties.HelpText="{local:Text WizardChooseOwnAiHelp}">
                     <StackPanel>
@@ -159,7 +114,7 @@
                         <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardChooseOwnAiHelp}" />
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource Wizard.Choice}" Margin="0,0,0,8" Command="{Binding ChooseDemoCommand}"
+                <Button Style="{StaticResource Wizard.Choice}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChooseDemoCommand}"
                         Visibility="{Binding CanChooseDemo, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                         AutomationProperties.Name="{local:Text WizardChooseDemo}">
                     <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardChooseDemo}" />
@@ -180,27 +135,27 @@
 
             <!-- ===== ServerAddress =============================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='ServerAddress'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardServerTitle}" Margin="0,0,0,12" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardServerLabel}" Margin="0,0,0,4" />
-                <TextBox x:Name="ServerBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardServerTitle}" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardServerLabel}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <TextBox x:Name="ServerBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}"
                          Text="{Binding ServerAddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding ServerLocked, Mode=OneWay}"
                          AutomationProperties.Name="{local:Text WizardServerLabel}" />
-                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardServerLocked}" Margin="0,0,0,4"
+                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardServerLocked}" Margin="{StaticResource Fadenstack.Space.Tight}"
                            Visibility="{Binding ServerLocked, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardServerHelp}" Margin="0,0,0,12" />
-                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12"
+                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardServerHelp}" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding AddressErrorText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <DockPanel>
                         <TextBlock Text="{Binding AddressErrorText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12"
+                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding AppStepRefused, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <DockPanel>
                         <TextBlock Text="{local:Text WizardAppStepRefused}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding SubmitServerCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding SubmitServerCommand}"
                         Content="{local:Text WizardContinue}" AutomationProperties.Name="{local:Text WizardContinue}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -208,7 +163,7 @@
 
             <!-- ===== A step that went wrong: the banner, then what can be done ========================================= -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Unreachable,CertificateNotTrusted,NotFadenstack,StartFailed,ServerTooOld,Denied,Expired,PairFailed,NoAccess,PasswordError,OwnFailed'}">
-                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12">
+                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}">
                     <DockPanel>
                         <StackPanel AutomationProperties.LiveSetting="Assertive">
                             <TextBlock TextWrapping="Wrap" Text="{local:Text WizardUnreachable}"
@@ -221,7 +176,7 @@
                                        Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='StartFailed'}" />
                             <TextBlock TextWrapping="Wrap" Text="{local:Text WizardTooOld}"
                                        Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='ServerTooOld'}" />
-                            <TextBlock TextWrapping="Wrap" Text="{local:Text WizardTooOldPassword}" Margin="0,8,0,0">
+                            <TextBlock TextWrapping="Wrap" Text="{local:Text WizardTooOldPassword}" Margin="{StaticResource Fadenstack.Space.Bar}">
                                 <TextBlock.Visibility>
                                     <MultiBinding Converter="{x:Static b:WizardAll.Instance}">
                                         <Binding Path="PasswordFallback" />
@@ -244,19 +199,19 @@
                         </StackPanel>
                     </DockPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.PrimaryHide}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding RetryCommand}"
+                <Button Style="{StaticResource Wizard.PrimaryHide}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding RetryCommand}"
                         Content="{local:Text WizardTryAgain}" AutomationProperties.Name="{local:Text WizardTryAgain}" />
-                <Button Style="{StaticResource Wizard.PrimaryHide}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding NewCodeCommand}"
+                <Button Style="{StaticResource Wizard.PrimaryHide}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding NewCodeCommand}"
                         Content="{local:Text WizardNewCode}" AutomationProperties.Name="{local:Text WizardNewCode}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding EnterKeyCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding EnterKeyCommand}"
                         Content="{local:Text WizardEnterKey}" AutomationProperties.Name="{local:Text WizardEnterKey}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding ShowHelpCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ShowHelpCommand}"
                         Content="{local:Text WizardShowHelp}" AutomationProperties.Name="{local:Text WizardShowHelp}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding UsePasswordCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding UsePasswordCommand}"
                         Content="{local:Text WizardUsePassword}" AutomationProperties.Name="{local:Text WizardUsePassword}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding BackToCodeCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding BackToCodeCommand}"
                         Content="{local:Text WizardBackToCode}" AutomationProperties.Name="{local:Text WizardBackToCode}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding ChangeServerCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChangeServerCommand}"
                         Content="{local:Text WizardChangeServer}" AutomationProperties.Name="{local:Text WizardChangeServer}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -266,28 +221,28 @@
 
             <!-- ===== PairCode ==================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='PairCode'}">
-                <Border Style="{StaticResource Wizard.Banner.Warning}" Margin="0,0,0,12"
+                <Border Style="{StaticResource Wizard.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding SignInEnded, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <DockPanel>
                         <TextBlock Text="{local:Text WizardSignInEnded}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <TextBlock x:Name="CodeTitle" Style="{StaticResource Wizard.Title}" Margin="0,0,0,12" />
-                <TextBlock Text="{local:Text WizardCodeIntro}" TextWrapping="Wrap" Margin="0,0,0,12" />
-                <Border Style="{StaticResource Wizard.Card}" Margin="0,0,0,12">
+                <TextBlock x:Name="CodeTitle" Style="{StaticResource Wizard.Title}" />
+                <TextBlock Text="{local:Text WizardCodeIntro}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <Border Style="{StaticResource Wizard.Card}" Margin="{StaticResource Fadenstack.Space.Block}">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardCodeName}" HorizontalAlignment="Center" />
                         <TextBox x:Name="CodeText" Style="{StaticResource Wizard.Code}" Text="{Binding UserCode, Mode=OneWay}"
                                  AutomationProperties.Name="{local:Text WizardCodeName}" />
                     </StackPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding OpenPairingPageCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding OpenPairingPageCommand}"
                         Content="{local:Text WizardOpenPage}" AutomationProperties.Name="{local:Text WizardOpenPage}" />
-                <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,0,12" Command="{Binding CopyCodeCommand}"
+                <Button Style="{StaticResource Form.Secondary}" Margin="{StaticResource Fadenstack.Space.Block}" Command="{Binding CopyCodeCommand}"
                         Content="{local:Text WizardCopyCode}" AutomationProperties.Name="{local:Text WizardCopyCode}" />
-                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{Binding WaitingText}" Margin="0,0,0,12" />
-                <TextBlock x:Name="ServerAtText" Style="{StaticResource Wizard.Caption}" Margin="0,0,0,4" />
-                <Button Style="{StaticResource Wizard.QuietHide}" HorizontalAlignment="Left" Margin="0,0,0,8" Command="{Binding ChangeServerCommand}"
+                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{Binding WaitingText}" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <TextBlock x:Name="ServerAtText" Style="{StaticResource Wizard.Caption}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <Button Style="{StaticResource Wizard.QuietHide}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChangeServerCommand}"
                         Content="{local:Text WizardChangeServer}" AutomationProperties.Name="{local:Text WizardChangeServer}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding UsePasswordCommand}" Content="{local:Text WizardUsePassword}"
                         AutomationProperties.Name="{local:Text WizardUsePassword}" />
@@ -297,19 +252,19 @@
 
             <!-- ===== Password ==================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Password'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSignIn}" Margin="0,0,0,12" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardEmail}" Margin="0,0,0,4" />
-                <TextBox x:Name="EmailBox" Style="{StaticResource Fadenstack.TextBox}" Margin="0,0,0,8"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSignIn}" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardEmail}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <TextBox x:Name="EmailBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Item}"
                          Text="{Binding Email, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          IsEnabled="{Binding IsBusy, Converter={StaticResource Fadenstack.InverseBool}}" AutomationProperties.Name="{local:Text WizardEmail}" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardPassword}" Margin="0,0,0,4" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardPassword}" Margin="{StaticResource Fadenstack.Space.Tight}" />
                 <!-- The password is never bound: the Sign in button reads it when it is pressed and empties the box. -->
-                <PasswordBox x:Name="PasswordBox" Style="{StaticResource Fadenstack.PasswordBox}" Margin="0,0,0,12"
+                <PasswordBox x:Name="PasswordBox" Style="{StaticResource Form.PasswordBox}" Margin="{StaticResource Fadenstack.Space.Block}"
                              IsEnabled="{Binding IsBusy, Converter={StaticResource Fadenstack.InverseBool}}" AutomationProperties.Name="{local:Text WizardPassword}" />
-                <ProgressBar IsIndeterminate="True" Height="4" Margin="0,0,0,12" Foreground="{DynamicResource Fadenstack.Accent}"
+                <ProgressBar IsIndeterminate="True" Margin="{StaticResource Fadenstack.Space.Block}"
                              Visibility="{Binding IsBusy, Converter={StaticResource Fadenstack.BoolToVisibility}}"
                              AutomationProperties.Name="{local:Text WizardRedeeming}" />
-                <Button x:Name="SignInButton" Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8"
+                <Button x:Name="SignInButton" Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}"
                         Content="{local:Text WizardSignIn}" AutomationProperties.Name="{local:Text WizardSignIn}"
                         b:WizardSecret.Box="{Binding ElementName=PasswordBox}" b:WizardSecret.EnterFrom="{Binding ElementName=EmailBox}"
                         b:WizardSecret.Command="{Binding SignInWithPasswordCommand}" />
@@ -329,34 +284,34 @@
 
             <!-- ===== OwnAccept =================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnAccept'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnTitle}" Margin="0,0,0,12" />
-                <TextBlock Text="{local:Text WizardOwnDataFlow}" TextWrapping="Wrap" Margin="0,0,0,8" />
-                <TextBlock Text="{local:Text WizardOwnProviderTerms}" TextWrapping="Wrap" Margin="0,0,0,12" />
-                <Border Style="{StaticResource Wizard.Card}" Margin="0,0,0,8">
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnTitle}" />
+                <TextBlock Text="{local:Text WizardOwnDataFlow}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                <TextBlock Text="{local:Text WizardOwnProviderTerms}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <Border Style="{StaticResource Wizard.Card}" Margin="{StaticResource Fadenstack.Space.Item}">
                     <!-- Readable, and scrolls with the keyboard once it has the focus. -->
                     <ScrollViewer x:Name="NoticeScroller" MaxHeight="240" Focusable="True" IsTabStop="True" b:WizardFocus.IsFirst="True"
                                   HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                                   AutomationProperties.Name="{local:Text WizardOwnTitle}">
                         <StackPanel>
-                            <TextBlock Text="{local:Text WizardOwnNotice}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <TextBlock Text="{local:Text WizardOwnNotice}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
                             <TextBlock Text="{local:Text WizardOwnLiability}" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardOwnBindingVersion}" Margin="0,8,0,0"
+                            <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardOwnBindingVersion}" Margin="{StaticResource Fadenstack.Space.Bar}"
                                        Visibility="{Binding Strings.Language, Converter={x:Static b:WizardIn.ShownUnless}, ConverterParameter='de'}" />
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
-                <Button x:Name="FullTermsButton" Style="{StaticResource Wizard.Quiet}" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <Button x:Name="FullTermsButton" Style="{StaticResource Wizard.Quiet}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Item}"
                         Content="{local:Text WizardOwnFullTerms}" AutomationProperties.Name="{local:Text WizardOwnFullTerms}" />
-                <CheckBox IsChecked="{Binding Accepted, Mode=TwoWay}" Margin="0,0,0,8" AutomationProperties.Name="{local:Text WizardOwnConsent}">
+                <CheckBox IsChecked="{Binding Accepted, Mode=TwoWay}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.Name="{local:Text WizardOwnConsent}">
                     <TextBlock Text="{local:Text WizardOwnConsent}" TextWrapping="Wrap" />
                 </CheckBox>
-                <CheckBox IsChecked="{Binding SearchConsent, Mode=TwoWay}" Margin="0,0,0,12" AutomationProperties.Name="{local:Text WizardOwnSearchConsent}"
+                <CheckBox IsChecked="{Binding SearchConsent, Mode=TwoWay}" Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.Name="{local:Text WizardOwnSearchConsent}"
                           Visibility="{Binding CanSearchThisComputer, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <TextBlock Text="{local:Text WizardOwnSearchConsent}" TextWrapping="Wrap" />
                 </CheckBox>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding AcceptCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding AcceptCommand}"
                         Content="{local:Text WizardOwnAccept}" AutomationProperties.Name="{local:Text WizardOwnAccept}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding ServerModeInsteadCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ServerModeInsteadCommand}"
                         Content="{local:Text WizardOwnServerInstead}" AutomationProperties.Name="{local:Text WizardOwnServerInstead}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -364,14 +319,14 @@
 
             <!-- ===== OwnPick ===================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnPick'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnPickTitle}" Margin="0,0,0,12" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnFound}" Margin="0,0,0,4"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnPickTitle}" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnFound}" Margin="{StaticResource Fadenstack.Space.Tight}"
                            Visibility="{Binding Found.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                <ItemsControl ItemsSource="{Binding Found}" Margin="0,0,0,8" Focusable="False"
+                <ItemsControl ItemsSource="{Binding Found}" Margin="{StaticResource Fadenstack.Space.Item}" Focusable="False"
                               Visibility="{Binding Found.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource Wizard.Choice}" Margin="0,0,0,8" CommandParameter="{Binding}"
+                            <Button Style="{StaticResource Wizard.Choice}" Margin="{StaticResource Fadenstack.Space.Item}" CommandParameter="{Binding}"
                                     Command="{Binding DataContext.SelectFoundCommand, RelativeSource={RelativeSource AncestorType={x:Type local:WizardView}}}"
                                     AutomationProperties.Name="{Binding Preset.Name}">
                                 <StackPanel>
@@ -382,38 +337,43 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardOwnNothingFound}" Margin="0,0,0,12"
+                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardOwnNothingFound}" Margin="{StaticResource Fadenstack.Space.Block}"
                            Visibility="{Binding Found.Count, Converter={StaticResource Fadenstack.EmptyToCollapsed}, ConverterParameter=invert}" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnPresets}" Margin="0,0,0,4" />
-                <ItemsControl ItemsSource="{Binding Presets}" Margin="0,0,0,12" Focusable="False">
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnPresets}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <ItemsControl ItemsSource="{Binding Presets}" Margin="{StaticResource Fadenstack.Space.WrapBlock}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Style="{StaticResource Wizard.Quiet}" HorizontalContentAlignment="Left" CommandParameter="{Binding}"
+                            <Button Style="{StaticResource Form.Chip}" Margin="{StaticResource Fadenstack.Space.BesideItem}" CommandParameter="{Binding}"
                                     Command="{Binding DataContext.SelectPresetCommand, RelativeSource={RelativeSource AncestorType={x:Type local:WizardView}}}"
                                     AutomationProperties.Name="{Binding Name}" Content="{Binding Name}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnAddress}" Margin="0,0,0,4" />
-                <TextBox x:Name="EndpointBox" Style="{StaticResource Fadenstack.TextBox}" b:WizardFocus.IsFirst="True" Margin="0,0,0,8"
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardOwnAddress}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <TextBox x:Name="EndpointBox" Style="{StaticResource Form.TextBox}" b:WizardFocus.IsFirst="True" Margin="{StaticResource Fadenstack.Space.Item}"
                          Text="{Binding EndpointAddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          AutomationProperties.Name="{local:Text WizardOwnAddress}" />
-                <CheckBox IsChecked="{Binding NeedsKey, Mode=TwoWay}" Margin="0,0,0,12" AutomationProperties.Name="{local:Text WizardOwnNeedsKey}">
+                <CheckBox IsChecked="{Binding NeedsKey, Mode=TwoWay}" Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.Name="{local:Text WizardOwnNeedsKey}">
                     <TextBlock Text="{local:Text WizardOwnNeedsKey}" TextWrapping="Wrap" />
                 </CheckBox>
-                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12"
+                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding AddressErrorText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}">
                     <DockPanel>
                         <TextBlock Text="{Binding AddressErrorText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="0,0,0,12"
+                <Border Style="{StaticResource Wizard.Banner.Error}" Margin="{StaticResource Fadenstack.Space.Block}"
                         Visibility="{Binding AppStepRefused, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <DockPanel>
                         <TextBlock Text="{local:Text WizardAppStepRefused}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding UseEndpointCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding UseEndpointCommand}"
                         Content="{local:Text WizardOwnUse}" AutomationProperties.Name="{local:Text WizardOwnUse}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -421,13 +381,13 @@
 
             <!-- ===== OwnPlainHttp ================================================================================ -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnPlainHttp'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardPlainHttpTitle}" Margin="0,0,0,12" />
-                <Border Style="{StaticResource Wizard.Banner.Warning}" Margin="0,0,0,12">
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardPlainHttpTitle}" />
+                <Border Style="{StaticResource Wizard.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}">
                     <DockPanel>
                         <TextBlock Text="{local:Text WizardPlainHttpWarning}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
                     </DockPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding ConfirmPlainHttpCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ConfirmPlainHttpCommand}"
                         Content="{local:Text WizardPlainHttpConfirm}" AutomationProperties.Name="{local:Text WizardPlainHttpConfirm}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -435,12 +395,12 @@
 
             <!-- ===== OwnKey ====================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnKey'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardKeyTitle}" Margin="0,0,0,12" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardKeyLabel}" Margin="0,0,0,4" />
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardKeyTitle}" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardKeyLabel}" Margin="{StaticResource Fadenstack.Space.Tight}" />
                 <!-- The key is never bound: the Continue button reads it when it is pressed and empties the box. -->
-                <PasswordBox x:Name="KeyBox" Style="{StaticResource Fadenstack.PasswordBox}" Margin="0,0,0,8" AutomationProperties.Name="{local:Text WizardKeyLabel}" />
-                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardKeyHelp}" Margin="0,0,0,12" />
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Content="{local:Text WizardContinue}"
+                <PasswordBox x:Name="KeyBox" Style="{StaticResource Form.PasswordBox}" Margin="{StaticResource Fadenstack.Space.Item}" AutomationProperties.Name="{local:Text WizardKeyLabel}" />
+                <TextBlock Style="{StaticResource Wizard.Caption}" Text="{local:Text WizardKeyHelp}" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Content="{local:Text WizardContinue}"
                         AutomationProperties.Name="{local:Text WizardContinue}"
                         b:WizardSecret.Box="{Binding ElementName=KeyBox}" b:WizardSecret.Command="{Binding SubmitKeyCommand}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
@@ -449,9 +409,9 @@
 
             <!-- ===== OwnHelp ===================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnHelp'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnHelpTitle}" Margin="0,0,0,12" />
-                <TextBlock Text="{local:Text WizardOwnHelp}" TextWrapping="Wrap" Margin="0,0,0,12" />
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding RetryCommand}"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardOwnHelpTitle}" />
+                <TextBlock Text="{local:Text WizardOwnHelp}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}" />
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding RetryCommand}"
                         Content="{local:Text WizardTryAgain}" AutomationProperties.Name="{local:Text WizardTryAgain}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -459,18 +419,18 @@
 
             <!-- ===== OwnResult =================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnResult'}">
-                <Border Style="{StaticResource Wizard.Banner.Success}" Margin="0,0,0,12">
+                <Border Style="{StaticResource Wizard.Banner.Success}" Margin="{StaticResource Fadenstack.Space.Block}">
                     <DockPanel>
                         <ItemsControl ItemsSource="{Binding ResultLines}" Focusable="False" AutomationProperties.LiveSetting="Polite">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Tight}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </DockPanel>
                 </Border>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding ContinueCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ContinueCommand}"
                         Content="{local:Text WizardContinue}" AutomationProperties.Name="{local:Text WizardContinue}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -478,11 +438,11 @@
 
             <!-- ===== OwnModel ==================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='OwnModel'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardModelTitle}" Margin="0,0,0,12" />
-                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardModelLabel}" Margin="0,0,0,4" />
-                <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" Margin="0,0,0,12" Padding="8,6"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardModelTitle}" />
+                <TextBlock Style="{StaticResource Wizard.Strong}" Text="{local:Text WizardModelLabel}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel, Mode=TwoWay}" Margin="{StaticResource Fadenstack.Space.Block}"
                           AutomationProperties.Name="{local:Text WizardModelLabel}" />
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding ContinueCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ContinueCommand}"
                         Content="{local:Text WizardContinue}" AutomationProperties.Name="{local:Text WizardContinue}" />
                 <Button Style="{StaticResource Wizard.QuietHide}" Command="{Binding BackCommand}" Content="{local:Text WizardBack}"
                         AutomationProperties.Name="{local:Text WizardBack}" />
@@ -490,17 +450,17 @@
 
             <!-- ===== Settings ==================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Settings'}">
-                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSettingsTitle}" Margin="0,0,0,12" />
-                <TextBlock Text="{Binding ConnectedText}" TextWrapping="Wrap" Margin="0,0,0,12"
+                <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSettingsTitle}" />
+                <TextBlock Text="{Binding ConnectedText}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}"
                            Visibility="{Binding ConnectedText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding ConnectOrganisationCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ConnectOrganisationCommand}"
                         Content="{local:Text WizardConnectOrganisation}" AutomationProperties.Name="{local:Text WizardConnectOrganisation}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding ChangeEndpointCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ChangeEndpointCommand}"
                         Content="{local:Text WizardChangeEndpoint}" AutomationProperties.Name="{local:Text WizardChangeEndpoint}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding SignOutCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding SignOutCommand}"
                         Content="{local:Text WizardSignOut}" AutomationProperties.Name="{local:Text WizardSignOut}"
                         Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.ShownUnless}, ConverterParameter='Endpoint'}" />
-                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="0,0,0,8" Command="{Binding SignOutCommand}"
+                <Button Style="{StaticResource Wizard.SecondaryHide}" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding SignOutCommand}"
                         Content="{local:Text WizardRemoveEndpoint}" AutomationProperties.Name="{local:Text WizardRemoveEndpoint}"
                         Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Endpoint'}" />
                 <Button Style="{StaticResource Wizard.Quiet}" Command="{Binding CloseCommand}" Content="{local:Text WizardClose}"
@@ -510,20 +470,20 @@
             <!-- ===== SignOut ===================================================================================== -->
             <StackPanel Visibility="{Binding Step, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='SignOut'}">
                 <StackPanel Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.ShownUnless}, ConverterParameter='Endpoint'}">
-                    <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSignOutTitle}" Margin="0,0,0,12" />
-                    <TextBlock Text="{local:Text WizardSignOutBody}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardSignOutTitle}" />
+                    <TextBlock Text="{local:Text WizardSignOutBody}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}" />
                 </StackPanel>
                 <StackPanel Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Endpoint'}">
-                    <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardRemoveTitle}" Margin="0,0,0,12" />
-                    <TextBlock Text="{local:Text WizardRemoveBody}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Style="{StaticResource Wizard.Title}" Text="{local:Text WizardRemoveTitle}" />
+                    <TextBlock Text="{local:Text WizardRemoveBody}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}" />
                 </StackPanel>
-                <CheckBox IsChecked="{Binding DeleteLocalChats, Mode=TwoWay}" Margin="0,0,0,12" AutomationProperties.Name="{local:Text WizardDeleteChats}">
+                <CheckBox IsChecked="{Binding DeleteLocalChats, Mode=TwoWay}" Margin="{StaticResource Fadenstack.Space.Block}" AutomationProperties.Name="{local:Text WizardDeleteChats}">
                     <TextBlock Text="{local:Text WizardDeleteChats}" TextWrapping="Wrap" />
                 </CheckBox>
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding ConfirmSignOutCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ConfirmSignOutCommand}"
                         Content="{local:Text WizardSignOut}" AutomationProperties.Name="{local:Text WizardSignOut}"
                         Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.ShownUnless}, ConverterParameter='Endpoint'}" />
-                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="0,0,0,8" Command="{Binding ConfirmSignOutCommand}"
+                <Button Style="{StaticResource Wizard.Primary}" b:WizardFocus.IsPrimary="True" Margin="{StaticResource Fadenstack.Space.Item}" Command="{Binding ConfirmSignOutCommand}"
                         Content="{local:Text WizardRemoveEndpoint}" AutomationProperties.Name="{local:Text WizardRemoveEndpoint}"
                         Visibility="{Binding Current.Mode, Converter={x:Static b:WizardIn.Shown}, ConverterParameter='Endpoint'}" />
                 <Button Style="{StaticResource Wizard.Quiet}" Command="{Binding CancelCommand}" Content="{local:Text WizardCancel}"

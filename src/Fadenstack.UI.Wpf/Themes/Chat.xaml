@@ -455,7 +455,7 @@
 
     <!-- A small rounded label (a tool's class). -->
     <Style x:Key="Fadenstack.Badge" TargetType="Border">
-        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
         <Setter Property="Padding" Value="7,1" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />

@@ -53,7 +53,7 @@
     </Style>
     <SolidColorBrush x:Key="Fadenstack.Scrim" Color="#66000000" po:Freeze="True" />
     <!-- The scroll thumb shows where the conversation is: 3:1 or more on the background and the surfaces. -->
-    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#747474" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.ScrollThumb" Color="#808080" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.ScrollThumbHover" Color="#909090" po:Freeze="True" />
     <!-- The agent avatar (AgentAvatar): paper plates, the rose thread plate, the hollow under the lid. -->
     <SolidColorBrush x:Key="Fadenstack.Avatar.PlateTop" Color="#F3F4F6" po:Freeze="True" />
@@ -61,6 +61,14 @@
     <SolidColorBrush x:Key="Fadenstack.Avatar.Thread" Color="#FF4D6D" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.ThreadSide" Color="#C21E48" po:Freeze="True" />
     <SolidColorBrush x:Key="Fadenstack.Avatar.Hollow" Color="#8C0A0E1A" po:Freeze="True" />
+    <!--
+        The edge of a control that takes input or is switched (a field, a check box, a list, a secondary button): 3:1 or more on the background
+        and on each surface (WCAG 1.4.11). Border stays for the quiet lines between cards and rows. AccentBorder: the edge of an accent fill (the
+        primary button, a checked box), 3:1 or more on the background and the surfaces. Track: the unfilled part of a progress bar.
+    -->
+    <SolidColorBrush x:Key="Fadenstack.ControlBorder" Color="#8A8A8A" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.AccentBorder" Color="#498FDA" po:Freeze="True" />
+    <SolidColorBrush x:Key="Fadenstack.Track" Color="#3D3D3D" po:Freeze="True" />
     <FontFamily x:Key="Fadenstack.Font">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="Fadenstack.CodeFont">Cascadia Mono, Consolas, Courier New</FontFamily>
     <FontFamily x:Key="Fadenstack.IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>

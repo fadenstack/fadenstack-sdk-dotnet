@@ -1,0 +1,556 @@
+{
+  "draft/failed": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/idle": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/no-chat": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/no-model": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/ready": [
+    "Button|OpenButton|Open the proposal||Open the proposal|OpenButton",
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/ready-with-problems": [
+    "Button|OpenButton|Open the proposal||Open the proposal|OpenButton",
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/unreadable": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "draft/working": [
+    "Button|StartButton|Write a draft||Write a draft|StartButton",
+    "ProgressBar||Writing a draft\u2026|||",
+    "TextBox|GuidanceBox|What should the skill be for? (optional)||What should the skill be for? (optional)|GuidanceBox"
+  ],
+  "editor/asked": [
+    "Button|AskModelButton|Ask the model once||Ask the model once|AskModelButton",
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/edit": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/errors": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/files": [
+    "Border||references/notes.md|||",
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "Button||Remove||Remove|",
+    "Button||Rename||Rename|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox",
+    "TextBox||references/notes.md||references/notes.md|"
+  ],
+  "editor/new": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/proposal": [
+    "Button|AskModelButton|Ask the model once||Ask the model once|AskModelButton",
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/replace": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "Button||Cancel||Cancel|",
+    "Button||Replace||Replace|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/tested": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "editor/view": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "library/delete": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Cancel||Cancel|",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Delete||Delete|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "library/editor-new": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|SaveButton|Save||Save|SaveButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "library/editor-view": [
+    "Button|CancelButton|Cancel||Cancel|CancelButton",
+    "Button|TestButton|Try||Try|TestButton",
+    "Button||Add a file\u2026||Add a file\u2026|",
+    "CheckBox|PreviewBox|Preview||Preview|PreviewBox",
+    "ComboBox|ActivationBox|Activation||Activation|ActivationBox",
+    "ScrollBar|||VerticalScrollBar||",
+    "TextBox|CompatibilityBox|Compatibility||Compatibility|CompatibilityBox",
+    "TextBox|DescriptionBox|Description||Description|DescriptionBox",
+    "TextBox|FileTypesBox|File types||File types|FileTypesBox",
+    "TextBox|InstructionsBox|Instructions||Instructions|InstructionsBox",
+    "TextBox|KeywordsBox|Keywords||Keywords|KeywordsBox",
+    "TextBox|LicenseBox|License||License|LicenseBox",
+    "TextBox|NameBox|Name||Name|NameBox",
+    "TextBox|PreferredToolsBox|Preferred tools||Preferred tools|PreferredToolsBox",
+    "TextBox|PriorityBox|Priority||Priority|PriorityBox",
+    "TextBox|TagsBox|Tags||Tags|TagsBox",
+    "TextBox|TestBox|A message to try||A message to try|TestBox",
+    "TextBox|TitleBox|Title||Title|TitleBox"
+  ],
+  "library/empty": [
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|"
+  ],
+  "library/import": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Cancel||Cancel|",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "library/import-refused": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Cancel||Cancel|",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "library/import-replaces": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Cancel||Cancel|",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||Replace||Replace|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "library/list": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "library/message": [
+    "Border||contract-review|||",
+    "Border||slide-design|||",
+    "Button||Delete contract-review||Delete contract-review|",
+    "Button||Duplicate contract-review||Duplicate contract-review|",
+    "Button||Duplicate slide-design||Duplicate slide-design|",
+    "Button||Edit contract-review||Edit contract-review|",
+    "Button||Export contract-review||Export contract-review|",
+    "Button||Export slide-design||Export slide-design|",
+    "Button||Import\u2026||Import\u2026|",
+    "Button||New skill||New skill|",
+    "Button||View slide-design||View slide-design|",
+    "CheckBox||contract-review||contract-review|",
+    "CheckBox||slide-design||slide-design|"
+  ],
+  "wizard/AfterConnect": [
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/AppPrecondition": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/Approved": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/BeforeCheck": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/BeforeChoice": [
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/CertificateNotTrusted": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|"
+  ],
+  "wizard/Checking": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/Choose": [
+    "Button||Connect to my organisation||Connect to my organisation|",
+    "Button||Try the demo||Try the demo|",
+    "Button||Use my own AI||Use my own AI|"
+  ],
+  "wizard/Denied": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Get a new code||Get a new code|"
+  ],
+  "wizard/Expired": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Get a new code||Get a new code|"
+  ],
+  "wizard/NoAccess": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|"
+  ],
+  "wizard/NotFadenstack": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|"
+  ],
+  "wizard/OwnAccept": [
+    "Button||Accept and continue||Accept and continue|",
+    "Button||Back||Back|",
+    "Button||Set up server mode instead||Set up server mode instead|",
+    "CheckBox||I have read this and accept the terms.||I have read this and accept the terms.|",
+    "CheckBox||Look for AI servers on this computer (Ollama, LM Studio, vLLM, llama.cpp)||Look for AI servers on this computer (Ollama, LM Studio, vLLM, llama.cpp)|",
+    "ScrollBar|||VerticalScrollBar||",
+    "ScrollViewer|NoticeScroller|Use your own AI||Use your own AI|NoticeScroller"
+  ],
+  "wizard/OwnChecking": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/OwnDone": [
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/OwnFailed": [
+    "Button||Back||Back|",
+    "Button||Close||Close|",
+    "Button||Try again||Try again|"
+  ],
+  "wizard/OwnHelp": [
+    "Button||Back||Back|",
+    "Button||Try again||Try again|"
+  ],
+  "wizard/OwnKey": [
+    "Button||Back||Back|",
+    "Button||Continue||Continue|",
+    "PasswordBox|KeyBox|API key||API key|KeyBox"
+  ],
+  "wizard/OwnModel": [
+    "Button||Back||Back|",
+    "Button||Continue||Continue|",
+    "ComboBox||Model||Model|"
+  ],
+  "wizard/OwnPick": [
+    "Button||Azure OpenAI||Azure OpenAI|",
+    "Button||Back||Back|",
+    "Button||LM Studio||LM Studio|",
+    "Button||LiteLLM||LiteLLM|",
+    "Button||Mistral||Mistral|",
+    "Button||Ollama||Ollama|",
+    "Button||Ollama||Ollama|",
+    "Button||OpenAI||OpenAI|",
+    "Button||OpenRouter||OpenRouter|",
+    "Button||SGLang||SGLang|",
+    "Button||Use this||Use this|",
+    "Button||llama.cpp||llama.cpp|",
+    "Button||vLLM||vLLM|",
+    "CheckBox||This server needs a key||This server needs a key|",
+    "TextBox|EndpointBox|Address||Address|EndpointBox"
+  ],
+  "wizard/OwnPlainHttp": [
+    "Button||Back||Back|",
+    "Button||Use it anyway||Use it anyway|"
+  ],
+  "wizard/OwnResult": [
+    "Button||Back||Back|",
+    "Button||Continue||Continue|"
+  ],
+  "wizard/OwnSearching": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/PairCode": [
+    "Button||Cancel||Cancel|",
+    "Button||Change the server||Change the server|",
+    "Button||Copy the code||Copy the code|",
+    "Button||Open the sign-in page||Open the sign-in page|",
+    "Button||Sign in with e-mail and password instead||Sign in with e-mail and password instead|",
+    "TextBox|CodeText|Your sign-in code||Your sign-in code|CodeText"
+  ],
+  "wizard/PairFailed": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Try again||Try again|"
+  ],
+  "wizard/PairStarting": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/Password": [
+    "Button|SignInButton|Sign in||Sign in|SignInButton",
+    "Button||Sign in with a code instead||Sign in with a code instead|",
+    "PasswordBox|PasswordBox|Password||Password|PasswordBox",
+    "TextBox|EmailBox|E-mail||E-mail|EmailBox"
+  ],
+  "wizard/PasswordError": [
+    "Button||Close||Close|",
+    "Button||Sign in with a code instead||Sign in with a code instead|",
+    "Button||Try again||Try again|"
+  ],
+  "wizard/Redeeming": [
+    "Button||Cancel||Cancel|",
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/ServerAccepted": [
+    "ProgressBar||Checking the server\u2026|||"
+  ],
+  "wizard/ServerAddress": [
+    "Button||Back||Back|",
+    "Button||Continue||Continue|",
+    "TextBox|ServerBox|Server address||Server address|ServerBox"
+  ],
+  "wizard/ServerTooOld": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Sign in with e-mail and password instead||Sign in with e-mail and password instead|"
+  ],
+  "wizard/Settings": [
+    "Button||Change the AI||Change the AI|",
+    "Button||Close||Close|",
+    "Button||Connect to my organisation||Connect to my organisation|",
+    "Button||Remove this AI||Remove this AI|"
+  ],
+  "wizard/SignOut": [
+    "Button||Cancel||Cancel|",
+    "Button||Remove this AI||Remove this AI|",
+    "CheckBox||Also delete the chats kept on this computer||Also delete the chats kept on this computer|"
+  ],
+  "wizard/SignedIn": [],
+  "wizard/StartFailed": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Try again||Try again|"
+  ],
+  "wizard/Unreachable": [
+    "Button||Change the server||Change the server|",
+    "Button||Close||Close|",
+    "Button||Try again||Try again|"
+  ]
+}
