@@ -2649,6 +2649,68 @@ public class ConnectionWizardTests
         Assert.True(rig.Wizard.IsRetrying);
     }
 
+    [Fact]
+    public void A_command_notification_from_another_thread_is_posted_to_the_UI_thread()
+    {
+        var ui = new QueuedDispatcher();
+        using var rig = new WizardRig(dispatcher: ui);
+        var told = new List<bool>();
+        rig.Wizard.ContinueCommand.CanExecuteChanged += (_, _) => told.Add(ui.CheckAccess());
+        rig.Wizard.AcceptCommand.CanExecuteChanged += (_, _) => told.Add(ui.CheckAccess());
+
+        // A binding may set these from anywhere; a button's handler runs only on the UI thread (WPF's and Avalonia's throw elsewhere).
+        OnAnotherThread(() => rig.Wizard.SelectedModel = "m2");
+        OnAnotherThread(() => rig.Wizard.Accepted = true);
+
+        Assert.Empty(told);
+        ui.Pump();
+        Assert.Equal(new[] { true, true }, told);
+    }
+
+    [Fact]
+    public void A_check_that_fails_unexpectedly_shows_OwnFailed_instead_of_hanging()
+    {
+        var rig = OwnPick();
+        Type(rig, "http://localhost:11434/v1");
+        // A view that throws when the report changes (as WPF's button did off its thread, Word, 15 Nov): the flow fails after the check.
+        rig.Wizard.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ConnectionWizardViewModel.Report))
+            {
+                throw new InvalidOperationException("The calling thread cannot access this object.");
+            }
+        };
+
+        UseEndpoint(rig);
+
+        Assert.Equal(WizardStep.OwnFailed, rig.Wizard.Step);
+        Assert.Equal(EndpointProblem.Failed, rig.Wizard.Problem);
+        Assert.False(rig.Wizard.IsBusy);
+        Assert.True(rig.Wizard.RetryCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void A_pairing_start_that_fails_unexpectedly_shows_its_failure_instead_of_hanging()
+    {
+        var rig = Rig();
+        rig.Wizard.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ConnectionWizardViewModel.UserCode))
+            {
+                throw new InvalidOperationException("A view that fails.");
+            }
+        };
+        rig.Start();
+        rig.Press(rig.Wizard.ChooseServerCommand);
+        rig.Wizard.ServerAddressText = Address;
+
+        rig.Press(rig.Wizard.SubmitServerCommand);
+
+        Assert.Equal(WizardStep.StartFailed, rig.Wizard.Step);
+        Assert.Equal(StartFailure.ServerError, rig.Wizard.StartFailure);
+        Assert.True(rig.Wizard.RetryCommand.CanExecute(null));
+    }
+
     // ===================================================================================================================
     // No secret in the view model (F15 "Rules", ASVS 5.0 V13)
     // ===================================================================================================================

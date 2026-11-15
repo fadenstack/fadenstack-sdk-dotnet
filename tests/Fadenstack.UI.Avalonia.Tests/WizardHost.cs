@@ -104,6 +104,21 @@ internal sealed class WizardHost : IDisposable
         }
     }
 
+    /// <summary>Pumps the dispatcher until <paramref name="done"/> holds (an answer may come from the thread pool); throws after 10 s.</summary>
+    public async Task PumpUntilAsync(Func<bool> done, string what)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!done())
+        {
+            if (watch.Elapsed > TimeSpan.FromSeconds(10))
+            {
+                throw new TimeoutException($"Waited 10 s for {what}; the wizard is at {Wizard.Step}.");
+            }
+            await PumpAsync(1);
+        }
+        await PumpAsync();
+    }
+
     /// <summary>Everything the view shows right now: its controls that are effectively visible.</summary>
     public IEnumerable<Control> Visible() => View.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible);
 
