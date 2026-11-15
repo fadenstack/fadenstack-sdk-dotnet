@@ -121,6 +121,29 @@ public class StorageTests : IDisposable
         Assert.Equal("_", FadenstackPaths.SafeName(""));
     }
 
+    [Fact]
+    public void An_apps_tests_keep_every_root_in_their_own_folder_until_the_scope_ends()
+    {
+        var before = (FadenstackPaths.DataRoot, FadenstackPaths.SettingsRoot, FadenstackPaths.LogRoot);
+
+        using (FadenstackPaths.UseRootForTests(_temporary))
+        {
+            Assert.Equal(Path.Combine(_temporary, "data"), FadenstackPaths.DataRoot);
+            Assert.Equal(Path.Combine(_temporary, "settings"), FadenstackPaths.SettingsRoot);
+            Assert.Equal(Path.Combine(_temporary, "logs"), FadenstackPaths.LogRoot);
+            Assert.StartsWith(_temporary, FadenstackPaths.User("standalone", "preferences"));
+            using (FadenstackPaths.UseRootForTests(Path.Combine(_temporary, "inner")))
+            {
+                Assert.Equal(Path.Combine(_temporary, "inner", "data"), FadenstackPaths.DataRoot);
+            }
+            Assert.Equal(Path.Combine(_temporary, "data"), FadenstackPaths.DataRoot); // the outer scope again
+        }
+
+        Assert.Equal(before, (FadenstackPaths.DataRoot, FadenstackPaths.SettingsRoot, FadenstackPaths.LogRoot));
+        Assert.Throws<ArgumentException>(() => FadenstackPaths.UseRootForTests("relative"));
+        Assert.Throws<ArgumentException>(() => FadenstackPaths.UseRootForTests(" "));
+    }
+
     [Theory]
     [InlineData("u-1", "u-1")]
     [InlineData("u:1", "u_1")]

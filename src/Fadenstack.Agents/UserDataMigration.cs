@@ -4,15 +4,16 @@ using Microsoft.Extensions.Logging;
 namespace Fadenstack.Agents;
 
 /// <summary>
-/// Adopts the sessions and approvals an older SDK kept in the shared data folder: the first user the SDK learns of on a
-/// device, before any user has a folder of their own, gets them. Once any user folder exists nothing moves again --
+/// Adopts the sessions, approvals and preferences (the thinking level) an older SDK kept in the shared data folder: the first
+/// user the SDK learns of on a device, before any user has a folder of their own, gets them. Once any user folder exists nothing moves again --
 /// one person's data must never go to another. The standalone principal (sdk/51 F02, the data guard) never adopts them, and
 /// its folder does not count as a user's: a governed person signing in later still gets their older chats, and a standalone
 /// start never takes them.
 /// </summary>
 internal static class UserDataMigration
 {
-    private static readonly string[] Folders = { "sessions", "approvals" };
+    // The preferences last: they hold no content, so a move that fails there still leaves the chats and approvals moved.
+    private static readonly string[] Folders = { "sessions", "approvals", "preferences" };
 
     /// <summary>Moves them for <paramref name="userId"/>, and logs the result (folder count or failure kind; never the user or a path).</summary>
     internal static void Adopt(string userId, ILogger logger)

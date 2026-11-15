@@ -108,12 +108,15 @@ public class UserStorageTests : IDisposable
     {
         File.WriteAllText(Path.Combine(FadenstackPaths.Data("sessions", Gateway.Slug), "s1.jsonl"), "x");
         File.WriteAllText(Path.Combine(FadenstackPaths.Data("approvals"), "a.json"), "x");
+        File.WriteAllText(Path.Combine(FadenstackPaths.Data("preferences"), "reasoning.json"), "{}");
         using var agent = Plain(new Gateway { Principal = Principal }).Build();
         await agent.StartAsync();
         Assert.True(File.Exists(Data("users", "u-1", "sessions", Gateway.Slug, "s1.jsonl")));
         Assert.True(File.Exists(Data("users", "u-1", "approvals", "a.json")));
+        Assert.True(File.Exists(Data("users", "u-1", "preferences", "reasoning.json"))); // the thinking level goes with them
         Assert.False(Directory.Exists(Data("sessions")));
         Assert.False(Directory.Exists(Data("approvals")));
+        Assert.False(Directory.Exists(Data("preferences")));
     }
 
     [Fact]

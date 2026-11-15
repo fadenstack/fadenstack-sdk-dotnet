@@ -113,6 +113,98 @@ public class DataRightsTests : IDisposable
         Assert.DoesNotContain(files.Values, text => text.Contains("somebody else's secret"));
     }
 
+    /// <summary>A person's folder as the modules write it: preferences, language, skills, MCP, provenance, a key, and a stranger.</summary>
+    private static void SeedPersonsFiles(string user)
+    {
+        void Write(string relative, string text)
+        {
+            var path = Path.Combine(FadenstackPaths.UserFolder(user), relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, text);
+        }
+        Write("preferences/reasoning.json", """{"docs-assistant":"high"}""");
+        Write("preferences/skills.json", """{"off":["quiet-skill"]}""");
+        Write("language", "de");
+        Write("skills/notes/SKILL.md", "---\nname: notes\ndescription: Keeps notes.\n---\n\nShort sentences.\n");
+        Write("skills/notes/template.txt", "a template");
+        Write("mcp/audit.jsonl", """{"event":"local_mcp.plain_http","state":"on"}""");
+        Write("mcp/audit.jsonl.1", """{"event":"local_mcp.plain_http","state":"off"}""");
+        Write("mcp/servers.dat.lock", "");
+        Write("provenance/records/r1.json", """{"id":"r1","kind":"text"}""");
+        Write("provenance/placements.jsonl", """{"record":"r1","app":"word"}""");
+        Write("keys/provenance-signing.key", "s3cret-signing-key");
+        Write("mcp/.servers.dat.0123.tmp", "s3cret-in-flight");
+        Write("unknown.bin", "s3cret-unknown");
+        var list = """
+            {"version":1,"servers":[
+              {"label":"notes","enabled":true,"command":"node","arguments":["server.js","--token=s3cret-arg"],"workingFolder":"/work",
+               "environment":[{"name":"API_KEY","value":"s3cret-env"}],"headers":[],"callTimeoutSeconds":90,"origin":"Cursor",
+               "trusted":true,"toolClasses":{"find":"read"}},
+              {"label":"web","enabled":false,"url":"https://anna:s3cret-pw@mcp.example.com/mcp?token=s3cret-query#s3cret-frag",
+               "headers":[{"name":"Authorization","value":"Bearer s3cret-header"}],"futureSecret":"s3cret-future","plainHttpInLan":true}
+            ]}
+            """;
+        var path = Path.Combine(FadenstackPaths.User(user, "mcp"), "servers.dat");
+        File.WriteAllBytes(path, SecretProtection.Default.Protect(System.Text.Encoding.UTF8.GetBytes(list)));
+    }
+
+    [Fact]
+    public async Task The_export_holds_all_the_deletion_removes_without_a_key_or_a_secret_value()
+    {
+        using var agent = Plain(new Gateway { Principal = Principal }).Build();
+        await agent.StartAsync();
+        SeedPersonsFiles("u-1");
+        SeedPersonsFiles("u-2");
+
+        var zip = new MemoryStream();
+        await agent.ExportMyDataAsync(zip);
+        var files = Unzip(zip);
+
+        Assert.Equal(new[]
+        {
+            "README.txt", "language", "mcp/audit.jsonl", "mcp/audit.jsonl.1", "mcp/servers.json",
+            "preferences/reasoning.json", "preferences/skills.json", "provenance/placements.jsonl", "provenance/records/r1.json",
+            "skills/notes/SKILL.md", "skills/notes/template.txt",
+        }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
+        Assert.DoesNotContain(files.Values, text => text.Contains("s3cret") || text.Contains("anna"));
+        Assert.Equal("de", files["language"]);
+        Assert.Contains("quiet-skill", files["preferences/skills.json"]);
+
+        var servers = JsonDocument.Parse(files["mcp/servers.json"]).RootElement.GetProperty("servers");
+        var notes = servers[0];
+        Assert.Equal(("notes", "node", 2, "API_KEY"), (notes.GetProperty("label").GetString(), notes.GetProperty("command").GetString(),
+            notes.GetProperty("argumentCount").GetInt32(), notes.GetProperty("environmentNames")[0].GetString()));
+        Assert.Equal("read", notes.GetProperty("toolClasses").GetProperty("find").GetString());
+        Assert.True(notes.GetProperty("trusted").GetBoolean());
+        var web = servers[1];
+        Assert.Equal("https://mcp.example.com/mcp", web.GetProperty("url").GetString());
+        Assert.Equal("Authorization", web.GetProperty("headerNames")[0].GetString());
+        Assert.False(web.TryGetProperty("futureSecret", out _)); // a key the export does not know stays out
+        Assert.True(web.GetProperty("plainHttpInLan").GetBoolean());
+
+        var readme = files["README.txt"];
+        Assert.Contains("2 MCP server(s)", readme);
+        Assert.Contains("signs your provenance records", readme);
+        Assert.Contains("unknown.bin", readme);
+        Assert.DoesNotContain("servers.dat.lock", readme);
+    }
+
+    [Fact]
+    public async Task Without_a_principal_the_export_holds_the_shared_preferences_too()
+    {
+        using var agent = Plain(new Gateway()).Build();
+        await agent.StartAsync();
+        File.WriteAllText(Path.Combine(FadenstackPaths.Data("preferences"), "reasoning.json"), """{"docs-assistant":"low"}""");
+        SeedPersonsFiles("u-2");
+
+        var zip = new MemoryStream();
+        await agent.ExportMyDataAsync(zip);
+        var files = Unzip(zip);
+
+        Assert.Equal(new[] { "README.txt", "preferences/reasoning.json" }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
+        Assert.Contains("low", files["preferences/reasoning.json"]);
+    }
+
     [Fact]
     public async Task A_host_store_is_exported_for_this_agent_only_and_the_destination_stays_open()
     {

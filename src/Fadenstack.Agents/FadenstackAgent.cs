@@ -651,15 +651,20 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     }
 
     /// <summary>
-    /// Writes a ZIP of the signed-in user's data on this device to <paramref name="destination"/> (left open): every session
-    /// of every agent, one JSON file each, the "Allow always" approvals, and a README (an access request, GDPR Art. 15 and 20).
-    /// Without a user from the gateway these are the shared folders of an older SDK. Sign-in tokens are never included, nor
+    /// Writes a ZIP of the signed-in user's data on this device to <paramref name="destination"/> (left open), all that
+    /// <see cref="DeleteMyDataAsync"/> removes (an access request, GDPR Art. 15 and 20): every session of every agent, one JSON
+    /// file each, the "Allow always" approvals, the preferences, the standalone language, skills, the MCP servers without what
+    /// can hold a secret and their audit log, the provenance records and their log, and a README. Without a user from the
+    /// gateway these are the shared folders of an older SDK. Sign-in tokens, keys and secret values are never included, nor
     /// is what the server keeps. A store the host passed is read for this agent only.
     /// </summary>
     public async Task ExportMyDataAsync(Stream destination, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
-        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken).ConfigureAwait(false);
+        var principal = Profile.Principal;
+        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken,
+            principal is null ? null : FadenstackPaths.UserFolder(principal.UserId),
+            principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null).ConfigureAwait(false);
         Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
     }
 
