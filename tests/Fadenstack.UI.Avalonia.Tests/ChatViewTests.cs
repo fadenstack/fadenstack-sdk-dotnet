@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Logging;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Fadenstack.UI.Avalonia.Behaviors;
@@ -228,6 +229,81 @@ public class ChatViewTests
         Assert.Equal(ApprovalState.Denied, card.State);
         Assert.DoesNotContain(host.View.GetVisualDescendants().OfType<Button>(), b => b.Content as string == host.Chat.Strings.Allow && b.IsEffectivelyVisible);
         Assert.Contains(host.View.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == card.StateText);
+    }
+
+    [AvaloniaFact]
+    public async Task Say_why_opens_a_reason_box_and_deny_sends_what_was_typed()
+    {
+        var sink = new BindingSink();
+        var before = Logger.Sink;
+        Logger.Sink = sink;
+        try
+        {
+            using var host = await ChatHost.OpenAsync(2);
+            host.Harness.Gateway.WordDelay = TimeSpan.FromMilliseconds(1);
+
+            var sending = host.Chat.SendAsync("Delete page 2");
+            ApprovalPart? card = null;
+            await host.UntilAsync(() => (card = host.Chat.Turns[^1].Parts.OfType<ApprovalPart>().FirstOrDefault()) is not null);
+            await host.PumpAsync();
+
+            var strings = host.Chat.Strings;
+            var box = host.View.GetVisualDescendants().OfType<TextBox>().First(t => t.Classes.Contains("reason"));
+            Assert.False(box.IsEffectivelyVisible);
+            var say = host.View.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == strings.SayWhy);
+            Assert.Same(card!.ToggleReasonCommand, say.Command);
+            Assert.True(say.Focusable);
+
+            say.Command!.Execute(null);
+            await host.PumpAsync();
+            Assert.True(box.IsEffectivelyVisible);
+            Assert.Equal((500, 3), (box.MaxLength, box.MaxLines));
+            Assert.Equal(strings.DenyReasonPlaceholder, box.PlaceholderText);
+            Assert.Equal(strings.DenyReasonName, global::Avalonia.Automation.AutomationProperties.GetName(box));
+            Assert.Contains(box.KeyBindings, k => k.Gesture.Key == Key.Escape && k.Command == card.ToggleReasonCommand);
+            Assert.Equal(new CornerRadius(12), box.GetVisualAncestors().OfType<Border>().First(b => b.Classes.Contains("reason")).CornerRadius);
+
+            box.Text = "Wrong page.";
+            await host.PumpAsync();
+            Assert.Equal("Wrong page.", card.DenyReason);
+            var deny = host.View.GetVisualDescendants().OfType<Button>().First(b => b.Content as string == strings.Deny);
+            deny.Command!.Execute(null);
+            await sending;
+            await host.PumpAsync();
+
+            Assert.Equal(ApprovalState.Denied, card.State);
+            Assert.False(box.IsEffectivelyVisible); // closed once decided
+            Assert.Contains(host.View.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Your reason: Wrong page." && t.IsEffectivelyVisible);
+            // The host's Bypass card binding warns while no Bypass is offered (not this card's); every other binding must hold.
+            Assert.True(!sink.Errors.Any(e => !e.Contains("BypassCard")), string.Join(" | ", sink.Errors));
+        }
+        finally
+        {
+            Logger.Sink = before;
+        }
+    }
+
+    private sealed class BindingSink : ILogSink
+    {
+        public List<string> Errors { get; } = new();
+
+        public bool IsEnabled(LogEventLevel level, string area) => area == LogArea.Binding && level >= LogEventLevel.Warning;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate)
+        {
+            if (IsEnabled(level, area))
+            {
+                Errors.Add(messageTemplate);
+            }
+        }
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
+        {
+            if (IsEnabled(level, area))
+            {
+                Errors.Add(messageTemplate + " " + string.Join(", ", propertyValues));
+            }
+        }
     }
 
     private static Border Header(ChatHost host) => host.View.GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("header"));

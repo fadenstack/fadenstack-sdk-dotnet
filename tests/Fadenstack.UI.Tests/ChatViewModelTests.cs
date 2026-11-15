@@ -526,6 +526,35 @@ public class ChatViewModelTests
         Assert.False(chat.SendCommand.CanExecute(null));
     }
 
+    [Fact]
+    public async Task A_declined_cards_reason_shows_live_and_on_the_reopened_chat()
+    {
+        var store = new MemorySessionStore();
+        var gateway = new Gateway()
+            .Calls(("call-1", "delete_page", """{"page":2}""")).Says("Not deleted.")
+            .Calls(("call-2", "delete_page", """{"page":3}""")).Says("Left it.");
+        var (chat, _, _) = Chat(gateway, store);
+        await chat.InitializeAsync();
+        var first = chat.SendAsync("Delete page 2.");
+        var card = await WaitFor<ApprovalPart>(await TurnOf(chat));
+        card.DenyReason = "It is the cover page.";
+        card.DenyCommand.Execute(null);
+        await first;
+        Assert.Equal(("Your reason: It is the cover page.", true), (card.DeclinedReasonText, card.IsReasonShown));
+
+        var second = chat.SendAsync("Delete page 3.");
+        (await WaitFor<ApprovalPart>(chat.Turns.Last())).DenyCommand.Execute(null); // no reason given
+        await second;
+
+        var (again, _, _) = Chat(new Gateway(), store);
+        await again.InitializeAsync();
+        await again.OpenSessionAsync(chat.CurrentSessionId!);
+        var withReason = again.Turns[0].Parts.OfType<ApprovalPart>().Single();
+        Assert.Equal((ApprovalState.Denied, "Your reason: It is the cover page.", true), (withReason.State, withReason.DeclinedReasonText, withReason.IsReasonShown));
+        var without = again.Turns[1].Parts.OfType<ApprovalPart>().Single();
+        Assert.Equal((ApprovalState.Denied, "", false), (without.State, without.DeclinedReasonText, without.IsReasonShown));
+    }
+
     private sealed class CountingDispatcher : IUiDispatcher
     {
         private int _posts;

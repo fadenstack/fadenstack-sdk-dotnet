@@ -108,6 +108,7 @@ internal static class TranscriptTurns
                     turn.AddApprovalPart(new ApprovalPart(request, decided, minutes is { } t ? TimeSpan.FromMinutes(t) : null, previewLength, chat.Strings)
                     {
                         ConfirmedFor = confirmed is { } k ? TimeSpan.FromMinutes(k) : null,
+                        DeclinedReason = decided == ApprovalState.Denied ? ApprovalDecision.CleanReason(Json.Str(d, "reason")) : null,
                     });
                     break;
                 case EntryTypes.GovernanceNotice:

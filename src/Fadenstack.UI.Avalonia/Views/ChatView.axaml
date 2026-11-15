@@ -135,6 +135,15 @@
                             <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
                         </ScrollViewer>
                     </Border>
+                    <!-- "Say why": a reason for declining, sent with Deny; Esc in the box closes it without deciding. -->
+                    <Border Classes="reason" IsVisible="{Binding IsReasonOpen}">
+                        <TextBox Classes="reason" Text="{Binding DenyReason, Mode=TwoWay}" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap"
+                                 MaxLines="3" PlaceholderText="{v:Text DenyReasonPlaceholder}" AutomationProperties.Name="{v:Text DenyReasonName}">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Escape" Command="{Binding ToggleReasonCommand}" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                    </Border>
                     <WrapPanel Classes="actions" IsVisible="{Binding IsPending}">
                         <Button Classes="secondary" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                         <!-- One split button: the main part allows once; the drop-down lists only the choices the request offers. -->
@@ -160,7 +169,12 @@
                         </SplitButton>
                         <Button Classes="primary" Content="{v:Text Allow}" Command="{Binding AllowCommand}" IsVisible="{Binding !HasAllowChoices}" />
                     </WrapPanel>
+                    <Button Classes="quiet link small" HorizontalAlignment="Right" Content="{v:Text SayWhy}" Command="{Binding ToggleReasonCommand}"
+                            IsVisible="{Binding IsPending}" />
                     <TextBlock Classes="caption muted" Text="{Binding StateText}" IsVisible="{Binding !IsPending}" />
+                    <!-- A declined card's reason, plain text. -->
+                    <TextBlock Classes="caption muted" Text="{Binding DeclinedReasonText}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                               IsVisible="{Binding IsReasonShown}" />
                 </StackPanel>
             </Border>
         </DataTemplate>

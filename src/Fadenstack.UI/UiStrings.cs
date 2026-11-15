@@ -180,6 +180,18 @@ public sealed class UiStrings
 
     public string Denied => Text();
 
+    /// <summary>The link on a card that opens the field for a reason: "Say why".</summary>
+    public string SayWhy => Text();
+
+    /// <summary>The reason field's hint: "Why not? The assistant sees your reason."</summary>
+    public string DenyReasonPlaceholder => Text();
+
+    /// <summary>The reason field's accessible name: "Your reason for declining".</summary>
+    public string DenyReasonName => Text();
+
+    /// <summary>A declined card's line: "Your reason: ...".</summary>
+    public string YourReason(string reason) => Fill(reason);
+
     public string NoAnswer => Text();
 
     public string ResetApprovals => Text();

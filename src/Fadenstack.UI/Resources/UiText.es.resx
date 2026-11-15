@@ -178,6 +178,18 @@
   <data name="Denied" xml:space="preserve">
     <value>Denegado</value>
   </data>
+  <data name="SayWhy" xml:space="preserve">
+    <value>Explicar</value>
+  </data>
+  <data name="DenyReasonPlaceholder" xml:space="preserve">
+    <value>¿Por qué no? El asistente verá su motivo.</value>
+  </data>
+  <data name="DenyReasonName" xml:space="preserve">
+    <value>Su motivo del rechazo</value>
+  </data>
+  <data name="YourReason" xml:space="preserve">
+    <value>Su motivo: {0}</value>
+  </data>
   <data name="NoAnswer" xml:space="preserve">
     <value>Sin respuesta a tiempo</value>
   </data>
