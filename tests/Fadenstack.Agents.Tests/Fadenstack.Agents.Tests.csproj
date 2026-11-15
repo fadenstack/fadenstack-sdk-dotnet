@@ -24,6 +24,8 @@
   <ItemGroup>
     <!-- Core's agent templates (release/0.7.1): the apps' contracts/*.json with local_skills_mode, as AgentDefinition reads them. -->
     <None Include="Definitions\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The AG-UI golden files (F07): the same bytes as the TypeScript SDK's packages/agents/test/agui. -->
+    <None Include="AgUi\*.jsonl" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Net.Http" />
