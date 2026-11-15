@@ -1222,6 +1222,714 @@ public sealed class UiStrings
     /// <summary>"Also delete the chats kept on this computer"</summary>
     public string WizardDeleteChats => Text();
 
+    // -- the Tools view (sdk/51 F05) ---------------------------------------------------------------------
+
+    /// <summary>
+    /// The version of the warning "Plain http is not encrypted..." (<see cref="McpPlainHttpWarning"/>): the date its words were last changed. The
+    /// app passes it with the person's confirmation, and the SDK records which warning they saw (the device's audit log). Change it
+    /// whenever the warning's words change.
+    /// </summary>
+    public const string McpPlainHttpWarningVersion = "2026-11-15";
+
+    /// <summary>"Tools"</summary>
+    public string ToolsTitle => Text();
+
+    /// <summary>"What your assistant can reach, and whether it is on."</summary>
+    public string ToolsIntro => Text();
+
+    /// <summary>"This assistant may not use MCP servers on this computer."</summary>
+    public string ToolsBannerNotAllowed => Text();
+
+    /// <summary>"Sign in to see the tools of this assistant."</summary>
+    public string ToolsSignInNeeded => Text();
+
+    /// <summary>"Allowed"</summary>
+    public string ToolsPolicyAllowed => Text();
+
+    /// <summary>"This assistant may use MCP servers on this computer."</summary>
+    public string ToolsPolicyAllowedTip => Text();
+
+    /// <summary>"Developer mode"</summary>
+    public string ToolsPolicyDeveloper => Text();
+
+    /// <summary>"Developer mode: any server, for you only."</summary>
+    public string ToolsPolicyDeveloperTip => Text();
+
+    /// <summary>"Not allowed for this assistant"</summary>
+    public string ToolsPolicyNotAllowed => Text();
+
+    /// <summary>"On this computer · {0}"</summary>
+    public string ToolsTabLocal(int count) => Fill(count);
+
+    /// <summary>"On your server · {0}"</summary>
+    public string ToolsTabServer(int count) => Fill(count);
+
+    /// <summary>"Filter tools"</summary>
+    public string ToolsFilterPlaceholder => Text();
+
+    /// <summary>"Add server"</summary>
+    public string ToolsAddServer => Text();
+
+    /// <summary>"Scan this computer"</summary>
+    public string ToolsScanThisComputer => Text();
+
+    /// <summary>"MCP servers"</summary>
+    public string ToolsSectionServers => Text();
+
+    /// <summary>"Programs on this computer that offer tools. The assistant looks them up when it needs them, and every call asks you first."</summary>
+    public string ToolsSectionServersHelp => Text();
+
+    /// <summary>"This computer has no key store, so your servers are kept only until you close the app."</summary>
+    public string ToolsKeptInMemory => Text();
+
+    /// <summary>"The saved list of servers could not be read. It was set aside and the list starts empty."</summary>
+    public string ToolsListUnreadable => Text();
+
+    /// <summary>"Your organisation’s server runs these tools; your data goes through its checks. Your administrator decides which ones this assistant may use."</summary>
+    public string ToolsCloudIntro => Text();
+
+    /// <summary>"This server does not list its tools yet."</summary>
+    public string ToolsCloudNotListed => Text();
+
+    /// <summary>"The server’s tools could not be loaded right now."</summary>
+    public string ToolsCloudUnavailable => Text();
+
+    /// <summary>"Your server offers no tools to this assistant."</summary>
+    public string ToolsCloudNone => Text();
+
+    /// <summary>"For this assistant"</summary>
+    public string ToolsCloudForThis => Text();
+
+    /// <summary>"Not for this assistant"</summary>
+    public string ToolsCloudNotFor => Text();
+
+    /// <summary>"Switched off by your administrator"</summary>
+    public string ToolsCloudOffByAdmin => Text();
+
+    /// <summary>"{0} for this assistant"</summary>
+    public string ToolsForThisAssistant(int count) => Fill(count);
+
+    /// <summary>"{0} switched off"</summary>
+    public string ToolsSwitchedOffCount(int count) => Fill(count);
+
+    /// <summary>"Collapse {0}"</summary>
+    public string ToolsCollapse(string server) => Fill(server);
+
+    /// <summary>"Expand {0}"</summary>
+    public string ToolsExpand(string server) => Fill(server);
+
+    /// <summary>"Try again"</summary>
+    public string ToolsTryAgain => Text();
+
+    /// <summary>"Loading..."</summary>
+    public string ToolsLoading => Text();
+
+    /// <summary>"Give your assistant tools from this computer"</summary>
+    public string ToolsEmptyTitle => Text();
+
+    /// <summary>"MCP servers are small programs that offer tools: your notes, a database, a calendar. Find the ones you already use in other apps, or add one yourself."</summary>
+    public string ToolsEmptyText => Text();
+
+    /// <summary>"Running"</summary>
+    public string ToolsStateRunning => Text();
+
+    /// <summary>"Off"</summary>
+    public string ToolsStateOff => Text();
+
+    /// <summary>"Starting"</summary>
+    public string ToolsStateStarting => Text();
+
+    /// <summary>"Can’t start: {0}"</summary>
+    public string ToolsStateFailed(string reason) => Fill(reason);
+
+    /// <summary>"Not allowed"</summary>
+    public string ToolsStateNotAllowed => Text();
+
+    /// <summary>"Changed its tools"</summary>
+    public string ToolsStateChangedTools => Text();
+
+    /// <summary>"Can’t start: {0} has no value"</summary>
+    public string ToolsStateMissingValue(string name) => Fill(name);
+
+    /// <summary>"Not allowed: {0}"</summary>
+    public string ToolsStateNotAllowedBecause(string reason) => Fill(reason);
+
+    /// <summary>"this assistant may not use MCP servers on this computer"</summary>
+    public string ToolsReasonPolicy => Text();
+
+    /// <summary>"no reason given"</summary>
+    public string ToolsReasonUnknown => Text();
+
+    /// <summary>"1 tool"</summary>
+    public string ToolsCountOne => Text();
+
+    /// <summary>"{0} tools"</summary>
+    public string ToolsCountMany(int count) => Fill(count);
+
+    /// <summary>"told 1 folder"</summary>
+    public string ToolsToldFoldersOne => Text();
+
+    /// <summary>"told {0} folders"</summary>
+    public string ToolsToldFoldersMany(int count) => Fill(count);
+
+    /// <summary>"+{0}"</summary>
+    public string ToolsMoreTools(int count) => Fill(count);
+
+    /// <summary>"Add the value"</summary>
+    public string ToolsFixAddValue => Text();
+
+    /// <summary>"Added by you"</summary>
+    public string ToolsOriginTyped => Text();
+
+    /// <summary>"Found by a scan"</summary>
+    public string ToolsOriginScan => Text();
+
+    /// <summary>"From {0}"</summary>
+    public string ToolsOriginImported(string origin) => Fill(origin);
+
+    /// <summary>"{0} · {1}"</summary>
+    public string ToolsOriginLine(string origin, string where) => Fill2(origin, where);
+
+    /// <summary>"Switch {0} on or off"</summary>
+    public string ToolsSwitchName(string label) => Fill(label);
+
+    /// <summary>"Show details of {0}"</summary>
+    public string ToolsOpenDetails(string label) => Fill(label);
+
+    /// <summary>"{0}, may delete"</summary>
+    public string ToolsToolMayDelete(string name) => Fill(name);
+
+    /// <summary>"{0}, MCP server"</summary>
+    public string ToolsDrawerName(string label) => Fill(label);
+
+    /// <summary>"Running since {0}"</summary>
+    public string ToolsRunningSince(string time) => Fill(time);
+
+    /// <summary>"Added"</summary>
+    public string ToolsFactAdded => Text();
+
+    /// <summary>"Runs"</summary>
+    public string ToolsFactRuns => Text();
+
+    /// <summary>"Address"</summary>
+    public string ToolsFactAddress => Text();
+
+    /// <summary>"Told folders"</summary>
+    public string ToolsFactFolders => Text();
+
+    /// <summary>"Secrets"</summary>
+    public string ToolsFactSecrets => Text();
+
+    /// <summary>"Longest call"</summary>
+    public string ToolsFactLongestCall => Text();
+
+    /// <summary>"By you"</summary>
+    public string ToolsAddedByYou => Text();
+
+    /// <summary>"From {0}"</summary>
+    public string ToolsAddedFrom(string origin) => Fill(origin);
+
+    /// <summary>"Found by a scan"</summary>
+    public string ToolsAddedByScan => Text();
+
+    /// <summary>"None"</summary>
+    public string ToolsNoneText => Text();
+
+    /// <summary>"None (no folders allowed)"</summary>
+    public string ToolsNoFoldersTold => Text();
+
+    /// <summary>"1 second"</summary>
+    public string ToolsSecondsOne => Text();
+
+    /// <summary>"{0} seconds"</summary>
+    public string ToolsSecondsMany(int count) => Fill(count);
+
+    /// <summary>"1 minute"</summary>
+    public string ToolsMinutesOne => Text();
+
+    /// <summary>"{0} minutes"</summary>
+    public string ToolsMinutesMany(int count) => Fill(count);
+
+    /// <summary>"The server describes its own tools. Nobody has checked them, so every call asks you first."</summary>
+    public string ToolsDrawerNote => Text();
+
+    /// <summary>"Tools · {0}"</summary>
+    public string ToolsListHeading(int count) => Fill(count);
+
+    /// <summary>"Filter"</summary>
+    public string ToolsDrawerFilterPlaceholder => Text();
+
+    /// <summary>"Filter the tools"</summary>
+    public string ToolsDrawerFilterName => Text();
+
+    /// <summary>"No tools yet."</summary>
+    public string ToolsNoTools => Text();
+
+    /// <summary>"No tool matches."</summary>
+    public string ToolsNoToolsMatch => Text();
+
+    /// <summary>"Says: reads only"</summary>
+    public string ToolsSaysReadOnly => Text();
+
+    /// <summary>"Says: may delete"</summary>
+    public string ToolsSaysDestructive => Text();
+
+    /// <summary>"Says: safe to repeat"</summary>
+    public string ToolsSaysIdempotent => Text();
+
+    /// <summary>"Says: reaches outside this computer"</summary>
+    public string ToolsSaysOpenWorld => Text();
+
+    /// <summary>"Test the server"</summary>
+    public string ToolsTestTooltip => Text();
+
+    /// <summary>"Restart"</summary>
+    public string ToolsRestartTooltip => Text();
+
+    /// <summary>"Edit"</summary>
+    public string ToolsEditTooltip => Text();
+
+    /// <summary>"Remove"</summary>
+    public string ToolsRemoveTooltip => Text();
+
+    /// <summary>"Restarted."</summary>
+    public string ToolsRestartedLine => Text();
+
+    /// <summary>"Remove {0}?"</summary>
+    public string ToolsRemoveConfirm(string label) => Fill(label);
+
+    /// <summary>"Remove"</summary>
+    public string ToolsRemoveYes => Text();
+
+    /// <summary>"Keep"</summary>
+    public string ToolsRemoveKeep => Text();
+
+    /// <summary>"Remove {0}"</summary>
+    public string ToolsRemoveName(string label) => Fill(label);
+
+    /// <summary>"Close"</summary>
+    public string ToolsCloseDetails => Text();
+
+    /// <summary>"Add a server"</summary>
+    public string ToolsSheetAddTitle => Text();
+
+    /// <summary>"Edit {0}"</summary>
+    public string ToolsSheetEditTitle(string label) => Fill(label);
+
+    /// <summary>"Name"</summary>
+    public string ToolsFieldLabel => Text();
+
+    /// <summary>"Lower case letters, digits and hyphens, up to 32."</summary>
+    public string ToolsFieldLabelHelp => Text();
+
+    /// <summary>"Program"</summary>
+    public string ToolsKindProgram => Text();
+
+    /// <summary>"Address"</summary>
+    public string ToolsKindAddress => Text();
+
+    /// <summary>"Program"</summary>
+    public string ToolsFieldCommand => Text();
+
+    /// <summary>"Arguments (one per line)"</summary>
+    public string ToolsFieldArguments => Text();
+
+    /// <summary>"Working folder (optional)"</summary>
+    public string ToolsFieldFolder => Text();
+
+    /// <summary>"Choose..."</summary>
+    public string ToolsChooseFolder => Text();
+
+    /// <summary>"Environment variables"</summary>
+    public string ToolsFieldEnvironment => Text();
+
+    /// <summary>"Headers"</summary>
+    public string ToolsFieldHeaders => Text();
+
+    /// <summary>"Add"</summary>
+    public string ToolsAddRow => Text();
+
+    /// <summary>"Name"</summary>
+    public string ToolsRowName => Text();
+
+    /// <summary>"Value"</summary>
+    public string ToolsRowValue => Text();
+
+    /// <summary>"••••••••"</summary>
+    public string ToolsValueSaved => Text();
+
+    /// <summary>"Replace"</summary>
+    public string ToolsReplaceValue => Text();
+
+    /// <summary>"Remove"</summary>
+    public string ToolsRemoveRow => Text();
+
+    /// <summary>"Address"</summary>
+    public string ToolsFieldUrl => Text();
+
+    /// <summary>"Longest call (seconds)"</summary>
+    public string ToolsFieldTimeout => Text();
+
+    /// <summary>"Switch on after saving"</summary>
+    public string ToolsFieldEnabled => Text();
+
+    /// <summary>"Values are kept encrypted on this computer, are never shown again and are never sent anywhere else."</summary>
+    public string ToolsSecretsNote => Text();
+
+    /// <summary>"Save"</summary>
+    public string ToolsSave => Text();
+
+    /// <summary>"Cancel"</summary>
+    public string ToolsCancel => Text();
+
+    /// <summary>"Close"</summary>
+    public string ToolsCloseSheet => Text();
+
+    /// <summary>"Kind of server"</summary>
+    public string ToolsKindName => Text();
+
+    /// <summary>"Add"</summary>
+    public string ToolsAddButton => Text();
+
+    /// <summary>"Test"</summary>
+    public string ToolsTestButton => Text();
+
+    /// <summary>"Saved value (hidden)"</summary>
+    public string ToolsValueSavedName => Text();
+
+    /// <summary>"Import from a file…"</summary>
+    public string ToolsImportMore => Text();
+
+    /// <summary>"Give the server a name."</summary>
+    public string ToolsProblemLabelMissing => Text();
+
+    /// <summary>"Use lower case letters, digits and hyphens, up to 32."</summary>
+    public string ToolsProblemLabelInvalid => Text();
+
+    /// <summary>"You have a server with that name already."</summary>
+    public string ToolsProblemLabelTaken => Text();
+
+    /// <summary>"Enter the program to start."</summary>
+    public string ToolsProblemCommandMissing => Text();
+
+    /// <summary>"The program name cannot contain line breaks."</summary>
+    public string ToolsProblemCommandInvalid => Text();
+
+    /// <summary>"The working folder must be a full path."</summary>
+    public string ToolsProblemFolder => Text();
+
+    /// <summary>"A name may contain only letters, digits and underscores (headers: also hyphens)."</summary>
+    public string ToolsProblemName => Text();
+
+    /// <summary>"A value cannot contain line breaks."</summary>
+    public string ToolsProblemValue => Text();
+
+    /// <summary>"Enter the address."</summary>
+    public string ToolsProblemAddressMissing => Text();
+
+    /// <summary>"That is not an address (for example http://localhost:8123/mcp)."</summary>
+    public string ToolsProblemAddressInvalid => Text();
+
+    /// <summary>"Enter a number of seconds from 5 to 600."</summary>
+    public string ToolsProblemTimeout => Text();
+
+    /// <summary>"Testing..."</summary>
+    public string ToolsTestRunning => Text();
+
+    /// <summary>"Started. Tools: {0}"</summary>
+    public string ToolsTestOk(string tools) => Fill(tools);
+
+    /// <summary>"Started, but it offers no tools."</summary>
+    public string ToolsTestOkNoTools => Text();
+
+    /// <summary>"Could not start: {0}"</summary>
+    public string ToolsTestFailed(string reason) => Fill(reason);
+
+    /// <summary>"Not started: this assistant may not use MCP servers on this computer."</summary>
+    public string ToolsTestNotAllowed => Text();
+
+    /// <summary>"Import servers"</summary>
+    public string ToolsImportTitle => Text();
+
+    /// <summary>"Choose where to import from. Nothing is copied until you tick servers and press Import."</summary>
+    public string ToolsImportIntro => Text();
+
+    /// <summary>"Claude Desktop"</summary>
+    public string ToolsSourceClaude => Text();
+
+    /// <summary>"VS Code"</summary>
+    public string ToolsSourceVsCode => Text();
+
+    /// <summary>"Cursor"</summary>
+    public string ToolsSourceCursor => Text();
+
+    /// <summary>"A .mcp.json file..."</summary>
+    public string ToolsSourceFile => Text();
+
+    /// <summary>"Choose a .mcp.json file"</summary>
+    public string ToolsChooseFileTitle => Text();
+
+    /// <summary>"Read {0}"</summary>
+    public string ToolsImportRead(string file) => Fill(file);
+
+    /// <summary>"That file was not found on this computer."</summary>
+    public string ToolsImportProblemNotFound => Text();
+
+    /// <summary>"That file cannot be read."</summary>
+    public string ToolsImportProblemUnreadable => Text();
+
+    /// <summary>"That file has no list of servers."</summary>
+    public string ToolsImportProblemNoList => Text();
+
+    /// <summary>"That file is too large."</summary>
+    public string ToolsImportProblemTooLarge => Text();
+
+    /// <summary>"Nothing in that file can be imported."</summary>
+    public string ToolsImportNothingToAdd => Text();
+
+    /// <summary>"Import"</summary>
+    public string ToolsImportButton => Text();
+
+    /// <summary>"Import {0}"</summary>
+    public string ToolsImportTick(string label) => Fill(label);
+
+    /// <summary>"Needs a value you must fill in; it is added switched off."</summary>
+    public string ToolsImportNoteNeedsValue => Text();
+
+    /// <summary>"Contains placeholders such as ${env:NAME}, which are kept as written."</summary>
+    public string ToolsImportNotePlaceholders => Text();
+
+    /// <summary>"Left out: {0}"</summary>
+    public string ToolsImportNoteIgnored(string fields) => Fill(fields);
+
+    /// <summary>"Renamed to fit the rules for names."</summary>
+    public string ToolsImportNoteRenamed => Text();
+
+    /// <summary>"It was switched off there."</summary>
+    public string ToolsImportNoteWasOff => Text();
+
+    /// <summary>"Skipped"</summary>
+    public string ToolsSkippedTitle => Text();
+
+    /// <summary>"It has no program or address."</summary>
+    public string ToolsSkipNothing => Text();
+
+    /// <summary>"It was not understood."</summary>
+    public string ToolsSkipNotUnderstood => Text();
+
+    /// <summary>"It breaks a rule: {0}"</summary>
+    public string ToolsSkipNotValid(string detail) => Fill(detail);
+
+    /// <summary>"Added: {0}"</summary>
+    public string ToolsImported(int count) => Fill(count);
+
+    /// <summary>"Scan this computer"</summary>
+    public string ToolsScanTitle => Text();
+
+    /// <summary>"Finds MCP servers you already use in other apps, and servers running on this computer."</summary>
+    public string ToolsScanIntro => Text();
+
+    /// <summary>"Other apps’ settings"</summary>
+    public string ToolsScanOtherApps => Text();
+
+    /// <summary>"{0} · {1}"</summary>
+    public string ToolsScanChip(string name, int found) => Fill2(name, found);
+
+    /// <summary>"{0}: not installed"</summary>
+    public string ToolsScanNotInstalled(string names) => Fill(names);
+
+    /// <summary>"Servers running on this computer"</summary>
+    public string ToolsScanThisComputerOption => Text();
+
+    /// <summary>"localhost, ports {0}. It only says hello in MCP; nothing is sent."</summary>
+    public string ToolsScanPorts(string ranges) => Fill(ranges);
+
+    /// <summary>"{0}–{1}"</summary>
+    public string ToolsScanPortRange(int from, int to) => Fill2(from, to);
+
+    /// <summary>"and"</summary>
+    public string ToolsScanAnd => Text();
+
+    /// <summary>"Scan progress"</summary>
+    public string ToolsScanProgressName => Text();
+
+    /// <summary>"Looking… {0} of {1} done"</summary>
+    public string ToolsScanRunning(int done, int total) => Fill2(done, total);
+
+    /// <summary>"Looking…"</summary>
+    public string ToolsScanStarting => Text();
+
+    /// <summary>"Done in {0} s · {1}"</summary>
+    public string ToolsScanDone(int seconds, string found) => Fill2(seconds, found);
+
+    /// <summary>"1 server found"</summary>
+    public string ToolsScanFoundOne => Text();
+
+    /// <summary>"{0} servers found"</summary>
+    public string ToolsScanFoundMany(int count) => Fill(count);
+
+    /// <summary>"Nothing found"</summary>
+    public string ToolsScanFoundNone => Text();
+
+    /// <summary>"Scan again"</summary>
+    public string ToolsScanAgain => Text();
+
+    /// <summary>"Stopped."</summary>
+    public string ToolsScanStopped => Text();
+
+    /// <summary>"The scan could not finish. Try again."</summary>
+    public string ToolsScanFailed => Text();
+
+    /// <summary>"No MCP servers were found. You can add one yourself."</summary>
+    public string ToolsScanNothingFoundHelp => Text();
+
+    /// <summary>"Tick at least one place to look in."</summary>
+    public string ToolsScanNothingToLookAt => Text();
+
+    /// <summary>"Found in {0}"</summary>
+    public string ToolsScanFoundIn(string app) => Fill(app);
+
+    /// <summary>"Running on this computer"</summary>
+    public string ToolsScanRunningHere => Text();
+
+    /// <summary>"Program"</summary>
+    public string ToolsScanKindProgram => Text();
+
+    /// <summary>"Address"</summary>
+    public string ToolsScanKindAddress => Text();
+
+    /// <summary>"Already added"</summary>
+    public string ToolsScanStateAlready => Text();
+
+    /// <summary>"Needs a value; added switched off"</summary>
+    public string ToolsScanStateNeedsValue => Text();
+
+    /// <summary>"Not understood"</summary>
+    public string ToolsScanStateNotUnderstood => Text();
+
+    /// <summary>"Takes {0} from {1}’s settings; kept encrypted here"</summary>
+    public string ToolsScanTakes(string names, string app) => Fill2(names, app);
+
+    /// <summary>"Answered as {0}"</summary>
+    public string ToolsScanAnswered(string name) => Fill(name);
+
+    /// <summary>"Answered as {0} · {1}"</summary>
+    public string ToolsScanAnsweredTools(string name, string tools) => Fill2(name, tools);
+
+    /// <summary>"Add {0}"</summary>
+    public string ToolsScanTick(string label) => Fill(label);
+
+    /// <summary>"{0}, already added"</summary>
+    public string ToolsScanTickAlready(string label) => Fill(label);
+
+    /// <summary>"Nothing leaves this computer. A server starts only after you add it, and only where this assistant may use MCP servers."</summary>
+    public string ToolsScanFooter => Text();
+
+    /// <summary>"Add 1 server"</summary>
+    public string ToolsScanAddOne => Text();
+
+    /// <summary>"Add {0} servers"</summary>
+    public string ToolsScanAddMany(int count) => Fill(count);
+
+    /// <summary>"Close"</summary>
+    public string ToolsScanClose => Text();
+
+    /// <summary>"Where to look"</summary>
+    public string ToolsScanOptionsName => Text();
+
+    /// <summary>"A server on another computer is not imported. Add it yourself if you need it."</summary>
+    public string ToolsSkipNetwork => Text();
+
+    /// <summary>"On another computer: add it yourself"</summary>
+    public string ToolsScanStateLater => Text();
+
+    /// <summary>"{0}, not added by a scan"</summary>
+    public string ToolsScanTickLater(string label) => Fill(label);
+
+    /// <summary>"Use https for a server anywhere. Plain http works on this computer, and on your local network when you allow it under Advanced."</summary>
+    public string ToolsFieldUrlHelp => Text();
+
+    /// <summary>"Headers hold secrets, so a plain http address beyond this computer cannot have any. Use https or remove the headers."</summary>
+    public string ToolsProblemPlainHttpWithHeaders => Text();
+
+    /// <summary>"Plain http goes only to this computer or the local network. Use https for an address elsewhere."</summary>
+    public string ToolsProblemPlainHttpNotLocal => Text();
+
+    /// <summary>"Trusted"</summary>
+    public string ToolsTrusted => Text();
+
+    /// <summary>"Only a trusted server’s “reads only” hints count. A server’s own word is never enough."</summary>
+    public string ToolsTrustedHelp => Text();
+
+    /// <summary>"Marked by your administrator"</summary>
+    public string ToolsTrustedByAdmin => Text();
+
+    /// <summary>"Trust {0}"</summary>
+    public string ToolsTrustedName(string label) => Fill(label);
+
+    /// <summary>"Asks every time"</summary>
+    public string ToolsClassUnknown => Text();
+
+    /// <summary>"Reads"</summary>
+    public string ToolsClassRead => Text();
+
+    /// <summary>"Changes things"</summary>
+    public string ToolsClassWrite => Text();
+
+    /// <summary>"Destructive"</summary>
+    public string ToolsClassDestructive => Text();
+
+    /// <summary>"Treat as"</summary>
+    public string ToolsRaiseLabel => Text();
+
+    /// <summary>"As it arrives"</summary>
+    public string ToolsRaiseNone => Text();
+
+    /// <summary>"Reads only"</summary>
+    public string ToolsRaiseRead => Text();
+
+    /// <summary>"Changes things"</summary>
+    public string ToolsRaiseWrite => Text();
+
+    /// <summary>"Class of {0}"</summary>
+    public string ToolsRaiseName(string tool) => Fill(tool);
+
+    /// <summary>"The server says this tool may delete or overwrite. It always asks, and nothing can lower that."</summary>
+    public string ToolsDestructiveHelp => Text();
+
+    /// <summary>"Advanced"</summary>
+    public string ToolsAdvanced => Text();
+
+    /// <summary>"Allow plain http on the local network"</summary>
+    public string McpPlainHttpSwitch => Text();
+
+    /// <summary>"For a server on your own network that has no https. Never with a header value."</summary>
+    public string McpPlainHttpSwitchHelp => Text();
+
+    /// <summary>"Allow plain http?"</summary>
+    public string McpPlainHttpWarningTitle => Text();
+
+    /// <summary>"Plain http is not encrypted. Anyone on your network can read and change what goes to and from this server: the tool calls, their arguments and their results, which may hold document content. A changed answer can steer the agent. Use https where the server offers it."</summary>
+    public string McpPlainHttpWarning => Text();
+
+    /// <summary>"Allow"</summary>
+    public string McpPlainHttpConfirm => Text();
+
+    /// <summary>"Keep it off"</summary>
+    public string McpPlainHttpCancel => Text();
+
+    /// <summary>"Plain http goes only to this computer. Turn on “Allow plain http on the local network” under Advanced."</summary>
+    public string McpPlainHttpNoOptIn => Text();
+
+    /// <summary>"This address is not on the local network."</summary>
+    public string McpPlainHttpNotLocal => Text();
+
+    /// <summary>"A server with a header value needs https."</summary>
+    public string McpPlainHttpSecret => Text();
+
+    /// <summary>"Plain http is not allowed here."</summary>
+    public string McpPlainHttpNotAllowed => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));

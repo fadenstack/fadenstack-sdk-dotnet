@@ -17,5 +17,8 @@
     <InternalsVisibleTo Include="Fadenstack.Secrets.Tests" />
     <InternalsVisibleTo Include="Fadenstack.Agents" />
     <InternalsVisibleTo Include="Fadenstack.Agents.Tests" />
+    <InternalsVisibleTo Include="Fadenstack.Mcp.Tests" />
+    <!-- The plain-http rule of MCP servers sorts addresses as the endpoints' does (NetworkAddress; sdk/51 F05). -->
+    <InternalsVisibleTo Include="Fadenstack.Mcp" />
   </ItemGroup>
 </Project>

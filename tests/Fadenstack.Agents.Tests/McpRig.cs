@@ -22,6 +22,15 @@ public sealed class McpRig
 
     public string? Instructions { get; set; }
 
+    /// <summary>
+    /// The one MCP revision the servers speak (<c>2026-07-28</c> refuses <c>initialize</c>; an older one refuses the 2026-07-28
+    /// per-request metadata); null: all of them, as the MCP SDK's server does by default.
+    /// </summary>
+    public string? ProtocolVersion { get; set; }
+
+    /// <summary>How long a server takes to start answering (a <c>uvx</c> that is still fetching its package); nothing it is sent is lost.</summary>
+    public TimeSpan StartDelay { get; set; }
+
     /// <summary>How often the transport was asked to connect.</summary>
     public int Connects { get; private set; }
 
@@ -62,13 +71,14 @@ public sealed class McpRig
         }
         Collection = collection;
         var server = McpServer.Create(new StreamServerTransport(toServer.Reader.AsStream(), toClient.Writer.AsStream()),
-            new McpServerOptions { ToolCollection = collection, ServerInstructions = Instructions });
+            new McpServerOptions { ToolCollection = collection, ServerInstructions = Instructions, ProtocolVersion = ProtocolVersion });
         lock (_servers)
         {
             _servers.Add(server);
         }
         OnServer?.Invoke(server);
-        _ = server.RunAsync();
+        var delay = StartDelay;
+        _ = delay > TimeSpan.Zero ? Task.Delay(delay).ContinueWith(_ => server.RunAsync(), TaskScheduler.Default).Unwrap() : server.RunAsync();
         return Task.FromResult<IClientTransport>(new StreamClientTransport(toServer.Writer.AsStream(), toClient.Reader.AsStream()));
     });
 

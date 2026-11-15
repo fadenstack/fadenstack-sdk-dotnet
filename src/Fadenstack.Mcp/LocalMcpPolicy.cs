@@ -1,3 +1,4 @@
+using Fadenstack.Agents;
 using Fadenstack.Models;
 
 namespace Fadenstack.Mcp;
@@ -29,5 +30,57 @@ public sealed class CoreLocalMcpPolicy : ILocalMcpPolicy
             null or "" or "disable" => new LocalMcpDecision(false, "The agent does not allow local MCP servers."),
             var other => new LocalMcpDecision(false, $"The agent's local MCP mode '{other}' needs a policy this app does not have."),
         };
+    }
+}
+
+/// <summary>
+/// What the machine policy's <c>mcp</c> key says about a server (sdk/51 F09): forbidden, allowed, or a list of allowed
+/// <em>sources</em>. A source is the program (its full path or its file name, without <c>.exe</c> on Windows) or the address of
+/// a server (its origin, or its full URL). The server's label is the person's own word and never a source.
+/// </summary>
+public static class McpSources
+{
+    public static LocalMcpDecision Decide(PolicyRule rule, LocalMcpServer server)
+    {
+        if (rule is null)
+        {
+            throw new ArgumentNullException(nameof(rule));
+        }
+        switch (rule.Access)
+        {
+            case PolicyAccess.Allowed:
+                return new LocalMcpDecision(true, "This computer's policy allows local MCP servers.");
+            case PolicyAccess.Listed when Names(server).Any(rule.Allows):
+                return new LocalMcpDecision(true, "This computer's policy lists this server's source.");
+            case PolicyAccess.Listed:
+                return new LocalMcpDecision(false, "This computer's policy does not list this server's source.");
+            default:
+                return new LocalMcpDecision(false, "This computer's policy does not allow local MCP servers.");
+        }
+    }
+
+    /// <summary>The names a policy item can match: the program as given, its file name (and without an extension), or the address.</summary>
+    internal static IEnumerable<string> Names(LocalMcpServer server)
+    {
+        if (server.Command is { Length: > 0 } command)
+        {
+            yield return command;
+            var name = System.IO.Path.GetFileName(command.TrimEnd('/', '\\').Replace('\\', '/'));
+            if (name.Length > 0)
+            {
+                yield return name;
+                var dot = name.LastIndexOf('.');
+                if (dot > 0)
+                {
+                    yield return name.Substring(0, dot);
+                }
+            }
+        }
+        if (server.Url is { } url)
+        {
+            yield return url.AbsoluteUri;
+            yield return url.GetLeftPart(UriPartial.Authority);
+            yield return url.AbsoluteUri.TrimEnd('/');
+        }
     }
 }

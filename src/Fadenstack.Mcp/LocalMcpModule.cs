@@ -95,6 +95,19 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     /// <summary>How long a server gets to start and list its tools (default 30 s).</summary>
     public TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>How a server's name is resolved for the plain-http check (DNS when null; tests give their own).</summary>
+    internal Func<string, Task<System.Net.IPAddress[]>>? Resolve { get; set; }
+
+    /// <summary>
+    /// How long the client waits for a server to answer the 2026-07-28 probe (<c>server/discover</c>) before it tries the
+    /// <c>initialize</c> handshake of 2025-11-25 (default 5 s, the MCP SDK's own). A server that only speaks 2026-07-28 and
+    /// answers later than this is asked again with that revision (see <c>CreateClientAsync</c>).
+    /// </summary>
+    internal TimeSpan DiscoverProbeTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>The MCP revision without <c>initialize</c> and sessions (the MCP SDK keeps its constant internal).</summary>
+    private const string July2026 = "2026-07-28";
+
     /// <summary>The wait before a crashed server is started again (default 1 s).</summary>
     public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromSeconds(1);
 
@@ -176,6 +189,8 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         try
         {
             _context = context;
+            await StopWhatPlainHttpNoLongerAllowsAsync(context).ConfigureAwait(false);
+            await SendPlainHttpChangesAsync(context).ConfigureAwait(false);
             List<ServerEntry> pending;
             lock (_gate)
             {
@@ -191,6 +206,100 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         finally
         {
             _lifecycle.Release();
+        }
+    }
+
+    /// <summary>
+    /// Plain http on the local network is allowed here (sdk/51 F05): the agent's profile says <c>local_mcp.plain_http: allow</c>
+    /// (absent or anything else is deny; developer mode does not override it) and this computer's policy does not forbid plain
+    /// http. The person's switch per server is still needed.
+    /// </summary>
+    internal static bool PlainHttpPermitted(AgentContext context) =>
+        string.Equals(context.Profile.LocalMcp.PlainHttp, "allow", StringComparison.Ordinal)
+        && context.MachinePolicy.PlainHttp == PolicyAccess.Allowed;
+
+    /// <summary>The profile's feature that lets the SDK send <c>local_mcp.plain_http</c> (sdk/51 F05).</summary>
+    public const string PlainHttpEventFeature = "client_events.local_mcp_plain_http";
+
+    private readonly List<LocalMcpPlainHttpEvent> _plainHttpChanges = [];
+
+    /// <summary>
+    /// Tells the server that the person switched plain http on the local network on or off for a server (<paramref name="source"/>:
+    /// its origin), in governed mode and only where the profile's <c>features</c> list <see cref="PlainHttpEventFeature"/>; an
+    /// older core never sees it. Sent now when the agent has run, else with its next turn. Standalone sends nothing.
+    /// </summary>
+    public void ReportPlainHttpChange(string source, bool on)
+    {
+        lock (_gate)
+        {
+            _plainHttpChanges.Add(new LocalMcpPlainHttpEvent { Source = source, State = on ? "on" : "off" });
+        }
+        if (_context is { } context)
+        {
+            _ = SendPlainHttpChangesAsync(context);
+        }
+    }
+
+    private async Task SendPlainHttpChangesAsync(AgentContext context)
+    {
+        List<LocalMcpPlainHttpEvent> changes;
+        lock (_gate)
+        {
+            if (_plainHttpChanges.Count == 0)
+            {
+                return;
+            }
+            changes = [.. _plainHttpChanges];
+            _plainHttpChanges.Clear();
+        }
+        if (!context.Profile.Features.Contains(PlainHttpEventFeature))
+        {
+            return; // an older core refuses the whole batch: it is never sent
+        }
+        foreach (var change in changes)
+        {
+            try
+            {
+                await context.ReportAsync(change).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // a report that fails never fails the switch: the device's own audit log has it
+            }
+        }
+    }
+
+    /// <summary>
+    /// A server that reaches the local network over plain http stops when the profile or this computer's policy no longer allows
+    /// that, and shows why ("Plain http is not allowed here"); it is not started again until it is allowed.
+    /// </summary>
+    private async Task StopWhatPlainHttpNoLongerAllowsAsync(AgentContext context)
+    {
+        if (PlainHttpPermitted(context))
+        {
+            return;
+        }
+        List<ServerEntry> stopping;
+        lock (_gate)
+        {
+            stopping = _entries.Where(e => e.UsedLocalNetwork && e.State is McpServerState.Running or McpServerState.Starting).ToList();
+        }
+        foreach (var entry in stopping)
+        {
+            await CloseAsync(entry).ConfigureAwait(false);
+            lock (_gate)
+            {
+                entry.UsedLocalNetwork = false;
+                entry.State = McpServerState.NotAllowed;
+                entry.PlainHttp = McpPlainHttpRefusal.NotAllowed;
+                entry.Detail = "Plain http is not allowed here.";
+            }
+            Log.PlainHttpRefused(context.LoggerFactory.CreateLogger(Log.Category), entry.Server.Label, McpPlainHttpRefusal.NotAllowed);
+            RaiseStatus(entry);
+        }
+        if (stopping.Count > 0)
+        {
+            AnnounceIfChanged();
         }
     }
 
@@ -382,7 +491,9 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     private static McpServerStatus Status(ServerEntry e) => new(e.Server.Label, e.State)
     {
         Detail = e.Detail,
+        PlainHttp = e.PlainHttp,
         Instructions = e.Instructions,
+        ProtocolVersion = e.ProtocolVersion,
         Tools = e.Tools.Select(t => t.Info).ToList(),
         ToolsChanged = e.ToolsChanged,
         Reconnects = e.Reconnects,
@@ -407,6 +518,11 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         var log = context.LoggerFactory.CreateLogger(Log.Category);
         var server = entry.Server;
         var decision = Policy.Decide(server, context.Profile);
+        if (decision.Allowed)
+        {
+            // The machine policy wins over the profile and over the person: a list of sources names the only ones allowed.
+            decision = McpSources.Decide(context.MachinePolicy.Mcp, server);
+        }
         if (!decision.Allowed)
         {
             lock (_gate)
@@ -428,8 +544,8 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, entry.Stop.Token);
             limit.CancelAfter(ConnectTimeout);
-            var transport = await server.Connect(limit.Token).ConfigureAwait(false);
-            client = await McpClient.CreateAsync(transport, Options(entry), cancellationToken: limit.Token).ConfigureAwait(false);
+            var connection = new McpConnection(PlainHttpPermitted(context), Resolve);
+            client = await CreateClientAsync(server, entry, connection, limit.Token).ConfigureAwait(false);
             var listed = await client.ListToolsAsync(cancellationToken: limit.Token).ConfigureAwait(false);
             var first = entry.Tools.Count == 0 && !entry.EverListed;
             lock (_gate)
@@ -441,7 +557,10 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 entry.State = McpServerState.Running;
                 entry.Detail = null;
                 entry.Error = null;
+                entry.PlainHttp = null;
+                entry.UsedLocalNetwork = connection.UsedLocalNetwork;
                 entry.Instructions = McpText.FirstLine(client.ServerInstructions, McpText.MaxIndexChars);
+                entry.ProtocolVersion = client.NegotiatedProtocolVersion;
                 entry.ConnectedAt = DateTime.UtcNow;
             }
             _ = WatchAsync(entry, client);
@@ -449,6 +568,20 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             RaiseStatus(entry);
             await ReportAttachedAsync(entry).ConfigureAwait(false);
             return true;
+        }
+        catch (McpPlainHttpRefusedException e)
+        {
+            // Refused before anything was sent: not a failure to retry, a rule (sdk/51 F05).
+            lock (_gate)
+            {
+                entry.State = McpServerState.NotAllowed;
+                entry.PlainHttp = e.Reason;
+                entry.Detail = e.Message;
+                entry.UsedLocalNetwork = false;
+            }
+            Log.PlainHttpRefused(log, server.Label, e.Reason);
+            RaiseStatus(entry);
+            return false;
         }
         catch (Exception e) when (!cancellationToken.IsCancellationRequested)
         {
@@ -583,10 +716,20 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 {
                     break;
                 }
+                bool refused;
                 lock (_gate)
                 {
-                    entry.State = McpServerState.Starting;
-                    // the reason of the last failed try stays in Detail for the final status
+                    // A rule's refusal (the policy, plain http) is not tried again; a failure is.
+                    refused = entry.State == McpServerState.NotAllowed;
+                    if (!refused)
+                    {
+                        entry.State = McpServerState.Starting;
+                        // the reason of the last failed try stays in Detail for the final status
+                    }
+                }
+                if (refused)
+                {
+                    break;
                 }
             }
             RaiseStatus(entry);
@@ -595,6 +738,36 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         finally
         {
             _lifecycle.Release();
+        }
+    }
+
+    /// <summary>
+    /// Connects with the newest MCP revision first. The client leaves <c>ProtocolVersion</c> unset, so the MCP SDK asks for
+    /// 2026-07-28 (stateless: <c>server/discover</c>, no <c>initialize</c>, no session) and, when the server does not answer
+    /// that, falls back to the <c>initialize</c> handshake on 2025-11-25 (or older). Its probe waits only
+    /// <see cref="DiscoverProbeTimeout"/>, though, and a server that is still starting (<c>uvx</c> and <c>npx</c> resolve and
+    /// fetch packages on the first run) has not answered by then: the SDK takes it for an older server, sends
+    /// <c>initialize</c>, and a 2026-07-28-only server refuses that with <see cref="UnsupportedProtocolVersionException"/>.
+    /// That refusal names the server's revision, so it is asked once more, with the revision pinned and no probe deadline
+    /// (<see cref="ConnectTimeout"/> still ends it).
+    /// </summary>
+    private async Task<McpClient> CreateClientAsync(LocalMcpServer server, ServerEntry entry, McpConnection connection,
+        CancellationToken cancellationToken)
+    {
+        var transport = await server.Connect(connection, cancellationToken).ConfigureAwait(false);
+        var options = Options(entry);
+        options.DiscoverProbeTimeout = DiscoverProbeTimeout;
+        try
+        {
+            return await McpClient.CreateAsync(transport, options, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (UnsupportedProtocolVersionException)
+        {
+            var again = await server.Connect(connection, cancellationToken).ConfigureAwait(false);
+            var pinned = Options(entry);
+            pinned.ProtocolVersion = July2026;
+            pinned.DiscoverProbeTimeout = Timeout.InfiniteTimeSpan;
+            return await McpClient.CreateAsync(again, pinned, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -730,6 +903,33 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     }
 
     /// <summary>What the module offers now: the running servers' index and tool names with versions. A change means a new list.</summary>
+    /// <summary>The tool's class under the hint rule (H4): unclassified unless a destructive hint or the host's trust and raises say more.</summary>
+    private static ToolClass ClassOf(ServerEntry entry, ToolEntry tool) =>
+        McpToolClasses.Classify(entry.Server, tool.ServerName, tool.Info.Hints);
+
+    /// <summary>
+    /// The host changed a server's <see cref="LocalMcpServer.Trusted"/> mark or <see cref="LocalMcpServer.ToolClasses"/>: the tools
+    /// are offered again with their new classes at the next turn (the module raises <see cref="Changed"/> when a class differs).
+    /// </summary>
+    public void ClassesChanged() => AnnounceIfChanged();
+
+    /// <summary>Gives the server <paramref name="label"/> new trust marks and raises (the person's, or the administrator's) and offers its tools again.</summary>
+    public void UpdateClasses(string label, McpServerMarks marks)
+    {
+        if (marks is null)
+        {
+            throw new ArgumentNullException(nameof(marks));
+        }
+        var entry = Find(label);
+        if (entry is null)
+        {
+            return;
+        }
+        entry.Server.Trusted = marks.Trusted;
+        entry.Server.ToolClasses = marks.ToolClasses;
+        AnnounceIfChanged();
+    }
+
     private string Signature()
     {
         var builder = new StringBuilder();
@@ -740,7 +940,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 builder.Append(e.Server.Label).Append('\u0001').Append(e.Instructions).Append('\u0001');
                 foreach (var t in e.Tools)
                 {
-                    builder.Append(t.Name).Append(':').Append(t.Version).Append(',');
+                    builder.Append(t.Name).Append(':').Append(t.Version).Append(':').Append((int)ClassOf(e, t)).Append(',');
                 }
                 builder.Append('\n');
             }
@@ -796,7 +996,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                     else
                     {
                         owners[tool.Name] = entry.Server.Label;
-                        tools.Add(new AgentTool(tool.Function, ToolClass.Unknown, "mcp", entry.Server.Label, tool.OpenWorld)
+                        tools.Add(new AgentTool(tool.Function, ClassOf(entry, tool), "mcp", entry.Server.Label, tool.OpenWorld)
                         {
                             Scope = _scope, ReadOnlyHint = tool.Info.Hints.ReadOnly, DestructiveHint = tool.Info.Hints.Destructive,
                         });
@@ -1317,6 +1517,8 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
 
         public string? Instructions { get; set; }
 
+        public string? ProtocolVersion { get; set; }
+
         public McpClient? Client { get; set; }
 
         public IReadOnlyList<ToolEntry> Tools { get; set; } = Array.Empty<ToolEntry>();
@@ -1324,6 +1526,12 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         public bool ToolsChanged { get; set; }
 
         public bool EverListed { get; set; }
+
+        /// <summary>The connection goes over plain http to the local network (it stops when that is no longer allowed).</summary>
+        public bool UsedLocalNetwork { get; set; }
+
+        /// <summary>Why plain http was refused, when it was.</summary>
+        public McpPlainHttpRefusal? PlainHttp { get; set; }
 
         public int Reconnects { get; set; }
 

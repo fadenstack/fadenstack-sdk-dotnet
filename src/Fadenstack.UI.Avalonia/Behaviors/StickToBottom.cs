@@ -5,7 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
-using CommunityToolkit.Mvvm.Input;
+using Fadenstack.UI.Services;
 
 namespace Fadenstack.UI.Avalonia.Behaviors;
 
@@ -47,7 +47,7 @@ public static class StickToBottom
     });
 
     /// <summary>The "jump to newest" button's command; its parameter is the scroll viewer.</summary>
-    public static ICommand ScrollToNewestCommand { get; } = new RelayCommand<ScrollViewer>(viewer =>
+    public static ICommand ScrollToNewestCommand { get; } = new ItemCommand<ScrollViewer>(viewer =>
     {
         if (viewer is not null)
         {

@@ -51,6 +51,9 @@ picks a preset or types an address. A key goes straight into the key store. Plai
 - to this computer, where a key may go too (the check says it travels unencrypted);
 - to the local network after the person confirms it, and never with a key.
 
+The app's trusted CA (`WizardOptions.TrustedCaCertificate`, from the policy or the app's settings) reaches the endpoints too, so an
+organisation's own model server behind its own CA connects; the wizard never offers to trust a certificate.
+
 The endpoint check (`EndpointCheck`) then says in plain words what works, what limits the connection (chat only, the
 context length, ...) and whether it watermarks text. Last, the person picks the model.
 

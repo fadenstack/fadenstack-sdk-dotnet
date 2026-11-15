@@ -540,6 +540,8 @@ public class StyleContrastTests
         var checkedStates = 0;
         var rings = 0;
         var lowest = StyleCases.Palettes.ToDictionary(p => p, _ => new Lowest());
+        // The Tools view's own lowest ratios (the sdk/51 F05 report), apart from the other views'.
+        var toolsLowest = StyleCases.Palettes.ToDictionary(p => p, _ => new Lowest());
         try
         {
             foreach (var (view, state) in StyleCases.All())
@@ -552,6 +554,12 @@ public class StyleContrastTests
                     var label = $"{view}/{state}/{palette}";
                     failures.AddRange(Failures(host.Visible(), label, Page(), lowest[palette]));
                     failures.AddRange(RingFailures(host, label, Page(), lowest[palette], ref rings));
+                    if (view == "tools")
+                    {
+                        var again = 0;
+                        Failures(host.Visible(), label, Page(), toolsLowest[palette]);
+                        RingFailures(host, label, Page(), toolsLowest[palette], ref again);
+                    }
                     checkedStates++;
                 }
             }
@@ -560,7 +568,9 @@ public class StyleContrastTests
         {
             await StyleCases.ResetAsync();
         }
-        Report(StyleCases.Palettes.SelectMany(p => lowest[p].Lines(p.ToString())).Append($"view states checked: {checkedStates} ({checkedStates / StyleCases.Palettes.Length} per palette), focus rings read: {rings}"));
+        Report(StyleCases.Palettes.SelectMany(p => lowest[p].Lines(p.ToString()))
+            .Concat(StyleCases.Palettes.SelectMany(p => toolsLowest[p].Lines("tools " + p)))
+            .Append($"view states checked: {checkedStates} ({checkedStates / StyleCases.Palettes.Length} per palette), focus rings read: {rings}"));
         Assert.True(checkedStates >= 150, $"{checkedStates} view states were checked");
         Assert.True(rings >= 150, $"{rings} focus rings were read");
         Assert.True(failures.Count == 0, failures.Count + " failures:\n" + string.Join("\n", failures.Distinct().Take(80)));
@@ -618,7 +628,7 @@ public class StyleContrastTests
                     case ISolidColorBrush s when palette.Contains(s.Color):
                         break;
                     case ISolidColorBrush s:
-                        problems.Add($"{label}: {Where(element)} {property} is {s.Color} (not a colour of the palette)");
+                        problems.Add($"{label}: {element.GetType().Name} in {Where(element)} {property} is {s.Color} (not a colour of the palette)");
                         break;
                     default:
                         problems.Add($"{label}: {Where(element)} {property} is a {brush.GetType().Name} (not a palette brush)");

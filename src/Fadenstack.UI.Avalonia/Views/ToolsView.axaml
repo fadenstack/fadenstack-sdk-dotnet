@@ -1,0 +1,1123 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:t="clr-namespace:Fadenstack.UI.Tools;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="900"
+             x:Class="Fadenstack.UI.Avalonia.Views.ToolsView"
+             x:DataType="t:ToolsViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
+    <!--
+        The Tools view (sdk/51 F05) for a ToolsViewModel: the policy banner, "On this computer" with the server cards (the switch, the
+        status line, the tool chips and the fix of a card) and "On your server" with the governed tools; over the page the details drawer
+        (facts, Trusted, the tools with their class and the raise picker, Advanced with the plain-http switch and its warning, Test,
+        Restart, Edit and Remove) and the sheets (add or edit a server, import, scan). Binding and commands only: the code behind gives the
+        panel its texts' language and direction. A secret value is typed into a masked box bound to its row (SecretRowViewModel.Value),
+        which forgets it when the sheet is saved or closed. Every text is a UiStrings name; every control has an automation name.
+        The look is the form views' (Controls.axaml, Forms.axaml) and theme keys only; the module's own icons are Material Icons (Apache-2.0).
+    -->
+    <UserControl.Resources>
+        <!-- The scrim is the whole panel: square. -->
+        <CornerRadius x:Key="Tools.Scrim.Radius">0</CornerRadius>
+        <StreamGeometry x:Key="Icon.Tools.Radar">M19.74 18.33C21.15 16.6 22 14.4 22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10c2.4 0 4.6-.85 6.33-2.26.27-.22.53-.46.78-.71.03-.03.05-.06.07-.08.2-.2.39-.41.56-.62M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8c0 1.85-.63 3.54-1.69 4.9l-1.43-1.43c.69-.98 1.1-2.17 1.1-3.46 0-3.31-2.69-6-6-6s-6 2.69-6 6 2.69 6 6 6c1.3 0 2.51-.42 3.49-1.13l1.42 1.42C15.54 19.37 13.85 20 12 20m1.92-7.49c.17-.66.02-1.38-.49-1.9l-.02-.02c-.77-.77-2-.78-2.78-.04-.01.01-.03.02-.05.04-.78.78-.78 2.05 0 2.83l.02.02c.52.51 1.25.67 1.91.49l1.51 1.51c-.6.36-1.29.58-2.04.58-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4c0 .73-.21 1.41-.56 2z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.Terminal">M20 4H4c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 14H4V8h16zm-2-1h-6v-2h6zM7.5 17l-1.41-1.41L8.67 13l-2.59-2.59L7.5 9l4 4z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.Cable">M20 5V4c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1v1h-1v4c0 .55.45 1 1 1h1v7c0 1.1-.9 2-2 2s-2-.9-2-2V7c0-2.21-1.79-4-4-4S5 4.79 5 7v7H4c-.55 0-1 .45-1 1v4h1v1c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-1h1v-4c0-.55-.45-1-1-1H7V7c0-1.1.9-2 2-2s2 .9 2 2v10c0 2.21 1.79 4 4 4s4-1.79 4-4v-7h1c.55 0 1-.45 1-1V5z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.Cloud">M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.Hub">M8.4 18.2c.38.5.6 1.12.6 1.8 0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3c.44 0 .85.09 1.23.26l1.41-1.77c-.92-1.03-1.29-2.39-1.09-3.69l-2.03-.68c-.54.83-1.46 1.38-2.52 1.38-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3c0 .07 0 .14-.01.21l2.03.68c.64-1.21 1.82-2.09 3.22-2.32V5.91C9.96 5.57 9 4.4 9 3c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.4-.96 2.57-2.25 2.91v2.16c1.4.23 2.58 1.11 3.22 2.32L18 9.71V9.5c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3c-1.06 0-1.98-.55-2.52-1.37l-2.03.68c.2 1.29-.16 2.65-1.09 3.69l1.41 1.77Q17.34 17 18 17c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3c0-.68.22-1.3.6-1.8l-1.41-1.77c-1.35.75-3.01.76-4.37 0z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.PlayArrow">M8 5v14l11-7z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.RestartAlt">M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.PowerSettingsNew">M13 3h-2v10h2zm4.83 2.17-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.EditOutlined">m14.06 9.02.92.92L5.92 19H5v-.92zM17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29m-3.6 3.19L3 17.25V21h3.75L17.81 9.94z</StreamGeometry>
+        <StreamGeometry x:Key="Icon.Tools.CheckCircle">M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z</StreamGeometry>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
+
+        <!-- A server's card is a secondary button (its edge, its states and its focus ring are the skin's), so the whole card opens the drawer. -->
+        <Style Selector="Button.secondary.card:not(.icon)">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+        <Style Selector="Button.secondary.card.selected:not(.icon)">
+            <Setter Property="Padding" Value="11" />
+        </Style>
+        <Style Selector="Button.secondary.card.selected:not(.icon) /template/ ContentPresenter#PART_ContentPresenter, Button.secondary.card.selected:not(.icon):pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Accent}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+
+        <!-- The scrim of a drawer or a sheet: a click on it closes; it is not a stop of the keyboard (Esc does the same). -->
+        <Style Selector="Button.scrim">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.Scrim}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Tools.Scrim.Radius}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <!-- Icon tiles: a server's, the scan's, the empty state's (a chip's radius). -->
+        <Style Selector="Border.tile">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="Border.tile c|FsIcon">
+            <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Large}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentIcon}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.tile.off c|FsIcon">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        </Style>
+        <Style Selector="Border.tile.hero">
+            <Setter Property="Width" Value="56" />
+            <Setter Property="Height" Value="56" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.Tint}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.tile.hero c|FsIcon">
+            <Setter Property="Size" Value="32" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
+        </Style>
+
+        <!-- The status line: the dot and the words; a warning is on its own tint. -->
+        <Style Selector="Ellipse.dot">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="Height" Value="8" />
+            <Setter Property="Fill" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Ellipse.dot.good">
+            <Setter Property="Fill" Value="{DynamicResource Fadenstack.Success}" />
+        </Style>
+        <Style Selector="Ellipse.dot.warn">
+            <Setter Property="Fill" Value="{DynamicResource Fadenstack.Warning}" />
+        </Style>
+        <Style Selector="Ellipse.dot.problem">
+            <Setter Property="Fill" Value="{DynamicResource Fadenstack.Danger}" />
+        </Style>
+        <Style Selector="TextBlock.status">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.status.good">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.SuccessText}" />
+        </Style>
+        <Style Selector="TextBlock.status.problem">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.DangerText}" />
+        </Style>
+        <Style Selector="TextBlock.status.warn">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        </Style>
+        <Style Selector="Border.warnline">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+
+        <!-- A tool's name as a mono chip; the warning one for a tool whose server says it may delete. -->
+        <Style Selector="Border.toolchip">
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+        <Style Selector="Border.toolchip.warn">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        </Style>
+        <Style Selector="Border.toolchip TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Fadenstack.CodeFont}" />
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        </Style>
+        <Style Selector="Border.toolchip.warn TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        </Style>
+
+        <!-- The policy chip at the bar: success, warning. -->
+        <Style Selector="Border.policy">
+            <Setter Property="Height" Value="{DynamicResource Fadenstack.IconButton.Size.Small}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SuccessBackground}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.policy c|FsIcon">
+            <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.SuccessText}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.policy TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.SuccessText}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.policy.warn">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        </Style>
+        <Style Selector="Border.policy.warn c|FsIcon">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        </Style>
+        <Style Selector="Border.policy.warn TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+        </Style>
+
+        <!-- A state chip of a cloud tool: for this assistant (success), not for it (outlined), switched off (muted). -->
+        <Style Selector="Border.state">
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SuccessBackground}" />
+        </Style>
+        <Style Selector="Border.state TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Micro}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.SuccessText}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.state.outlined">
+            <Setter Property="Background" Value="{x:Null}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="7,1" />
+        </Style>
+        <Style Selector="Border.state.outlined TextBlock, Border.state.muted TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        </Style>
+        <Style Selector="Border.state.muted">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        </Style>
+        <Style Selector="Border.state c|FsIcon">
+            <Setter Property="Size" Value="{DynamicResource Fadenstack.Icon.Size.Small}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        </Style>
+        <Style Selector="TextBlock.cloudname.muted">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+        </Style>
+        <Style Selector="TextBlock.cloudname.off">
+            <Setter Property="TextDecorations" Value="Strikethrough" />
+        </Style>
+
+        <!-- The server's own word about a tool: an outlined badge, never the app's. -->
+        <Style Selector="Border.says">
+            <Setter Property="Height" Value="20" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="7,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.says TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Micro}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Rows of a list: a thin rule above each but the first; a list card is a container (12) clipped to its rows. -->
+        <Style Selector="Border.sep">
+            <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+        </Style>
+        <Style Selector="ItemsControl.rows > ContentPresenter:nth-child(1) > Border.sep">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Border.listcard">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+        <Style Selector="Border.note">
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.fact">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style Selector="TextBlock.error">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.DangerText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="TextBlock.good">
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.SuccessText}" />
+        </Style>
+        <Style Selector="Button.fix">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="Margin" Value="8,0,0,6" />
+        </Style>
+        <Style Selector="Border.appchip">
+            <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Chip}" />
+            <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+            <Setter Property="Padding" Value="8,1" />
+        </Style>
+        <Style Selector="Border.appchip TextBlock">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+        </Style>
+
+        <!-- The drawer is 400 wide, a sheet at most 480: in a narrower panel (Office's task pane) they take the panel. -->
+        <Style Selector="Border.drawer.wide">
+            <Setter Property="Width" Value="{DynamicResource Fadenstack.Drawer.Width}" />
+        </Style>
+        <Style Selector="Border.sheet.wide">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="MaxWidth" Value="{DynamicResource Fadenstack.Sheet.Width}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <ContainerQuery Name="ToolsPage" Query="max-width:439">
+            <Style Selector="Border.drawer.wide">
+                <Setter Property="Width" Value="NaN" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+            </Style>
+        </ContainerQuery>
+
+        <!-- The cards' columns follow the page's width: as many of at least 300 as fit with a 12 gap. -->
+        <Style Selector="UniformGrid.cards">
+            <Setter Property="Columns" Value="1" />
+        </Style>
+        <ContainerQuery Name="ToolsPage" Query="min-width:636">
+            <Style Selector="UniformGrid.cards">
+                <Setter Property="Columns" Value="2" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="ToolsPage" Query="min-width:948">
+            <Style Selector="UniformGrid.cards">
+                <Setter Property="Columns" Value="3" />
+            </Style>
+        </ContainerQuery>
+        <ContainerQuery Name="ToolsPage" Query="min-width:1260">
+            <Style Selector="UniformGrid.cards">
+                <Setter Property="Columns" Value="4" />
+            </Style>
+        </ContainerQuery>
+    </UserControl.Styles>
+
+    <!-- Esc: the plain-http warning says no first, then the sheet over the page, then the drawer. -->
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Escape" Command="{Binding Details.CancelPlainHttpCommand}" />
+        <KeyBinding Gesture="Escape" Command="{Binding CloseTopCommand}" />
+    </UserControl.KeyBindings>
+
+    <UserControl.DataTemplates>
+        <!-- ===== A secret row: a name, a masked value (or "saved" with Replace), remove ===== -->
+        <DataTemplate DataType="t:SecretRowViewModel" x:DataType="t:SecretRowViewModel">
+            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                <TextBox x:Name="SecretNameBox" Text="{Binding Name}" PlaceholderText="{v:Text ToolsRowName}" AutomationProperties.Name="{v:Text ToolsRowName}" />
+                <TextBox x:Name="SecretValueBox" Grid.Column="1" Text="{Binding Value}" PasswordChar="&#9679;" IsVisible="{Binding ShowsInput}"
+                         PlaceholderText="{v:Text ToolsRowValue}" AutomationProperties.Name="{v:Text ToolsRowValue}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsKept}" VerticalAlignment="Center">
+                    <TextBlock Classes="muted" Text="{v:Text ToolsValueSaved}" VerticalAlignment="Center" AutomationProperties.Name="{v:Text ToolsValueSavedName}" />
+                    <Button x:Name="ReplaceValueButton" Classes="quiet small" Command="{Binding ReplaceCommand}"
+                            Content="{v:Text ToolsReplaceValue}" AutomationProperties.Name="{v:Text ToolsReplaceValue}" />
+                </StackPanel>
+                <Button x:Name="RemoveRowButton" Grid.Column="2" Classes="icon" Command="{Binding RemoveCommand}" ToolTip.Tip="{v:Text ToolsRemoveRow}"
+                        AutomationProperties.Name="{v:Text ToolsRemoveRow}">
+                    <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <!-- ===== Add or edit a server: a modal sheet ===== -->
+        <DataTemplate DataType="t:ServerSheetViewModel" x:DataType="t:ServerSheetViewModel">
+            <Border x:Name="ServerSheet" Classes="sheet wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{Binding Title}">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="16,16,8,8">
+                        <TextBlock Classes="subtitle" Text="{Binding Title}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                        <Button x:Name="SheetCloseButton" Grid.Column="1" Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="{v:Text ToolsCloseSheet}"
+                                AutomationProperties.Name="{v:Text ToolsCloseSheet}">
+                            <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                        </Button>
+                    </Grid>
+                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Padding="16,12">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                            <Button x:Name="ImportMoreButton" Classes="quiet" Command="{Binding ImportCommand}" IsVisible="{Binding IsAdding}"
+                                    Content="{v:Text ToolsImportMore}" AutomationProperties.Name="{v:Text ToolsImportMore}" />
+                            <Button x:Name="TestServerButton" Grid.Column="2" Classes="secondary" Command="{Binding TestCommand}"
+                                    Content="{v:Text ToolsTestButton}" AutomationProperties.Name="{v:Text ToolsTestButton}" />
+                            <Button x:Name="SaveServerButton" Grid.Column="3" Classes="primary" Command="{Binding SaveCommand}"
+                                    Content="{Binding PrimaryText}" AutomationProperties.Name="{Binding PrimaryText}" />
+                        </Grid>
+                    </Border>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16,0,16,12" Spacing="12">
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="strong" Text="{v:Text ToolsFieldLabel}" />
+                                <TextBox x:Name="LabelBox" Text="{Binding Label}" MaxLength="32" IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{v:Text ToolsFieldLabel}" />
+                                <TextBlock Classes="caption muted" Text="{v:Text ToolsFieldLabelHelp}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Border Classes="segmented" AutomationProperties.Name="{v:Text ToolsKindName}">
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="KindProgramButton" Classes="segment" IsChecked="{Binding IsProgram}" Content="{v:Text ToolsKindProgram}"
+                                                 AutomationProperties.Name="{v:Text ToolsKindProgram}" />
+                                    <RadioButton x:Name="KindAddressButton" Classes="segment" IsChecked="{Binding IsAddress}" Content="{v:Text ToolsKindAddress}"
+                                                 AutomationProperties.Name="{v:Text ToolsKindAddress}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- A program: command, arguments, folder, environment. -->
+                            <StackPanel Spacing="12" IsVisible="{Binding IsProgram}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldCommand}" />
+                                    <TextBox x:Name="CommandBox" Text="{Binding Command}" AutomationProperties.Name="{v:Text ToolsFieldCommand}" />
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldArguments}" />
+                                    <TextBox x:Name="ArgumentsBox" Text="{Binding ArgumentsText}" AcceptsReturn="True" MinHeight="72" TextWrapping="NoWrap"
+                                             AutomationProperties.Name="{v:Text ToolsFieldArguments}" />
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldFolder}" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox x:Name="FolderBox" Text="{Binding WorkingFolder}" AutomationProperties.Name="{v:Text ToolsFieldFolder}" />
+                                        <Button x:Name="ChooseFolderButton" Grid.Column="1" Classes="secondary" Command="{Binding ChooseFolderCommand}"
+                                                Content="{v:Text ToolsChooseFolder}" AutomationProperties.Name="{v:Text ToolsChooseFolder}" />
+                                    </Grid>
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldEnvironment}" />
+                                    <ItemsControl x:Name="EnvironmentRowsList" ItemsSource="{Binding EnvironmentRows}" />
+                                    <Button x:Name="AddEnvironmentButton" Classes="quiet" HorizontalAlignment="Left" Command="{Binding AddEnvironmentCommand}"
+                                            Content="{v:Text ToolsAddRow}" AutomationProperties.Name="{v:Text ToolsAddRow}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- An address: URL and headers. -->
+                            <StackPanel Spacing="12" IsVisible="{Binding IsAddress}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldUrl}" />
+                                    <TextBox x:Name="UrlBox" Text="{Binding Url}" AutomationProperties.Name="{v:Text ToolsFieldUrl}" />
+                                    <TextBlock Classes="caption muted" Text="{v:Text ToolsFieldUrlHelp}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Classes="strong" Text="{v:Text ToolsFieldHeaders}" />
+                                    <ItemsControl x:Name="HeaderRowsList" ItemsSource="{Binding HeaderRows}" />
+                                    <Button x:Name="AddHeaderButton" Classes="quiet" HorizontalAlignment="Left" Command="{Binding AddHeaderCommand}"
+                                            Content="{v:Text ToolsAddRow}" AutomationProperties.Name="{v:Text ToolsAddRow}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Classes="strong" Text="{v:Text ToolsFieldTimeout}" />
+                                <TextBox x:Name="TimeoutBox" Text="{Binding TimeoutText}" MaxLength="3" Width="96" HorizontalAlignment="Left"
+                                         AutomationProperties.Name="{v:Text ToolsFieldTimeout}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="EnabledSwitch" IsChecked="{Binding Enabled}" Content="{v:Text ToolsFieldEnabled}"
+                                          AutomationProperties.Name="{v:Text ToolsFieldEnabled}" />
+                            <TextBlock Classes="caption muted" Text="{v:Text ToolsSecretsNote}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="SheetError" Classes="error" Text="{Binding ErrorText}" IsVisible="{Binding HasError}" AutomationProperties.LiveSetting="Assertive" />
+                            <TextBlock x:Name="SheetTestResult" Text="{Binding TestText}" IsVisible="{Binding HasTest}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- ===== Import from another program's file: a modal sheet ===== -->
+        <DataTemplate DataType="t:ImportSheetViewModel" x:DataType="t:ImportSheetViewModel">
+            <Border x:Name="ImportSheet" Classes="sheet wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{v:Text ToolsImportTitle}">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="16,16,8,8">
+                        <TextBlock Classes="subtitle" Text="{v:Text ToolsImportTitle}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="{v:Text ToolsCloseSheet}"
+                                AutomationProperties.Name="{v:Text ToolsCloseSheet}">
+                            <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                        </Button>
+                    </Grid>
+                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Padding="16,12">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                            <Button x:Name="ImportCloseButton" Classes="secondary" Command="{Binding CancelCommand}"
+                                    Content="{v:Text ToolsCloseSheet}" AutomationProperties.Name="{v:Text ToolsCloseSheet}" />
+                            <Button x:Name="ImportButton" Classes="primary" Command="{Binding ImportCommand}"
+                                    Content="{v:Text ToolsImportButton}" AutomationProperties.Name="{v:Text ToolsImportButton}" />
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16,0,16,12" Spacing="12">
+                            <TextBlock Classes="muted" Text="{v:Text ToolsImportIntro}" TextWrapping="Wrap" />
+                            <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                <Button x:Name="ReadClaudeButton" Classes="secondary" Command="{Binding ReadClaudeCommand}"
+                                        Content="{v:Text ToolsSourceClaude}" AutomationProperties.Name="{v:Text ToolsSourceClaude}" />
+                                <Button x:Name="ReadVsCodeButton" Classes="secondary" Command="{Binding ReadVsCodeCommand}"
+                                        Content="{v:Text ToolsSourceVsCode}" AutomationProperties.Name="{v:Text ToolsSourceVsCode}" />
+                                <Button x:Name="ReadCursorButton" Classes="secondary" Command="{Binding ReadCursorCommand}"
+                                        Content="{v:Text ToolsSourceCursor}" AutomationProperties.Name="{v:Text ToolsSourceCursor}" />
+                                <Button x:Name="ReadFileButton" Classes="secondary" Command="{Binding ReadFileCommand}"
+                                        Content="{v:Text ToolsSourceFile}" AutomationProperties.Name="{v:Text ToolsSourceFile}" />
+                            </WrapPanel>
+                            <TextBlock Classes="caption muted" Text="{Binding StatusText}" IsVisible="{Binding HasStatus}" TextWrapping="Wrap" />
+                            <ItemsControl ItemsSource="{Binding Candidates}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="t:ImportRowViewModel">
+                                        <Border Classes="note" Margin="0,0,0,8">
+                                            <StackPanel Spacing="4">
+                                                <CheckBox IsChecked="{Binding IsTicked}" AutomationProperties.Name="{Binding TickName}">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="strong" Text="{Binding Label}" />
+                                                        <TextBlock Classes="caption muted mono" Text="{Binding Where}" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                </CheckBox>
+                                                <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}" Margin="28,0,0,0">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="x:String">
+                                                            <TextBlock Classes="caption muted" Text="{Binding}" TextWrapping="Wrap" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Spacing="4" IsVisible="{Binding HasSkipped}">
+                                <TextBlock Classes="strong" Text="{v:Text ToolsSkippedTitle}" />
+                                <ItemsControl ItemsSource="{Binding Skipped}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="t:SkippedRowViewModel">
+                                            <StackPanel Spacing="0" Margin="0,0,0,4">
+                                                <TextBlock Text="{Binding Name}" />
+                                                <TextBlock Classes="caption muted" Text="{Binding Reason}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ResultText}" IsVisible="{Binding HasResult}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- ===== Scan this computer: a modal sheet ===== -->
+        <DataTemplate DataType="t:ScanSheetViewModel" x:DataType="t:ScanSheetViewModel">
+            <Border x:Name="ScanSheet" Classes="sheet wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{v:Text ToolsScanTitle}">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="16,16,8,8">
+                        <Border Classes="tile" Background="{DynamicResource Fadenstack.Tint}">
+                            <c:FsIcon Data="{DynamicResource Icon.Tools.Radar}" Foreground="{DynamicResource Fadenstack.AccentText}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="12,0" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Classes="subtitle" Text="{v:Text ToolsScanTitle}" />
+                            <TextBlock Classes="caption muted" Text="{v:Text ToolsScanIntro}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button x:Name="ScanCloseButton" Grid.Column="2" Classes="icon" Command="{Binding CancelCommand}" VerticalAlignment="Top"
+                                ToolTip.Tip="{v:Text ToolsScanClose}" AutomationProperties.Name="{v:Text ToolsScanClose}">
+                            <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                        </Button>
+                    </Grid>
+                    <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Padding="16,12">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <c:FsIcon Data="{DynamicResource Icon.Lock}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                          Foreground="{DynamicResource Fadenstack.ForegroundMuted}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                                <TextBlock Grid.Column="1" Classes="caption muted" Text="{v:Text ToolsScanFooter}" TextWrapping="Wrap" />
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                <Button x:Name="ScanCancelButton" Classes="secondary" Command="{Binding CancelCommand}"
+                                        Content="{v:Text ToolsCancel}" AutomationProperties.Name="{v:Text ToolsCancel}" />
+                                <Button x:Name="ScanAddButton" Classes="primary" Command="{Binding AddCommand}"
+                                        Content="{Binding AddText}" AutomationProperties.Name="{Binding AddText}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="16,0,16,12" Spacing="12">
+                            <!-- Where it looks and how far it got. -->
+                            <Border Classes="note">
+                                <StackPanel Spacing="8" AutomationProperties.Name="{v:Text ToolsScanOptionsName}">
+                                    <CheckBox x:Name="ScanOtherAppsBox" Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding OtherApps}" IsEnabled="{Binding CanScanAgain}"
+                                              AutomationProperties.Name="{v:Text ToolsScanOtherApps}">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Classes="strong" Text="{v:Text ToolsScanOtherApps}" />
+                                            <ItemsControl ItemsSource="{Binding Apps}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="t:ScanChipViewModel">
+                                                        <Border Classes="appchip"><TextBlock Text="{Binding Text}" /></Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Classes="caption muted" Text="{Binding NotInstalledText}" IsVisible="{Binding HasNotInstalled}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="ScanThisComputerBox" Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding ThisComputer}" IsEnabled="{Binding CanScanAgain}"
+                                              AutomationProperties.Name="{v:Text ToolsScanThisComputerOption}">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Classes="strong" Text="{v:Text ToolsScanThisComputerOption}" />
+                                            <TextBlock Classes="caption muted" Text="{Binding PortsText}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </CheckBox>
+                                    <!-- Progress while it looks. -->
+                                    <StackPanel x:Name="ScanProgressPanel" Spacing="6" IsVisible="{Binding IsScanning}">
+                                        <ProgressBar x:Name="ScanProgress" Minimum="0" Maximum="{Binding ProgressTotal}" Value="{Binding ProgressDone}"
+                                                     AutomationProperties.Name="{v:Text ToolsScanProgressName}" />
+                                        <TextBlock Classes="caption muted" Text="{Binding ProgressText}" AutomationProperties.LiveSetting="Polite" />
+                                    </StackPanel>
+                                    <!-- Done: the good line, Scan again beside it. -->
+                                    <Grid x:Name="ScanDoneRow" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" IsVisible="{Binding IsDone}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Tools.CheckCircle}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                                  Foreground="{DynamicResource Fadenstack.SuccessText}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Classes="caption good strong" Text="{Binding StatusText}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                                   AutomationProperties.LiveSetting="Polite" />
+                                        <Button Grid.Column="2" Classes="quiet small" Command="{Binding StartCommand}"
+                                                Content="{v:Text ToolsScanAgain}" AutomationProperties.Name="{v:Text ToolsScanAgain}" />
+                                    </Grid>
+                                    <!-- Stopped, failed or nothing ticked. -->
+                                    <Grid x:Name="ScanProblemRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding IsProblem}">
+                                        <TextBlock Classes="caption" Text="{Binding StatusText}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                                        <Button Grid.Column="1" Classes="quiet small" Command="{Binding StartCommand}"
+                                                Content="{v:Text ToolsScanAgain}" AutomationProperties.Name="{v:Text ToolsScanAgain}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Classes="muted" Text="{Binding EmptyText}" IsVisible="{Binding HasEmptyText}" TextWrapping="Wrap" />
+
+                            <!-- The findings, grouped by where they were found. -->
+                            <ItemsControl ItemsSource="{Binding Groups}" IsVisible="{Binding HasFindings}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Spacing="12" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="t:ScanGroupViewModel">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Classes="caption muted strong" Text="{Binding Title}" />
+                                            <Border Classes="listcard">
+                                                <ItemsControl Classes="rows" ItemsSource="{Binding Rows}" AutomationProperties.Name="{Binding Title}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="t:ScanRowViewModel">
+                                                            <Border Classes="sep">
+                                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="12,8">
+                                                                    <CheckBox Foreground="{DynamicResource Fadenstack.Foreground}" IsChecked="{Binding IsTicked}" IsEnabled="{Binding CanTick}" VerticalAlignment="Top"
+                                                                              AutomationProperties.Name="{Binding TickName}" />
+                                                                    <StackPanel Grid.Column="1" Spacing="2">
+                                                                        <TextBlock Classes="strong" Classes.muted="{Binding IsMutedName}" Text="{Binding Label}" />
+                                                                        <TextBlock Classes="caption muted mono" Text="{Binding Where}" TextTrimming="CharacterEllipsis" />
+                                                                        <ItemsControl ItemsSource="{Binding Notes}" IsVisible="{Binding HasNotes}">
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate x:DataType="t:ScanNoteViewModel">
+                                                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" Margin="0,4,0,0">
+                                                                                        <c:FsIcon Data="{DynamicResource Icon.Lock}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                                                                                  Foreground="{DynamicResource Fadenstack.ForegroundMuted}" IsVisible="{Binding IsSecret}"
+                                                                                                  VerticalAlignment="Top" Margin="0,1,0,0" />
+                                                                                        <TextBlock Grid.Column="1" Classes="caption muted" Text="{Binding Text}" TextWrapping="Wrap" />
+                                                                                    </Grid>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </StackPanel>
+                                                                    <TextBlock Grid.Column="2" Classes="caption muted strong" Text="{Binding SideText}" VerticalAlignment="Top"
+                                                                               TextWrapping="Wrap" MaxWidth="110" TextAlignment="Right" />
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Grid x:Name="ToolsRoot" Container.Name="ToolsPage" Container.Sizing="Width">
+        <!-- ===== The page ===== -->
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{v:Text ToolsTitle}">
+            <StackPanel Margin="12" Spacing="12" MaxWidth="1400" HorizontalAlignment="Stretch">
+                <!-- Header: the title with its line, then Scan this computer and Add server. -->
+                <StackPanel Spacing="2">
+                    <TextBlock Classes="title" Text="{v:Text ToolsTitle}" TextWrapping="Wrap" />
+                    <TextBlock Classes="muted" Text="{v:Text ToolsIntro}" TextWrapping="Wrap" />
+                </StackPanel>
+                <WrapPanel ItemSpacing="8" LineSpacing="8" IsVisible="{Binding ShowsLists}">
+                    <Button x:Name="ScanButton" Classes="secondary" Command="{Binding ScanCommand}" IsVisible="{Binding ShowsScanButton}"
+                            AutomationProperties.Name="{v:Text ToolsScanThisComputer}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <c:FsIcon Data="{DynamicResource Icon.Tools.Radar}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+                            <TextBlock Text="{v:Text ToolsScanThisComputer}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="AddServerButton" Classes="primary" Command="{Binding AddServerCommand}" IsVisible="{Binding ShowsAddButton}"
+                            AutomationProperties.Name="{v:Text ToolsAddServer}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <c:FsIcon Data="{DynamicResource Icon.Add}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+                            <TextBlock Text="{v:Text ToolsAddServer}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+
+                <TextBlock x:Name="SignInNeeded" Classes="muted" Text="{v:Text ToolsSignInNeeded}" IsVisible="{Binding NeedsSignIn}" TextWrapping="Wrap" />
+
+                <StackPanel Spacing="12" IsVisible="{Binding ShowsLists}">
+                    <!-- The bar: where tools run, the policy, the filter. -->
+                    <WrapPanel ItemSpacing="8" LineSpacing="8">
+                        <Border x:Name="ToolsTabs" Classes="segmented" AutomationProperties.Name="{v:Text ToolsTitle}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="LocalTab" Classes="segment" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
+                                             AutomationProperties.Name="{Binding LocalTabText}" />
+                                <RadioButton x:Name="ServerTab" Classes="segment" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
+                                             AutomationProperties.Name="{Binding ServerTabText}" />
+                            </StackPanel>
+                        </Border>
+                        <Border x:Name="PolicyChip" Classes="policy" Classes.warn="{Binding PolicyIsWarning}" IsVisible="{Binding ShowsLocalChip}"
+                                ToolTip.Tip="{Binding PolicyTip}" AutomationProperties.Name="{Binding PolicyTip}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <c:FsIcon Data="{DynamicResource Icon.VerifiedUser}" IsVisible="{Binding !PolicyIsWarning}" />
+                                <c:FsIcon Data="{DynamicResource Icon.WarningAmber}" IsVisible="{Binding PolicyIsWarning}" />
+                                <TextBlock Text="{Binding PolicyText}" />
+                            </StackPanel>
+                        </Border>
+                        <TextBox x:Name="FilterBox" Width="200" Text="{Binding Filter}" PlaceholderText="{v:Text ToolsFilterPlaceholder}"
+                                 AutomationProperties.Name="{v:Text ToolsFilterPlaceholder}">
+                            <TextBox.InnerLeftContent>
+                                <c:FsIcon Data="{DynamicResource Icon.Search}" Size="{DynamicResource Fadenstack.Icon.Size.Small}" Margin="10,0,0,0"
+                                          Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+                            </TextBox.InnerLeftContent>
+                        </TextBox>
+                    </WrapPanel>
+
+                    <!-- The policy does not allow local servers: a banner in the flow. -->
+                    <Border x:Name="PolicyBanner" Classes="banner warning" IsVisible="{Binding ShowsBanner}">
+                        <DockPanel>
+                            <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                            <TextBlock Text="{Binding BannerText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                        </DockPanel>
+                    </Border>
+
+                    <!-- ===== On this computer ===== -->
+                    <StackPanel Spacing="12" IsVisible="{Binding ShowsLocal}">
+                        <!-- Nothing yet: the dashed first-open card. -->
+                        <Panel x:Name="EmptyState" IsVisible="{Binding ShowsEmpty}" AutomationProperties.Name="{v:Text ToolsSectionServers}">
+                            <Rectangle Stroke="{DynamicResource Fadenstack.BorderStrong}" StrokeThickness="1" StrokeDashArray="4,4" RadiusX="12" RadiusY="12" />
+                            <StackPanel Margin="16,24" Spacing="12" HorizontalAlignment="Center">
+                                <Border Classes="tile hero">
+                                    <c:FsIcon Data="{DynamicResource Icon.Tools.Hub}" />
+                                </Border>
+                                <TextBlock Classes="subtitle" Text="{v:Text ToolsEmptyTitle}" TextAlignment="Center" TextWrapping="Wrap" />
+                                <TextBlock Classes="muted" Text="{v:Text ToolsEmptyText}" TextAlignment="Center" TextWrapping="Wrap" MaxWidth="460" />
+                                <WrapPanel ItemSpacing="8" LineSpacing="8" HorizontalAlignment="Center">
+                                    <Button x:Name="EmptyScanButton" Classes="primary" Command="{Binding ScanCommand}" IsVisible="{Binding ScanIsPrimary}"
+                                            AutomationProperties.Name="{v:Text ToolsScanThisComputer}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <c:FsIcon Data="{DynamicResource Icon.Tools.Radar}" Size="{DynamicResource Fadenstack.Icon.Size.Normal}" />
+                                            <TextBlock Text="{v:Text ToolsScanThisComputer}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="EmptyAddSecondaryButton" Classes="secondary" Command="{Binding AddServerCommand}" IsVisible="{Binding ScanIsPrimary}"
+                                            Content="{v:Text ToolsAddServer}" AutomationProperties.Name="{v:Text ToolsAddServer}" />
+                                    <Button x:Name="EmptyAddButton" Classes="primary" Command="{Binding AddServerCommand}" IsVisible="{Binding AddIsPrimary}"
+                                            Content="{v:Text ToolsAddServer}" AutomationProperties.Name="{v:Text ToolsAddServer}" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Panel>
+
+                        <!-- ===== MCP servers: the cards ===== -->
+                        <StackPanel Spacing="8" IsVisible="{Binding ShowsServerCards}">
+                            <StackPanel Spacing="2">
+                                <TextBlock Classes="subtitle" Text="{v:Text ToolsSectionServers}" />
+                                <TextBlock Classes="caption muted" Text="{v:Text ToolsSectionServersHelp}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Border x:Name="ListNote" Classes="banner warning" IsVisible="{Binding HasListNote}">
+                                <TextBlock Text="{Binding ListNote}" TextWrapping="Wrap" />
+                            </Border>
+                            <TextBlock x:Name="NoMatch" Classes="muted" Text="{v:Text ToolsNoToolsMatch}" IsVisible="{Binding ShowsNoMatch}" />
+                            <ItemsControl x:Name="ServerCards" ItemsSource="{Binding Servers}" AutomationProperties.Name="{v:Text ToolsSectionServers}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Classes="cards" ColumnSpacing="12" RowSpacing="12" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="t:LocalServerViewModel">
+                                        <Panel>
+                                            <Button Classes="secondary card" Classes.selected="{Binding IsSelected}" Command="{Binding OpenCommand}"
+                                                    AutomationProperties.Name="{Binding OpenName}">
+                                                <StackPanel Spacing="8">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Classes="tile" Classes.off="{Binding !IsOn}">
+                                                            <Panel>
+                                                                <c:FsIcon Data="{DynamicResource Icon.Tools.Terminal}" IsVisible="{Binding IsProgram}" />
+                                                                <c:FsIcon Data="{DynamicResource Icon.Tools.Cable}" IsVisible="{Binding IsAddress}" />
+                                                            </Panel>
+                                                        </Border>
+                                                        <!-- Room at the right for the switch, which sits over the card. -->
+                                                        <StackPanel Grid.Column="1" Margin="12,0,56,0" VerticalAlignment="Center">
+                                                            <TextBlock Classes="subtitle" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Classes="caption muted" Text="{Binding OriginText}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <!-- A refusal or a warning is on the warning tint; the other states are the dot and the words. -->
+                                                    <Border Classes="warnline" IsVisible="{Binding StatusIsWarning}" ToolTip.Tip="{Binding StatusTip}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <Ellipse Classes="dot warn" VerticalAlignment="Top" Margin="0,5,0,0" />
+                                                            <TextBlock Classes="status warn" Text="{Binding StatusText}" MaxWidth="300" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !StatusIsWarning}">
+                                                        <Ellipse Classes="dot" Classes.good="{Binding StatusIsGood}" Classes.problem="{Binding StatusIsProblem}" VerticalAlignment="Top" Margin="0,5,0,0" />
+                                                        <TextBlock Classes="status" Classes.good="{Binding StatusIsGood}" Classes.problem="{Binding StatusIsProblem}"
+                                                                   Text="{Binding StatusText}" MaxWidth="300" />
+                                                    </StackPanel>
+                                                    <ItemsControl ItemsSource="{Binding Chips}" IsVisible="{Binding HasChips}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel ItemSpacing="6" LineSpacing="6" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="t:ToolChipViewModel">
+                                                                <Panel>
+                                                                    <Border Classes="toolchip" Classes.warn="{Binding MayDelete}" IsVisible="{Binding IsTool}" ToolTip.Tip="{Binding Tip}">
+                                                                        <TextBlock Text="{Binding Name}" />
+                                                                    </Border>
+                                                                    <TextBlock Classes="caption muted" Text="{Binding Name}" IsVisible="{Binding IsMore}" Margin="4,0" VerticalAlignment="Center" />
+                                                                </Panel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <Border Height="28" IsVisible="{Binding HasFix}" />
+                                                </StackPanel>
+                                            </Button>
+                                            <ToggleSwitch HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,18,12,0"
+                                                          IsChecked="{Binding IsOn}" AutomationProperties.Name="{Binding SwitchName}" />
+                                            <!-- A failed card's fix, over the card (a button inside a button is not one). -->
+                                            <Button Classes="quiet small fix" Command="{Binding FixCommand}" IsVisible="{Binding HasFix}"
+                                                    Content="{Binding FixText}" AutomationProperties.Name="{Binding FixText}" />
+                                        </Panel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ===== On your server ===== -->
+                    <StackPanel x:Name="CloudSection" Spacing="12" IsVisible="{Binding ShowsServer}">
+                        <TextBlock Classes="caption muted" Text="{v:Text ToolsCloudIntro}" TextWrapping="Wrap" />
+                        <TextBlock Classes="muted" Text="{v:Text ToolsLoading}" IsVisible="{Binding IsLoadingCloud}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding HasCloudMessage}">
+                            <TextBlock Classes="muted" Text="{Binding CloudMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            <Button x:Name="RetryButton" Grid.Column="1" Classes="secondary" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}"
+                                    Content="{v:Text ToolsTryAgain}" AutomationProperties.Name="{v:Text ToolsTryAgain}" />
+                        </Grid>
+                        <ItemsControl x:Name="CloudGroups" ItemsSource="{Binding CloudGroups}" AutomationProperties.Name="{Binding ServerTabText}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="12" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="t:CloudGroupViewModel">
+                                    <Border Classes="listcard">
+                                        <StackPanel>
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Margin="12,12,8,12">
+                                                <Border Classes="tile"><c:FsIcon Data="{DynamicResource Icon.Tools.Cloud}" /></Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Classes="subtitle" Text="{Binding Server}" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Classes="caption muted" Text="{Binding Summary}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Classes="icon" Command="{Binding ToggleCommand}" IsVisible="{Binding IsExpanded}"
+                                                        AutomationProperties.Name="{Binding CollapseName}" ToolTip.Tip="{Binding CollapseName}">
+                                                    <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowUp}" />
+                                                </Button>
+                                                <Button Grid.Column="2" Classes="icon" Command="{Binding ToggleCommand}" IsVisible="{Binding IsCollapsed}"
+                                                        AutomationProperties.Name="{Binding ExpandName}" ToolTip.Tip="{Binding ExpandName}">
+                                                    <c:FsIcon Data="{DynamicResource Icon.KeyboardArrowDown}" />
+                                                </Button>
+                                            </Grid>
+                                            <ItemsControl Classes="rows" ItemsSource="{Binding Tools}" IsVisible="{Binding IsExpanded}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="t:CloudToolViewModel">
+                                                        <Border Classes="sep" Padding="12,8">
+                                                            <StackPanel Spacing="2">
+                                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                                    <TextBlock Classes="mono cloudname" Classes.muted="{Binding IsMuted}" Classes.off="{Binding IsOff}"
+                                                                               Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                                    <Border Grid.Column="1" Classes="state" IsVisible="{Binding IsForThis}">
+                                                                        <TextBlock Text="{Binding StateText}" />
+                                                                    </Border>
+                                                                    <Border Grid.Column="1" Classes="state outlined" IsVisible="{Binding IsNotFor}">
+                                                                        <TextBlock Text="{Binding StateText}" />
+                                                                    </Border>
+                                                                    <Border Grid.Column="1" Classes="state muted" IsVisible="{Binding IsOff}">
+                                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                            <c:FsIcon Data="{DynamicResource Icon.Tools.PowerSettingsNew}" />
+                                                                            <TextBlock Text="{Binding StateText}" />
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </Grid>
+                                                                <TextBlock Classes="caption muted" Text="{Binding Description}" IsVisible="{Binding HasDescription}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ===== The details drawer: over the page, on a scrim; Esc closes it ===== -->
+        <Grid x:Name="DrawerLayer" IsVisible="{Binding IsDetailsOpen}">
+            <Button x:Name="DrawerScrim" Classes="scrim" Command="{Binding CloseDetailsCommand}" AutomationProperties.Name="{v:Text ToolsCloseDetails}" />
+            <ContentControl Content="{Binding Details}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="t:ServerDetailsViewModel">
+                        <Border x:Name="DrawerPanel" Classes="drawer wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{Binding DrawerName}">
+                            <DockPanel>
+                                <!-- Header: the icon, the name and its status, the switch, close. -->
+                                <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Margin="12,12,8,8">
+                                    <Border Classes="tile" Classes.off="{Binding !Server.IsOn}">
+                                        <Panel>
+                                            <c:FsIcon Data="{DynamicResource Icon.Tools.Terminal}" IsVisible="{Binding Server.IsProgram}" />
+                                            <c:FsIcon Data="{DynamicResource Icon.Tools.Cable}" IsVisible="{Binding Server.IsAddress}" />
+                                        </Panel>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Classes="subtitle" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                                        <Border Classes="warnline" IsVisible="{Binding Server.StatusIsWarning}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Ellipse Classes="dot warn" VerticalAlignment="Top" Margin="0,5,0,0" />
+                                                <TextBlock Classes="status warn" Text="{Binding StatusText}" MaxWidth="220" />
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !Server.StatusIsWarning}">
+                                            <Ellipse Classes="dot" Classes.good="{Binding Server.StatusIsGood}" Classes.problem="{Binding Server.StatusIsProblem}"
+                                                     VerticalAlignment="Top" Margin="0,5,0,0" />
+                                            <TextBlock Classes="status" Classes.good="{Binding Server.StatusIsGood}" Classes.problem="{Binding Server.StatusIsProblem}"
+                                                       Text="{Binding StatusText}" MaxWidth="220" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="DrawerSwitch" Grid.Column="2" IsChecked="{Binding Server.IsOn}" VerticalAlignment="Center"
+                                                  AutomationProperties.Name="{Binding Server.SwitchName}" />
+                                    <Button x:Name="DrawerCloseButton" Grid.Column="3" Classes="icon" Command="{Binding CloseCommand}" VerticalAlignment="Center"
+                                            ToolTip.Tip="{v:Text ToolsCloseDetails}" AutomationProperties.Name="{v:Text ToolsCloseDetails}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                                    </Button>
+                                </Grid>
+
+                                <!-- Footer: Test, Restart and Edit as icon buttons; Remove at the right asks first. -->
+                                <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Padding="12,8">
+                                    <StackPanel Spacing="8">
+                                        <Grid x:Name="RemoveConfirm" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding IsConfirmingRemove}">
+                                            <TextBlock Text="{Binding RemoveConfirmText}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive" />
+                                            <Button x:Name="ConfirmRemoveButton" Grid.Column="1" Classes="secondary" Command="{Binding ConfirmRemoveCommand}"
+                                                    Content="{v:Text ToolsRemoveYes}" AutomationProperties.Name="{Binding RemoveName}" />
+                                            <Button x:Name="KeepButton" Grid.Column="2" Classes="quiet" Command="{Binding KeepCommand}"
+                                                    Content="{v:Text ToolsRemoveKeep}" AutomationProperties.Name="{v:Text ToolsRemoveKeep}" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" ColumnSpacing="4">
+                                            <Button x:Name="TestButton" Classes="icon large" Command="{Binding TestCommand}" ToolTip.Tip="{v:Text ToolsTestTooltip}"
+                                                    AutomationProperties.Name="{v:Text ToolsTestTooltip}">
+                                                <c:FsIcon Data="{DynamicResource Icon.Tools.PlayArrow}" />
+                                            </Button>
+                                            <Button x:Name="RestartButton" Grid.Column="1" Classes="icon large" Command="{Binding RestartCommand}" ToolTip.Tip="{v:Text ToolsRestartTooltip}"
+                                                    AutomationProperties.Name="{v:Text ToolsRestartTooltip}">
+                                                <c:FsIcon Data="{DynamicResource Icon.Tools.RestartAlt}" />
+                                            </Button>
+                                            <Button x:Name="EditButton" Grid.Column="2" Classes="icon large" Command="{Binding EditCommand}" ToolTip.Tip="{v:Text ToolsEditTooltip}"
+                                                    AutomationProperties.Name="{v:Text ToolsEditTooltip}">
+                                                <c:FsIcon Data="{DynamicResource Icon.Tools.EditOutlined}" />
+                                            </Button>
+                                            <Button x:Name="RemoveButton" Grid.Column="4" Classes="icon large" Command="{Binding RemoveCommand}" ToolTip.Tip="{v:Text ToolsRemoveTooltip}"
+                                                    AutomationProperties.Name="{Binding RemoveName}">
+                                                <c:FsIcon Data="{DynamicResource Icon.DeleteOutline}" Foreground="{DynamicResource Fadenstack.DangerText}" />
+                                            </Button>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel Margin="12,0,12,12" Spacing="12">
+                                        <!-- Facts. -->
+                                        <ItemsControl ItemsSource="{Binding Facts}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Spacing="6" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="t:FactRowViewModel">
+                                                    <Grid ColumnDefinitions="100,*" ColumnSpacing="8">
+                                                        <TextBlock Classes="fact" Text="{Binding Label}" TextWrapping="Wrap" />
+                                                        <TextBlock Grid.Column="1" Classes="caption" Classes.mono="{Binding IsMono}" Classes.muted="{Binding IsMuted}"
+                                                                   Text="{Binding Value}" TextWrapping="Wrap" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Trusted: only a trusted server's "reads only" hints count. -->
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Classes="strong" Text="{v:Text ToolsTrusted}" />
+                                                <TextBlock Classes="caption muted" Text="{Binding TrustedNote}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch x:Name="TrustedSwitch" Grid.Column="1" IsChecked="{Binding IsTrusted}" IsEnabled="{Binding CanChangeMarks}"
+                                                          VerticalAlignment="Top" AutomationProperties.Name="{Binding TrustedName}" />
+                                        </Grid>
+
+                                        <!-- The server's tools are its own words. -->
+                                        <Border Classes="note">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                                <c:FsIcon Data="{DynamicResource Icon.InfoOutlined}" Size="{DynamicResource Fadenstack.Icon.Size.Small}"
+                                                          Foreground="{DynamicResource Fadenstack.ForegroundMuted}" VerticalAlignment="Top" Margin="0,2,0,0" />
+                                                <TextBlock Grid.Column="1" Classes="caption muted" Text="{v:Text ToolsDrawerNote}" TextWrapping="Wrap" />
+                                            </Grid>
+                                        </Border>
+
+                                        <TextBlock x:Name="DrawerTestResult" Text="{Binding TestText}" IsVisible="{Binding HasTest}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+
+                                        <!-- Advanced: plain http on the local network, only where it applies and is permitted here. -->
+                                        <StackPanel x:Name="AdvancedSection" Spacing="8" IsVisible="{Binding ShowsAdvanced}">
+                                            <TextBlock Classes="strong" Text="{v:Text ToolsAdvanced}" />
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="{v:Text McpPlainHttpSwitch}" TextWrapping="Wrap" />
+                                                    <TextBlock Classes="caption muted" Text="{v:Text McpPlainHttpSwitchHelp}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <ToggleSwitch x:Name="PlainHttpSwitch" Grid.Column="1" IsChecked="{Binding PlainHttpOn}" VerticalAlignment="Top"
+                                                              AutomationProperties.Name="{v:Text McpPlainHttpSwitch}" />
+                                            </Grid>
+                                            <!-- The warning: nothing changes until the person confirms; Confirm has the focus when it opens, Esc says no. -->
+                                            <Border x:Name="PlainHttpWarning" Classes="banner warning" IsVisible="{Binding IsPlainHttpWarningOpen}"
+                                                    b:WizardFocus.Step="{Binding IsPlainHttpWarningOpen}" AutomationProperties.Name="{v:Text McpPlainHttpWarningTitle}">
+                                                <DockPanel>
+                                                    <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                                                    <StackPanel Spacing="8">
+                                                        <TextBlock Classes="strong" Text="{v:Text McpPlainHttpWarningTitle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                                                        <TextBlock Text="{Binding PlainHttpWarningText}" TextWrapping="Wrap" />
+                                                        <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                                            <Button x:Name="PlainHttpConfirmButton" Classes="primary" b:WizardFocus.IsFirst="True" Command="{Binding ConfirmPlainHttpCommand}"
+                                                                    Content="{v:Text McpPlainHttpConfirm}" AutomationProperties.Name="{v:Text McpPlainHttpConfirm}" />
+                                                            <Button x:Name="PlainHttpCancelButton" Classes="secondary" Command="{Binding CancelPlainHttpCommand}"
+                                                                    Content="{v:Text McpPlainHttpCancel}" AutomationProperties.Name="{v:Text McpPlainHttpCancel}" />
+                                                        </WrapPanel>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                            <TextBlock x:Name="PlainHttpError" Classes="error" Text="{Binding PlainHttpError}" IsVisible="{Binding HasPlainHttpError}"
+                                                       AutomationProperties.LiveSetting="Assertive" />
+                                        </StackPanel>
+
+                                        <!-- Tools with a filter. -->
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <TextBlock Classes="strong" Text="{Binding ToolsTitle}" VerticalAlignment="Center" />
+                                            <TextBox x:Name="ToolFilterBox" Grid.Column="1" Width="150" Text="{Binding ToolFilter}" PlaceholderText="{v:Text ToolsDrawerFilterPlaceholder}"
+                                                     AutomationProperties.Name="{v:Text ToolsDrawerFilterName}">
+                                                <TextBox.InnerLeftContent>
+                                                    <c:FsIcon Data="{DynamicResource Icon.Search}" Size="{DynamicResource Fadenstack.Icon.Size.Small}" Margin="8,0,0,0"
+                                                              Foreground="{DynamicResource Fadenstack.ForegroundMuted}" />
+                                                </TextBox.InnerLeftContent>
+                                            </TextBox>
+                                        </Grid>
+                                        <TextBlock Classes="caption muted" Text="{Binding NoToolsText}" IsVisible="{Binding HasNoToolsText}" TextWrapping="Wrap" />
+                                        <Border x:Name="ToolList" Classes="listcard" IsVisible="{Binding !HasNoToolsText}">
+                                            <ItemsControl Classes="rows" ItemsSource="{Binding Tools}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate x:DataType="t:LocalToolViewModel">
+                                                        <Border Classes="sep" Padding="12,8">
+                                                            <StackPanel Spacing="4">
+                                                                <TextBlock Classes="mono" Text="{Binding Name}" TextWrapping="Wrap" />
+                                                                <ItemsControl ItemsSource="{Binding Hints}" IsVisible="{Binding HasHints}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <WrapPanel ItemSpacing="4" LineSpacing="4" />
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate x:DataType="x:String">
+                                                                            <Border Classes="says"><TextBlock Text="{Binding}" /></Border>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <TextBlock Classes="caption muted" Text="{Binding Description}" IsVisible="{Binding HasDescription}" TextWrapping="Wrap" />
+                                                                <!-- The class it has now; a picker to raise it, none for a destructive tool (a floor nothing lowers). -->
+                                                                <WrapPanel ItemSpacing="8" LineSpacing="4">
+                                                                    <Border Classes="badge" Classes.write="{Binding Class, Converter={x:Static b:WizardIs.In}, ConverterParameter=Write}"
+                                                                            Classes.danger="{Binding IsDestructive}">
+                                                                        <TextBlock Text="{Binding ClassText}" />
+                                                                    </Border>
+                                                                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding CanRaise}">
+                                                                        <TextBlock Classes="caption muted" Text="{v:Text ToolsRaiseLabel}" VerticalAlignment="Center" />
+                                                                        <ComboBox MinWidth="150" ItemsSource="{Binding RaiseOptions}" SelectedItem="{Binding SelectedRaise}"
+                                                                                  AutomationProperties.Name="{Binding RaiseName}">
+                                                                            <ComboBox.ItemTemplate>
+                                                                                <DataTemplate x:DataType="t:RaiseOptionViewModel">
+                                                                                    <TextBlock Text="{Binding Text}" />
+                                                                                </DataTemplate>
+                                                                            </ComboBox.ItemTemplate>
+                                                                        </ComboBox>
+                                                                    </StackPanel>
+                                                                </WrapPanel>
+                                                                <TextBlock Classes="caption muted" Text="{Binding DestructiveHelp}" IsVisible="{Binding IsDestructive}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+        </Grid>
+
+        <!-- ===== A modal sheet (add or edit, import, scan) over its own scrim ===== -->
+        <Grid x:Name="SheetLayer" IsVisible="{Binding HasSheet}">
+            <Button x:Name="SheetScrim" Classes="scrim" Command="{Binding CloseSheetCommand}" AutomationProperties.Name="{v:Text ToolsCloseSheet}" />
+            <ContentControl Content="{Binding Sheet}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12" />
+        </Grid>
+    </Grid>
+</UserControl>

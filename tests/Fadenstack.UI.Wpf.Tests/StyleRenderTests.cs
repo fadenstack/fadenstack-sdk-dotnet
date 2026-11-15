@@ -22,8 +22,11 @@ public class StyleRenderTests
     public void Every_view_in_every_state_renders_in_every_palette() => Sta.Run(() =>
     {
         var folder = Environment.GetEnvironmentVariable("FADEN_RENDER_DIR")!;
+        // FADEN_RENDER_VIEW names one view (such as tools) to draw alone.
+        var only = Environment.GetEnvironmentVariable("FADEN_RENDER_VIEW");
+        var cases = StyleCases.All().Where(c => string.IsNullOrEmpty(only) || c.View == only).ToList();
         var written = 0;
-        foreach (var (view, state) in StyleCases.All())
+        foreach (var (view, state) in cases)
         {
             using var host = StyleCases.Open(view, state);
             foreach (var palette in StyleCases.Palettes)
@@ -34,7 +37,7 @@ public class StyleRenderTests
                 written++;
             }
         }
-        Assert.Equal(StyleCases.All().Count() * StyleCases.Palettes.Length, written);
+        Assert.Equal(cases.Count * StyleCases.Palettes.Length, written);
     });
 
     [OptInFact("FADEN_COMPARE_OUT")]

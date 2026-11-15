@@ -1,3 +1,4 @@
+using Fadenstack.Tools;
 using ModelContextProtocol.Client;
 
 namespace Fadenstack.Mcp;
@@ -8,7 +9,7 @@ namespace Fadenstack.Mcp;
 /// </summary>
 public sealed class LocalMcpServer
 {
-    private LocalMcpServer(string label, Func<CancellationToken, Task<IClientTransport>> connect)
+    private LocalMcpServer(string label, Func<McpConnection, CancellationToken, Task<IClientTransport>> connect)
     {
         Label = string.IsNullOrWhiteSpace(label) ? throw new ArgumentException("A label is required.", nameof(label)) : label;
         Connect = connect;
@@ -24,7 +25,33 @@ public sealed class LocalMcpServer
 
     public Uri? Url { get; private set; }
 
-    internal Func<CancellationToken, Task<IClientTransport>> Connect { get; }
+    /// <summary>Opens the transport; the connection says what this host allows (plain http on the local network) and learns what was used.</summary>
+    internal Func<McpConnection, CancellationToken, Task<IClientTransport>> Connect { get; }
+
+    /// <summary>
+    /// The person's switch "Allow plain http on the local network" for this HTTP server (sdk/51 F05; off by default). With it,
+    /// plain http may go to an address on the local network (RFC 1918, link-local, fc00::/7) when the agent's profile
+    /// (<c>local_mcp.plain_http: allow</c>) and this computer's policy allow it, and never with a header value. Without it, plain
+    /// http goes only to this computer. https goes anywhere either way.
+    /// </summary>
+    public bool AllowPlainHttpInLan { get; set; }
+
+    /// <summary>Whether the server is sent header values (they are secrets: never over plain http beyond this computer).</summary>
+    internal bool HasHeaders { get; private set; }
+
+    /// <summary>
+    /// Whether the host trusts this server's annotations (sdk/51 F05, H4): the person in standalone mode, the administrator in
+    /// governed mode, never the server itself. Only a trusted server's <c>readOnlyHint</c> raises a tool to <see cref="ToolClass.Read"/>;
+    /// a <c>destructiveHint</c> from any server makes the tool destructive. See <see cref="McpToolClasses"/>. Changes take effect
+    /// at the next turn once <see cref="LocalMcpModule.ClassesChanged"/> is called.
+    /// </summary>
+    public bool Trusted { get; set; }
+
+    /// <summary>
+    /// The tools the person (standalone) or the administrator (governed) raised, by the server's own tool name: only
+    /// <see cref="ToolClass.Read"/> and <see cref="ToolClass.Write"/> count. A destructive hint is a floor they cannot lower.
+    /// </summary>
+    public IReadOnlyDictionary<string, ToolClass> ToolClasses { get; set; } = new Dictionary<string, ToolClass>();
 
     /// <summary>The longest a call may take when the server does not say otherwise.</summary>
     public static readonly TimeSpan DefaultCallTimeout = TimeSpan.FromMinutes(2);
@@ -51,7 +78,7 @@ public sealed class LocalMcpServer
         IDictionary<string, string?>? environment = null, string? workingDirectory = null)
     {
         var args = arguments?.ToList() ?? new List<string>();
-        return new LocalMcpServer(label, _ => Task.FromResult<IClientTransport>(new StdioClientTransport(new StdioClientTransportOptions
+        return new LocalMcpServer(label, (_, _) => Task.FromResult<IClientTransport>(new StdioClientTransport(new StdioClientTransportOptions
         {
             Name = label,
             Command = command,
@@ -65,18 +92,42 @@ public sealed class LocalMcpServer
         };
     }
 
-    /// <summary>An HTTP endpoint; the <paramref name="headers"/> are sent with every request, and their values are never logged or reported.</summary>
+    /// <summary>
+    /// An HTTP endpoint; the <paramref name="headers"/> are sent with every request, and their values are never logged or
+    /// reported. https goes anywhere; plain http only to this computer, or to the local network with
+    /// <see cref="AllowPlainHttpInLan"/> (see there). Each connection checks the address it goes to and sends only there, to the
+    /// server's own origin, following no redirect. With an app's own <paramref name="httpClient"/>, which the SDK cannot hold to
+    /// a checked address, plain http goes only to an address literal on this computer or <c>localhost</c>.
+    /// </summary>
     public static LocalMcpServer Http(string label, Uri url, HttpClient? httpClient = null, IDictionary<string, string>? headers = null)
     {
-        var extra = headers is null ? null : new Dictionary<string, string>(headers);
-        return new(label, _ =>
+        if (url is null || !url.IsAbsoluteUri || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps) || url.UserInfo.Length > 0)
+        {
+            throw new ArgumentException("An MCP server's address is an absolute http or https URL without a user name.", nameof(url));
+        }
+        var extra = headers is null || headers.Count == 0 ? null : new Dictionary<string, string>(headers);
+        LocalMcpServer? made = null;
+        made = new(label, async (connection, cancellationToken) =>
         {
             var options = new HttpClientTransportOptions { Name = label, Endpoint = url, AdditionalHeaders = extra };
-            return Task.FromResult<IClientTransport>(httpClient is null ? new HttpClientTransport(options) : new HttpClientTransport(options, httpClient));
+            if (httpClient is not null)
+            {
+                if (url.Scheme == Uri.UriSchemeHttp && !IsLoopback(url))
+                {
+                    throw new McpPlainHttpRefusedException(McpPlainHttpRefusal.NoOptIn,
+                        "With the app's own HTTP client, plain http goes only to this computer.");
+                }
+                return new HttpClientTransport(options, httpClient);
+            }
+            var client = await McpHttp.CreateClientAsync(url, extra is not null, made!.AllowPlainHttpInLan, connection, cancellationToken)
+                .ConfigureAwait(false);
+            return new HttpClientTransport(options, client, ownsHttpClient: true);
         })
         {
             Url = url,
+            HasHeaders = extra is not null,
         };
+        return made;
     }
 
     /// <summary>
@@ -105,7 +156,17 @@ public sealed class LocalMcpServer
         return System.Net.IPAddress.IsLoopback(address);
     }
 
+    /// <summary>A transport that sees the host's connection rules (tests: a server that says it used the local network).</summary>
+    internal static LocalMcpServer FromConnection(string label, Func<McpConnection, CancellationToken, Task<IClientTransport>> connect) =>
+        new(label, connect ?? throw new ArgumentNullException(nameof(connect)));
+
     /// <summary>Any transport: a named pipe, an in-process stream.</summary>
-    public static LocalMcpServer FromTransport(string label, Func<CancellationToken, Task<IClientTransport>> transport) =>
-        new(label, transport ?? throw new ArgumentNullException(nameof(transport)));
+    public static LocalMcpServer FromTransport(string label, Func<CancellationToken, Task<IClientTransport>> transport)
+    {
+        if (transport is null)
+        {
+            throw new ArgumentNullException(nameof(transport));
+        }
+        return new(label, (_, cancellationToken) => transport(cancellationToken));
+    }
 }

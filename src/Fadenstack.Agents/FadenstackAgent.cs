@@ -93,7 +93,8 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     /// </summary>
     private AgentProfile Narrowed(AgentProfile profile) => profile with
     {
-        LocalMcp = _settings.MachinePolicy.Mcp.AllowsAny ? profile.LocalMcp : profile.LocalMcp with { Mode = "disable", DeveloperMode = false },
+        LocalMcp = (_settings.MachinePolicy.Mcp.AllowsAny ? profile.LocalMcp : profile.LocalMcp with { Mode = "disable", DeveloperMode = false })
+            is var mcp && _settings.MachinePolicy.PlainHttp != PolicyAccess.Allowed ? mcp with { PlainHttp = "deny" } : mcp,
         LocalSkills = _settings.MachinePolicy.Skills.AllowsAny ? profile.LocalSkills : profile.LocalSkills with { Mode = "disable", DeveloperMode = false },
     };
 

@@ -26,10 +26,13 @@ public class StyleRenderTests
         {
             return;
         }
+        // FADEN_RENDER_VIEW names one view (such as tools) to draw alone.
+        var only = Environment.GetEnvironmentVariable("FADEN_RENDER_VIEW");
+        var cases = StyleCases.All().Where(c => string.IsNullOrEmpty(only) || c.View == only).ToList();
         var written = 0;
         try
         {
-            foreach (var (view, state) in StyleCases.All())
+            foreach (var (view, state) in cases)
             {
                 using var host = await StyleCases.OpenAsync(view, state);
                 foreach (var palette in StyleCases.Palettes)
@@ -45,7 +48,7 @@ public class StyleRenderTests
         {
             await StyleCases.ResetAsync();
         }
-        Assert.Equal(StyleCases.All().Count() * StyleCases.Palettes.Length, written);
+        Assert.Equal(cases.Count * StyleCases.Palettes.Length, written);
     }
 
     [AvaloniaFact]

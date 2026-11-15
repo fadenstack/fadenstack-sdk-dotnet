@@ -1,0 +1,439 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        What the Tools view (sdk/51 F05) adds to the forms' styles (Controls.xaml): the module's icons, a switch, a segment, a card that is a
+        button, the scrim of a drawer or a sheet, tiles, chips and badges. The colours come from Colors.*.xaml, which the view merges first.
+        The shape is the forms' one system: containers 12, controls 6, chips and badges 8; the switch's track is a pill (10 of its 20 height).
+        Contrast: text 4.5:1, the edge of a control (a card, a segment, a switch's track) and its focus ring 3:1, in each palette; the tints
+        (Info, Warning, Blocked backgrounds) carry only the palette's own text colour, which the palette tests check on each of them.
+    -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Controls.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ===== Icons: Material Icons (Apache-2.0), drawn in their 24 x 24 design box ===================================== -->
+    <Geometry x:Key="Icon.Close">M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z</Geometry>
+    <Geometry x:Key="Icon.Add">M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z</Geometry>
+    <Geometry x:Key="Icon.Search">M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14</Geometry>
+    <Geometry x:Key="Icon.Lock">M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1z</Geometry>
+    <Geometry x:Key="Icon.WarningAmber">M12 5.99 19.53 19H4.47zM12 2 1 21h22z M13 16h-2v2h2zm0-6h-2v5h2z</Geometry>
+    <Geometry x:Key="Icon.InfoOutlined">M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8</Geometry>
+    <Geometry x:Key="Icon.DeleteOutline">M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM8 9h8v10H8zm7.5-5-1-1h-5l-1 1H5v2h14V4z</Geometry>
+    <Geometry x:Key="Icon.VerifiedUser">M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5zm-2 16-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9z</Geometry>
+    <Geometry x:Key="Icon.KeyboardArrowDown">M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z</Geometry>
+    <Geometry x:Key="Icon.KeyboardArrowUp">M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z</Geometry>
+    <Geometry x:Key="Icon.Tools.Radar">M19.74 18.33C21.15 16.6 22 14.4 22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10c2.4 0 4.6-.85 6.33-2.26.27-.22.53-.46.78-.71.03-.03.05-.06.07-.08.2-.2.39-.41.56-.62M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8c0 1.85-.63 3.54-1.69 4.9l-1.43-1.43c.69-.98 1.1-2.17 1.1-3.46 0-3.31-2.69-6-6-6s-6 2.69-6 6 2.69 6 6 6c1.3 0 2.51-.42 3.49-1.13l1.42 1.42C15.54 19.37 13.85 20 12 20m1.92-7.49c.17-.66.02-1.38-.49-1.9l-.02-.02c-.77-.77-2-.78-2.78-.04-.01.01-.03.02-.05.04-.78.78-.78 2.05 0 2.83l.02.02c.52.51 1.25.67 1.91.49l1.51 1.51c-.6.36-1.29.58-2.04.58-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4c0 .73-.21 1.41-.56 2z</Geometry>
+    <Geometry x:Key="Icon.Tools.Terminal">M20 4H4c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 14H4V8h16zm-2-1h-6v-2h6zM7.5 17l-1.41-1.41L8.67 13l-2.59-2.59L7.5 9l4 4z</Geometry>
+    <Geometry x:Key="Icon.Tools.Cable">M20 5V4c0-.55-.45-1-1-1h-2c-.55 0-1 .45-1 1v1h-1v4c0 .55.45 1 1 1h1v7c0 1.1-.9 2-2 2s-2-.9-2-2V7c0-2.21-1.79-4-4-4S5 4.79 5 7v7H4c-.55 0-1 .45-1 1v4h1v1c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-1h1v-4c0-.55-.45-1-1-1H7V7c0-1.1.9-2 2-2s2 .9 2 2v10c0 2.21 1.79 4 4 4s4-1.79 4-4v-7h1c.55 0 1-.45 1-1V5z</Geometry>
+    <Geometry x:Key="Icon.Tools.Cloud">M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96</Geometry>
+    <Geometry x:Key="Icon.Tools.Hub">M8.4 18.2c.38.5.6 1.12.6 1.8 0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3c.44 0 .85.09 1.23.26l1.41-1.77c-.92-1.03-1.29-2.39-1.09-3.69l-2.03-.68c-.54.83-1.46 1.38-2.52 1.38-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3c0 .07 0 .14-.01.21l2.03.68c.64-1.21 1.82-2.09 3.22-2.32V5.91C9.96 5.57 9 4.4 9 3c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.4-.96 2.57-2.25 2.91v2.16c1.4.23 2.58 1.11 3.22 2.32L18 9.71V9.5c0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3c-1.06 0-1.98-.55-2.52-1.37l-2.03.68c.2 1.29-.16 2.65-1.09 3.69l1.41 1.77Q17.34 17 18 17c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3c0-.68.22-1.3.6-1.8l-1.41-1.77c-1.35.75-3.01.76-4.37 0z</Geometry>
+    <Geometry x:Key="Icon.Tools.PlayArrow">M8 5v14l11-7z</Geometry>
+    <Geometry x:Key="Icon.Tools.RestartAlt">M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91</Geometry>
+    <Geometry x:Key="Icon.Tools.PowerSettingsNew">M13 3h-2v10h2zm4.83 2.17-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83</Geometry>
+    <Geometry x:Key="Icon.Tools.EditOutlined">m14.06 9.02.92.92L5.92 19H5v-.92zM17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29m-3.6 3.19L3 17.25V21h3.75L17.81 9.94z</Geometry>
+    <Geometry x:Key="Icon.Tools.CheckCircle">M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z</Geometry>
+
+    <!-- An icon is its 24 x 24 box scaled to 18 (so every icon sits where the others do) and filled with the text colour it inherits. -->
+    <Style x:Key="Tools.Icon" TargetType="Path">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Stretch" Value="None" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Fill" Value="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
+        <Setter Property="LayoutTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="0.75" ScaleY="0.75" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Tools.Icon.Small" TargetType="Path" BasedOn="{StaticResource Tools.Icon}">
+        <Setter Property="LayoutTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="0.6666667" ScaleY="0.6666667" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Tools.Icon.Large" TargetType="Path" BasedOn="{StaticResource Tools.Icon}">
+        <Setter Property="LayoutTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="0.8333333" ScaleY="0.8333333" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Tools.Icon.Hero" TargetType="Path" BasedOn="{StaticResource Tools.Icon}">
+        <Setter Property="LayoutTransform">
+            <Setter.Value>
+                <ScaleTransform ScaleX="1.3333333" ScaleY="1.3333333" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== The switch: a 36 x 20 track (a pill), a 14 knob; on is the accent ======================================== -->
+    <Style x:Key="Tools.Switch" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid SnapsToDevicePixels="True" Width="36" Height="20" Margin="3" Background="Transparent">
+                        <Border x:Name="Boundary" CornerRadius="10" Background="{DynamicResource Fadenstack.ControlBorder}" />
+                        <Ellipse x:Name="Knob" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="3,0,0,0"
+                                 Fill="{DynamicResource Fadenstack.Background}" />
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="12" Margin="-3" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.AccentIcon}" />
+                            <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Knob" Property="Margin" Value="0,0,3,0" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource Fadenstack.AccentForeground}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== A segment: one of two or three choices (a control, 6) ==================================================== -->
+    <Style x:Key="Tools.Segment" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="MinHeight" Value="{StaticResource Fadenstack.Size.Control}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Control}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                        </Border>
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Control}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+                            <Setter TargetName="Boundary" Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentBorder}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== A server's card is a button, so the whole card opens the drawer ========================================== -->
+    <Style x:Key="Tools.Card" TargetType="Button">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Boundary" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{StaticResource Fadenstack.Radius.Container}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <Border x:Name="FocusRing" BorderThickness="2" BorderBrush="{DynamicResource Fadenstack.Focus}" IsHitTestVisible="False" Visibility="Collapsed"
+                                CornerRadius="{StaticResource Fadenstack.Radius.Container}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Boundary" Property="Background" Value="{DynamicResource Fadenstack.Pressed}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- Its drawer is open: the edge is the accent, 2 px (the padding gives the pixel back). -->
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.AccentBorder}" />
+                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="Padding" Value="11" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The scrim of a drawer or a sheet: a click on it closes; it is not a stop of the keyboard (Esc does the same). -->
+    <Style x:Key="Tools.Scrim" TargetType="Button">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Scrim}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Tiles, chips, badges, lines =============================================================================== -->
+    <Style x:Key="Tools.Tile" TargetType="Border">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.AccentIcon}" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+    <Style x:Key="Tools.Tile.Off" TargetType="Border" BasedOn="{StaticResource Tools.Tile}">
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style x:Key="Tools.Tile.Hero" TargetType="Border" BasedOn="{StaticResource Tools.Tile}">
+        <Setter Property="Width" Value="56" />
+        <Setter Property="Height" Value="56" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+
+    <!-- A line that says a warning or a refusal: the warning tint, the palette's text on it. -->
+    <Style x:Key="Tools.WarnLine" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style x:Key="Tools.ProblemLine" TargetType="Border" BasedOn="{StaticResource Tools.WarnLine}">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+    </Style>
+    <!-- The plain status line (the dot and the words) goes where a warning or a problem has its own tinted line. -->
+    <Style x:Key="Tools.PlainLine" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusIsWarning}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding StatusIsProblem}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.DrawerPlainLine" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Server.StatusIsWarning}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Server.StatusIsProblem}" Value="True">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Dot.Base" TargetType="Ellipse">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Fill" Value="{DynamicResource Fadenstack.ForegroundMuted}" />
+    </Style>
+    <Style x:Key="Tools.Dot" TargetType="Ellipse" BasedOn="{StaticResource Tools.Dot.Base}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusIsGood}" Value="True">
+                <Setter Property="Fill" Value="{DynamicResource Fadenstack.Success}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding StatusIsProblem}" Value="True">
+                <Setter Property="Fill" Value="{DynamicResource Fadenstack.Danger}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Dot.Warn" TargetType="Ellipse" BasedOn="{StaticResource Tools.Dot.Base}">
+        <Setter Property="Fill" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style x:Key="Tools.Dot.Problem" TargetType="Ellipse" BasedOn="{StaticResource Tools.Dot.Base}">
+        <Setter Property="Fill" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+    <Style x:Key="Tools.DrawerDot" TargetType="Ellipse" BasedOn="{StaticResource Tools.Dot.Base}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Server.StatusIsGood}" Value="True">
+                <Setter Property="Fill" Value="{DynamicResource Fadenstack.Success}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Server.StatusIsProblem}" Value="True">
+                <Setter Property="Fill" Value="{DynamicResource Fadenstack.Danger}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Status.Base" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="Tools.Status" TargetType="TextBlock" BasedOn="{StaticResource Tools.Status.Base}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding StatusIsGood}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Success}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Status.Warn" TargetType="TextBlock" BasedOn="{StaticResource Tools.Status.Base}">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style x:Key="Tools.DrawerStatus" TargetType="TextBlock" BasedOn="{StaticResource Tools.Status.Base}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Server.StatusIsGood}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Success}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <!-- A tool's name as a mono chip; the warning one for a tool whose server says it may delete. -->
+    <Style x:Key="Tools.ToolChip" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding MayDelete}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Mono" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Mono}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- A chip of the bar: the policy (success, or a warning), a state of a cloud tool, the server's own word (outlined). -->
+    <Style x:Key="Tools.Policy" TargetType="Border">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,8,8" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding PolicyIsWarning}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.Badge" TargetType="Border">
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Class}" Value="Write">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsDestructive}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Fadenstack.BlockedBackground}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="Tools.StateChip" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.AddedBackground}" />
+    </Style>
+    <Style x:Key="Tools.StateChip.Outlined" TargetType="Border" BasedOn="{StaticResource Tools.StateChip}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="7,1" />
+    </Style>
+    <Style x:Key="Tools.StateChip.Muted" TargetType="Border" BasedOn="{StaticResource Tools.StateChip}">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+    </Style>
+    <Style x:Key="Tools.Says" TargetType="Border">
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Chip}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.ControlBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="7,0" />
+        <Setter Property="Margin" Value="0,0,4,4" />
+    </Style>
+    <Style x:Key="Tools.Micro" TargetType="TextBlock" BasedOn="{StaticResource Fadenstack.Muted}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="Tools.MicroText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- A card of a list: a container (12), its rows cut by thin rules; a note: the muted surface. -->
+    <Style x:Key="Tools.ListCard" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+    </Style>
+    <Style x:Key="Tools.Note" TargetType="Border">
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="Padding" Value="{StaticResource Fadenstack.Padding.Container}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.SurfaceAlt}" />
+    </Style>
+    <Style x:Key="Tools.Rule" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
+    <Style x:Key="Tools.Error" TargetType="TextBlock" BasedOn="{StaticResource Form.Caption}">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.Danger}" />
+    </Style>
+
+    <!-- The drawer (a panel at the right edge, an edge at its left) and a sheet (a container over the page). -->
+    <Style x:Key="Tools.Drawer" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1,0,0,0" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+    <Style x:Key="Tools.Sheet" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Fadenstack.Radius.Container}" />
+        <Setter Property="MaxWidth" Value="480" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
+    </Style>
+</ResourceDictionary>

@@ -1893,4 +1893,703 @@
   <data name="SkillIssueReadFailed" xml:space="preserve">
     <value>{0} could not be read.</value>
   </data>
+  <data name="ToolsTitle" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="ToolsIntro" xml:space="preserve">
+    <value>What your assistant can reach, and whether it is on.</value>
+  </data>
+  <data name="ToolsBannerNotAllowed" xml:space="preserve">
+    <value>This assistant may not use MCP servers on this computer.</value>
+  </data>
+  <data name="ToolsSignInNeeded" xml:space="preserve">
+    <value>Sign in to see the tools of this assistant.</value>
+  </data>
+  <data name="ToolsPolicyAllowed" xml:space="preserve">
+    <value>Allowed</value>
+  </data>
+  <data name="ToolsPolicyAllowedTip" xml:space="preserve">
+    <value>This assistant may use MCP servers on this computer.</value>
+  </data>
+  <data name="ToolsPolicyDeveloper" xml:space="preserve">
+    <value>Developer mode</value>
+  </data>
+  <data name="ToolsPolicyDeveloperTip" xml:space="preserve">
+    <value>Developer mode: any server, for you only.</value>
+  </data>
+  <data name="ToolsPolicyNotAllowed" xml:space="preserve">
+    <value>Not allowed for this assistant</value>
+  </data>
+  <data name="ToolsTabLocal" xml:space="preserve">
+    <value>On this computer · {0}</value>
+  </data>
+  <data name="ToolsTabServer" xml:space="preserve">
+    <value>On your server · {0}</value>
+  </data>
+  <data name="ToolsFilterPlaceholder" xml:space="preserve">
+    <value>Filter tools</value>
+  </data>
+  <data name="ToolsAddServer" xml:space="preserve">
+    <value>Add server</value>
+  </data>
+  <data name="ToolsScanThisComputer" xml:space="preserve">
+    <value>Scan this computer</value>
+  </data>
+  <data name="ToolsSectionServers" xml:space="preserve">
+    <value>MCP servers</value>
+  </data>
+  <data name="ToolsSectionServersHelp" xml:space="preserve">
+    <value>Programs on this computer that offer tools. The assistant looks them up when it needs them, and every call asks you first.</value>
+  </data>
+  <data name="ToolsKeptInMemory" xml:space="preserve">
+    <value>This computer has no key store, so your servers are kept only until you close the app.</value>
+  </data>
+  <data name="ToolsListUnreadable" xml:space="preserve">
+    <value>The saved list of servers could not be read. It was set aside and the list starts empty.</value>
+  </data>
+  <data name="ToolsCloudIntro" xml:space="preserve">
+    <value>Your organisation’s server runs these tools; your data goes through its checks. Your administrator decides which ones this assistant may use.</value>
+  </data>
+  <data name="ToolsCloudNotListed" xml:space="preserve">
+    <value>This server does not list its tools yet.</value>
+  </data>
+  <data name="ToolsCloudUnavailable" xml:space="preserve">
+    <value>The server’s tools could not be loaded right now.</value>
+  </data>
+  <data name="ToolsCloudNone" xml:space="preserve">
+    <value>Your server offers no tools to this assistant.</value>
+  </data>
+  <data name="ToolsCloudForThis" xml:space="preserve">
+    <value>For this assistant</value>
+  </data>
+  <data name="ToolsCloudNotFor" xml:space="preserve">
+    <value>Not for this assistant</value>
+  </data>
+  <data name="ToolsCloudOffByAdmin" xml:space="preserve">
+    <value>Switched off by your administrator</value>
+  </data>
+  <data name="ToolsForThisAssistant" xml:space="preserve">
+    <value>{0} for this assistant</value>
+  </data>
+  <data name="ToolsSwitchedOffCount" xml:space="preserve">
+    <value>{0} switched off</value>
+  </data>
+  <data name="ToolsCollapse" xml:space="preserve">
+    <value>Collapse {0}</value>
+  </data>
+  <data name="ToolsExpand" xml:space="preserve">
+    <value>Expand {0}</value>
+  </data>
+  <data name="ToolsTryAgain" xml:space="preserve">
+    <value>Try again</value>
+  </data>
+  <data name="ToolsLoading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="ToolsEmptyTitle" xml:space="preserve">
+    <value>Give your assistant tools from this computer</value>
+  </data>
+  <data name="ToolsEmptyText" xml:space="preserve">
+    <value>MCP servers are small programs that offer tools: your notes, a database, a calendar. Find the ones you already use in other apps, or add one yourself.</value>
+  </data>
+  <data name="ToolsStateRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="ToolsStateOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="ToolsStateStarting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="ToolsStateFailed" xml:space="preserve">
+    <value>Can’t start: {0}</value>
+  </data>
+  <data name="ToolsStateNotAllowed" xml:space="preserve">
+    <value>Not allowed</value>
+  </data>
+  <data name="ToolsStateChangedTools" xml:space="preserve">
+    <value>Changed its tools</value>
+  </data>
+  <data name="ToolsStateMissingValue" xml:space="preserve">
+    <value>Can’t start: {0} has no value</value>
+  </data>
+  <data name="ToolsStateNotAllowedBecause" xml:space="preserve">
+    <value>Not allowed: {0}</value>
+  </data>
+  <data name="ToolsReasonPolicy" xml:space="preserve">
+    <value>this assistant may not use MCP servers on this computer</value>
+  </data>
+  <data name="ToolsReasonUnknown" xml:space="preserve">
+    <value>no reason given</value>
+  </data>
+  <data name="ToolsCountOne" xml:space="preserve">
+    <value>1 tool</value>
+  </data>
+  <data name="ToolsCountMany" xml:space="preserve">
+    <value>{0} tools</value>
+  </data>
+  <data name="ToolsToldFoldersOne" xml:space="preserve">
+    <value>told 1 folder</value>
+  </data>
+  <data name="ToolsToldFoldersMany" xml:space="preserve">
+    <value>told {0} folders</value>
+  </data>
+  <data name="ToolsMoreTools" xml:space="preserve">
+    <value>+{0}</value>
+  </data>
+  <data name="ToolsFixAddValue" xml:space="preserve">
+    <value>Add the value</value>
+  </data>
+  <data name="ToolsOriginTyped" xml:space="preserve">
+    <value>Added by you</value>
+  </data>
+  <data name="ToolsOriginScan" xml:space="preserve">
+    <value>Found by a scan</value>
+  </data>
+  <data name="ToolsOriginImported" xml:space="preserve">
+    <value>From {0}</value>
+  </data>
+  <data name="ToolsOriginLine" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="ToolsSwitchName" xml:space="preserve">
+    <value>Switch {0} on or off</value>
+  </data>
+  <data name="ToolsOpenDetails" xml:space="preserve">
+    <value>Show details of {0}</value>
+  </data>
+  <data name="ToolsToolMayDelete" xml:space="preserve">
+    <value>{0}, may delete</value>
+  </data>
+  <data name="ToolsDrawerName" xml:space="preserve">
+    <value>{0}, MCP server</value>
+  </data>
+  <data name="ToolsRunningSince" xml:space="preserve">
+    <value>Running since {0}</value>
+  </data>
+  <data name="ToolsFactAdded" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="ToolsFactRuns" xml:space="preserve">
+    <value>Runs</value>
+  </data>
+  <data name="ToolsFactAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ToolsFactFolders" xml:space="preserve">
+    <value>Told folders</value>
+  </data>
+  <data name="ToolsFactSecrets" xml:space="preserve">
+    <value>Secrets</value>
+  </data>
+  <data name="ToolsFactLongestCall" xml:space="preserve">
+    <value>Longest call</value>
+  </data>
+  <data name="ToolsAddedByYou" xml:space="preserve">
+    <value>By you</value>
+  </data>
+  <data name="ToolsAddedFrom" xml:space="preserve">
+    <value>From {0}</value>
+  </data>
+  <data name="ToolsAddedByScan" xml:space="preserve">
+    <value>Found by a scan</value>
+  </data>
+  <data name="ToolsNoneText" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="ToolsNoFoldersTold" xml:space="preserve">
+    <value>None (no folders allowed)</value>
+  </data>
+  <data name="ToolsSecondsOne" xml:space="preserve">
+    <value>1 second</value>
+  </data>
+  <data name="ToolsSecondsMany" xml:space="preserve">
+    <value>{0} seconds</value>
+  </data>
+  <data name="ToolsMinutesOne" xml:space="preserve">
+    <value>1 minute</value>
+  </data>
+  <data name="ToolsMinutesMany" xml:space="preserve">
+    <value>{0} minutes</value>
+  </data>
+  <data name="ToolsDrawerNote" xml:space="preserve">
+    <value>The server describes its own tools. Nobody has checked them, so every call asks you first.</value>
+  </data>
+  <data name="ToolsListHeading" xml:space="preserve">
+    <value>Tools · {0}</value>
+  </data>
+  <data name="ToolsDrawerFilterPlaceholder" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="ToolsDrawerFilterName" xml:space="preserve">
+    <value>Filter the tools</value>
+  </data>
+  <data name="ToolsNoTools" xml:space="preserve">
+    <value>No tools yet.</value>
+  </data>
+  <data name="ToolsNoToolsMatch" xml:space="preserve">
+    <value>No tool matches.</value>
+  </data>
+  <data name="ToolsSaysReadOnly" xml:space="preserve">
+    <value>Says: reads only</value>
+  </data>
+  <data name="ToolsSaysDestructive" xml:space="preserve">
+    <value>Says: may delete</value>
+  </data>
+  <data name="ToolsSaysIdempotent" xml:space="preserve">
+    <value>Says: safe to repeat</value>
+  </data>
+  <data name="ToolsSaysOpenWorld" xml:space="preserve">
+    <value>Says: reaches outside this computer</value>
+  </data>
+  <data name="ToolsTestTooltip" xml:space="preserve">
+    <value>Test the server</value>
+  </data>
+  <data name="ToolsRestartTooltip" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="ToolsEditTooltip" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="ToolsRemoveTooltip" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ToolsRestartedLine" xml:space="preserve">
+    <value>Restarted.</value>
+  </data>
+  <data name="ToolsRemoveConfirm" xml:space="preserve">
+    <value>Remove {0}?</value>
+  </data>
+  <data name="ToolsRemoveYes" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ToolsRemoveKeep" xml:space="preserve">
+    <value>Keep</value>
+  </data>
+  <data name="ToolsRemoveName" xml:space="preserve">
+    <value>Remove {0}</value>
+  </data>
+  <data name="ToolsCloseDetails" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ToolsSheetAddTitle" xml:space="preserve">
+    <value>Add a server</value>
+  </data>
+  <data name="ToolsSheetEditTitle" xml:space="preserve">
+    <value>Edit {0}</value>
+  </data>
+  <data name="ToolsFieldLabel" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ToolsFieldLabelHelp" xml:space="preserve">
+    <value>Lower case letters, digits and hyphens, up to 32.</value>
+  </data>
+  <data name="ToolsKindProgram" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="ToolsKindAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ToolsFieldCommand" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="ToolsFieldArguments" xml:space="preserve">
+    <value>Arguments (one per line)</value>
+  </data>
+  <data name="ToolsFieldFolder" xml:space="preserve">
+    <value>Working folder (optional)</value>
+  </data>
+  <data name="ToolsChooseFolder" xml:space="preserve">
+    <value>Choose...</value>
+  </data>
+  <data name="ToolsFieldEnvironment" xml:space="preserve">
+    <value>Environment variables</value>
+  </data>
+  <data name="ToolsFieldHeaders" xml:space="preserve">
+    <value>Headers</value>
+  </data>
+  <data name="ToolsAddRow" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="ToolsRowName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ToolsRowValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="ToolsValueSaved" xml:space="preserve">
+    <value>••••••••</value>
+  </data>
+  <data name="ToolsReplaceValue" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="ToolsRemoveRow" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="ToolsFieldUrl" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ToolsFieldTimeout" xml:space="preserve">
+    <value>Longest call (seconds)</value>
+  </data>
+  <data name="ToolsFieldEnabled" xml:space="preserve">
+    <value>Switch on after saving</value>
+  </data>
+  <data name="ToolsSecretsNote" xml:space="preserve">
+    <value>Values are kept encrypted on this computer, are never shown again and are never sent anywhere else.</value>
+  </data>
+  <data name="ToolsSave" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="ToolsCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ToolsCloseSheet" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ToolsKindName" xml:space="preserve">
+    <value>Kind of server</value>
+  </data>
+  <data name="ToolsAddButton" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="ToolsTestButton" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="ToolsValueSavedName" xml:space="preserve">
+    <value>Saved value (hidden)</value>
+  </data>
+  <data name="ToolsImportMore" xml:space="preserve">
+    <value>Import from a file…</value>
+  </data>
+  <data name="ToolsProblemLabelMissing" xml:space="preserve">
+    <value>Give the server a name.</value>
+  </data>
+  <data name="ToolsProblemLabelInvalid" xml:space="preserve">
+    <value>Use lower case letters, digits and hyphens, up to 32.</value>
+  </data>
+  <data name="ToolsProblemLabelTaken" xml:space="preserve">
+    <value>You have a server with that name already.</value>
+  </data>
+  <data name="ToolsProblemCommandMissing" xml:space="preserve">
+    <value>Enter the program to start.</value>
+  </data>
+  <data name="ToolsProblemCommandInvalid" xml:space="preserve">
+    <value>The program name cannot contain line breaks.</value>
+  </data>
+  <data name="ToolsProblemFolder" xml:space="preserve">
+    <value>The working folder must be a full path.</value>
+  </data>
+  <data name="ToolsProblemName" xml:space="preserve">
+    <value>A name may contain only letters, digits and underscores (headers: also hyphens).</value>
+  </data>
+  <data name="ToolsProblemValue" xml:space="preserve">
+    <value>A value cannot contain line breaks.</value>
+  </data>
+  <data name="ToolsProblemAddressMissing" xml:space="preserve">
+    <value>Enter the address.</value>
+  </data>
+  <data name="ToolsProblemAddressInvalid" xml:space="preserve">
+    <value>That is not an address (for example http://localhost:8123/mcp).</value>
+  </data>
+  <data name="ToolsProblemTimeout" xml:space="preserve">
+    <value>Enter a number of seconds from 5 to 600.</value>
+  </data>
+  <data name="ToolsTestRunning" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
+  <data name="ToolsTestOk" xml:space="preserve">
+    <value>Started. Tools: {0}</value>
+  </data>
+  <data name="ToolsTestOkNoTools" xml:space="preserve">
+    <value>Started, but it offers no tools.</value>
+  </data>
+  <data name="ToolsTestFailed" xml:space="preserve">
+    <value>Could not start: {0}</value>
+  </data>
+  <data name="ToolsTestNotAllowed" xml:space="preserve">
+    <value>Not started: this assistant may not use MCP servers on this computer.</value>
+  </data>
+  <data name="ToolsImportTitle" xml:space="preserve">
+    <value>Import servers</value>
+  </data>
+  <data name="ToolsImportIntro" xml:space="preserve">
+    <value>Choose where to import from. Nothing is copied until you tick servers and press Import.</value>
+  </data>
+  <data name="ToolsSourceClaude" xml:space="preserve">
+    <value>Claude Desktop</value>
+  </data>
+  <data name="ToolsSourceVsCode" xml:space="preserve">
+    <value>VS Code</value>
+  </data>
+  <data name="ToolsSourceCursor" xml:space="preserve">
+    <value>Cursor</value>
+  </data>
+  <data name="ToolsSourceFile" xml:space="preserve">
+    <value>A .mcp.json file...</value>
+  </data>
+  <data name="ToolsChooseFileTitle" xml:space="preserve">
+    <value>Choose a .mcp.json file</value>
+  </data>
+  <data name="ToolsImportRead" xml:space="preserve">
+    <value>Read {0}</value>
+  </data>
+  <data name="ToolsImportProblemNotFound" xml:space="preserve">
+    <value>That file was not found on this computer.</value>
+  </data>
+  <data name="ToolsImportProblemUnreadable" xml:space="preserve">
+    <value>That file cannot be read.</value>
+  </data>
+  <data name="ToolsImportProblemNoList" xml:space="preserve">
+    <value>That file has no list of servers.</value>
+  </data>
+  <data name="ToolsImportProblemTooLarge" xml:space="preserve">
+    <value>That file is too large.</value>
+  </data>
+  <data name="ToolsImportNothingToAdd" xml:space="preserve">
+    <value>Nothing in that file can be imported.</value>
+  </data>
+  <data name="ToolsImportButton" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ToolsImportTick" xml:space="preserve">
+    <value>Import {0}</value>
+  </data>
+  <data name="ToolsImportNoteNeedsValue" xml:space="preserve">
+    <value>Needs a value you must fill in; it is added switched off.</value>
+  </data>
+  <data name="ToolsImportNotePlaceholders" xml:space="preserve">
+    <value>Contains placeholders such as ${env:NAME}, which are kept as written.</value>
+  </data>
+  <data name="ToolsImportNoteIgnored" xml:space="preserve">
+    <value>Left out: {0}</value>
+  </data>
+  <data name="ToolsImportNoteRenamed" xml:space="preserve">
+    <value>Renamed to fit the rules for names.</value>
+  </data>
+  <data name="ToolsImportNoteWasOff" xml:space="preserve">
+    <value>It was switched off there.</value>
+  </data>
+  <data name="ToolsSkippedTitle" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="ToolsSkipNothing" xml:space="preserve">
+    <value>It has no program or address.</value>
+  </data>
+  <data name="ToolsSkipNotUnderstood" xml:space="preserve">
+    <value>It was not understood.</value>
+  </data>
+  <data name="ToolsSkipNotValid" xml:space="preserve">
+    <value>It breaks a rule: {0}</value>
+  </data>
+  <data name="ToolsImported" xml:space="preserve">
+    <value>Added: {0}</value>
+  </data>
+  <data name="ToolsScanTitle" xml:space="preserve">
+    <value>Scan this computer</value>
+  </data>
+  <data name="ToolsScanIntro" xml:space="preserve">
+    <value>Finds MCP servers you already use in other apps, and servers running on this computer.</value>
+  </data>
+  <data name="ToolsScanOtherApps" xml:space="preserve">
+    <value>Other apps’ settings</value>
+  </data>
+  <data name="ToolsScanChip" xml:space="preserve">
+    <value>{0} · {1}</value>
+  </data>
+  <data name="ToolsScanNotInstalled" xml:space="preserve">
+    <value>{0}: not installed</value>
+  </data>
+  <data name="ToolsScanThisComputerOption" xml:space="preserve">
+    <value>Servers running on this computer</value>
+  </data>
+  <data name="ToolsScanPorts" xml:space="preserve">
+    <value>localhost, ports {0}. It only says hello in MCP; nothing is sent.</value>
+  </data>
+  <data name="ToolsScanPortRange" xml:space="preserve">
+    <value>{0}–{1}</value>
+  </data>
+  <data name="ToolsScanAnd" xml:space="preserve">
+    <value>and</value>
+  </data>
+  <data name="ToolsScanProgressName" xml:space="preserve">
+    <value>Scan progress</value>
+  </data>
+  <data name="ToolsScanRunning" xml:space="preserve">
+    <value>Looking… {0} of {1} done</value>
+  </data>
+  <data name="ToolsScanStarting" xml:space="preserve">
+    <value>Looking…</value>
+  </data>
+  <data name="ToolsScanDone" xml:space="preserve">
+    <value>Done in {0} s · {1}</value>
+  </data>
+  <data name="ToolsScanFoundOne" xml:space="preserve">
+    <value>1 server found</value>
+  </data>
+  <data name="ToolsScanFoundMany" xml:space="preserve">
+    <value>{0} servers found</value>
+  </data>
+  <data name="ToolsScanFoundNone" xml:space="preserve">
+    <value>Nothing found</value>
+  </data>
+  <data name="ToolsScanAgain" xml:space="preserve">
+    <value>Scan again</value>
+  </data>
+  <data name="ToolsScanStopped" xml:space="preserve">
+    <value>Stopped.</value>
+  </data>
+  <data name="ToolsScanFailed" xml:space="preserve">
+    <value>The scan could not finish. Try again.</value>
+  </data>
+  <data name="ToolsScanNothingFoundHelp" xml:space="preserve">
+    <value>No MCP servers were found. You can add one yourself.</value>
+  </data>
+  <data name="ToolsScanNothingToLookAt" xml:space="preserve">
+    <value>Tick at least one place to look in.</value>
+  </data>
+  <data name="ToolsScanFoundIn" xml:space="preserve">
+    <value>Found in {0}</value>
+  </data>
+  <data name="ToolsScanRunningHere" xml:space="preserve">
+    <value>Running on this computer</value>
+  </data>
+  <data name="ToolsScanKindProgram" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="ToolsScanKindAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="ToolsScanStateAlready" xml:space="preserve">
+    <value>Already added</value>
+  </data>
+  <data name="ToolsScanStateNeedsValue" xml:space="preserve">
+    <value>Needs a value; added switched off</value>
+  </data>
+  <data name="ToolsScanStateNotUnderstood" xml:space="preserve">
+    <value>Not understood</value>
+  </data>
+  <data name="ToolsScanTakes" xml:space="preserve">
+    <value>Takes {0} from {1}’s settings; kept encrypted here</value>
+  </data>
+  <data name="ToolsScanAnswered" xml:space="preserve">
+    <value>Answered as {0}</value>
+  </data>
+  <data name="ToolsScanAnsweredTools" xml:space="preserve">
+    <value>Answered as {0} · {1}</value>
+  </data>
+  <data name="ToolsScanTick" xml:space="preserve">
+    <value>Add {0}</value>
+  </data>
+  <data name="ToolsScanTickAlready" xml:space="preserve">
+    <value>{0}, already added</value>
+  </data>
+  <data name="ToolsScanFooter" xml:space="preserve">
+    <value>Nothing leaves this computer. A server starts only after you add it, and only where this assistant may use MCP servers.</value>
+  </data>
+  <data name="ToolsScanAddOne" xml:space="preserve">
+    <value>Add 1 server</value>
+  </data>
+  <data name="ToolsScanAddMany" xml:space="preserve">
+    <value>Add {0} servers</value>
+  </data>
+  <data name="ToolsScanClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="ToolsScanOptionsName" xml:space="preserve">
+    <value>Where to look</value>
+  </data>
+  <data name="ToolsSkipNetwork" xml:space="preserve">
+    <value>A server on another computer is not imported. Add it yourself if you need it.</value>
+  </data>
+  <data name="ToolsScanStateLater" xml:space="preserve">
+    <value>On another computer: add it yourself</value>
+  </data>
+  <data name="ToolsScanTickLater" xml:space="preserve">
+    <value>{0}, not added by a scan</value>
+  </data>
+  <data name="ToolsFieldUrlHelp" xml:space="preserve">
+    <value>Use https for a server anywhere. Plain http works on this computer, and on your local network when you allow it under Advanced.</value>
+  </data>
+  <data name="ToolsProblemPlainHttpWithHeaders" xml:space="preserve">
+    <value>Headers hold secrets, so a plain http address beyond this computer cannot have any. Use https or remove the headers.</value>
+  </data>
+  <data name="ToolsProblemPlainHttpNotLocal" xml:space="preserve">
+    <value>Plain http goes only to this computer or the local network. Use https for an address elsewhere.</value>
+  </data>
+  <data name="ToolsTrusted" xml:space="preserve">
+    <value>Trusted</value>
+  </data>
+  <data name="ToolsTrustedHelp" xml:space="preserve">
+    <value>Only a trusted server’s “reads only” hints count. A server’s own word is never enough.</value>
+  </data>
+  <data name="ToolsTrustedByAdmin" xml:space="preserve">
+    <value>Marked by your administrator</value>
+  </data>
+  <data name="ToolsTrustedName" xml:space="preserve">
+    <value>Trust {0}</value>
+  </data>
+  <data name="ToolsClassUnknown" xml:space="preserve">
+    <value>Asks every time</value>
+  </data>
+  <data name="ToolsClassRead" xml:space="preserve">
+    <value>Reads</value>
+  </data>
+  <data name="ToolsClassWrite" xml:space="preserve">
+    <value>Changes things</value>
+  </data>
+  <data name="ToolsClassDestructive" xml:space="preserve">
+    <value>Destructive</value>
+  </data>
+  <data name="ToolsRaiseLabel" xml:space="preserve">
+    <value>Treat as</value>
+  </data>
+  <data name="ToolsRaiseNone" xml:space="preserve">
+    <value>As it arrives</value>
+  </data>
+  <data name="ToolsRaiseRead" xml:space="preserve">
+    <value>Reads only</value>
+  </data>
+  <data name="ToolsRaiseWrite" xml:space="preserve">
+    <value>Changes things</value>
+  </data>
+  <data name="ToolsRaiseName" xml:space="preserve">
+    <value>Class of {0}</value>
+  </data>
+  <data name="ToolsDestructiveHelp" xml:space="preserve">
+    <value>The server says this tool may delete or overwrite. It always asks, and nothing can lower that.</value>
+  </data>
+  <data name="ToolsAdvanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="McpPlainHttpSwitch" xml:space="preserve">
+    <value>Allow plain http on the local network</value>
+  </data>
+  <data name="McpPlainHttpSwitchHelp" xml:space="preserve">
+    <value>For a server on your own network that has no https. Never with a header value.</value>
+  </data>
+  <data name="McpPlainHttpWarningTitle" xml:space="preserve">
+    <value>Allow plain http?</value>
+  </data>
+  <data name="McpPlainHttpWarning" xml:space="preserve">
+    <value>Plain http is not encrypted. Anyone on your network can read and change what goes to and from this server: the tool calls, their arguments and their results, which may hold document content. A changed answer can steer the agent. Use https where the server offers it.</value>
+  </data>
+  <data name="McpPlainHttpConfirm" xml:space="preserve">
+    <value>Allow</value>
+  </data>
+  <data name="McpPlainHttpCancel" xml:space="preserve">
+    <value>Keep it off</value>
+  </data>
+  <data name="McpPlainHttpNoOptIn" xml:space="preserve">
+    <value>Plain http goes only to this computer. Turn on “Allow plain http on the local network” under Advanced.</value>
+  </data>
+  <data name="McpPlainHttpNotLocal" xml:space="preserve">
+    <value>This address is not on the local network.</value>
+  </data>
+  <data name="McpPlainHttpSecret" xml:space="preserve">
+    <value>A server with a header value needs https.</value>
+  </data>
+  <data name="McpPlainHttpNotAllowed" xml:space="preserve">
+    <value>Plain http is not allowed here.</value>
+  </data>
 </root>
