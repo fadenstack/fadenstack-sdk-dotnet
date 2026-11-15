@@ -24,6 +24,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       approvals/<agent>.json
       preferences/reasoning.json
       language
+      mcp/servers.dat
+      mcp/audit.jsonl
       keys/provenance-signing.key
       provenance/records/<record id>.json
       provenance/placements.jsonl
@@ -31,6 +33,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       sessions/<agent>/<session id>.jsonl
       approvals/<agent>.json
       preferences/reasoning.json
+      mcp/servers.dat
+      mcp/audit.jsonl
   tokens/<hash>.token                 shared by everyone on the OS account
   keystore/                           shared (macOS and Linux, with Fadenstack.Secrets)
   skills/<skill>/SKILL.md             shared
@@ -56,6 +60,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `approvals/<agent>.json` | "Allow always": each tool, its class, and when it was allowed. | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
 | `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
 | `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Not exported; deleted. |
+| `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Not exported; deleted. |
+| `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
 | `keys/provenance-signing.key` (standalone) | The device's key that signs provenance records ([Content provenance](provenance.md)). | Encrypted by DPAPI or the OS key store. Without either it is never written: a new key lives in memory for the run. | Until deleted. | Never exported; deleted. |
 | `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Not exported (`KeptRecords()` reads them); deleted. |
 | `provenance/placements.jsonl` (standalone) | Where tools placed marked content: hashes and outcomes. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
@@ -91,7 +97,7 @@ A person can ask for the data a device holds about them (GDPR Art. 15 and 20) an
 
 | Call | What it covers | What it leaves |
 |---|---|---|
-| `agent.ExportMyDataAsync(stream)` | A ZIP with the person's sessions, decrypted, their "Allow always" approvals and a README. | Tokens and secrets, which are never exported; the thinking level and the language; the standalone provenance records and log; the shared folders, skills included; what the server keeps. |
+| `agent.ExportMyDataAsync(stream)` | A ZIP with the person's sessions, decrypted, their "Allow always" approvals and a README. | Tokens and secrets, which are never exported; the thinking level and the language; the MCP servers and their audit log; the standalone provenance records and log; the shared folders, skills included; what the server keeps. |
 | `agent.DeleteMyDataAsync()` | The person's whole folder, `users/<user>/`, with everything in it. From a server that names no user: the shared `sessions`, `approvals` and `preferences` folders. | The sign-in (sign out for that); the shared folders; another person's folder (deleting a governed person's data leaves `users/standalone/`, and the other way round); a store your app passed (`HostStoresLeft`); what the server keeps. |
 | `tokens.SignOutAsync()` | Revokes the sign-in on the server where it can be reached, and deletes the token file. | The person's folder. |
 | `agent.DeleteSessionAsync(id)`, `agent.ResetApprovalsAsync()` | One session; this agent's "Allow always". | |
@@ -108,7 +114,7 @@ A person can ask for the data a device holds about them (GDPR Art. 15 and 20) an
 The conversation stays on the device. The server keeps usage and governance data, never the conversation's content:
 
 - **Model requests** pass through the server's gateway on their way to the model, where the organisation's policies apply ([Personal data](../../concepts/personal-data.md)), and are counted for usage.
-- **The agent's events**, with the session's id where there is one: `tool.executed` (the tool, its source, its duration and outcome), `approval.decided` (the tool, the decision, how long the person took, what let it through), `local_mcp.attached` (the server's label, its program or URL, and its tools' names), `session.stats` (counts, and the retention in force) and `agent.delegated`.
+- **The agent's events**, with the session's id where there is one: `tool.executed` (the tool, its source, its duration and outcome), `approval.decided` (the tool, the decision, how long the person took, what let it through), `local_mcp.attached` (the server's label, its program or URL, and its tools' names), `local_mcp.plain_http` (an MCP server's origin, and whether its local-network switch is on, where the profile's features list `client_events.local_mcp_plain_http`), `session.stats` (counts, and the retention in force) and `agent.delegated`.
 - **The app manifest:** the app's name and version, the SDK's version, the host tools with their classes, and the context and greeting the app describes ([Build an agent](agent.md)).
 - **The person's settings,** such as their language, and the device's sign-in with its label, until it is revoked.
 - **Server-held grants,** with their time limits ([Server-held grants and Bypass](server-grants.md)).

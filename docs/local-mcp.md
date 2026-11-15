@@ -165,7 +165,7 @@ An MCP server describes its own tools, and the agent does not take that descript
 
 ## The person's own list
 
-`McpHost` keeps the person's servers per user (`users/<id>/mcp/servers.dat`, encrypted; standalone: `users/standalone/mcp`). It gives them to the agent through `NewModule()`. Its other members:
+`McpHost` keeps the person's servers per user (`users/<id>/mcp/servers.dat`, encrypted; standalone: `users/standalone/mcp`; see [Data on the device](data-on-device.md)). It gives them to the agent through `NewModule()`. Its other members:
 - `AddAsync`, `UpdateAsync`, `RemoveAsync` and `SetEnabledAsync`;
 - the trust mark and the person's raises;
 - `TestAsync`, which starts a server for a moment under the same rules;
