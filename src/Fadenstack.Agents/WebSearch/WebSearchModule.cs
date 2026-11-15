@@ -282,7 +282,7 @@ public sealed class WebSearchModule : IFadenstackModule, ICoreToolSource, IChang
                 continue;
             }
             if (c is '\u200B' or '\u2060' or '\uFEFF' or '\u200E' or '\u200F' or (>= '\u202A' and <= '\u202E') or (>= '\u2066' and <= '\u2069')
-                || (c >= '︀' && c <= '️'))
+                || (c >= '\uFE00' && c <= '\uFE0F'))
             {
                 continue;
             }
