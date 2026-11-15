@@ -579,11 +579,16 @@ public class LocalMcpLiveTests
         var result = await session.SendAsync("Export");
 
         Assert.Equal(ChatOutcome.Completed, result.Outcome);
-        await McpRig.EventuallyAsync(() => { lock (seen) { return seen.Count == 3; } }, "three progress notices");
+        // The MCP SDK handles notices concurrently: one that arrives after a later one is dropped, never shown out of order.
+        await McpRig.EventuallyAsync(() => { lock (seen) { return seen.Any(p => p.Progress == 3f); } }, "the last progress notice");
         lock (seen)
         {
-            Assert.Equal(new[] { 1f, 2f, 3f }, seen.Select(p => p.Progress));
-            Assert.Equal(new[] { "page 1", "page 2", "page 3" }, seen.Select(p => p.Message));
+            var values = seen.Select(p => p.Progress).ToList();
+            Assert.Equal(values.OrderBy(v => v), values);
+            Assert.Equal(values.Distinct(), values);
+            Assert.Subset(new HashSet<float> { 1f, 2f, 3f }, values.ToHashSet());
+            Assert.Equal(3f, values[values.Count - 1]);
+            Assert.All(seen, p => Assert.Equal($"page {p.Progress}", p.Message));
             Assert.All(seen, p => Assert.Equal(("notes-db", "export", session.Id, result.TurnId, (float?)3f), (p.Server, p.Tool, p.SessionId, p.TurnId, p.Total)));
         }
     }

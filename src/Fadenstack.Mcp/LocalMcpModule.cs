@@ -627,9 +627,11 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             {
                 names = entry.Tools.Select(t => t.Name).ToList();
             }
+            // The address without a user, password, query or fragment, where tokens are often put; a program's arguments never go.
             await _context!.ReportAsync(new LocalMcpAttachedEvent
             {
-                Label = entry.Server.Label, Command = entry.Server.Command, Url = entry.Server.Url?.ToString(), Tools = names,
+                Label = entry.Server.Label, Command = entry.Server.Command,
+                Url = entry.Server.Url is { } url ? McpHttp.ReportedAddress(url) : null, Tools = names,
             }).ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -1204,15 +1206,17 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                     ["name"] = tool.ServerName, ["arguments"] = args, ["_meta"] = new JsonObject { ["progressToken"] = progressToken },
                 },
             };
+            var inOrder = new McpProgressGate();
             await using var listening = client.RegisterNotificationHandler(NotificationMethods.ProgressNotification, (notice, _) =>
             {
                 try
                 {
                     var value = notice.Params.Deserialize<ProgressNotificationParams>(McpJsonUtilities.DefaultOptions);
-                    if (value is not null && value.ProgressToken.ToString() == progressToken)
+                    if (value is not null && value.ProgressToken.ToString() == progressToken && Progress is { } host)
                     {
-                        Progress?.Invoke(new McpProgress(call.SessionId, call.TurnId, label, tool.ServerName,
-                            value.Progress.Message is null ? null : McpText.OneLine(value.Progress.Message, 200), value.Progress.Progress, value.Progress.Total));
+                        var progress = new McpProgress(call.SessionId, call.TurnId, label, tool.ServerName,
+                            value.Progress.Message is null ? null : McpText.OneLine(value.Progress.Message, 200), value.Progress.Progress, value.Progress.Total);
+                        inOrder.Forward(progress, host);
                     }
                 }
                 catch (Exception e) when (e is not OperationCanceledException)

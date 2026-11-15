@@ -122,3 +122,29 @@ public sealed record McpAnswer(McpAnswerKind Kind, IReadOnlyDictionary<string, o
 
 /// <summary>Progress of a running call, for the turn's step line. <see cref="Message"/> is the server's word.</summary>
 public sealed record McpProgress(string SessionId, string TurnId, string Server, string Tool, string? Message, float Progress, float? Total);
+
+/// <summary>
+/// One call's progress on its way to the host, in order. The MCP specification says a call's progress only grows, but the MCP SDK
+/// handles notifications concurrently, so a later one can arrive first: a value below the last one forwarded is dropped, so a
+/// host's progress bar never steps back, and the host is called under the gate, so two values that pass it reach it in order.
+/// </summary>
+internal sealed class McpProgressGate
+{
+    private readonly object _gate = new();
+    private float? _last;
+
+    /// <summary>Calls <paramref name="host"/> with <paramref name="progress"/> unless a later value went on already; true when it did.</summary>
+    public bool Forward(McpProgress progress, Action<McpProgress> host)
+    {
+        lock (_gate)
+        {
+            if (_last is { } last && progress.Progress < last)
+            {
+                return false;
+            }
+            _last = progress.Progress;
+            host(progress);
+            return true;
+        }
+    }
+}

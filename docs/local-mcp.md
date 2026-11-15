@@ -197,6 +197,6 @@ The texts are in English, German, French, Spanish and Simplified Chinese. The ap
 
 ## What the server learns
 
-Each attached server is reported to the server (`local_mcp.attached`) with its label, its program or URL, and the names of its tools. The switch's changes go as `local_mcp.plain_http`, as above. A stdio server's arguments are never reported, because they can hold secrets, and a header or environment value is never reported or logged.
+Each attached server is reported to the server (`local_mcp.attached`) with its label, its program or its address without a user, password, query or fragment, and the names of its tools. The switch's changes go as `local_mcp.plain_http`, as above. A stdio server's arguments are never reported, because they can hold secrets, and a header or environment value is never reported or logged.
 
 OWASP ASVS 5.0: V12 (secure communication), V13 (configuration and secrets), V15 (secure coding).

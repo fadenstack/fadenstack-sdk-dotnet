@@ -78,6 +78,12 @@ internal static class McpHttp
         return url.Scheme + "://" + host + (url.IsDefaultPort ? "" : ":" + url.Port.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
+    /// <summary>
+    /// A server's address as a governed server is told it (<c>local_mcp.attached</c>): the origin and the path, without a user,
+    /// password, query or fragment, where tokens are often put. The TypeScript SDK sends the same.
+    /// </summary>
+    public static string ReportedAddress(Uri url) => Origin(url) + url.GetComponents(UriComponents.Path | UriComponents.KeepDelimiter, UriFormat.UriEscaped);
+
     public static async Task<HttpClient> CreateClientAsync(Uri url, bool hasSecrets, bool optedIn, McpConnection connection,
         CancellationToken cancellationToken)
     {
