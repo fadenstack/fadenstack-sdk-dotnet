@@ -743,6 +743,24 @@
                         <TextBlock Style="{StaticResource Fadenstack.Mono}" Text="{Binding ArgumentsText}" />
                     </ScrollViewer>
                 </Border>
+                <!-- "Say why": a reason for declining, sent with Deny (Esc in the box closes it without deciding). -->
+                <Border Margin="0,12,0,0" Padding="8,6" BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}"
+                        BorderBrush="{DynamicResource Fadenstack.Border}" Background="{DynamicResource Fadenstack.Background}"
+                        Visibility="{Binding IsReasonOpen, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Grid>
+                        <TextBlock Text="{v:Text DenyReasonPlaceholder}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" TextWrapping="Wrap"
+                                   IsHitTestVisible="False" Margin="2,0,0,0"
+                                   Visibility="{Binding DenyReason, Converter={StaticResource Fadenstack.EmptyToCollapsed}, ConverterParameter=invert}" />
+                        <TextBox x:Name="ReasonBox" Text="{Binding DenyReason, UpdateSourceTrigger=PropertyChanged}" MaxLength="500" AcceptsReturn="True"
+                                 TextWrapping="Wrap" MinLines="1" MaxLines="3" VerticalScrollBarVisibility="Auto" BorderThickness="0" Padding="0"
+                                 Background="Transparent" Foreground="{DynamicResource Fadenstack.Foreground}"
+                                 CaretBrush="{DynamicResource Fadenstack.Foreground}" AutomationProperties.Name="{v:Text DenyReasonName}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Escape" Command="{Binding ToggleReasonCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
                 <!-- One row when they fit; else two by two (or one under the other), never "Deny" alone on a row. -->
                 <v:ButtonRow Margin="0,12,0,0" Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <!-- One split button when the request offers more than "Allow"; else the plain button. -->
@@ -777,8 +795,17 @@
                     </StackPanel>
                     <Button Style="{StaticResource Fadenstack.SecondaryButton}" Content="{v:Text Deny}" Command="{Binding DenyCommand}" />
                 </v:ButtonRow>
+                <TextBlock FontSize="12" Margin="0,8,0,0" HorizontalAlignment="Left"
+                           Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Hyperlink Command="{Binding ToggleReasonCommand}" Foreground="{DynamicResource Fadenstack.Link}"
+                               FocusVisualStyle="{DynamicResource Fadenstack.LinkFocusVisual}"><Run Text="{v:Text SayWhy}" /></Hyperlink>
+                </TextBlock>
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,8,0,0" Text="{Binding StateText}"
                            Visibility="{Binding IsPending, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}" />
+                <!-- A declined card's reason, as plain text. -->
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="0,4,0,0" Text="{Binding DeclinedReasonText}" TextWrapping="Wrap"
+                           MaxHeight="40" TextTrimming="CharacterEllipsis" ToolTip="{Binding DeclinedReasonText}"
+                           Visibility="{Binding IsReasonShown, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
             </StackPanel>
         </Border>
         <DataTemplate.Triggers>

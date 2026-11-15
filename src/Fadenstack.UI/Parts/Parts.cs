@@ -365,7 +365,8 @@ public sealed class ApprovalPart : ResponsePart
             () => IsPending && CanAllowForSession);
         AllowAlwaysCommand = new RelayCommand(() => Decide(ApprovalDecision.ApproveAlways(), ApprovalState.ApprovedAlways),
             () => IsPending && CanAllowAlways);
-        DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(), ApprovalState.Denied), () => IsPending);
+        DenyCommand = new RelayCommand(() => Decide(ApprovalDecision.Deny(DeniedReason), ApprovalState.Denied), () => IsPending);
+        ToggleReasonCommand = new RelayCommand(() => IsReasonOpen = !IsReasonOpen, () => IsPending);
         AllowForTimeCommand = new ItemCommand<DurationOption>(d =>
         {
             if (d is not null)
@@ -492,9 +493,61 @@ public sealed class ApprovalPart : ResponsePart
                 AllowAlwaysCommand.NotifyCanExecuteChanged();
                 AllowForTimeCommand.NotifyCanExecuteChanged();
                 DenyCommand.NotifyCanExecuteChanged();
+                ToggleReasonCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(IsReasonOpen));
+                OnPropertyChanged(nameof(IsReasonShown));
             }
         }
     }
+
+    private string _denyReason = "";
+    private bool _isReasonOpen;
+    private string? _declinedReason;
+
+    /// <summary>What the person typed into the reason field (two-way bound); sent with Deny, trimmed.</summary>
+    public string DenyReason
+    {
+        get => _denyReason;
+        set => SetProperty(ref _denyReason, value ?? "");
+    }
+
+    /// <summary>Whether the reason field is open: only while the card waits.</summary>
+    public bool IsReasonOpen
+    {
+        get => _isReasonOpen && IsPending;
+        set
+        {
+            if (_isReasonOpen != value && (!value || IsPending))
+            {
+                _isReasonOpen = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>Opens or closes the reason field ("Say why"; Esc in the field closes it without deciding).</summary>
+    public IRelayCommand ToggleReasonCommand { get; }
+
+    /// <summary>The reason a declined card carries (what was sent, or what the transcript kept); null for none.</summary>
+    internal string? DeclinedReason
+    {
+        get => _declinedReason;
+        set
+        {
+            _declinedReason = value;
+            OnPropertyChanged(nameof(DeclinedReasonText));
+            OnPropertyChanged(nameof(IsReasonShown));
+        }
+    }
+
+    /// <summary>The reason to send with Deny: the typed text, trimmed; null when empty.</summary>
+    private string? DeniedReason => string.IsNullOrWhiteSpace(_denyReason) ? null : _denyReason.Trim();
+
+    /// <summary>"Your reason: ..." on a declined card, as plain text; "" when none.</summary>
+    public string DeclinedReasonText => string.IsNullOrEmpty(_declinedReason) ? "" : _strings.YourReason(_declinedReason!);
+
+    /// <summary>Whether the card shows the reason line.</summary>
+    public bool IsReasonShown => _state == ApprovalState.Denied && !string.IsNullOrEmpty(_declinedReason);
 
     public bool IsPending => _state == ApprovalState.Pending;
 
@@ -535,6 +588,10 @@ public sealed class ApprovalPart : ResponsePart
         if (_pending is null || !_pending.Resolve(decision))
         {
             return;
+        }
+        if (state == ApprovalState.Denied)
+        {
+            DeclinedReason = ApprovalDecision.CleanReason(decision.Reason);
         }
         State = state;
     }

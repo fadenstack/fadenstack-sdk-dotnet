@@ -242,6 +242,30 @@
     <Style Selector="ScrollViewer.arguments">
         <Setter Property="MaxHeight" Value="160" />
     </Style>
+    <!-- The reason field of a declined card: a card in the one container radius, the field inside borderless, the frame shows the focus. -->
+    <Style Selector="Border.reason">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Container}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.BorderStrong}" />
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.Background}" />
+        <Setter Property="Padding" Value="12,6" />
+    </Style>
+    <Style Selector="Border.reason:focus-within">
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Focus}" />
+        <Setter Property="Padding" Value="11,5" />
+    </Style>
+    <Style Selector="TextBox.reason">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0,4" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
+    </Style>
+    <Style Selector="TextBox.reason /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
     <!-- Deny, then Allow; they wrap under each other in a narrow card. -->
     <Style Selector="WrapPanel.actions">
         <Setter Property="HorizontalAlignment" Value="Right" />

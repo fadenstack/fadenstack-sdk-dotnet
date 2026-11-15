@@ -234,6 +234,22 @@
     <value>Denied</value>
     <comment>A card once answered</comment>
   </data>
+  <data name="SayWhy" xml:space="preserve">
+    <value>Say why</value>
+    <comment>The link on a card that opens the reason field</comment>
+  </data>
+  <data name="DenyReasonPlaceholder" xml:space="preserve">
+    <value>Why not? The assistant sees your reason.</value>
+    <comment>The reason field's hint</comment>
+  </data>
+  <data name="DenyReasonName" xml:space="preserve">
+    <value>Your reason for declining</value>
+    <comment>The reason field's accessible name</comment>
+  </data>
+  <data name="YourReason" xml:space="preserve">
+    <value>Your reason: {0}</value>
+    <comment>Shown on a declined card; {0} is the person's reason</comment>
+  </data>
   <data name="NoAnswer" xml:space="preserve">
     <value>No answer in time</value>
     <comment>A card nobody answered in time</comment>
