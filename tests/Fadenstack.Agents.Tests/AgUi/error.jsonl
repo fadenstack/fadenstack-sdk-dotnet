@@ -1,0 +1,5 @@
+{"type":"RUN_STARTED","timestamp":1700000000000,"threadId":"thread-1","runId":"turn-1","metadata":{"toolMode":"ask"}}
+{"type":"TEXT_MESSAGE_START","timestamp":1700000000001,"messageId":"turn-1-m1","role":"assistant"}
+{"type":"TEXT_MESSAGE_CONTENT","timestamp":1700000000002,"messageId":"turn-1-m1","delta":"Partial"}
+{"type":"TEXT_MESSAGE_END","timestamp":1700000000003,"messageId":"turn-1-m1"}
+{"type":"RUN_ERROR","timestamp":1700000000004,"message":"The model call failed."}

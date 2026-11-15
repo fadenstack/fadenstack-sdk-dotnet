@@ -23,6 +23,7 @@ nav = [
   { "Chat panel" = "chat-panel.md" },
   { "Without an agent" = "plain-api.md" },
   { "Extending" = "extending.md" },
+  { "Interop" = "interop.md" },
   { "Samples" = "samples.md" },
   { "Building a library" = "libraries.md" },
   { "Testing" = "testing.md" },

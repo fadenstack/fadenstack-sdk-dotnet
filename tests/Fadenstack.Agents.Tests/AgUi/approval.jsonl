@@ -1,0 +1,11 @@
+{"type":"RUN_STARTED","timestamp":1700000000000,"threadId":"thread-1","runId":"turn-1","metadata":{"toolMode":"ask"}}
+{"type":"TOOL_CALL_START","timestamp":1700000000001,"toolCallId":"call-2","toolCallName":"delete_page","metadata":{"toolClass":"destructive","source":"host"}}
+{"type":"TOOL_CALL_ARGS","timestamp":1700000000002,"toolCallId":"call-2","delta":"{\"page\":8}"}
+{"type":"TOOL_CALL_END","timestamp":1700000000003,"toolCallId":"call-2"}
+{"type":"RUN_FINISHED","timestamp":1700000000004,"threadId":"thread-1","runId":"turn-1","outcome":{"type":"interrupt","interrupts":[{"id":"call-2","reason":"approval_required","message":"Deleting cannot be undone.","toolCallId":"call-2","metadata":{"toolName":"delete_page","toolClass":"destructive","source":"host"}}]}}
+{"type":"RUN_STARTED","timestamp":1700000000005,"threadId":"thread-1","runId":"turn-1.2","metadata":{"resumes":{"interruptId":"call-2","approved":true}}}
+{"type":"TOOL_CALL_RESULT","timestamp":1700000000006,"messageId":"turn-1-result-call-2","toolCallId":"call-2","content":"deleted","role":"tool","metadata":{"outcome":"ok","durationMs":3}}
+{"type":"TEXT_MESSAGE_START","timestamp":1700000000007,"messageId":"turn-1-m1","role":"assistant"}
+{"type":"TEXT_MESSAGE_CONTENT","timestamp":1700000000008,"messageId":"turn-1-m1","delta":"Deleted."}
+{"type":"TEXT_MESSAGE_END","timestamp":1700000000009,"messageId":"turn-1-m1"}
+{"type":"RUN_FINISHED","timestamp":1700000000010,"threadId":"thread-1","runId":"turn-1.2","result":{"outcome":"completed"},"outcome":{"type":"success"},"usage":[{"inputTokens":12,"outputTokens":5,"totalTokens":17}]}

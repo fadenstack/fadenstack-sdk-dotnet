@@ -1,0 +1,4 @@
+{"type":"RUN_STARTED","timestamp":1700000000000,"threadId":"thread-1","runId":"turn-1","metadata":{"toolMode":"ask"}}
+{"type":"CUSTOM","timestamp":1700000000001,"name":"faden.citations","value":{"tool":"knowledge_search","sources":[{"source":"a.pdf","score":0.9}]}}
+{"type":"CUSTOM","timestamp":1700000000002,"name":"faden.notice","value":{"outcome":"response_blocked","stage":"output","category":"pii","message":"Answer withheld.","requestId":"req-1"}}
+{"type":"RUN_FINISHED","timestamp":1700000000003,"threadId":"thread-1","runId":"turn-1","result":{"outcome":"response_blocked"},"outcome":{"type":"success"}}
