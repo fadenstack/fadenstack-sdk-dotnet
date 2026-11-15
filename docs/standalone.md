@@ -54,7 +54,7 @@ reads `context.Connection` and `context.ServerClient`. Use the connection to sho
 decide what may run: that comes from the profile and the tool classes, the same in both modes.
 
 The first standalone start never takes the chats an older SDK kept in the shared data folder; a governed person who
-signs in later still gets them.
+signs in later still gets them. [Data on the device](data-on-device.md) lists what the standalone folder holds.
 
 ## Endpoints and presets
 

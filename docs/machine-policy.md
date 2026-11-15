@@ -39,4 +39,4 @@ var agent = FadenstackAgent.CreateBuilder()
 - **Locked values:** `policy.Locked` names the keys the policy set; the app locks them in its UI and never writes them into
   the person's settings file.
 - **Enrolment keeps data apart:** an agent on the person's own endpoint keeps its chats under `users/standalone/`, never
-  uploaded, and its "Allow always" decisions do not carry over to the organisation's agent.
+  uploaded, and its "Allow always" decisions do not carry over to the organisation's agent ([Data on the device](data-on-device.md#a-persons-folder)).

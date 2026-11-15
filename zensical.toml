@@ -13,6 +13,7 @@ nav = [
   { "Host commands and policy" = "host-commands.md" },
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },
+  { "Data on the device" = "data-on-device.md" },
   { "Local MCP servers" = "local-mcp.md" },
   { "Delegating to agents" = "delegation.md" },
   { "Content provenance" = "provenance.md" },
