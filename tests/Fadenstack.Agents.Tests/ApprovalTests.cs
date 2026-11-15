@@ -97,7 +97,7 @@ public class ApprovalTests
         var store = new MemoryApprovalStore();
         if (keptAlways)
         {
-            await store.AddAsync(Gateway.Slug, new StoredApproval(tool, ToolModes.ParseClass(risk), DateTimeOffset.UtcNow));
+            await store.AddAsync(Gateway.Slug, new StoredApproval(tool, ToolModes.ParseClass(risk), DateTimeOffset.UtcNow) { Source = "host" });
         }
         var tools = new PageTools();
         var requests = new List<ApprovalRequest>();
@@ -249,7 +249,7 @@ public class ApprovalTests
     public async Task An_admins_rule_asks_even_when_the_tool_was_allowed_for_the_chat_and_always()
     {
         var store = new MemoryApprovalStore();
-        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow));
+        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow) { Source = "host" });
         var gateway = new Gateway().Calls(("call-1", "add_comment", """{"page":1,"text":"a"}""")).Says("Added.");
         MarkedCall(gateway, "call-2", "add_comment", """{"page":2,"text":"b"}""",
             new { toolCallId = "call-2", toolCallName = "add_comment", message = "Comments on page 2 need approval.", rule = true }).Says("Added.");
@@ -409,7 +409,7 @@ public class ApprovalTests
 
         await session.SendAsync("1"); // asked: allowed for this chat
         await session.SendAsync("2"); // this chat
-        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow));
+        await store.AddAsync(Gateway.Slug, new StoredApproval("add_comment", ToolClass.Write, DateTimeOffset.UtcNow) { Source = "host" });
         await session.SendAsync("3"); // always comes before this chat
         await session.SendAsync("4"); // a rule asks, over both
         await session.SendAsync("5"); // destructive asks, once only

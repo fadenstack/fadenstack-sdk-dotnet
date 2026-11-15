@@ -120,6 +120,41 @@ public sealed record ApprovalDecision
     public static ApprovalDecision ApproveFor(TimeSpan duration) => new() { Approved = true, ForTime = duration };
 
     public static ApprovalDecision Deny(string? reason = null) => new() { Approved = false, Reason = reason };
+
+    /// <summary>The longest reason for declining that reaches the model and the transcript, in characters (sdk/51 F08 §3).</summary>
+    public const int MaxReasonChars = 500;
+
+    /// <summary>
+    /// The person's reason for declining as the model and the transcript get it: control characters and invisible or direction
+    /// marks out (line breaks kept), trimmed, cut to <see cref="MaxReasonChars"/>; null when nothing is left.
+    /// </summary>
+    public static string? CleanReason(string? reason)
+    {
+        if (reason is null)
+        {
+            return null;
+        }
+        var kept = new System.Text.StringBuilder(Math.Min(reason.Length, MaxReasonChars));
+        foreach (var c in reason)
+        {
+            if (c == '\n' || !(char.IsControl(c) || c is '\u200B' or '\u2060' or '\uFEFF' or '\u200E' or '\u200F'
+                || (c >= '\u202A' && c <= '\u202E') || (c >= '\u2066' && c <= '\u2069')))
+            {
+                kept.Append(c);
+            }
+        }
+        var text = kept.ToString().Trim();
+        if (text.Length > MaxReasonChars)
+        {
+            var keep = MaxReasonChars;
+            if (char.IsHighSurrogate(text[keep - 1]))
+            {
+                keep--;
+            }
+            text = text.Substring(0, keep);
+        }
+        return text.Length == 0 ? null : text;
+    }
 }
 
 /// <summary>

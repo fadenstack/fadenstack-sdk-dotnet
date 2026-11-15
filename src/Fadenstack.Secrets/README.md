@@ -17,7 +17,9 @@ using Fadenstack.Secrets;
 FadenstackSecrets.UseOsKeyStore(loggerFactory.CreateLogger("Fadenstack"));
 ```
 
-- Data written earlier without encryption (owner-only files) is still read, and encrypted on its next write.
+- The owner-only files written earlier without encryption (sign-ins, "always allow" approvals and their seal key) are
+  encrypted once, the first time the key store is on, and the move is recorded (`keystore/plain-files-moved`). From then on
+  data without the encryption header is refused, so nobody can plant a plain "always allow" (OWASP ASVS 5.0 V8, V14).
 - Without a working key store (a headless Linux with no Secret Service) the call returns `false` and the owner-only
   files stay. The agent then keeps session transcripts in memory only (it logs a warning); approvals and tokens keep
   their owner-only files.

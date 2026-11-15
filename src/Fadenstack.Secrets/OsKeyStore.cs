@@ -24,7 +24,16 @@ public static class OsKeyStore
             protector = new DpapiSecretProtector();
             return true;
         }
-        return TryCreate(out protector, logger, OpenOsKeyStore);
+        if (!TryCreate(out protector, logger, OpenOsKeyStore))
+        {
+            return false;
+        }
+        if (protector is OsKeyStoreProtector os)
+        {
+            // Once per OS user: the owner-only files from before are encrypted, then plain data is refused (sdk/51 F08 §1).
+            PlainMigration.Run(os, Fadenstack.Storage.FadenstackPaths.DataRoot, logger);
+        }
+        return true;
     }
 
     internal static bool TryCreate(out ISecretProtector protector, ILogger? logger, Func<IKeyStore> open)

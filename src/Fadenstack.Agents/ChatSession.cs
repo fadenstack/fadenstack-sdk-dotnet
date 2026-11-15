@@ -23,7 +23,9 @@ public sealed class ChatSession
 {
     private readonly FadenstackAgent _agent;
     private readonly List<TranscriptEntry> _entries;
-    private readonly HashSet<string> _approvedForSession = new();
+    // What the person allowed for this chat, by the tool's name, source and server (sdk/51 F08 §4): a new MCP server bringing a
+    // tool of the same name is asked about on its own.
+    private readonly HashSet<(string Tool, string Source, string? Server)> _approvedForSession = new();
     private readonly SemaphoreSlim _turn = new(1, 1);
     private readonly ContextBuilder _context;
     private ReasoningLevel? _reasoning;
@@ -102,7 +104,16 @@ public sealed class ChatSession
     /// <summary>
     /// Tools the user allowed for this chat. Kept in memory only: a session opened again asks again.
     /// </summary>
-    public IReadOnlyCollection<string> ApprovedForSession => _approvedForSession;
+    public IReadOnlyCollection<string> ApprovedForSession
+    {
+        get
+        {
+            lock (_approvedForSession)
+            {
+                return _approvedForSession.Select(k => k.Tool).Distinct(StringComparer.Ordinal).ToList();
+            }
+        }
+    }
 
     /// <summary>
     /// Forgets what the user allowed for this chat: every tool, or <paramref name="tool"/> only. (What they allowed
@@ -118,7 +129,7 @@ public sealed class ChatSession
             }
             else
             {
-                _approvedForSession.Remove(tool);
+                _approvedForSession.RemoveWhere(k => k.Tool == tool);
             }
         }
     }
@@ -614,19 +625,19 @@ public sealed class ChatSession
         _entries.Add(entry);
     }
 
-    private bool ApprovedForChat(string tool)
+    private bool ApprovedForChat(string tool, string source, string? server)
     {
         lock (_approvedForSession)
         {
-            return _approvedForSession.Contains(tool);
+            return _approvedForSession.Contains((tool, source, server));
         }
     }
 
-    private void ApproveForChat(string tool)
+    private void ApproveForChat(string tool, string source, string? server)
     {
         lock (_approvedForSession)
         {
-            _approvedForSession.Add(tool);
+            _approvedForSession.Add((tool, source, server));
         }
     }
 
@@ -1732,8 +1743,9 @@ public sealed class ChatSession
                 if (!settled.Approved)
                 {
                     _toolDenied = true;
-                    var reason = settled.Reason is { Length: > 0 } r ? $" ({r})" : "";
-                    return ($"The user declined to run '{tool.Name}'{reason}.", "denied", asking.Elapsed, Array.Empty<DataContent>(), null);
+                    // The reason is the person's own text (sdk/51 F08 §3): not fenced as untrusted data, but cut and cleaned.
+                    var reason = ApprovalDecision.CleanReason(settled.Reason) is { } r ? $" Their reason: {r}" : "";
+                    return ($"The user declined to run '{tool.Name}'.{reason}", "denied", asking.Elapsed, Array.Empty<DataContent>(), null);
                 }
                 approval = KindOf(settled.Scope, rule);
                 unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
@@ -1937,8 +1949,8 @@ public sealed class ChatSession
             var standing = rule || individual ? null
                 : granted is not null ? ApprovalScopes.Grant
                 : !open ? null
-                : always && await ApprovedAlwaysAsync(name, toolClass).ConfigureAwait(false) ? ApprovalScopes.Always
-                : Offers(ApprovalScopes.Chat) && _session.ApprovedForChat(name) ? ApprovalScopes.Chat
+                : always && await ApprovedAlwaysAsync(name, toolClass, request.Source, request.Server).ConfigureAwait(false) ? ApprovalScopes.Always
+                : Offers(ApprovalScopes.Chat) && _session.ApprovedForChat(name, request.Source, request.Server) ? ApprovalScopes.Chat
                 : null;
             if (standing is not null)
             {
@@ -1986,16 +1998,17 @@ public sealed class ChatSession
                 confirmed = made is null ? null : Math.Max(1, (int)Math.Ceiling(made.RemainingS / 60.0));
                 scope = made is null ? ApprovalScopes.Once : scope;
             }
-            if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass).ConfigureAwait(false))
+            if (scope == ApprovalScopes.Always && !await KeepAlwaysAsync(name, toolClass, request.Source, request.Server).ConfigureAwait(false))
             {
                 scope = ApprovalScopes.Once;
             }
             if (scope == ApprovalScopes.Chat)
             {
-                _session.ApproveForChat(name);
+                _session.ApproveForChat(name, request.Source, request.Server);
             }
             var minutes = scope == ApprovalScopes.Grant ? (int?)decision!.ForTime!.Value.TotalMinutes : null;
-            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes, confirmed).ConfigureAwait(false);
+            await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes, confirmed,
+                scope is null ? ApprovalDecision.CleanReason(decision?.Reason) : null).ConfigureAwait(false);
             Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
                 : scope == ApprovalScopes.Grant ? ApprovalDecision.ApproveFor(TimeSpan.FromMinutes(confirmed!.Value))
                 : scope == ApprovalScopes.Always ? ApprovalDecision.ApproveAlways()
@@ -2079,7 +2092,7 @@ public sealed class ChatSession
 
         /// <summary>The approval's transcript entry, and the server's record of it (names only).</summary>
         private async Task RecordAsync(ApprovalRequest request, string? scope, bool asked, bool rule, bool timedOut, long? waitedMs,
-            string? grantId = null, int? minutes = null, int? confirmedMinutes = null)
+            string? grantId = null, int? minutes = null, int? confirmedMinutes = null, string? reason = null)
         {
             await _session.AppendAsync(EntryTypes.ApprovalDecision, _id, new
             {
@@ -2099,6 +2112,7 @@ public sealed class ChatSession
                 outside_grant = request.LeadsOutside is not null, // a link led out of the grant's places: asked
                 timed_out = timedOut,
                 wait_ms = waitedMs ?? 0,
+                reason, // the person's reason for declining, cut (sdk/51 F08 §3; sdk/45 §4: the same key in both SDKs); on the device only
             }).ConfigureAwait(false);
             Agent.Reporter.Add(new ApprovalDecidedEvent
             {
@@ -2113,12 +2127,12 @@ public sealed class ChatSession
             }
         }
 
-        private async Task<bool> ApprovedAlwaysAsync(string tool, ToolClass toolClass)
+        private async Task<bool> ApprovedAlwaysAsync(string tool, ToolClass toolClass, string source, string? server)
         {
             try
             {
                 var kept = await Agent.ApprovalStore.ListAsync(Agent.Slug).ConfigureAwait(false);
-                return kept.Any(a => a.Tool == tool && a.ToolClass == toolClass);
+                return kept.Any(a => a.Covers(tool, toolClass, source, server));
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
@@ -2126,11 +2140,12 @@ public sealed class ChatSession
             }
         }
 
-        private async Task<bool> KeepAlwaysAsync(string tool, ToolClass toolClass)
+        private async Task<bool> KeepAlwaysAsync(string tool, ToolClass toolClass, string source, string? server)
         {
             try
             {
-                await Agent.ApprovalStore.AddAsync(Agent.Slug, new StoredApproval(tool, toolClass, DateTimeOffset.UtcNow)).ConfigureAwait(false);
+                await Agent.ApprovalStore.AddAsync(Agent.Slug, new StoredApproval(tool, toolClass, DateTimeOffset.UtcNow) { Source = source, Server = server })
+                    .ConfigureAwait(false);
                 return true;
             }
             catch (Exception e) when (e is not OperationCanceledException)
