@@ -1,4 +1,5 @@
 using Fadenstack.LocalTools;
+using Fadenstack.Tools;
 using Fadenstack.UI.Services;
 using Fadenstack.UI.Tools;
 
@@ -10,6 +11,14 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
     public bool SignedIn { get; set; } = true;
 
     public ToolsPolicy Policy { get; set; } = ToolsPolicy.Allowed;
+
+    /// <summary>The agent is connected to an organisation's server; false: standalone or not known yet.</summary>
+    public bool IsGoverned { get; set; } = true;
+
+    /// <summary>The tools the app itself gives the agent.</summary>
+    public List<AppToolInfo> App { get; } = new();
+
+    public IReadOnlyList<AppToolInfo> AppTools => App;
 
     public bool ServersKeptOnDisk { get; set; } = true;
 
@@ -212,6 +221,10 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
     public static FakeLocalToolsCatalog Scene()
     {
         var catalog = new FakeLocalToolsCatalog();
+        catalog.App.Add(new AppToolInfo("read_page", "Reads the page that is open in the browser.\n\n  Returns its text.", ToolClass.Read));
+        catalog.App.Add(new AppToolInfo("fill_field", "Types a value into a field of the page.", ToolClass.Write));
+        catalog.App.Add(new AppToolInfo("click_button", "Clicks a button of the page; a click may send a form.", ToolClass.Destructive));
+        catalog.App.Add(new AppToolInfo("wait", "", ToolClass.Unknown));
         catalog.Servers.Add(new LocalServerInfo
         {
             Label = "demo", Where = "faden-mcp-demo.exe", IsProgram = true, Enabled = true, State = LocalServerState.Running, Origin = "typed",

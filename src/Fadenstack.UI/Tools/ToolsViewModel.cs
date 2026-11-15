@@ -7,12 +7,26 @@ using Fadenstack.UI.Services;
 
 namespace Fadenstack.UI.Tools;
 
+/// <summary>The three places of the Tools view, in the order of its tabs.</summary>
+public enum ToolsTab
+{
+    /// <summary>"In this app": the tools the app itself gives the assistant (read only).</summary>
+    App,
+
+    /// <summary>"On this computer": the person's MCP servers.</summary>
+    Computer,
+
+    /// <summary>"On your server": the organisation's tools (read only); only while the connection is governed.</summary>
+    Server,
+}
+
 /// <summary>
 /// The Tools view (sdk/51 F05; the desktop app's Tools page without its built-in tools and assistants): a header with Scan and Add, a
-/// bar with the two places tools run (on this computer, on your server), the policy chip and a filter. <i>On this computer</i> shows
+/// bar with the places tools come from (in this app, on this computer, on your server), the policy chip and a filter. <i>In this app</i>
+/// lists the tools the app itself gives the assistant, read only. <i>On this computer</i> shows
 /// the person's MCP servers as cards (a details drawer opens on a card, with the trust mark, each tool's class and the plain-http
 /// switch); the empty state replaces the cards while there are none. <i>On your server</i> shows the organisation's tools by server,
-/// read only. Adding and editing a server, the import and the scan are modal sheets. Everything comes from the app's
+/// read only, and exists only while the agent is connected to an organisation's server (not standalone, not unknown). Adding and editing a server, the import and the scan are modal sheets. Everything comes from the app's
 /// <see cref="ILocalToolsCatalog"/>; every change goes back through it. Strict MVVM: no view type, and the catalog's events (from any
 /// thread) are brought to the UI thread through the <see cref="IUiDispatcher"/>.
 /// </summary>
@@ -26,6 +40,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     private CloudToolsResult? _cloud;
     private bool _refreshPending;
     private bool _cloudLoaded;
+    private readonly List<AppToolViewModel> _allApp = new List<AppToolViewModel>();
     private bool _disposed;
 
     /// <param name="catalog">The servers and the cloud tools (<c>Fadenstack.Mcp.McpToolsCatalog</c>).</param>
@@ -92,25 +107,63 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     [ObservableProperty]
     private bool _plainHttpPermitted;
 
-    /// <summary>The tab "On this computer" is selected (otherwise "On your server").</summary>
+    /// <summary>The tab that is open; "On this computer" until the person picks another.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsApp))]
+    [NotifyPropertyChangedFor(nameof(ShowsLocal))]
     [NotifyPropertyChangedFor(nameof(ShowsServer))]
     [NotifyPropertyChangedFor(nameof(ShowsLocalChip))]
     [NotifyPropertyChangedFor(nameof(ShowsManagedChip))]
     [NotifyPropertyChangedFor(nameof(ShowsScanButton))]
     [NotifyPropertyChangedFor(nameof(ShowsAddButton))]
-    private bool _showsLocal = true;
+    private ToolsTab _tab = ToolsTab.Computer;
 
+    /// <summary>The tab "In this app" is open. Setting it true opens it (false changes nothing: another tab was picked).</summary>
+    public bool ShowsApp
+    {
+        get => Tab == ToolsTab.App;
+        set => Select(ToolsTab.App, value);
+    }
+
+    /// <summary>The tab "On this computer" is open. Setting it true opens it (false changes nothing: another tab was picked).</summary>
+    public bool ShowsLocal
+    {
+        get => Tab == ToolsTab.Computer;
+        set => Select(ToolsTab.Computer, value);
+    }
+
+    /// <summary>The tab "On your server" is open. Setting it true opens it where there is such a tab.</summary>
     public bool ShowsServer
     {
-        get => !ShowsLocal;
-        set => ShowsLocal = !value;
+        get => Tab == ToolsTab.Server;
+        set => Select(ToolsTab.Server, value);
     }
+
+    // A radio button that is unchecked reports false after the one that was picked reported true: only a pick counts.
+    private void Select(ToolsTab tab, bool picked)
+    {
+        if (picked && (tab != ToolsTab.Server || ShowsServerTab))
+        {
+            Tab = tab;
+        }
+        else
+        {
+            // The bound radio button follows the view model again (it may have flipped itself).
+            OnPropertyChanged(tab switch { ToolsTab.App => nameof(ShowsApp), ToolsTab.Computer => nameof(ShowsLocal), _ => nameof(ShowsServer) });
+        }
+    }
+
+    /// <summary>The tab "On your server" exists: the agent is connected to an organisation's server and somebody is signed in.</summary>
+    [ObservableProperty]
+    private bool _showsServerTab;
 
     /// <summary>The policy chip belongs to the computer's tab; the server's tab has its own.</summary>
     public bool ShowsLocalChip => ShowsLocal && HasPolicy;
 
     public bool ShowsManagedChip => ShowsServer;
+
+    [ObservableProperty]
+    private string _appTabText = "";
 
     [ObservableProperty]
     private string _localTabText = "";
@@ -125,6 +178,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     partial void OnFilterChanged(string value)
     {
         Rebuild();
+        BuildApp();
         BuildCloud();
     }
 
@@ -193,6 +247,19 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
 
     [ObservableProperty]
     private bool _hasListNote;
+
+    // ---- in this app --------------------------------------------------------------------------------------------------
+
+    /// <summary>The tools the app itself gives the assistant that the filter lets through (by name), read only.</summary>
+    public ObservableCollection<AppToolViewModel> AppTools { get; } = new ObservableCollection<AppToolViewModel>();
+
+    /// <summary>The app gives the assistant no tools of its own: one short line replaces the list.</summary>
+    [ObservableProperty]
+    private bool _showsAppEmpty;
+
+    /// <summary>The app has tools but the filter hides every one: a short line says so.</summary>
+    [ObservableProperty]
+    private bool _showsAppNoMatch;
 
     // ---- on your server -----------------------------------------------------------------------------------------------
 
@@ -383,6 +450,27 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
         HasListNote = ListNote.Length > 0;
         LocalTabText = s.ToolsTabLocal(_allServers.Sum(x => x.ToolTotal));
 
+        // The app's own tools (read only), rebuilt each time: a row holds nothing the person changes.
+        _allApp.Clear();
+        _allApp.AddRange(_catalog.AppTools.Select(t => new AppToolViewModel(s, t)));
+        BuildApp();
+
+        // "On your server" exists only for a governed agent that somebody is signed in to; elsewhere nothing of it is loaded or kept.
+        var governed = _catalog.IsGoverned && !NeedsSignIn;
+        ShowsServerTab = governed;
+        if (!governed)
+        {
+            _cloud = null;
+            _cloudLoaded = false;
+            CloudGroups.Clear();
+            CloudMessage = "";
+            CanRetry = false;
+            if (Tab == ToolsTab.Server)
+            {
+                Tab = ToolsTab.Computer;
+            }
+        }
+
         if (Details is { } details)
         {
             var server = _allServers.FirstOrDefault(x => x.Label == details.Label);
@@ -401,7 +489,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
             ServerTabText = s.ToolsTabServer(0);
         }
 
-        if (!NeedsSignIn && !_cloudLoaded && !IsLoadingCloud)
+        if (governed && !_cloudLoaded && !IsLoadingCloud)
         {
             _ = LoadCloudAsync();
         }
@@ -433,12 +521,27 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
         ShowsNoMatch = HasServers && Servers.Count == 0 && Filter.Trim().Length > 0;
     }
 
+    // The app's rows the filter lets through, in the catalog's order.
+    private void BuildApp()
+    {
+        var s = Strings;
+        AppTabText = s.ToolsTabApp(_allApp.Count);
+        var wanted = _allApp.Where(x => x.Matches(Filter)).ToList();
+        AppTools.Clear();
+        foreach (var tool in wanted)
+        {
+            AppTools.Add(tool);
+        }
+        ShowsAppEmpty = _allApp.Count == 0;
+        ShowsAppNoMatch = _allApp.Count > 0 && wanted.Count == 0;
+    }
+
     // ---- on your server -----------------------------------------------------------------------------------------------
 
     /// <summary>Loads the cloud tools again (opening the page, Try again).</summary>
     public async Task LoadCloudAsync(CancellationToken cancellationToken = default)
     {
-        if (!_catalog.SignedIn)
+        if (!_catalog.SignedIn || !_catalog.IsGoverned)
         {
             _cloud = null;
             CloudGroups.Clear();

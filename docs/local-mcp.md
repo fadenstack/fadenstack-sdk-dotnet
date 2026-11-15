@@ -187,13 +187,19 @@ The machine policy names a server by its source (the program's path or file name
 
 The contract `ILocalToolsCatalog` is in `Fadenstack.Agents` (namespace `Fadenstack.LocalTools`), so `Fadenstack.UI` does not depend on the module. `McpToolsCatalog` implements it over `McpHost`. `ToolsViewModel` (`Fadenstack.UI.Tools`) is drawn by `ToolsView` in the WPF and Avalonia skins.
 
-**What it shows:**
+**The page has up to three places**, as tabs in this order:
+- *In this app*: the tools the app itself gives the assistant (host tools; not a local server's, not the server's, not the SDK's own `find_tool` or `load_skill`), read only. Each row has the name, a chip with the tool's class and the description as plain text (cut at 300 characters). The filter narrows them by name. `ILocalToolsCatalog.AppTools` holds them (empty while the agent is not running);
+- *On this computer*: the person's servers, below. This tab is open first, and the header's Scan and Add and the policy chip belong to it;
+- *On your server*: the organisation's tools, read only. It exists only in governed mode (`ILocalToolsCatalog.IsGoverned`). While the agent is standalone (the person's own AI) or its connection is not known yet, the tab is not shown and the cloud tools are not asked for. If the tab was open when the connection stops being governed, *On this computer* opens.
+
+**What "On this computer" shows:**
 - the policy;
 - the person's servers as cards, with status and on/off;
 - the details: the trust mark, each tool's class with the person's raise, and under *Advanced* the plain-http switch;
 - the add and edit sheet, with secret values in password boxes: a saved value is never shown back, only dots and *Replace*;
 - import and scan;
-- in governed mode, "On your server": the organisation's tools, read only.
+
+"On your server" shows the organisation's tools by server, read only.
 
 **The switch** shows only where it applies and is allowed. Turning it on opens the warning (version `2026-11-15`) and changes nothing until the person confirms.
 

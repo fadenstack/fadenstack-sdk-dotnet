@@ -1660,6 +1660,12 @@
   <data name="ToolsPolicyNotAllowed" xml:space="preserve">
     <value>Non autorisé pour cet assistant</value>
   </data>
+  <data name="ToolsTabApp" xml:space="preserve">
+    <value>Dans cette appli · {0}</value>
+  </data>
+  <data name="ToolsAppNone" xml:space="preserve">
+    <value>Cette appli ne donne à l’assistant aucun outil qui lui soit propre.</value>
+  </data>
   <data name="ToolsTabLocal" xml:space="preserve">
     <value>Sur cet ordinateur · {0}</value>
   </data>

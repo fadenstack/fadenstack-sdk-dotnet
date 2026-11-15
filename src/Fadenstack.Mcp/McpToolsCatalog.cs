@@ -15,6 +15,12 @@ public interface IAgentToolsView
 
     AgentProfile? Profile { get; }
 
+    /// <summary>How the agent is connected (a governed server or the person's own endpoint); null until it runs.</summary>
+    AgentConnection? Connection { get; }
+
+    /// <summary>The tools the agent runs, with their effective classes; empty until it runs.</summary>
+    IReadOnlyList<AgentTool> Tools { get; }
+
     /// <summary>
     /// The agent's profile says <c>local_mcp.plain_http: allow</c> and this computer's policy allows plain http (the same test
     /// the MCP module makes when it connects a server).
@@ -60,6 +66,12 @@ public sealed class FadenstackAgentToolsView : IAgentToolsView
             }
         }
     }
+
+    /// <summary>How the agent is connected; null before it runs (<c>Connection</c> reads the settings, so it is only read while it runs).</summary>
+    public AgentConnection? Connection => IsRunning ? _agent.Connection : null;
+
+    /// <summary>The agent's tools once it runs; none before.</summary>
+    public IReadOnlyList<AgentTool> Tools => IsRunning ? _agent.Tools : Array.Empty<AgentTool>();
 
     /// <summary>
     /// The agent's profile is already narrowed by the machine policy (<c>plain_http</c> is <c>deny</c> where the policy forbids
@@ -145,6 +157,13 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
     }
 
     public bool PlainHttpPermitted => _agent is { IsRunning: true } && _agent.PlainHttpPermitted;
+
+    public bool IsGoverned => _agent is { IsRunning: true } && _agent.Connection == AgentConnection.Governed;
+
+    /// <summary>Only the app's own tools (<c>Source == "host"</c>): not a local server's, the server's or the SDK's built-ins (<c>find_tool</c>, <c>load_skill</c>).</summary>
+    public IReadOnlyList<AppToolInfo> AppTools => _agent is { IsRunning: true } agent
+        ? [.. agent.Tools.Where(t => t.Source == "host").Select(t => new AppToolInfo(t.Name, t.Function.Description ?? "", t.Class))]
+        : [];
 
     public bool MarksAreYours => _host.MarksArePersons;
 
