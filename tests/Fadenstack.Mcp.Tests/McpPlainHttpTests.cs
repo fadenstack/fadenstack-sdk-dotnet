@@ -164,13 +164,15 @@ public sealed class McpPlainHttpTests
     [InlineData("https://mcp.example.com/mcp", false, false, McpProblem.None)]
     [InlineData("https://mcp.example.com/mcp", false, true, McpProblem.None)]
     [InlineData("http://127.0.0.1:3000/mcp", false, true, McpProblem.None)]
-    [InlineData("http://192.168.1.5:8080/mcp", false, false, McpProblem.AddressNotLoopback)]
-    [InlineData("http://nas.local:8080/mcp", false, false, McpProblem.AddressNotLoopback)]
+    [InlineData("http://192.168.1.5:8080/mcp", false, false, McpProblem.None)] // kept; it connects once switched on
+    [InlineData("http://nas.local:8080/mcp", false, false, McpProblem.None)]
     [InlineData("http://192.168.1.5:8080/mcp", true, false, McpProblem.None)]
     [InlineData("http://nas.local:8080/mcp", true, false, McpProblem.None)]
     [InlineData("http://192.168.1.5:8080/mcp", true, true, McpProblem.PlainHttpWithHeaders)]
+    [InlineData("http://192.168.1.5:8080/mcp", false, true, McpProblem.PlainHttpWithHeaders)]
     [InlineData("http://8.8.8.8:8080/mcp", true, false, McpProblem.PlainHttpNotLocal)]
-    public void The_entry_rules_take_https_anywhere_and_plain_http_beyond_this_computer_only_with_the_switch_and_no_header(
+    [InlineData("http://8.8.8.8:8080/mcp", false, false, McpProblem.PlainHttpNotLocal)]
+    public void The_entry_rules_take_https_anywhere_and_never_plain_http_beyond_this_computer_with_a_header_or_to_a_public_address(
         string url, bool lan, bool header, McpProblem problem) =>
         Assert.Equal(problem, McpServerValidator.Validate(Address(url, lan, header), []).Problem);
 
@@ -212,6 +214,118 @@ public sealed class McpPlainHttpTests
 
         Assert.False(result.Started);
         Assert.Equal(McpPlainHttpRefusal.NotAllowed, result.PlainHttp);
+    }
+
+    // ---- the switch: the warning, the audit log, the event ------------------------------------------------------------------
+
+    private const string Warning = "2026-11-15";
+
+    private static (McpHost Host, TempFolder Folder) Host()
+    {
+        var folder = new TempFolder();
+        var host = new McpHost(_ => new McpServerStore(folder.Path, new Reversing()));
+        return (host, folder);
+    }
+
+    [Fact]
+    public async Task Turning_the_switch_on_needs_the_version_of_the_warning_the_person_confirmed()
+    {
+        var (host, folder) = Host();
+        using var _ = folder;
+        using var __ = host;
+        host.NewModule();
+        await host.UseUserAsync("anna");
+        Assert.True((await host.AddAsync(Address("http://192.168.1.5:8080/mcp"))).IsValid);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => host.SetPlainHttpInLanAsync("nas", true, warningVersion: null));
+        Assert.False(host.Rows.Single().Entry.PlainHttpInLan);
+        Assert.Empty(File.Exists(Path.Combine(folder.Path, McpAuditLog.FileName)) ? File.ReadAllLines(Path.Combine(folder.Path, McpAuditLog.FileName)) : []);
+    }
+
+    [Fact]
+    public async Task Every_change_of_the_switch_goes_into_the_devices_audit_log_with_the_origin_only()
+    {
+        var (host, folder) = Host();
+        using var _ = folder;
+        using var __ = host;
+        host.NewModule();
+        await host.UseUserAsync("anna");
+        await host.AddAsync(Address("http://192.168.1.5:8080/mcp?x=1"));
+
+        Assert.True((await host.SetPlainHttpInLanAsync("nas", true, Warning)).IsValid);
+        Assert.True(host.Rows.Single().Entry.PlainHttpInLan);
+        Assert.True((await host.SetPlainHttpInLanAsync("nas", false)).IsValid);
+        Assert.True((await host.SetPlainHttpInLanAsync("nas", false)).IsValid); // no change: no line
+
+        var lines = File.ReadAllLines(Path.Combine(folder.Path, McpAuditLog.FileName));
+        Assert.Equal(2, lines.Length);
+        using var on = System.Text.Json.JsonDocument.Parse(lines[0]);
+        Assert.Equal("local_mcp.plain_http", on.RootElement.GetProperty("event").GetString());
+        Assert.Equal("http://192.168.1.5:8080", on.RootElement.GetProperty("source").GetString());
+        Assert.Equal("on", on.RootElement.GetProperty("state").GetString());
+        Assert.Equal(Warning, on.RootElement.GetProperty("warning_version").GetString());
+        Assert.Equal("anna", on.RootElement.GetProperty("person").GetString());
+        using var off = System.Text.Json.JsonDocument.Parse(lines[1]);
+        Assert.Equal("off", off.RootElement.GetProperty("state").GetString());
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, off.RootElement.GetProperty("warning_version").ValueKind);
+        Assert.DoesNotContain("x=1", string.Join("\n", lines));
+    }
+
+    [Fact]
+    public void The_audit_log_rotates_and_keeps_the_newest_files()
+    {
+        using var folder = new TempFolder();
+        var log = new McpAuditLog(folder.Path, maxBytes: 300, keep: 1);
+        for (var i = 0; i < 6; i++)
+            log.Append(new McpAuditEntry { Event = "local_mcp.plain_http", At = DateTimeOffset.UtcNow, Source = "http://192.168.1.5:" + (8000 + i), State = "on", WarningVersion = Warning, Person = "anna" });
+
+        Assert.Equal([McpAuditLog.FileName, McpAuditLog.FileName + ".1"], Directory.GetFiles(folder.Path).Select(Path.GetFileName).OrderBy(n => n));
+        Assert.Contains("8005", File.ReadAllText(Path.Combine(folder.Path, McpAuditLog.FileName)));
+        Assert.True(new FileInfo(Path.Combine(folder.Path, McpAuditLog.FileName)).Length <= 300);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task In_governed_mode_the_change_goes_to_the_server_only_where_the_profile_lists_the_feature(bool listed)
+    {
+        var (host, folder) = Host();
+        using var _ = folder;
+        using var __ = host;
+        // The profile does not allow plain http itself, so the server is refused before anything is sent (no test touches the
+        // network); the person's change is reported either way.
+        var gateway = new ScriptedGateway(localMcp: AllowWithoutPlainHttp);
+        if (listed)
+            gateway.Features.Add(LocalMcpModule.PlainHttpEventFeature);
+        using var agent = gateway.Builder().AddLocalMcp(host.NewModule()).Build();
+        await agent.StartAsync();
+        await host.UseUserAsync("anna");
+        await host.AddAsync(Address("http://192.168.1.5:9/mcp"));
+
+        await host.SetPlainHttpInLanAsync("nas", true, Warning);
+        await agent.StartAsync(); // the next turn's tools: anything queued goes now
+
+        bool Sent()
+        {
+            lock (gateway.Events)
+                return gateway.Events.Any(e => e.Contains("local_mcp.plain_http"));
+        }
+        if (listed)
+        {
+            await McpRig.EventuallyAsync(Sent, "the plain-http event");
+            string body;
+            lock (gateway.Events)
+                body = gateway.Events.First(e => e.Contains("local_mcp.plain_http"));
+            using var doc = System.Text.Json.JsonDocument.Parse(body);
+            var sent = doc.RootElement.GetProperty("events").EnumerateArray().Single(e => e.GetProperty("type").GetString() == "local_mcp.plain_http");
+            Assert.Equal("http://192.168.1.5:9", sent.GetProperty("source").GetString());
+            Assert.Equal("on", sent.GetProperty("state").GetString());
+        }
+        else
+        {
+            await Task.Delay(300);
+            Assert.False(Sent());
+        }
     }
 
     // ---- the agent ---------------------------------------------------------------------------------------------------------

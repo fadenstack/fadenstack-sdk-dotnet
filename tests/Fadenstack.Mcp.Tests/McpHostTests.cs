@@ -159,7 +159,7 @@ public sealed class McpHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Adding_a_plain_http_server_beyond_this_computer_without_the_switch_is_refused_and_nothing_is_stored_or_started()
+    public async Task Adding_a_plain_http_server_beyond_this_computer_with_a_header_is_refused_and_nothing_is_stored_or_started()
     {
         var rig = new McpRig();
         using var host = new McpHost(_ => Store(), server: e => rig.Server(e.Label));
@@ -168,7 +168,7 @@ public sealed class McpHostTests : IDisposable
 
         var check = await host.AddAsync(McpStoreTests.Address() with { Url = "http://192.168.1.2/mcp" });
 
-        Assert.Equal(McpProblem.AddressNotLoopback, check.Problem);
+        Assert.Equal(McpProblem.PlainHttpWithHeaders, check.Problem);
         Assert.Empty(host.Rows);
         Assert.Equal(0, rig.Connects);
     }

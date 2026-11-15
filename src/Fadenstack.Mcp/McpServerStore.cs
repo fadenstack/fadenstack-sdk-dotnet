@@ -61,6 +61,9 @@ public sealed class McpServerStore
     /// <summary>True when the list is written to disk (encrypted); false when it lives in memory until the app closes.</summary>
     public bool KeepsOnDisk => _protector.Encrypts;
 
+    /// <summary>The folder of the device's audit log of this list's switches (<see cref="McpAuditLog"/>); null: the log lives in memory too.</summary>
+    public string? AuditFolder => KeepsOnDisk ? Path.GetDirectoryName(_file) : null;
+
     /// <summary>A saved file could not be read: the list starts empty, and the file is kept aside at the next save.</summary>
     public bool Unreadable { get; private set; }
 

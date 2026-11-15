@@ -45,6 +45,7 @@ public sealed class McpHost : IDisposable
     private LocalMcpModule? _module;
     private McpServerStore? _store;
     private string? _userId;
+    private McpAuditLog? _audit;
     private Task _loading = Task.CompletedTask;
     private bool _disposed;
 
@@ -148,6 +149,7 @@ public sealed class McpHost : IDisposable
             _userId = userId;
             DropStore();
             _store = userId is null ? McpServerStore.InMemory() : _openStore(userId);
+            _audit = new McpAuditLog(_store.AuditFolder);
             _store.Changed += OnStoreChanged;
             var entries = _store.Entries;
             _loading = LoadAsync(module, entries);
@@ -230,6 +232,60 @@ public sealed class McpHost : IDisposable
             return;
         if (Module is { } module && module.GetStatus(label) is not null)
             await module.SetEnabledAsync(label, enabled, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The device's audit log of the loaded list's switches (sdk/51 F05); null before a user is loaded.</summary>
+    public McpAuditLog? AuditLog
+    {
+        get
+        {
+            lock (_gate)
+                return _audit;
+        }
+    }
+
+    /// <summary>
+    /// The person's switch "Allow plain http on the local network" for an HTTP server (sdk/51 F05). Turning it on needs the
+    /// version of the warning the person confirmed just before (<paramref name="warningVersion"/>); the app shows the warning, the
+    /// SDK records which one. The server starts again with the switch; whether it connects is the profile's and this computer's
+    /// policy's to say (its status tells). Every change goes into the device's audit log (<see cref="AuditLog"/>) and, in governed
+    /// mode where the profile lists the feature, to the server as <c>local_mcp.plain_http</c>. A server that is sent a header value
+    /// cannot have it (<see cref="McpProblem.PlainHttpWithHeaders"/>).
+    /// </summary>
+    public async Task<McpValidation> SetPlainHttpInLanAsync(string label, bool on, string? warningVersion = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (on && string.IsNullOrWhiteSpace(warningVersion))
+            throw new ArgumentException("Turning plain http on needs the version of the warning the person confirmed.", nameof(warningVersion));
+        var store = Store ?? throw new InvalidOperationException("No user is loaded.");
+        if (store.Find(label) is not { } entry)
+            return new McpValidation(McpProblem.LabelMissing, "label");
+        if (entry.IsProgram || !Uri.TryCreate(entry.Url, UriKind.Absolute, out var url) || url.Scheme != Uri.UriSchemeHttp)
+            return new McpValidation(McpProblem.AddressInvalid, "address");
+        if (entry.PlainHttpInLan == on)
+            return McpValidation.Ok;
+        var check = await UpdateAsync(label, entry with { PlainHttpInLan = on }, cancellationToken).ConfigureAwait(false);
+        if (!check.IsValid)
+            return check;
+        var source = McpHttp.Origin(url);
+        string person;
+        McpAuditLog? audit;
+        lock (_gate)
+        {
+            person = _userId ?? "";
+            audit = _audit;
+        }
+        audit?.Append(new McpAuditEntry
+        {
+            Event = "local_mcp.plain_http",
+            At = DateTimeOffset.UtcNow,
+            Source = source,
+            State = on ? "on" : "off",
+            WarningVersion = on ? warningVersion : null,
+            Person = person,
+        });
+        Module?.ReportPlainHttpChange(source, on);
+        return check;
     }
 
     /// <summary>
@@ -357,6 +413,7 @@ public sealed class McpHost : IDisposable
         if (_store is not null)
             _store.Changed -= OnStoreChanged;
         _store = null;
+        _audit = null;
     }
 
     private static string Clean(string text)

@@ -71,6 +71,13 @@ internal sealed class McpConnection
 /// </summary>
 internal static class McpHttp
 {
+    /// <summary>A server's origin, <c>http://host[:port]</c> (the host in its ASCII form, the port only when not the default).</summary>
+    public static string Origin(Uri url)
+    {
+        var host = url.HostNameType == UriHostNameType.IPv6 ? "[" + url.IdnHost.Trim('[', ']') + "]" : url.IdnHost;
+        return url.Scheme + "://" + host + (url.IsDefaultPort ? "" : ":" + url.Port.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     public static async Task<HttpClient> CreateClientAsync(Uri url, bool hasSecrets, bool optedIn, McpConnection connection,
         CancellationToken cancellationToken)
     {

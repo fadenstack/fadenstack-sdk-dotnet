@@ -130,14 +130,14 @@ public sealed class McpStoreTests : IDisposable
     [InlineData("http://mcp.example.com/")]
     [InlineData("http://192.168.1.2/mcp")]
     [InlineData("http://localhost.evil.example/mcp")]
-    public void Plain_http_to_an_address_not_on_this_computer_is_refused_without_the_switch(string url)
+    public void A_plain_http_address_beyond_this_computer_is_kept_with_the_switch_off_and_waits_for_it(string url)
     {
         var store = new McpServerStore(_root, new Reversing(true));
 
-        var check = store.Add(Address() with { Url = url });
+        var check = store.Add(Address() with { Url = url, Headers = [] });
 
-        Assert.Equal(McpProblem.AddressNotLoopback, check.Problem);
-        Assert.Empty(store.Entries);
+        Assert.True(check.IsValid, check.Problem.ToString());
+        Assert.False(Assert.Single(store.Entries).PlainHttpInLan); // its connection is refused until the person switches it on
     }
 
     [Theory]

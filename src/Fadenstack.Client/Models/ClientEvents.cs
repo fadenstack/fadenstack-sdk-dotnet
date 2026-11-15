@@ -61,6 +61,22 @@ public sealed record LocalMcpAttachedEvent : AgentClientEvent
     public List<string> Tools { get; init; } = new();
 }
 
+/// <summary>
+/// The person switched plain http on the local network on or off for one of their MCP servers (sdk/51 F05; core 0.7.1rc19):
+/// content-free, which server (its origin only) and on or off. Core refuses a whole batch with a type it does not know, so the SDK
+/// sends it only where the profile's <c>features</c> list <c>client_events.local_mcp_plain_http</c>.
+/// </summary>
+public sealed record LocalMcpPlainHttpEvent : AgentClientEvent
+{
+    public override string Type => "local_mcp.plain_http";
+
+    /// <summary>The server's origin: <c>http://host[:port]</c>, no user, path, query or fragment.</summary>
+    public string Source { get; init; } = "";
+
+    /// <summary><c>on</c> or <c>off</c>.</summary>
+    public string State { get; init; } = "";
+}
+
 /// <summary>Counts of one local session.</summary>
 public sealed record SessionStatsEvent : AgentClientEvent
 {

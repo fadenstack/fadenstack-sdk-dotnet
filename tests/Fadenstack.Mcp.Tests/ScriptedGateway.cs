@@ -30,6 +30,12 @@ internal sealed class ScriptedGateway : HttpMessageHandler
 
     public string LocalMcp { get; }
 
+    /// <summary>The profile's <c>features</c>.</summary>
+    public List<string> Features { get; } = ["agents"];
+
+    /// <summary>The bodies of every <c>POST .../events</c>, oldest first.</summary>
+    public List<string> Events { get; } = [];
+
     /// <summary>What <c>GET .../tools</c> answers: a status and a body (404: an older server without the route).</summary>
     public (HttpStatusCode Status, string Body) Tools { get; set; } = (HttpStatusCode.NotFound, """{"detail":"Not Found"}""");
 
@@ -97,7 +103,11 @@ internal sealed class ScriptedGateway : HttpMessageHandler
         if (path == $"{agent}/tools")
             return Json(Tools.Status, Tools.Body);
         if (path == $"{agent}/events")
+        {
+            lock (Events)
+                Events.Add(body);
             return Json(HttpStatusCode.Accepted, """{"accepted":1}""");
+        }
         if (path == $"{agent}/manifest")
             return Json(HttpStatusCode.OK, """{"sha256":"abc","new":true}""");
         if (path == $"{agent}/chat/completions")
@@ -120,6 +130,6 @@ internal sealed class ScriptedGateway : HttpMessageHandler
         {"object":"agent.profile","id":"a-1","slug":"{{Slug}}","name":"Desktop","version":3,"draft":false,"model":"qwen3","vision":false,
          "images":false,"skills":false,"ui":{"delegates":["word-assistant"]},"host_tool_contract":{{Contract}},"local_mcp":{{LocalMcp}},
          "tool_modes":{"default":"ask","ceiling":null,"open_world_enforced":false},"required_client_modules":[],"edition":"community",
-         "features":["agents"],"user":{"language":null},"principal":null}
+         "features":{{JsonSerializer.Serialize(Features)}},"user":{"language":null},"principal":null}
         """;
 }

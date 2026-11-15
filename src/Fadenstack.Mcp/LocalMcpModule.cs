@@ -190,6 +190,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             _context = context;
             await StopWhatPlainHttpNoLongerAllowsAsync(context).ConfigureAwait(false);
+            await SendPlainHttpChangesAsync(context).ConfigureAwait(false);
             List<ServerEntry> pending;
             lock (_gate)
             {
@@ -216,6 +217,57 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     internal static bool PlainHttpPermitted(AgentContext context) =>
         string.Equals(context.Profile.LocalMcp.PlainHttp, "allow", StringComparison.Ordinal)
         && context.MachinePolicy.PlainHttp == PolicyAccess.Allowed;
+
+    /// <summary>The profile's feature that lets the SDK send <c>local_mcp.plain_http</c> (sdk/51 F05).</summary>
+    public const string PlainHttpEventFeature = "client_events.local_mcp_plain_http";
+
+    private readonly List<LocalMcpPlainHttpEvent> _plainHttpChanges = [];
+
+    /// <summary>
+    /// Tells the server that the person switched plain http on the local network on or off for a server (<paramref name="source"/>:
+    /// its origin), in governed mode and only where the profile's <c>features</c> list <see cref="PlainHttpEventFeature"/>; an
+    /// older core never sees it. Sent now when the agent has run, else with its next turn. Standalone sends nothing.
+    /// </summary>
+    public void ReportPlainHttpChange(string source, bool on)
+    {
+        lock (_gate)
+        {
+            _plainHttpChanges.Add(new LocalMcpPlainHttpEvent { Source = source, State = on ? "on" : "off" });
+        }
+        if (_context is { } context)
+        {
+            _ = SendPlainHttpChangesAsync(context);
+        }
+    }
+
+    private async Task SendPlainHttpChangesAsync(AgentContext context)
+    {
+        List<LocalMcpPlainHttpEvent> changes;
+        lock (_gate)
+        {
+            if (_plainHttpChanges.Count == 0)
+            {
+                return;
+            }
+            changes = [.. _plainHttpChanges];
+            _plainHttpChanges.Clear();
+        }
+        if (!context.Profile.Features.Contains(PlainHttpEventFeature))
+        {
+            return; // an older core refuses the whole batch: it is never sent
+        }
+        foreach (var change in changes)
+        {
+            try
+            {
+                await context.ReportAsync(change).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // a report that fails never fails the switch: the device's own audit log has it
+            }
+        }
+    }
 
     /// <summary>
     /// A server that reaches the local network over plain http stops when the profile or this computer's policy no longer allows

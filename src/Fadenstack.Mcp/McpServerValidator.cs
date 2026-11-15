@@ -18,8 +18,8 @@ public enum McpProblem
     AddressInvalid,
 
     /// <summary>
-    /// Plain http to an address outside this computer without the switch "Allow plain http on the local network" (sdk/51 F05):
-    /// https goes anywhere, plain http only to this computer unless the person switches it on.
+    /// No longer given (sdk/51 F05): https goes anywhere, and a plain-http address beyond this computer is kept and waits for the
+    /// person's switch (its connection is refused until then). Kept so a host's mapping of problems still compiles.
     /// </summary>
     AddressNotLoopback,
     TimeoutOutOfRange,
@@ -103,10 +103,9 @@ public static class McpServerValidator
             return new(McpProblem.AddressInvalid, "address");
         if (url.Scheme == Uri.UriSchemeHttp && !LocalMcpServer.IsLoopback(url))
         {
-            // Plain http beyond this computer (sdk/51 F05): only with the person's switch, never with a header value (a token),
-            // and never to an address that is outside the local network. A name is checked when the server connects.
-            if (!entry.PlainHttpInLan)
-                return new(McpProblem.AddressNotLoopback, "address");
+            // Plain http beyond this computer (sdk/51 F05) connects only with the person's switch, where the agent and this computer
+            // allow it (the connection checks that); never with a header value (a token), and never to an address outside the local
+            // network, which no switch can change. A name is checked when the server connects.
             if (entry.Headers.Count > 0)
                 return new(McpProblem.PlainHttpWithHeaders, "headers");
             if (System.Net.IPAddress.TryParse(url.IdnHost.Trim('[', ']'), out var literal)
