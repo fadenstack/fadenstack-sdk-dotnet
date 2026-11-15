@@ -26,6 +26,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       language
       skills/<skill>/SKILL.md
       preferences/skills.json
+      preferences/web-search.json
+      keys/web-search-brave.key
       mcp/servers.dat
       mcp/audit.jsonl
       keys/provenance-signing.key
@@ -37,6 +39,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       preferences/reasoning.json
       skills/<skill>/SKILL.md
       preferences/skills.json
+      preferences/web-search.json
+      keys/web-search-brave.key
       mcp/servers.dat
       mcp/audit.jsonl
   tokens/<hash>.token                 shared by everyone on the OS account
@@ -63,6 +67,8 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
 | `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Not exported (the editor exports a skill as a zip); deleted. |
 | `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
+| `preferences/web-search.json` | The person's web search provider (Brave or SearXNG) and the SearXNG address; no key ([Pictures and web search](web-search.md)). | Plain JSON, owner-only. | Until the person changes it. | Exported; deleted. |
+| `keys/web-search-brave.key` | The person's Brave Search API key. | Encrypted as the sessions. Without a key store it is not written: the key stays in memory. | Until the person removes it. | Never exported; deleted. |
 | `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Not exported; deleted. |
 | `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Not exported; deleted. |
 | `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |

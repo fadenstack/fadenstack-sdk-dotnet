@@ -120,6 +120,19 @@ internal static partial class Log
         Message = "Agent {Agent} runs on its own model endpoint without the provenance module: what it places in documents carries no mark. Add Fadenstack.Provenance (builder.UseProvenance)")]
     internal static partial void NoProvenanceModule(ILogger logger, string agent);
 
+    // web_search (sdk/51 F06): the provider, a count, a duration and the kind of failure; never the query, a result or the key.
+    [LoggerMessage(EventId = 2080, Level = LogLevel.Information,
+        Message = "A web search with {Provider} found {Count} results in {DurationMs} ms")]
+    internal static partial void WebSearchRan(ILogger logger, string provider, int count, long durationMs);
+
+    [LoggerMessage(EventId = 2081, Level = LogLevel.Warning,
+        Message = "A web search with {Provider} failed ({Kind})")]
+    internal static partial void WebSearchFailed(ILogger logger, string provider, string kind);
+
+    [LoggerMessage(EventId = 2082, Level = LogLevel.Debug,
+        Message = "Web search is not offered ({Reason})")]
+    internal static partial void WebSearchOff(ILogger logger, string reason);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);
