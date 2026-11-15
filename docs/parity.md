@@ -53,6 +53,12 @@ A dash means the SDK has nothing of that name. The last column is empty where th
 | The SDK's own tool names (`find_tool`, `load_skill`, `read_skill_resource`, `run_skill_script`, `web_search`) | `AgentTool.ReservedNames`; refused by `AddTool`/`AddTools` (`ArgumentException`); an app's source's left out (event 2016) | `RESERVED_TOOL_NAMES`; refused by `addTools` and `OnRequestTools` (`TypeError`); an app's source's left out (logged) | |
 | A tool source's tool whose name is taken | Left out (the app's tool wins, then the first source) and logged (event 2017) | The same, logged | |
 | Open-world calls ask below Auto | `ToolModes.Decide(mode, class, openWorld)`, `ToolModes.ConversationOnly`, `OpenWorldEnforced` true | `decideTool(mode, class, approval, openWorld)`, `conversationOnly`, `OPEN_WORLD_ENFORCED` true | |
+| The web search tool | `WebSearchModule`, `WebSearchOptions`; `WebSearchStore` in the person's folder ([Pictures and web search](web-search.md)) | `webSearchModule`, `WebSearchOptions`; `IndexedDbWebSearchStore`, `MemoryWebSearchStore` | The host needs permission for the provider's origin; the Chrome agent keeps the browser's own search |
+| Approvals keyed by source, sealed | `StoredApproval.Source`, `Server`, `Covers`; `FileApprovalStore` seals each with an HMAC | `StoredApproval.source`, `server`, `approvalCovers`; IndexedDB seals each with the person's WebCrypto key | |
+| A reason for declining | `ApprovalDecision.Deny(reason)`, `MaxReasonChars`, `CleanReason`; the transcript's `reason` | `ApprovalDecision.deny(reason)`, `MAX_REASON_CHARS`, `cleanReason`; the transcript's `reason` | |
+| AG-UI events | `AgUiEvents.From(events, options)`, `AgUiJson` ([Interop](interop.md)) | `agUiEvents(events, options)`, `agUiJson`; the types of `@ag-ui/core` 1.0.4 | |
+| Hooks | `IAgentHooks`, `AgentHooks`, `AddHooks(hooks, order)`, `ToolHookVerdict` | `AgentHooks`, `addHooks(hooks, order)`, `toolHook` | |
+| OpenTelemetry | `UseOpenTelemetry(...)`, opt-in | Later | |
 | Host commands | `session.InvokeToolAsync`, `session.StreamToolAsync` | `session.invokeTool`, `session.streamTool` | |
 | Fresh policy for host calls | `RequireHostToolPolicyChecks()` | `requireHostToolPolicyChecks()` | |
 | Stages and modules | `AddChatStage`, `AddToolStage`, `Use(module)` | `addChatStage`, `addToolStage`, `use(module)` | |
