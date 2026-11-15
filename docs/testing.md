@@ -174,7 +174,20 @@ meters.Start();
 
 ## Files, folders and keys
 
-Where the SDK keeps things is fixed by the operating system ([Data on the device](data-on-device.md)), and a test must not write there. Use the memory stores, or give a file store a temporary folder. `SecretProtection.Use` and `FadenstackSecrets.UseOsKeyStore` choose a process-wide protector once, before the first store exists, and cannot be undone, so a test that needs one belongs in a process of its own; most tests need neither.
+Where the SDK keeps things is fixed by the operating system ([Data on the device](data-on-device.md)), and a test must not write there. Use the memory stores, or give a file store a temporary folder.
+
+Some things the SDK writes by itself, such as the standalone person's language (`users/standalone/language`) when a test changes the chat's language on the own AI. Point every root at a temporary folder for the test assembly with `FadenstackPaths.UseRootForTests`. The roots are process-wide, so set it once, for instance in a module initializer, or keep the tests that use it out of parallel runs:
+
+```csharp
+internal static class TestFolders
+{
+    [ModuleInitializer]
+    internal static void Redirect() =>
+        FadenstackPaths.UseRootForTests(Path.Combine(Path.GetTempPath(), "my-app-tests-" + Guid.NewGuid().ToString("N")));
+}
+```
+
+The scope it returns puts back the roots there were before. It is for tests only: a shipped app keeps the person's data in their own folders. `SecretProtection.Use` and `FadenstackSecrets.UseOsKeyStore` choose a process-wide protector once, before the first store exists, and cannot be undone, so a test that needs one belongs in a process of its own; most tests need neither.
 
 ## Marks and tools by hand
 

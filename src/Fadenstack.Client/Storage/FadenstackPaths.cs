@@ -26,6 +26,45 @@ public static class FadenstackPaths
     /// <summary>The tests point all roots at a temporary folder (<c>data</c>, <c>settings</c> and <c>logs</c> below it).</summary>
     internal static string? RootForTests { get; set; }
 
+    /// <summary>
+    /// For an app's own tests: points every root (<see cref="DataRoot"/>, <see cref="SettingsRoot"/>, <see cref="LogRoot"/>) at
+    /// <c>data</c>, <c>settings</c> and <c>logs</c> below <paramref name="folder"/> until the returned scope is disposed, so a test
+    /// never writes into the OS user's own folders (the standalone language, sessions, approvals, keys, logs). The roots are
+    /// process-wide: set it once for a test assembly (a module initializer, or a fixture), or keep the tests that use it from
+    /// running beside tests that expect another root. Never for a shipped app: the person's data belongs in their own folders.
+    /// </summary>
+    /// <param name="folder">An absolute folder; it is created when something is written.</param>
+    /// <returns>A scope that puts back the roots there were before.</returns>
+    /// <exception cref="ArgumentException">The folder is empty or not absolute.</exception>
+    public static IDisposable UseRootForTests(string folder)
+    {
+        if (string.IsNullOrWhiteSpace(folder) || !Path.IsPathRooted(folder))
+        {
+            throw new ArgumentException("An absolute folder is required.", nameof(folder));
+        }
+        var scope = new TestRootScope(RootForTests);
+        RootForTests = Path.GetFullPath(folder);
+        return scope;
+    }
+
+    private sealed class TestRootScope : IDisposable
+    {
+        private readonly string? _previous;
+        private bool _disposed;
+
+        public TestRootScope(string? previous) => _previous = previous;
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+            RootForTests = _previous;
+        }
+    }
+
     private static Roots Current => RootForTests is { } root
         ? new Roots(Path.Combine(root, "data"), Path.Combine(root, "settings"), Path.Combine(root, "logs"))
         : Real.Value;
