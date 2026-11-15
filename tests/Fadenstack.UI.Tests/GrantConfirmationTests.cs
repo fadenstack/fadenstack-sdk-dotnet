@@ -28,9 +28,14 @@ public class GrantConfirmationTests
         return (chat, agent);
     }
 
+    // Under a whole-solution run the pool is busy (the fake server holds a pool thread while it waits), so the waits are measured
+    // by the clock, as long as the fake's own hold: 500 rounds of 10 ms came to less than the time the card took once (round B).
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(20);
+
     private static async Task<T> Until<T>(Func<T?> find) where T : class
     {
-        for (var i = 0; i < 500; i++)
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (watch.Elapsed < Patience)
         {
             if (find() is { } found)
             {
@@ -38,12 +43,13 @@ public class GrantConfirmationTests
             }
             await Task.Delay(10);
         }
-        throw new TimeoutException("It never came.");
+        return find() ?? throw new TimeoutException("It never came.");
     }
 
     private static async Task<bool> Until(Func<bool> condition)
     {
-        for (var i = 0; i < 500 && !condition(); i++)
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!condition() && watch.Elapsed < Patience)
         {
             await Task.Delay(10);
         }
