@@ -10,7 +10,8 @@
              x:Class="Fadenstack.UI.Avalonia.Views.SkillDraftView"
              x:DataType="sk:SkillDraftViewModel"
              Focusable="True"
-             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
     <!--
         "Draft from this chat" (sdk/51 F04): one view for a SkillDraftViewModel. What the skill should be for (optional), the button that
         asks the model once, the draft's state in words (asking, the proposal, why it failed) and the statement that nothing is saved until

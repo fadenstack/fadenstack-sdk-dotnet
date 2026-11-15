@@ -12,6 +12,7 @@
              x:DataType="vm:ConnectionWizardViewModel"
              Focusable="True"
              FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}"
              b:WizardFocus.Step="{Binding Step}">
     <!--
         The connection wizard (sdk/51 F15, I15): one view for a ConnectionWizardViewModel, one panel for each group of its

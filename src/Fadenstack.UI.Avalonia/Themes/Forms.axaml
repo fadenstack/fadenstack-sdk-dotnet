@@ -23,7 +23,11 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
         <Setter Property="Padding" Value="10,0,8,0" />
     </Style>
-    <Style Selector="CheckBox /template/ Border#FsBox">
+    <Style Selector="CheckBox">
+        <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
+    </Style>
+    <!-- The box's own radius is set in the template (a template value beats a plain style), so the selector carries a state, as the skin's own state styles do. -->
+    <Style Selector="CheckBox:not(:checked) /template/ Border#FsBox, CheckBox:checked /template/ Border#FsBox">
         <Setter Property="CornerRadius" Value="{DynamicResource Fadenstack.Radius.Control}" />
     </Style>
 

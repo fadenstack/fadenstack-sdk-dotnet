@@ -11,6 +11,7 @@
              x:DataType="sk:SkillEditorViewModel"
              Focusable="True"
              FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}"
              b:WizardFocus.Step="{Binding Mode}">
     <!--
         The skill editor (sdk/51 F04): one view for a SkillEditorViewModel. The name and the description with the checks' words as you

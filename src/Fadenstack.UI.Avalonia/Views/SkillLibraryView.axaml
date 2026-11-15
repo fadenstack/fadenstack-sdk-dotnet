@@ -10,7 +10,8 @@
              x:Class="Fadenstack.UI.Avalonia.Views.SkillLibraryView"
              x:DataType="sk:SkillLibraryViewModel"
              Focusable="True"
-             FontSize="{DynamicResource Fadenstack.FontSize.Body}">
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
     <!--
         The skill library (sdk/51 F04): one view for a SkillLibraryViewModel. The list of skills, each with where it comes from, "not
         reviewed" for the person's own and its switch where it may be switched; New and Import; Edit (View for a bundled skill),
