@@ -60,15 +60,15 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 |---|---|---|---|---|
 | `sessions/<agent>/<session id>.jsonl` | The chats: one append-only file per session, one transcript entry per line, with the messages, attachments, tool calls and results, approval decisions and notices ([What a session holds](sessions.md#what-a-session-holds)). | Every line encrypted: DPAPI for the current user on Windows; AES-256-GCM on macOS and Linux with `Fadenstack.Secrets`, the data key in the Keychain or the Secret Service. Without either, nothing is written: the chat stays in memory (event 2040). | The newest 50 sessions per agent, none older than 90 days; the others go when a new session starts. `UseSessionRetention` and the server's `local_retention` lower the limits ([Retention](sessions.md#retention)). | Exported, decrypted; deleted. |
 | `approvals/<agent>.json` | "Allow always": each tool, its class, and when it was allowed. | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
-| `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
-| `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Not exported (the editor exports a skill as a zip); deleted. |
-| `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Not exported; deleted. |
-| `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Not exported; deleted. |
-| `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Not exported; deleted. |
-| `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
+| `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Exported; deleted. |
+| `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Exported as the files (the editor also exports one skill as a zip); deleted. |
+| `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Exported; deleted. |
+| `language` (standalone) | The language the person picked, a BCP 47 tag. In governed mode the server keeps it. | Plain text. | Until the person changes it. | Exported; deleted. |
+| `mcp/servers.dat` | The person's own MCP servers: the program or address, its environment values and headers, on or off, the trust mark, the person's raises and the local-network switch ([Local MCP servers](local-mcp.md)). From a server that names no user, the list stays in memory. | Encrypted as the sessions. Without a key store it is not written: the list stays in memory. | Until the person removes a server. | Exported as `mcp/servers.json`, without what can hold a secret: the label, the program or the address without a user, password, query or fragment, the settings, the number of arguments, and the names of the environment variables and headers, never their values; deleted. |
+| `mcp/audit.jsonl` | The device's audit log of the switch "Allow plain http on the local network": the time, the server's origin, on or off, the warning's version and the person. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Exported, with the old files; deleted. |
 | `keys/provenance-signing.key` (standalone) | The device's key that signs provenance records ([Content provenance](provenance.md)). | Encrypted by DPAPI or the OS key store. Without either it is never written: a new key lives in memory for the run. | Until deleted. | Never exported; deleted. |
-| `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Not exported (`KeptRecords()` reads them); deleted. |
-| `provenance/placements.jsonl` (standalone) | Where tools placed marked content: hashes and outcomes. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Not exported; deleted. |
+| `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Exported (`KeptRecords()` also reads them); deleted. |
+| `provenance/placements.jsonl` (standalone) | Where tools placed marked content: hashes and outcomes. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Exported, with the old files; deleted. |
 
 In governed mode the server signs and keeps the provenance records, so nothing of provenance is written to the person's folder.
 
@@ -87,11 +87,11 @@ These folders belong to the OS user, not to one person: everyone who uses the SD
 
 ## The move from before 0.3.0
 
-Before 0.3.0 the SDK kept `sessions` and `approvals` directly in the data folder, for everyone on the OS account. The first time a governed agent learns of a user on a device where no person has a folder yet (`users/standalone/` does not count), it moves those two folders into that user's folder, once. After that nothing moves again, because one person's data must never go to another:
+Before 0.3.0 the SDK kept `sessions`, `approvals` and `preferences` (the thinking level) directly in the data folder, for everyone on the OS account. The first time a governed agent learns of a user on a device where no person has a folder yet (`users/standalone/` does not count), it moves those three folders into that user's folder, once. After that nothing moves again, because one person's data must never go to another:
 
 - a standalone start never takes them, so a governed person who signs in later still gets their older chats;
-- a move that fails is logged with the kind of failure only, and the folders stay where they were;
-- the shared `preferences` folder is not moved, and a server that names no user goes on using the shared folders.
+- a move that fails is logged with the kind of failure only, and the folders not moved yet stay where they were (`preferences` goes last, so the chats and approvals move first);
+- a server that names no user goes on using the shared folders.
 
 ## Export and delete
 
@@ -99,7 +99,7 @@ A person can ask for the data a device holds about them (GDPR Art. 15 and 20) an
 
 | Call | What it covers | What it leaves |
 |---|---|---|
-| `agent.ExportMyDataAsync(stream)` | A ZIP with the person's sessions, decrypted, their "Allow always" approvals and a README. | Tokens and secrets, which are never exported; the thinking level and the language; skills and their switches (the editor exports a skill as a zip); the MCP servers and their audit log; the standalone provenance records and log; the shared folders; what the server keeps. |
+| `agent.ExportMyDataAsync(stream)` | A ZIP with all the deletion removes: the person's sessions, decrypted, their "Allow always" approvals, the preferences (the thinking level, the skills turned off), the standalone language, skills, the MCP servers without what can hold a secret and their audit log, the standalone provenance records and log, and a README. A file the export does not know is named in the README, not exported. From a server that names no user: the shared folders, `preferences` too. | Tokens, the provenance signing key and secret values (MCP arguments, environment and header values), which are never exported; the shared folders; what the server keeps. |
 | `agent.DeleteMyDataAsync()` | The person's whole folder, `users/<user>/`, with everything in it. From a server that names no user: the shared `sessions`, `approvals` and `preferences` folders. | The sign-in (sign out for that); the shared folders; another person's folder (deleting a governed person's data leaves `users/standalone/`, and the other way round); a store your app passed (`HostStoresLeft`); what the server keeps. |
 | `tokens.SignOutAsync()` | Revokes the sign-in on the server where it can be reached, and deletes the token file. | The person's folder. |
 | `agent.DeleteSessionAsync(id)`, `agent.ResetApprovalsAsync()` | One session; this agent's "Allow always". | |
