@@ -140,7 +140,7 @@ public sealed class PageTools
 - **Signing in:** [sign in by pairing](agent.md#sign-in-by-pairing), for one agent or several with one approval, and what to do when the server is too old.
 - **Approvals:** [server-held grants and Bypass](server-grants.md), the second sign-in, `GrantLifecycle`; [host commands](host-commands.md) and the server's recheck of host calls.
 - **Thinking:** [how long the agent thinks](agent.md#how-long-it-thinks-the-persons-choice), the pill in the chat and the server's cap.
-- **Data on the device:** [per-user stores, encryption on every system, retention from the server](sessions.md), and [export and deletion of a person's data](sessions.md#export-and-delete-my-data).
+- **Data on the device:** [every folder the SDK writes, and what the server keeps](data-on-device.md), [per-user stores, encryption on every system, retention from the server](sessions.md), and [export and deletion of a person's data](sessions.md#export-and-delete-my-data).
 - **Tools:** [the organisation's tools list](agent.md#the-organisations-tools), [tool sources that change](extending.md#tool-sources-that-change) and [`find_tool` for local MCP servers](local-mcp.md#tools-on-request).
 - **Logging:** [content-free logs, traces and metrics, and a file sink](agent.md#logging).
 - **Chat panel:** [the Avalonia skin](chat-panel.md#the-avalonia-skin), nested Markdown with a preview and Mermaid blocks, card details, [a gate on running turns](chat-panel.md#a-gate-on-running-turns), and the [notice for answers without an AI mark](chat-panel.md#answers-without-an-ai-mark).
@@ -167,6 +167,7 @@ The moved types are `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence` 
 - [Host commands and policy](host-commands.md): host tools the person starts, and the server's fresh check of every host call.
 - [Outcomes and errors](outcomes.md): how a turn ends, and what is thrown.
 - [Sessions on the device](sessions.md): storage, retention and your own store.
+- [Data on the device](data-on-device.md): every folder the SDK writes, how long it keeps it, and what the server keeps.
 - [Content provenance](provenance.md): marking what tools place as AI-generated.
 - [Chat panel](chat-panel.md): a ready chat UI for WPF and Avalonia hosts.
 - [Connecting an agent](connecting.md): the connection wizard, to a server or the person's own AI.

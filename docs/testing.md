@@ -174,7 +174,7 @@ meters.Start();
 
 ## Files, folders and keys
 
-Where the SDK keeps things is fixed by the operating system ([Sessions on the device](sessions.md#where-they-are-stored)), and a test must not write there. Use the memory stores, or give a file store a temporary folder. `SecretProtection.Use` and `FadenstackSecrets.UseOsKeyStore` choose a process-wide protector once, before the first store exists, and cannot be undone, so a test that needs one belongs in a process of its own; most tests need neither.
+Where the SDK keeps things is fixed by the operating system ([Data on the device](data-on-device.md)), and a test must not write there. Use the memory stores, or give a file store a temporary folder. `SecretProtection.Use` and `FadenstackSecrets.UseOsKeyStore` choose a process-wide protector once, before the first store exists, and cannot be undone, so a test that needs one belongs in a process of its own; most tests need neither.
 
 ## Marks and tools by hand
 
