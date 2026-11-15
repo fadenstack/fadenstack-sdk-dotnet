@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Agents;
@@ -108,6 +109,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
     private bool _modelChosen;
     private bool _started;
     private bool _passwordBusy;
+    private int _flows; // each guarded flow's number: a newer flow makes an older one's failure stale
 
     private WizardStep _step = WizardStep.Choose;
     private WizardOutcome _outcome;
@@ -189,25 +191,25 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         CloseCommand = new RelayCommand(() => Finish(WizardOutcome.Closed), () => _step != WizardStep.Finished);
         CancelCommand = new RelayCommand(Cancel, CanCancel);
         BackCommand = new RelayCommand(Back, CanGoBack);
-        SubmitServerCommand = new AsyncRelayCommand(SubmitServerAsync, () => Is(WizardStep.ServerAddress));
+        SubmitServerCommand = new AsyncRelayCommand(Guarded(SubmitServerAsync), () => Is(WizardStep.ServerAddress));
         ChangeServerCommand = new RelayCommand(ChangeServer, CanChangeServer);
-        RetryCommand = new AsyncRelayCommand(RetryAsync, CanRetry);
-        NewCodeCommand = new AsyncRelayCommand(StartPairingAsync, () => Is(WizardStep.Denied, WizardStep.Expired));
+        RetryCommand = new AsyncRelayCommand(Guarded(RetryAsync), CanRetry);
+        NewCodeCommand = new AsyncRelayCommand(Guarded(StartPairingAsync), () => Is(WizardStep.Denied, WizardStep.Expired));
         UsePasswordCommand = new RelayCommand(UsePassword,
             () => _options.PasswordFallback && Is(WizardStep.PairCode, WizardStep.ServerTooOld));
-        BackToCodeCommand = new AsyncRelayCommand(StartPairingAsync,
+        BackToCodeCommand = new AsyncRelayCommand(Guarded(StartPairingAsync),
             () => !_passwordBusy && Is(WizardStep.Password, WizardStep.PasswordError));
-        SignInWithPasswordCommand = new AsyncItemCommand<string>(SignInWithPasswordAsync,
+        SignInWithPasswordCommand = new AsyncItemCommand<string>(Guarded<string>(SignInWithPasswordAsync),
             _ => !_passwordBusy && Is(WizardStep.Password));
         OpenPairingPageCommand = new RelayCommand(() => _links?.TryOpen(_pairingPage!), () => Is(WizardStep.PairCode) && _pairingPage is not null);
         CopyCodeCommand = new RelayCommand(() => _clipboard.SetText(_userCode!), () => Is(WizardStep.PairCode) && _userCode is not null);
-        AcceptCommand = new AsyncRelayCommand(AcceptAsync, () => Is(WizardStep.OwnAccept) && _accepted);
+        AcceptCommand = new AsyncRelayCommand(Guarded(AcceptAsync), () => Is(WizardStep.OwnAccept) && _accepted);
         ServerModeInsteadCommand = new RelayCommand(OpenServerAddress, () => Is(WizardStep.OwnAccept) && CanChooseServer);
         SelectPresetCommand = new ItemCommand<EndpointPreset>(SelectPreset, p => p is not null && Is(WizardStep.OwnPick));
         SelectFoundCommand = new ItemCommand<LocalEndpoint>(SelectFound, f => f is not null && Is(WizardStep.OwnPick));
-        UseEndpointCommand = new AsyncRelayCommand(UseEndpointAsync, () => Is(WizardStep.OwnPick));
-        ConfirmPlainHttpCommand = new AsyncRelayCommand(RunCheckAsync, () => Is(WizardStep.OwnPlainHttp));
-        SubmitKeyCommand = new AsyncItemCommand<string>(SubmitKeyAsync, _ => Is(WizardStep.OwnKey));
+        UseEndpointCommand = new AsyncRelayCommand(Guarded(UseEndpointAsync), () => Is(WizardStep.OwnPick));
+        ConfirmPlainHttpCommand = new AsyncRelayCommand(Guarded(RunCheckAsync), () => Is(WizardStep.OwnPlainHttp));
+        SubmitKeyCommand = new AsyncItemCommand<string>(Guarded<string>(SubmitKeyAsync), _ => Is(WizardStep.OwnKey));
         EnterKeyCommand = new RelayCommand(() =>
         {
             NeedsKey = true;
@@ -215,7 +217,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         }, () => Is(WizardStep.OwnFailed) && _problem == EndpointProblem.KeyRejected && _pending is { AllowPlainHttpInLan: false });
         ShowHelpCommand = new RelayCommand(() => Go(WizardStep.OwnHelp),
             () => Is(WizardStep.OwnFailed) && _problem == EndpointProblem.OriginRefused);
-        ContinueCommand = new AsyncRelayCommand(ContinueAsync,
+        ContinueCommand = new AsyncRelayCommand(Guarded(ContinueAsync),
             () => Is(WizardStep.OwnResult) || (Is(WizardStep.OwnModel) && !string.IsNullOrEmpty(_selectedModel)));
         ConnectOrganisationCommand = new RelayCommand(OpenServerAddress, () => Is(WizardStep.Settings) && CanChooseServer);
         ChangeEndpointCommand = new RelayCommand(OpenOwnAccept, () => Is(WizardStep.Settings) && CanChooseOwnAi);
@@ -224,7 +226,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
             DeleteLocalChats = false;
             Go(WizardStep.SignOut);
         }, () => Is(WizardStep.Settings) && _options.Current is not null);
-        ConfirmSignOutCommand = new AsyncRelayCommand(ConfirmSignOutAsync, () => Is(WizardStep.SignOut));
+        ConfirmSignOutCommand = new AsyncRelayCommand(Guarded(ConfirmSignOutAsync), () => Is(WizardStep.SignOut));
     }
 
     /// <summary>The wizard is over (<see cref="WizardStep.Finished"/>): how, in <see cref="Outcome"/>.</summary>
@@ -340,7 +342,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _accepted, value))
             {
-                AcceptCommand.NotifyCanExecuteChanged();
+                Notify(AcceptCommand);
             }
         }
     }
@@ -391,7 +393,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         {
             if (SetProperty(ref _selectedModel, value))
             {
-                ContinueCommand.NotifyCanExecuteChanged();
+                Notify(ContinueCommand);
             }
         }
     }
@@ -563,9 +565,9 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
                 ServerUrl = known;
                 _serverAddressText = known.AbsoluteUri;
                 OnPropertyChanged(nameof(ServerAddressText));
-                return StartPairingAsync();
+                return GuardAsync(StartPairingAsync);
             default:
-                return FirstRunAsync();
+                return GuardAsync(FirstRunAsync);
         }
     }
 
@@ -810,7 +812,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
             var wait = limited.RetryAfter is { } after && after > TimeSpan.Zero ? after : DefaultRetryAfter;
             RetryAt = _clock.Now + wait;
             _retryTimer?.Dispose();
-            _retryTimer = _clock.After(wait, () => RetryCommand.NotifyCanExecuteChanged());
+            _retryTimer = _clock.After(wait, () => Notify(RetryCommand));
         }
         Go(WizardStep.StartFailed);
     }
@@ -915,7 +917,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         {
             if (IsCurrent(run) && Is(WizardStep.SignedIn))
             {
-                _ = AfterConnectAsync(run);
+                _ = GuardAsync(() => AfterConnectAsync(run));
             }
         });
     }
@@ -1558,27 +1560,114 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         _timer = null;
     }
 
-    /// <summary>Back on the UI thread: at once when already there, else through the dispatcher.</summary>
-    private Task ToUi()
+    /// <summary>
+    /// Back on the UI thread: at once when already there, else the rest of the method is posted to the dispatcher and runs
+    /// inside the posted action (<see cref="UiSwitch"/>).
+    /// </summary>
+    private UiSwitch ToUi() => _dispatcher.ToUi();
+
+    private void Refresh() => Notify(
+        ChooseServerCommand, ChooseOwnAiCommand, ChooseDemoCommand, CloseCommand, CancelCommand, BackCommand, SubmitServerCommand,
+        ChangeServerCommand, RetryCommand, NewCodeCommand, UsePasswordCommand, BackToCodeCommand, SignInWithPasswordCommand,
+        OpenPairingPageCommand, CopyCodeCommand, AcceptCommand, ServerModeInsteadCommand, SelectPresetCommand, SelectFoundCommand,
+        UseEndpointCommand, ConfirmPlainHttpCommand, SubmitKeyCommand, EnterKeyCommand, ShowHelpCommand, ContinueCommand,
+        ConnectOrganisationCommand, ChangeEndpointCommand, SignOutCommand, ConfirmSignOutCommand);
+
+    /// <summary>
+    /// Tells the views that these commands may have changed, always on the UI thread: a button's handler (WPF's, Avalonia's)
+    /// throws on any other. One handler that throws does not stop the others (<see cref="CommandNotify"/>).
+    /// </summary>
+    private void Notify(params IRelayCommand?[] commands)
     {
         if (_dispatcher.CheckAccess())
         {
-            return Task.CompletedTask;
+            CommandNotify.All(commands);
         }
-        var back = new TaskCompletionSource<bool>();
-        _dispatcher.Post(() => back.SetResult(true)); // the continuation runs inside the posted action, on the UI thread
-        return back.Task;
+        else
+        {
+            _dispatcher.Post(() => CommandNotify.All(commands));
+        }
     }
 
-    private void Refresh()
+    /// <summary>
+    /// Runs a flow so that an exception nobody planned for never leaves the wizard at a busy step: it is logged (its type
+    /// only), and the flow's path shows its failure step (<see cref="Faulted"/>). A flow that a newer one replaced fails
+    /// quietly: its answers are stale.
+    /// </summary>
+    private async Task GuardAsync(Func<Task> flow)
     {
-        // One command's handler that throws must not stop the others: each is told on its own (see CommandNotify).
-        CommandNotify.All(
-            ChooseServerCommand, ChooseOwnAiCommand, ChooseDemoCommand, CloseCommand, CancelCommand, BackCommand, SubmitServerCommand,
-            ChangeServerCommand, RetryCommand, NewCodeCommand, UsePasswordCommand, BackToCodeCommand, SignInWithPasswordCommand,
-            OpenPairingPageCommand, CopyCodeCommand, AcceptCommand, ServerModeInsteadCommand, SelectPresetCommand, SelectFoundCommand,
-            UseEndpointCommand, ConfirmPlainHttpCommand, SubmitKeyCommand, EnterKeyCommand, ShowHelpCommand, ContinueCommand,
-            ConnectOrganisationCommand, ChangeEndpointCommand, SignOutCommand, ConfirmSignOutCommand);
+        var flowId = ++_flows;
+        try
+        {
+            await flow();
+        }
+        catch (Exception e)
+        {
+            Trace.TraceError($"Fadenstack.UI: a step of the connection wizard failed with {e.GetType().Name}.");
+            await ToUi();
+            if (flowId == _flows)
+            {
+                Faulted();
+            }
+        }
+    }
+
+    private Func<Task> Guarded(Func<Task> flow) => () => GuardAsync(flow);
+
+    private Func<T?, Task> Guarded<T>(Func<T?, Task> flow) => value => GuardAsync(() => flow(value));
+
+    /// <summary>
+    /// After a flow failed unexpectedly: from a busy step to its path's failure step, as Cancel goes one step back. The check
+    /// shows <see cref="WizardStep.OwnFailed"/>; a step that is not busy stays, since the person can act there.
+    /// </summary>
+    private void Faulted()
+    {
+        if (!IsBusy)
+        {
+            return;
+        }
+        var step = _step;
+        CancelRun();
+        StopTimer();
+        switch (step)
+        {
+            case WizardStep.BeforeChoice:
+                Finish(WizardOutcome.Closed); // as the app's step that stops it
+                break;
+            case WizardStep.AppPrecondition or WizardStep.ServerAccepted:
+                Go(WizardStep.ServerAddress);
+                break;
+            case WizardStep.Checking:
+                Go(WizardStep.Unreachable);
+                break;
+            case WizardStep.PairStarting:
+                StartFailure = Wizard.StartFailure.ServerError;
+                Go(WizardStep.StartFailed);
+                break;
+            case WizardStep.Approved or WizardStep.Redeeming:
+                ClearPairing();
+                Go(WizardStep.PairFailed);
+                break;
+            case WizardStep.Password:
+                PasswordFailure = Wizard.PasswordFailure.Other;
+                SetPasswordBusy(false);
+                Go(WizardStep.PasswordError);
+                break;
+            case WizardStep.OwnSearching:
+                OpenPick(); // as a search that found nothing
+                break;
+            case WizardStep.BeforeCheck or WizardStep.OwnChecking:
+                Problem = EndpointProblem.Failed;
+                Go(WizardStep.OwnFailed);
+                break;
+            case WizardStep.OwnDone or WizardStep.AfterConnect:
+                BackToStart(); // the connection is not used, as when the app's step stops it
+                break;
+        }
+        if (_passwordBusy)
+        {
+            SetPasswordBusy(false);
+        }
     }
 
     public void Dispose()

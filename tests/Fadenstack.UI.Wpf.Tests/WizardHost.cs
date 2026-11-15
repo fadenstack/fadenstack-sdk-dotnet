@@ -105,6 +105,22 @@ internal sealed class WizardHost : IDisposable
         Window.UpdateLayout();
     }
 
+    /// <summary>Pumps the dispatcher until <paramref name="done"/> holds (an answer may come from the thread pool); throws after 10 s.</summary>
+    public void PumpUntil(Func<bool> done, string what)
+    {
+        var watch = Stopwatch.StartNew();
+        while (!done())
+        {
+            if (watch.Elapsed > TimeSpan.FromSeconds(10))
+            {
+                throw new TimeoutException($"Waited 10 s for {what}; the wizard is at {Wizard.Step}.");
+            }
+            Pump();
+            Thread.Sleep(5);
+        }
+        Pump();
+    }
+
     public IEnumerable<DependencyObject> Tree() => Descendants(View);
 
     /// <summary>Everything the view shows right now: its elements that are visible (in a shown window).</summary>
