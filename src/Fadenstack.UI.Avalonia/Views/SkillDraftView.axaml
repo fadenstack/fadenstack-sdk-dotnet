@@ -15,21 +15,25 @@
         "Draft from this chat" (sdk/51 F04): one view for a SkillDraftViewModel. What the skill should be for (optional), the button that
         asks the model once, the draft's state in words (asking, the proposal, why it failed) and the statement that nothing is saved until
         the person presses Save in the editor. The proposal opens in the editor (the library shows it itself; Edit asks the host to).
-        The texts are UiStrings from the view model's Strings; every look is a style class of the skin's or a theme key.
+        The texts are UiStrings from the view model's Strings; every look is a style class of the skin's (Controls.axaml, and
+        Forms.axaml for the form views' shapes and rhythm) or a theme key.
     -->
     <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
         <Style Selector="Button.hide-disabled:disabled">
             <Setter Property="IsVisible" Value="False" />
         </Style>
     </UserControl.Styles>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="12" Spacing="8">
             <TextBlock Classes="title" Text="{v:Text SkillDraftTitle}" TextWrapping="Wrap" />
 
-            <TextBlock Classes="strong" Text="{v:Text SkillDraftGuidance}" TextWrapping="Wrap" />
-            <TextBox Name="GuidanceBox" b:WizardFocus.IsFirst="True" Text="{Binding Guidance, Mode=TwoWay}" IsEnabled="{Binding !IsWorking}"
-                     TextWrapping="Wrap" AutomationProperties.Name="{v:Text SkillDraftGuidance}" />
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{v:Text SkillDraftGuidance}" TextWrapping="Wrap" />
+                <TextBox Name="GuidanceBox" b:WizardFocus.IsFirst="True" Text="{Binding Guidance, Mode=TwoWay}" IsEnabled="{Binding !IsWorking}"
+                         TextWrapping="Wrap" AutomationProperties.Name="{v:Text SkillDraftGuidance}" />
+            </StackPanel>
 
             <!-- In every state: nothing is saved until Save. -->
             <TextBlock Name="StandingNote" Classes="caption muted" Text="{Binding StandingNote}" TextWrapping="Wrap" />

@@ -17,11 +17,17 @@
         type, the instructions in Markdown with a preview (the chat's Markdown view), the faden.yaml fields, the files (add, rename,
         remove), the checks, Save (on only when the checks pass) and Cancel, and the Try panel (a message, the listed, matched and
         pre-loaded skills, and the model asked once). Nothing is saved except by Save. The texts are UiStrings from the view model's
-        Strings; every look is a style class of the skin's or a theme key.
+        Strings; every look is a style class of the skin's (Controls.axaml, and Forms.axaml for the form views' shapes and rhythm) or a
+        theme key. A field, its label and its issues are one group (4 apart); an issue list without issues is hidden.
     -->
     <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
         <Style Selector="Button.hide-disabled:disabled">
             <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- A section's heading (when to use it, the files, the checks): a little more room above it than between fields. -->
+        <Style Selector="TextBlock.section">
+            <Setter Property="Margin" Value="0,8,0,0" />
         </Style>
         <Style Selector="TextBox.area">
             <Setter Property="AcceptsReturn" Value="True" />
@@ -37,7 +43,7 @@
     </UserControl.KeyBindings>
 
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+        <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="12" Spacing="8">
             <TextBlock Classes="title" Text="{Binding Heading}" TextWrapping="Wrap" />
 
             <!-- A model's draft: not saved until Save. -->
@@ -80,88 +86,112 @@
             </Border>
 
             <!-- ===== Name and description ======================================================================== -->
-            <TextBlock Classes="strong" Text="{v:Text SkillName}" />
-            <TextBox Name="NameBox" b:WizardFocus.IsFirst="True" Text="{Binding Name, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
-                     AutomationProperties.Name="{v:Text SkillName}" />
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
-                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{v:Text SkillName}" />
+                <TextBox Name="NameBox" b:WizardFocus.IsFirst="True" Text="{Binding Name, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                         AutomationProperties.Name="{v:Text SkillName}" />
+                <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Name}}" IsVisible="{Binding $self.ItemCount, Converter={x:Static v:Counts.Any}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                            <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
 
-            <TextBlock Classes="strong" Text="{v:Text SkillDescription}" />
-            <TextBox Name="DescriptionBox" Text="{Binding Description, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" TextWrapping="Wrap"
-                     AutomationProperties.Name="{v:Text SkillDescription}" />
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
-                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{v:Text SkillDescription}" />
+                <TextBox Name="DescriptionBox" Text="{Binding Description, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" TextWrapping="Wrap"
+                         AutomationProperties.Name="{v:Text SkillDescription}" />
+                <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Description}}" IsVisible="{Binding $self.ItemCount, Converter={x:Static v:Counts.Any}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                            <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
 
             <!-- ===== Instructions and their preview ============================================================== -->
-            <DockPanel>
-                <CheckBox DockPanel.Dock="Right" Name="PreviewBox" IsChecked="{Binding ShowPreview, Mode=TwoWay}" Content="{v:Text SkillPreview}"
-                          AutomationProperties.Name="{v:Text SkillPreview}" />
-                <TextBlock Classes="strong" Text="{v:Text SkillInstructions}" VerticalAlignment="Center" />
-            </DockPanel>
-            <TextBox Name="InstructionsBox" Classes="area" Text="{Binding Instructions, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
-                     AutomationProperties.Name="{v:Text SkillInstructions}" />
-            <!-- The size against the advisory limit: a note, and a warning when over. -->
-            <TextBlock Name="TokensText" Classes="caption muted" Text="{Binding InstructionsTokensText}" IsVisible="{Binding !InstructionsOverLimit}" />
+            <StackPanel Spacing="4">
+                <DockPanel>
+                    <CheckBox DockPanel.Dock="Right" Name="PreviewBox" IsChecked="{Binding ShowPreview, Mode=TwoWay}" Content="{v:Text SkillPreview}"
+                              AutomationProperties.Name="{v:Text SkillPreview}" />
+                    <TextBlock Classes="strong" Text="{v:Text SkillInstructions}" VerticalAlignment="Center" />
+                </DockPanel>
+                <TextBox Name="InstructionsBox" Classes="area" Text="{Binding Instructions, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                         AutomationProperties.Name="{v:Text SkillInstructions}" />
+                <!-- The size against the advisory limit: a note, and a warning when over. -->
+                <TextBlock Name="TokensText" Classes="caption muted" Text="{Binding InstructionsTokensText}" IsVisible="{Binding !InstructionsOverLimit}" />
+                <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}" IsVisible="{Binding $self.ItemCount, Converter={x:Static v:Counts.Any}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="sk:SkillIssueViewModel">
+                            <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
             <Border Name="TokensWarning" Classes="banner warning" IsVisible="{Binding InstructionsOverLimit}">
                 <DockPanel>
                     <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
                     <TextBlock Text="{Binding InstructionsTokensText}" TextWrapping="Wrap" />
                 </DockPanel>
             </Border>
-            <ItemsControl ItemsSource="{Binding Issues, Converter={x:Static b:SkillIssuesFor.Instructions}}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="sk:SkillIssueViewModel">
-                        <TextBlock Classes="caption" Text="{Binding Text}" TextWrapping="Wrap" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
             <Border Name="PreviewCard" Classes="card" IsVisible="{Binding ShowPreview}">
                 <v:MarkdownView Blocks="{Binding PreviewBlocks}" />
             </Border>
 
             <!-- ===== faden.yaml: when to use it ================================================================== -->
-            <TextBlock Classes="strong" Text="{v:Text SkillMatching}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillTitleField}" />
-            <TextBox Name="TitleBox" Text="{Binding ExtensionTitle, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTitleField}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillKeywords}" />
-            <TextBox Name="KeywordsBox" Text="{Binding KeywordsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillKeywords}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillTags}" />
-            <TextBox Name="TagsBox" Text="{Binding TagsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTags}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillFileTypes}" />
-            <TextBox Name="FileTypesBox" Text="{Binding FileTypesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillFileTypes}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillPreferredTools}" />
-            <TextBox Name="PreferredToolsBox" Text="{Binding PreferredToolsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPreferredTools}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillPriority}" />
-            <TextBox Name="PriorityBox" Text="{Binding Priority, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPriority}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillActivation}" />
-            <ComboBox Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValueBinding="{ReflectionBinding Value}"
-                      SelectedValue="{Binding Activation, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch"
-                      AutomationProperties.Name="{v:Text SkillActivation}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="sk:SkillActivationOption">
-                        <TextBlock Text="{Binding Label}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <TextBlock Classes="caption muted" Text="{v:Text SkillLicense}" />
-            <TextBox Name="LicenseBox" Text="{Binding License, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillLicense}" />
-            <TextBlock Classes="caption muted" Text="{v:Text SkillCompatibility}" />
-            <TextBox Name="CompatibilityBox" Text="{Binding Compatibility, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillCompatibility}" />
+            <TextBlock Classes="strong section" Text="{v:Text SkillMatching}" />
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillTitleField}" />
+                <TextBox Name="TitleBox" Text="{Binding ExtensionTitle, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTitleField}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillKeywords}" />
+                <TextBox Name="KeywordsBox" Text="{Binding KeywordsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillKeywords}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillTags}" />
+                <TextBox Name="TagsBox" Text="{Binding TagsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillTags}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillFileTypes}" />
+                <TextBox Name="FileTypesBox" Text="{Binding FileTypesText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillFileTypes}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillPreferredTools}" />
+                <TextBox Name="PreferredToolsBox" Text="{Binding PreferredToolsText, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPreferredTools}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillPriority}" />
+                <TextBox Name="PriorityBox" Text="{Binding Priority, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillPriority}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillActivation}" />
+                <ComboBox Name="ActivationBox" ItemsSource="{Binding ActivationOptions}" SelectedValueBinding="{ReflectionBinding Value}"
+                          SelectedValue="{Binding Activation, Mode=TwoWay}" IsEnabled="{Binding !IsReadOnly}" HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="{v:Text SkillActivation}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="sk:SkillActivationOption">
+                            <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillLicense}" />
+                <TextBox Name="LicenseBox" Text="{Binding License, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillLicense}" />
+            </StackPanel>
+            <StackPanel Spacing="4">
+                <TextBlock Classes="caption muted" Text="{v:Text SkillCompatibility}" />
+                <TextBox Name="CompatibilityBox" Text="{Binding Compatibility, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}" AutomationProperties.Name="{v:Text SkillCompatibility}" />
+            </StackPanel>
             <Button Classes="secondary" HorizontalAlignment="Left" IsVisible="{Binding HasUnknownKeys}" Command="{Binding DropUnknownKeysCommand}"
                     Content="{v:Text SkillDropUnknownKeys}" AutomationProperties.Name="{v:Text SkillDropUnknownKeys}" />
 
             <!-- ===== The files ==================================================================================== -->
-            <TextBlock Classes="strong" Text="{v:Text SkillResources}" />
+            <TextBlock Classes="strong section" Text="{v:Text SkillResources}" />
             <TextBlock Classes="muted" Text="{v:Text SkillNoResources}" TextWrapping="Wrap" IsVisible="{Binding !HasResources}" />
             <ItemsControl ItemsSource="{Binding Resources}">
                 <ItemsControl.ItemsPanel>
@@ -191,7 +221,7 @@
                     AutomationProperties.Name="{v:Text SkillAddFile}" />
 
             <!-- ===== The checks =================================================================================== -->
-            <TextBlock Classes="strong" Text="{v:Text SkillChecksHeading}" />
+            <TextBlock Classes="strong section" Text="{v:Text SkillChecksHeading}" />
             <Border Classes="banner success" IsVisible="{Binding !HasIssues}">
                 <DockPanel>
                     <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.Check}" Margin="0,0,12,0" />

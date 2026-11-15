@@ -185,6 +185,15 @@ public static class FadenstackKeys
     /// <summary>The checkbox: 4.</summary>
     public const string RadiusCheck = P + "Radius.Check";
 
+    /// <summary>The form views' radius system (sdk/51 F15, as the WPF skin): a container (card, banner), 12.</summary>
+    public const string RadiusContainer = P + "Radius.Container";
+
+    /// <summary>The form views' radius system: a control (button, field, check box), 6.</summary>
+    public const string RadiusControl = P + "Radius.Control";
+
+    /// <summary>The form views' radius system: a chip or a badge, 8.</summary>
+    public const string RadiusChip = P + "Radius.Chip";
+
     /// <summary>
     /// The room around a popup's surface that its shadow is drawn in (<c>Thickness</c>). A popup of one's own puts its
     /// surface (<c>Border.menu</c>) in a <c>Border.popup-room</c>, which pads it by this, and opens at

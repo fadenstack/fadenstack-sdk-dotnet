@@ -16,9 +16,11 @@
         reviewed" for the person's own and its switch where it may be switched; New and Import; Edit (View for a bundled skill),
         Duplicate, Delete (after the confirmation the view model asks for) and Export on each row. When the view model has an editor open
         the view shows it (SkillEditorView) in place of the list. The texts are UiStrings (five languages) from the view model's Strings;
-        every look is a style class of the skin's or a theme key.
+        every look is a style class of the skin's (Controls.axaml, and Forms.axaml for the form views'
+        shapes and rhythm) or a theme key.
     -->
     <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
         <Style Selector="Button.hide-disabled:disabled">
             <Setter Property="IsVisible" Value="False" />
         </Style>
@@ -33,7 +35,7 @@
     <Panel>
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                       IsVisible="{Binding Editor, Converter={x:Static ObjectConverters.IsNull}}">
-            <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="16" Spacing="12">
+            <StackPanel Name="Column" MaxWidth="720" HorizontalAlignment="Stretch" Margin="12" Spacing="8">
                 <TextBlock Classes="title" Text="{v:Text SkillLibraryTitle}" TextWrapping="Wrap" />
 
                 <!-- What the last action did: information is a status (polite), a warning too, an error is an alert (assertive). -->

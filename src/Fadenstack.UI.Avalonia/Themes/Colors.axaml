@@ -19,6 +19,11 @@
     <!-- Inside a 12 frame with 4 padding (menu items, segments) and the tooltip: 8. The checkbox: 4 (22 section 5.2). -->
     <CornerRadius x:Key="Fadenstack.Radius.Inner">8</CornerRadius>
     <CornerRadius x:Key="Fadenstack.Radius.Check">4</CornerRadius>
+    <!-- The form views (the wizard, the skill library, editor and draft; Forms.axaml), as the WPF skin (sdk/51 F15): a container 12, a
+         control 6, a chip or badge 8; an element inside a container has the container's radius minus its inset. -->
+    <CornerRadius x:Key="Fadenstack.Radius.Container">12</CornerRadius>
+    <CornerRadius x:Key="Fadenstack.Radius.Control">6</CornerRadius>
+    <CornerRadius x:Key="Fadenstack.Radius.Chip">8</CornerRadius>
     <!-- Room around a popup's surface for its shadow, and the offsets that put the surface (not the room) at the anchor. -->
     <Thickness x:Key="Fadenstack.Popup.ShadowMargin">12,6,12,18</Thickness>
     <x:Double x:Key="Fadenstack.Popup.OffsetX">-12</x:Double>
