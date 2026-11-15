@@ -58,6 +58,7 @@ public sealed class McpHost : IDisposable
         Func<McpServerEntry, IClientTransport>? transport = null, Func<McpServerEntry, LocalMcpServer>? server = null,
         Func<McpServerEntry, McpServerMarks?>? marks = null)
     {
+        MarksArePersons = marks is null;
         _marks = marks ?? (e => new McpServerMarks(e.Trusted, e.ToolClasses));
         var make = server ?? (e => ToServer(e, null));
         _server = e =>
@@ -81,6 +82,15 @@ public sealed class McpHost : IDisposable
             _roots.Changed += OnRootsChanged;
         }
     }
+
+    /// <summary>
+    /// The person's own marks count (standalone: the default). False: the host was given an administrator's marks, and a view
+    /// shows them without a way to change them (a change of the person's would have no effect).
+    /// </summary>
+    public bool MarksArePersons { get; }
+
+    /// <summary>The marks that count for <paramref name="entry"/> now (the person's or the administrator's); null when the host has none for it.</summary>
+    public McpServerMarks? MarksOf(McpServerEntry entry) => _marks(entry);
 
     /// <summary>The module of the agent that runs now.</summary>
     public LocalMcpModule? Module
