@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Fadenstack.UI.Tests;
+using Fadenstack.UI.Tests.ToolsView;
 using Fadenstack.UI.Wizard;
 using Fadenstack.UI.Wpf.Views;
 using Xunit;
@@ -70,6 +71,7 @@ internal sealed class StyleHost : IDisposable
             case SkillLibraryView l: l.Theme = theme; break;
             case SkillEditorView e: e.Theme = theme; break;
             case SkillDraftView d: d.Theme = theme; break;
+            case ToolsView t: t.Theme = theme; break;
         }
         PumpCore();
     }
@@ -83,6 +85,14 @@ internal sealed class StyleHost : IDisposable
         PumpCore();
         Window.Width = PaneWidth + (Window.ActualWidth - View.ActualWidth);
         PumpCore();
+        if (View is ToolsView)
+        {
+            // The Tools view layers a drawer or a sheet over its page: the height is what the layers need, measured without a limit.
+            View.Measure(new Size(View.ActualWidth, double.PositiveInfinity));
+            Window.Height = Math.Min(6000, Math.Max(40, View.DesiredSize.Height) + (Window.ActualHeight - View.ActualHeight));
+            PumpCore();
+            return;
+        }
         var scroller = Visible().OfType<ScrollViewer>().FirstOrDefault();
         var needed = scroller is null ? View.ActualHeight : scroller.ExtentHeight + (View.ActualHeight - scroller.ViewportHeight);
         Window.Height = Math.Min(6000, Math.Max(40, needed) + (Window.ActualHeight - View.ActualHeight));
@@ -123,6 +133,9 @@ internal static class StyleCases
 
     public static readonly string[] DraftStates = { "idle", "working", "ready", "ready-with-problems", "failed", "unreadable", "no-chat", "no-model" };
 
+    /// <summary>The states of the Tools view (see <see cref="ToolsScenes"/>).</summary>
+    public static readonly string[] ToolsStates = ToolsScenes.States;
+
     /// <summary>(view, state) for each; the wizard's views are named by the step.</summary>
     public static IEnumerable<(string View, string State)> All()
     {
@@ -141,6 +154,10 @@ internal static class StyleCases
         foreach (var state in DraftStates)
         {
             yield return ("draft", state);
+        }
+        foreach (var state in ToolsStates)
+        {
+            yield return ("tools", state);
         }
     }
 
@@ -172,6 +189,11 @@ internal static class StyleCases
             }
             case "draft":
                 return Wrap(SkillViewTests.DraftAt(state, language));
+            case "tools":
+            {
+                var host = new ToolsHost(state, language);
+                return new StyleHost(host, host.Window, host.Visible, host.Controls, host.Pump, () => host.BindingErrors);
+            }
             default:
                 throw new ArgumentException(view);
         }

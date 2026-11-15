@@ -128,6 +128,27 @@ public class StyleContrastTests
 
     // ---- what is checked ---------------------------------------------------------------------------------------------
 
+    /// <summary>The lowest ratio seen per kind of check, and where (reported, not asserted): set while one view's states are checked.</summary>
+    internal sealed class Lowest
+    {
+        private readonly Dictionary<string, (double Ratio, string Where)> _min = new();
+        private readonly Dictionary<string, int> _count = new();
+
+        public void Note(string kind, double ratio, string where)
+        {
+            _count[kind] = _count.TryGetValue(kind, out var n) ? n + 1 : 1;
+            if (!_min.TryGetValue(kind, out var seen) || ratio < seen.Ratio)
+            {
+                _min[kind] = (ratio, where);
+            }
+        }
+
+        public IEnumerable<string> Lines(string palette) => _min.OrderBy(k => k.Key, StringComparer.Ordinal)
+            .Select(k => string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0} {1}: lowest {2:0.00}:1 over {3} checks, at {4}", palette, k.Key, k.Value.Ratio, _count[k.Key], k.Value.Where));
+    }
+
+    [ThreadStatic]
+    private static Lowest? _noting;
     /// <summary>The failures among the visible elements: text against its backdrop, the edge of a control, a focus ring, a progress bar.</summary>
     private static List<string> Failures(IEnumerable<FrameworkElement> visible, string label, bool placeholderNote = false)
     {
@@ -148,6 +169,7 @@ public class StyleContrastTests
                         var large = text.FontSize >= 24 || (text.FontSize >= 18.67 && text.FontWeight.ToOpenTypeWeight() >= 700);
                         var need = large ? LargeText : Text;
                         var got = Ratio(Over(fore, back), back);
+                        _noting?.Note(large ? "large text" : "text", got, $"'{Trim(text.Text)}' ({Where(text)})");
                         if (got < need)
                         {
                             failures.Add($"{label}: text '{Trim(text.Text)}' {Hex(Over(fore, back))} on {Hex(back)} is {got:0.00}:1, needs {need}:1 ({Where(text)})");
@@ -161,6 +183,7 @@ public class StyleContrastTests
                     if (control.IsEnabled && Solid(control.Foreground) is { } fore && FieldFill(control) is { } fill)
                     {
                         var got = Ratio(fore, fill);
+                        _noting?.Note("text", got, Where(control));
                         if (got < Text)
                         {
                             failures.Add($"{label}: the text of {Where(control)} {Hex(fore)} on {Hex(fill)} is {got:0.00}:1, needs {Text}:1");
@@ -280,6 +303,7 @@ public class StyleContrastTests
             best = Ratio(Over(f, back), back);
             what = $"fill {Hex(Over(f, back))}";
         }
+        _noting?.Note("edge", best, Where(boundary));
         return best < Graphics ? $"{label}: the boundary of {Where(boundary)} ({what}) on {Hex(back)} is {best:0.00}:1, needs {Graphics}:1" : null;
     }
 
@@ -302,6 +326,7 @@ public class StyleContrastTests
             }
         }
         var got = Ratio(color, back);
+        _noting?.Note("focus", got, Where(ring));
         return got < Graphics ? $"{label}: the focus ring of {Where(ring)} {Hex(color)} on {Hex(back)} is {got:0.00}:1, needs {Graphics}:1" : null;
     }
 
@@ -384,6 +409,8 @@ public class StyleContrastTests
     {
         var failures = new List<string>();
         var checkedStates = 0;
+        // The Tools view's own lowest ratios (the sdk/51 F05 report), per palette.
+        var toolsLowest = StyleCases.Palettes.ToDictionary(p => p, _ => new Lowest());
         foreach (var (view, state) in StyleCases.All())
         {
             using var host = StyleCases.Open(view, state);
@@ -391,9 +418,21 @@ public class StyleContrastTests
             {
                 host.SetTheme(palette);
                 host.FitToPane();
-                failures.AddRange(Failures(host.Visible(), $"{view}/{state}/{palette}"));
+                _noting = view == "tools" ? toolsLowest[palette] : null;
+                try
+                {
+                    failures.AddRange(Failures(host.Visible(), $"{view}/{state}/{palette}"));
+                }
+                finally
+                {
+                    _noting = null;
+                }
                 checkedStates++;
             }
+        }
+        if (Environment.GetEnvironmentVariable("FADEN_CONTRAST_STATS") is { Length: > 0 } statsPath)
+        {
+            File.AppendAllLines(statsPath, StyleCases.Palettes.SelectMany(p => toolsLowest[p].Lines("tools " + p)));
         }
         Assert.True(checkedStates >= 150, $"{checkedStates} view states were checked");
         Assert.True(failures.Count == 0, failures.Count + " failures:\n" + string.Join("\n", failures.Distinct().Take(60)));
@@ -520,6 +559,53 @@ public class StyleContrastTests
         }
     });
 
+    /// <summary>The views show a focus ring only on the control that has the focus; here every control of the Tools view in every state is given it, one state at a time, and each ring is read.</summary>
+    [Fact]
+    public void Every_focus_ring_of_the_Tools_view_meets_AA_in_every_palette() => Sta.Run(() =>
+    {
+        Assert.NotNull(FocusedKey);
+        Assert.NotNull(FocusWithinKey);
+        var failures = new List<string>();
+        var lowest = StyleCases.Palettes.ToDictionary(p => p, _ => new Lowest());
+        var rings = 0;
+        foreach (var state in StyleCases.ToolsStates)
+        {
+            using var host = StyleCases.Open("tools", state);
+            foreach (var palette in StyleCases.Palettes)
+            {
+                host.SetTheme(palette);
+                host.FitToPane();
+                foreach (var control in host.Visible().OfType<Control>().ToList())
+                {
+                    control.SetValue((DependencyPropertyKey)FocusedKey!.GetValue(null)!, true);
+                    control.SetValue((DependencyPropertyKey)FocusWithinKey!.GetValue(null)!, true);
+                }
+                host.Window.UpdateLayout();
+                var shown = host.Visible().Where(e => e.Name == "FocusRing").ToList();
+                rings += shown.Count;
+                _noting = lowest[palette];
+                try
+                {
+                    failures.AddRange(Failures(shown, $"tools/{state}/{palette}/focus"));
+                }
+                finally
+                {
+                    _noting = null;
+                }
+                foreach (var control in host.Visible().OfType<Control>().ToList())
+                {
+                    control.SetValue((DependencyPropertyKey)FocusedKey.GetValue(null)!, false);
+                    control.SetValue((DependencyPropertyKey)FocusWithinKey!.GetValue(null)!, false);
+                }
+            }
+        }
+        if (Environment.GetEnvironmentVariable("FADEN_CONTRAST_STATS") is { Length: > 0 } statsPath)
+        {
+            File.AppendAllLines(statsPath, StyleCases.Palettes.SelectMany(p => lowest[p].Lines("tools all rings " + p)));
+        }
+        Assert.True(rings >= 1000, $"{rings} focus rings were read");
+        Assert.True(failures.Count == 0, failures.Count + " failures:\n" + string.Join("\n", failures.Distinct().Take(40)));
+    });
     [Theory]
     [MemberData(nameof(Themes))]
     public void An_icon_is_centred_exactly_in_its_square_button(ChatTheme theme) => Sta.Run(() =>
