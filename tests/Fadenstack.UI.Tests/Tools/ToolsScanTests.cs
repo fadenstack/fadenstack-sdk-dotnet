@@ -70,7 +70,7 @@ public class ToolsScanTests
         Assert.Equal(("Windsurf, Gemini CLI, LM Studio: not installed", true), (sheet.NotInstalledText, sheet.HasNotInstalled));
         Assert.Equal("localhost, ports 3000–3999 and 8000–8999. It only says hello in MCP; nothing is sent.", sheet.PortsText);
         Assert.Equal(("Done in 4 s · 5 servers found", true, false, false), (sheet.StatusText, sheet.IsDone, sheet.IsProblem, sheet.IsScanning));
-        Assert.Equal("Nothing leaves this computer. A server starts only after you add it, and only if your organisation allows it.", sheet.Strings.ToolsScanFooter);
+        Assert.Equal("Nothing leaves this computer. A server starts only after you add it, and only where this assistant may use MCP servers.", sheet.Strings.ToolsScanFooter);
     }
 
     [Fact]

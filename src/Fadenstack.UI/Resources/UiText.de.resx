@@ -1640,16 +1640,16 @@
     <value>Was der Assistent erreichen kann und ob es eingeschaltet ist.</value>
   </data>
   <data name="ToolsBannerNotAllowed" xml:space="preserve">
-    <value>Ihre Organisation hat diesem Assistenten nicht erlaubt, MCP-Server auf diesem Computer zu verwenden. Fragen Sie Ihre Administration.</value>
+    <value>Dieser Assistent darf auf diesem Computer keine MCP-Server verwenden.</value>
   </data>
   <data name="ToolsSignInNeeded" xml:space="preserve">
     <value>Melden Sie sich an, um die Werkzeuge dieses Assistenten zu sehen.</value>
   </data>
   <data name="ToolsPolicyAllowed" xml:space="preserve">
-    <value>Von Ihrer Organisation erlaubt</value>
+    <value>Erlaubt</value>
   </data>
   <data name="ToolsPolicyAllowedTip" xml:space="preserve">
-    <value>Ihre Organisation erlaubt diesem Assistenten, MCP-Server auf diesem Computer zu verwenden.</value>
+    <value>Dieser Assistent darf auf diesem Computer MCP-Server verwenden.</value>
   </data>
   <data name="ToolsPolicyDeveloper" xml:space="preserve">
     <value>Entwicklermodus</value>
@@ -1757,7 +1757,7 @@
     <value>Nicht erlaubt: {0}</value>
   </data>
   <data name="ToolsReasonPolicy" xml:space="preserve">
-    <value>Ihre Organisation hat MCP-Server auf diesem Computer nicht erlaubt</value>
+    <value>dieser Assistent darf auf diesem Computer keine MCP-Server verwenden</value>
   </data>
   <data name="ToolsReasonUnknown" xml:space="preserve">
     <value>ohne Angabe von Gründen</value>
@@ -1853,7 +1853,7 @@
     <value>{0} Minuten</value>
   </data>
   <data name="ToolsDrawerNote" xml:space="preserve">
-    <value>Der Server beschreibt seine Werkzeuge selbst. Niemand in Ihrer Organisation hat sie geprüft, deshalb fragt jeder Aufruf Sie zuerst.</value>
+    <value>Der Server beschreibt seine Werkzeuge selbst. Niemand hat sie geprüft, deshalb fragt jeder Aufruf Sie zuerst.</value>
   </data>
   <data name="ToolsListHeading" xml:space="preserve">
     <value>Werkzeuge · {0}</value>
@@ -2048,7 +2048,7 @@
     <value>Konnte nicht starten: {0}</value>
   </data>
   <data name="ToolsTestNotAllowed" xml:space="preserve">
-    <value>Nicht gestartet: Ihre Organisation hat MCP-Server auf diesem Computer nicht erlaubt.</value>
+    <value>Nicht gestartet: Dieser Assistent darf auf diesem Computer keine MCP-Server verwenden.</value>
   </data>
   <data name="ToolsImportTitle" xml:space="preserve">
     <value>Server importieren</value>
@@ -2225,7 +2225,7 @@
     <value>{0}, bereits hinzugefügt</value>
   </data>
   <data name="ToolsScanFooter" xml:space="preserve">
-    <value>Nichts verlässt diesen Computer. Ein Server startet erst, nachdem Sie ihn hinzugefügt haben, und nur wenn Ihre Organisation es erlaubt.</value>
+    <value>Nichts verlässt diesen Computer. Ein Server startet erst, nachdem Sie ihn hinzugefügt haben, und nur dort, wo dieser Assistent MCP-Server verwenden darf.</value>
   </data>
   <data name="ToolsScanAddOne" xml:space="preserve">
     <value>1 Server hinzufügen</value>

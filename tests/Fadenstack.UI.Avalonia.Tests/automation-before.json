@@ -365,7 +365,7 @@
     "ToggleSwitch||slide-design||slide-design|"
   ],
   "tools/add-address": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ServerSheet|Add a server|||",
     "Border|ToolsTabs|Tools|||",
     "Border||Kind of server|||",
@@ -405,7 +405,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/add-program": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ServerSheet|Add a server|||",
     "Border|ToolsTabs|Tools|||",
     "Border||Kind of server|||",
@@ -442,7 +442,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/banner": [
-    "Border|PolicyChip|Your organisation has not allowed this assistant to use MCP servers on this computer. Ask your administrator.|||",
+    "Border|PolicyChip|This assistant may not use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ScanButton|Scan this computer||Scan this computer|ScanButton",
@@ -481,7 +481,7 @@
   ],
   "tools/drawer": [
     "Border|DrawerPanel|demo, MCP server|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|DrawerCloseButton|Close||Close|DrawerCloseButton",
@@ -515,7 +515,7 @@
   ],
   "tools/drawer-advanced": [
     "Border|DrawerPanel|nas, MCP server|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|DrawerCloseButton|Close||Close|DrawerCloseButton",
@@ -548,7 +548,7 @@
   ],
   "tools/drawer-governed": [
     "Border|DrawerPanel|files, MCP server|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|DrawerCloseButton|Close||Close|DrawerCloseButton",
@@ -580,7 +580,7 @@
   ],
   "tools/drawer-remove": [
     "Border|DrawerPanel|demo, MCP server|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ConfirmRemoveButton|Remove demo||Remove demo|ConfirmRemoveButton",
@@ -616,7 +616,7 @@
   ],
   "tools/drawer-tools": [
     "Border|DrawerPanel|files, MCP server|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|DrawerCloseButton|Close||Close|DrawerCloseButton",
@@ -653,7 +653,7 @@
   "tools/drawer-warning": [
     "Border|DrawerPanel|nas, MCP server|||",
     "Border|PlainHttpWarning|Allow plain http?|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|DrawerCloseButton|Close||Close|DrawerCloseButton",
@@ -687,7 +687,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/edit-address": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ServerSheet|Edit calendar|||",
     "Border|ToolsTabs|Tools|||",
     "Border||Kind of server|||",
@@ -724,7 +724,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/edit-kept": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ServerSheet|Edit github-local|||",
     "Border|ToolsTabs|Tools|||",
     "Border||Kind of server|||",
@@ -767,7 +767,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/empty": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|EmptyAddSecondaryButton|Add server||Add server|EmptyAddSecondaryButton",
@@ -780,7 +780,7 @@
     "TextBox|FilterBox|Filter tools||Filter tools|FilterBox"
   ],
   "tools/filtered": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ScanButton|Scan this computer||Scan this computer|ScanButton",
@@ -792,7 +792,7 @@
   ],
   "tools/import": [
     "Border|ImportSheet|Import servers|||",
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ImportButton|Import||Import|ImportButton",
@@ -823,7 +823,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/list": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ScanButton|Scan this computer||Scan this computer|ScanButton",
@@ -843,7 +843,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/refusals": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
     "Button|ScanButton|Scan this computer||Scan this computer|ScanButton",
@@ -864,7 +864,7 @@
     "ToggleSwitch||Switch nas-secret on or off||Switch nas-secret on or off|"
   ],
   "tools/scan-done": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ScanSheet|Scan this computer|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",
@@ -904,7 +904,7 @@
     "ToggleSwitch||Switch notes-db on or off||Switch notes-db on or off|"
   ],
   "tools/scan-running": [
-    "Border|PolicyChip|Your organisation lets this assistant use MCP servers on this computer.|||",
+    "Border|PolicyChip|This assistant may use MCP servers on this computer.|||",
     "Border|ScanSheet|Scan this computer|||",
     "Border|ToolsTabs|Tools|||",
     "Button|AddServerButton|Add server||Add server|AddServerButton",

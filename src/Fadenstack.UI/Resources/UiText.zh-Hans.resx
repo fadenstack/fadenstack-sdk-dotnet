@@ -1640,16 +1640,16 @@
     <value>您的助手可以使用的内容，以及它是否已开启。</value>
   </data>
   <data name="ToolsBannerNotAllowed" xml:space="preserve">
-    <value>您的组织未允许此助手使用此计算机上的 MCP 服务器。请咨询您的管理员。</value>
+    <value>此助手不能使用此计算机上的 MCP 服务器。</value>
   </data>
   <data name="ToolsSignInNeeded" xml:space="preserve">
     <value>登录后即可查看此助手的工具。</value>
   </data>
   <data name="ToolsPolicyAllowed" xml:space="preserve">
-    <value>已获贵组织允许</value>
+    <value>已允许</value>
   </data>
   <data name="ToolsPolicyAllowedTip" xml:space="preserve">
-    <value>贵组织允许此助手使用这台电脑上的 MCP 服务器。</value>
+    <value>此助手可以使用此计算机上的 MCP 服务器。</value>
   </data>
   <data name="ToolsPolicyDeveloper" xml:space="preserve">
     <value>开发者模式</value>
@@ -1757,7 +1757,7 @@
     <value>不允许：{0}</value>
   </data>
   <data name="ToolsReasonPolicy" xml:space="preserve">
-    <value>您的组织未允许在此计算机上使用 MCP 服务器</value>
+    <value>此助手不能使用此计算机上的 MCP 服务器</value>
   </data>
   <data name="ToolsReasonUnknown" xml:space="preserve">
     <value>未说明原因</value>
@@ -1853,7 +1853,7 @@
     <value>{0} 分钟</value>
   </data>
   <data name="ToolsDrawerNote" xml:space="preserve">
-    <value>服务器自行描述其工具。贵组织中没有人审查过它们，因此每次调用都会先征求您的同意。</value>
+    <value>服务器自行描述其工具。没有人审查过它们，因此每次调用都会先征求您的同意。</value>
   </data>
   <data name="ToolsListHeading" xml:space="preserve">
     <value>工具 · {0}</value>
@@ -2048,7 +2048,7 @@
     <value>无法启动：{0}</value>
   </data>
   <data name="ToolsTestNotAllowed" xml:space="preserve">
-    <value>未启动：您的组织未允许在此计算机上使用 MCP 服务器。</value>
+    <value>未启动：此助手不能使用此计算机上的 MCP 服务器。</value>
   </data>
   <data name="ToolsImportTitle" xml:space="preserve">
     <value>导入服务器</value>
@@ -2225,7 +2225,7 @@
     <value>{0}，已添加</value>
   </data>
   <data name="ToolsScanFooter" xml:space="preserve">
-    <value>任何内容都不会离开这台电脑。服务器只有在您添加之后才会启动，并且只在贵组织允许时启动。</value>
+    <value>任何内容都不会离开此计算机。服务器只有在您添加之后才会启动，并且只在此助手可以使用 MCP 服务器时启动。</value>
   </data>
   <data name="ToolsScanAddOne" xml:space="preserve">
     <value>添加 1 个服务器</value>

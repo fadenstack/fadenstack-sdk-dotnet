@@ -1237,16 +1237,16 @@ public sealed class UiStrings
     /// <summary>"What your assistant can reach, and whether it is on."</summary>
     public string ToolsIntro => Text();
 
-    /// <summary>"Your organisation has not allowed this assistant to use MCP servers on this computer. Ask your administrator."</summary>
+    /// <summary>"This assistant may not use MCP servers on this computer."</summary>
     public string ToolsBannerNotAllowed => Text();
 
     /// <summary>"Sign in to see the tools of this assistant."</summary>
     public string ToolsSignInNeeded => Text();
 
-    /// <summary>"Allowed by your organisation"</summary>
+    /// <summary>"Allowed"</summary>
     public string ToolsPolicyAllowed => Text();
 
-    /// <summary>"Your organisation lets this assistant use MCP servers on this computer."</summary>
+    /// <summary>"This assistant may use MCP servers on this computer."</summary>
     public string ToolsPolicyAllowedTip => Text();
 
     /// <summary>"Developer mode"</summary>
@@ -1354,7 +1354,7 @@ public sealed class UiStrings
     /// <summary>"Not allowed: {0}"</summary>
     public string ToolsStateNotAllowedBecause(string reason) => Fill(reason);
 
-    /// <summary>"your organisation has not allowed MCP servers on this computer"</summary>
+    /// <summary>"this assistant may not use MCP servers on this computer"</summary>
     public string ToolsReasonPolicy => Text();
 
     /// <summary>"no reason given"</summary>
@@ -1450,7 +1450,7 @@ public sealed class UiStrings
     /// <summary>"{0} minutes"</summary>
     public string ToolsMinutesMany(int count) => Fill(count);
 
-    /// <summary>"The server describes its own tools. Nobody in your organisation has checked them, so every call asks you first."</summary>
+    /// <summary>"The server describes its own tools. Nobody has checked them, so every call asks you first."</summary>
     public string ToolsDrawerNote => Text();
 
     /// <summary>"Tools · {0}"</summary>
@@ -1645,7 +1645,7 @@ public sealed class UiStrings
     /// <summary>"Could not start: {0}"</summary>
     public string ToolsTestFailed(string reason) => Fill(reason);
 
-    /// <summary>"Not started: your organisation has not allowed MCP servers on this computer."</summary>
+    /// <summary>"Not started: this assistant may not use MCP servers on this computer."</summary>
     public string ToolsTestNotAllowed => Text();
 
     /// <summary>"Import servers"</summary>
@@ -1822,7 +1822,7 @@ public sealed class UiStrings
     /// <summary>"{0}, already added"</summary>
     public string ToolsScanTickAlready(string label) => Fill(label);
 
-    /// <summary>"Nothing leaves this computer. A server starts only after you add it, and only if your organisation allows it."</summary>
+    /// <summary>"Nothing leaves this computer. A server starts only after you add it, and only where this assistant may use MCP servers."</summary>
     public string ToolsScanFooter => Text();
 
     /// <summary>"Add 1 server"</summary>

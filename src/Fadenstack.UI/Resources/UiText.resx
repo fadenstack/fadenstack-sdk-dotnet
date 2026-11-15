@@ -1900,16 +1900,16 @@
     <value>What your assistant can reach, and whether it is on.</value>
   </data>
   <data name="ToolsBannerNotAllowed" xml:space="preserve">
-    <value>Your organisation has not allowed this assistant to use MCP servers on this computer. Ask your administrator.</value>
+    <value>This assistant may not use MCP servers on this computer.</value>
   </data>
   <data name="ToolsSignInNeeded" xml:space="preserve">
     <value>Sign in to see the tools of this assistant.</value>
   </data>
   <data name="ToolsPolicyAllowed" xml:space="preserve">
-    <value>Allowed by your organisation</value>
+    <value>Allowed</value>
   </data>
   <data name="ToolsPolicyAllowedTip" xml:space="preserve">
-    <value>Your organisation lets this assistant use MCP servers on this computer.</value>
+    <value>This assistant may use MCP servers on this computer.</value>
   </data>
   <data name="ToolsPolicyDeveloper" xml:space="preserve">
     <value>Developer mode</value>
@@ -2017,7 +2017,7 @@
     <value>Not allowed: {0}</value>
   </data>
   <data name="ToolsReasonPolicy" xml:space="preserve">
-    <value>your organisation has not allowed MCP servers on this computer</value>
+    <value>this assistant may not use MCP servers on this computer</value>
   </data>
   <data name="ToolsReasonUnknown" xml:space="preserve">
     <value>no reason given</value>
@@ -2113,7 +2113,7 @@
     <value>{0} minutes</value>
   </data>
   <data name="ToolsDrawerNote" xml:space="preserve">
-    <value>The server describes its own tools. Nobody in your organisation has checked them, so every call asks you first.</value>
+    <value>The server describes its own tools. Nobody has checked them, so every call asks you first.</value>
   </data>
   <data name="ToolsListHeading" xml:space="preserve">
     <value>Tools · {0}</value>
@@ -2308,7 +2308,7 @@
     <value>Could not start: {0}</value>
   </data>
   <data name="ToolsTestNotAllowed" xml:space="preserve">
-    <value>Not started: your organisation has not allowed MCP servers on this computer.</value>
+    <value>Not started: this assistant may not use MCP servers on this computer.</value>
   </data>
   <data name="ToolsImportTitle" xml:space="preserve">
     <value>Import servers</value>
@@ -2485,7 +2485,7 @@
     <value>{0}, already added</value>
   </data>
   <data name="ToolsScanFooter" xml:space="preserve">
-    <value>Nothing leaves this computer. A server starts only after you add it, and only if your organisation allows it.</value>
+    <value>Nothing leaves this computer. A server starts only after you add it, and only where this assistant may use MCP servers.</value>
   </data>
   <data name="ToolsScanAddOne" xml:space="preserve">
     <value>Add 1 server</value>

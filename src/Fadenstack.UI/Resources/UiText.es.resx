@@ -1640,16 +1640,16 @@
     <value>Lo que su asistente puede alcanzar y si está activado.</value>
   </data>
   <data name="ToolsBannerNotAllowed" xml:space="preserve">
-    <value>Su organización no ha permitido que este asistente use servidores MCP en este equipo. Consulte a su administrador.</value>
+    <value>Este asistente no puede usar servidores MCP en este equipo.</value>
   </data>
   <data name="ToolsSignInNeeded" xml:space="preserve">
     <value>Inicie sesión para ver las herramientas de este asistente.</value>
   </data>
   <data name="ToolsPolicyAllowed" xml:space="preserve">
-    <value>Permitido por su organización</value>
+    <value>Permitido</value>
   </data>
   <data name="ToolsPolicyAllowedTip" xml:space="preserve">
-    <value>Su organización permite que este asistente use servidores MCP en este equipo.</value>
+    <value>Este asistente puede usar servidores MCP en este equipo.</value>
   </data>
   <data name="ToolsPolicyDeveloper" xml:space="preserve">
     <value>Modo de desarrollador</value>
@@ -1757,7 +1757,7 @@
     <value>No permitido: {0}</value>
   </data>
   <data name="ToolsReasonPolicy" xml:space="preserve">
-    <value>su organización no ha permitido servidores MCP en este equipo</value>
+    <value>este asistente no puede usar servidores MCP en este equipo</value>
   </data>
   <data name="ToolsReasonUnknown" xml:space="preserve">
     <value>sin motivo indicado</value>
@@ -1853,7 +1853,7 @@
     <value>{0} minutos</value>
   </data>
   <data name="ToolsDrawerNote" xml:space="preserve">
-    <value>El servidor describe sus propias herramientas. Nadie en su organización las ha revisado, así que cada llamada le pregunta antes.</value>
+    <value>El servidor describe sus propias herramientas. Nadie las ha revisado, así que cada llamada le pregunta antes.</value>
   </data>
   <data name="ToolsListHeading" xml:space="preserve">
     <value>Herramientas · {0}</value>
@@ -2048,7 +2048,7 @@
     <value>No se pudo iniciar: {0}</value>
   </data>
   <data name="ToolsTestNotAllowed" xml:space="preserve">
-    <value>No se inició: su organización no ha permitido servidores MCP en este equipo.</value>
+    <value>No se inició: este asistente no puede usar servidores MCP en este equipo.</value>
   </data>
   <data name="ToolsImportTitle" xml:space="preserve">
     <value>Importar servidores</value>
@@ -2225,7 +2225,7 @@
     <value>{0}, ya añadido</value>
   </data>
   <data name="ToolsScanFooter" xml:space="preserve">
-    <value>Nada sale de este equipo. Un servidor solo se inicia después de añadirlo y solo si su organización lo permite.</value>
+    <value>Nada sale de este equipo. Un servidor solo se inicia después de añadirlo y solo donde este asistente pueda usar servidores MCP.</value>
   </data>
   <data name="ToolsScanAddOne" xml:space="preserve">
     <value>Añadir 1 servidor</value>

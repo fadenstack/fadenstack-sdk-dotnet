@@ -1640,16 +1640,16 @@
     <value>Ce que votre assistant peut atteindre, et si c’est activé.</value>
   </data>
   <data name="ToolsBannerNotAllowed" xml:space="preserve">
-    <value>Votre organisation n’a pas autorisé cet assistant à utiliser des serveurs MCP sur cet ordinateur. Adressez-vous à votre administrateur.</value>
+    <value>Cet assistant ne peut pas utiliser de serveurs MCP sur cet ordinateur.</value>
   </data>
   <data name="ToolsSignInNeeded" xml:space="preserve">
     <value>Connectez-vous pour voir les outils de cet assistant.</value>
   </data>
   <data name="ToolsPolicyAllowed" xml:space="preserve">
-    <value>Autorisé par votre organisation</value>
+    <value>Autorisé</value>
   </data>
   <data name="ToolsPolicyAllowedTip" xml:space="preserve">
-    <value>Votre organisation autorise cet assistant à utiliser des serveurs MCP sur cet ordinateur.</value>
+    <value>Cet assistant peut utiliser des serveurs MCP sur cet ordinateur.</value>
   </data>
   <data name="ToolsPolicyDeveloper" xml:space="preserve">
     <value>Mode développeur</value>
@@ -1757,7 +1757,7 @@
     <value>Non autorisé : {0}</value>
   </data>
   <data name="ToolsReasonPolicy" xml:space="preserve">
-    <value>votre organisation n’a pas autorisé les serveurs MCP sur cet ordinateur</value>
+    <value>cet assistant ne peut pas utiliser de serveurs MCP sur cet ordinateur</value>
   </data>
   <data name="ToolsReasonUnknown" xml:space="preserve">
     <value>aucune raison indiquée</value>
@@ -1853,7 +1853,7 @@
     <value>{0} minutes</value>
   </data>
   <data name="ToolsDrawerNote" xml:space="preserve">
-    <value>Le serveur décrit lui-même ses outils. Personne dans votre organisation ne les a vérifiés : chaque appel vous demande donc d’abord.</value>
+    <value>Le serveur décrit lui-même ses outils. Personne ne les a vérifiés : chaque appel vous demande donc d’abord.</value>
   </data>
   <data name="ToolsListHeading" xml:space="preserve">
     <value>Outils · {0}</value>
@@ -2048,7 +2048,7 @@
     <value>Démarrage impossible : {0}</value>
   </data>
   <data name="ToolsTestNotAllowed" xml:space="preserve">
-    <value>Non démarré : votre organisation n’a pas autorisé les serveurs MCP sur cet ordinateur.</value>
+    <value>Non démarré : cet assistant ne peut pas utiliser de serveurs MCP sur cet ordinateur.</value>
   </data>
   <data name="ToolsImportTitle" xml:space="preserve">
     <value>Importer des serveurs</value>
@@ -2225,7 +2225,7 @@
     <value>{0}, déjà ajouté</value>
   </data>
   <data name="ToolsScanFooter" xml:space="preserve">
-    <value>Rien ne quitte cet ordinateur. Un serveur ne démarre qu’après son ajout, et seulement si votre organisation l’autorise.</value>
+    <value>Rien ne quitte cet ordinateur. Un serveur ne démarre qu’après son ajout, et seulement là où cet assistant peut utiliser des serveurs MCP.</value>
   </data>
   <data name="ToolsScanAddOne" xml:space="preserve">
     <value>Ajouter 1 serveur</value>

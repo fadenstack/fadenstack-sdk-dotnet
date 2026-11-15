@@ -15,10 +15,10 @@ public class ToolsPageTests
     internal static LocalServerViewModel Server(ToolsViewModel page, string label) => page.Servers.Single(s => s.Label == label);
 
     [Theory]
-    [InlineData(ToolsPolicy.Allowed, "Allowed by your organisation", "Your organisation lets this assistant use MCP servers on this computer.", false, false)]
+    [InlineData(ToolsPolicy.Allowed, "Allowed", "This assistant may use MCP servers on this computer.", false, false)]
     [InlineData(ToolsPolicy.DeveloperMode, "Developer mode", "Developer mode: any server, for you only.", true, false)]
     [InlineData(ToolsPolicy.NotAllowed, "Not allowed for this assistant",
-        "Your organisation has not allowed this assistant to use MCP servers on this computer. Ask your administrator.", true, true)]
+        "This assistant may not use MCP servers on this computer.", true, true)]
     public void The_policy_is_a_chip_with_the_full_sentence_as_its_tooltip_and_a_banner_only_when_not_allowed(
         ToolsPolicy policy, string chip, string tip, bool warning, bool banner)
     {
@@ -151,7 +151,7 @@ public class ToolsPageTests
 
         Assert.Equal(("Starting", ServerStatusKind.Neutral), (Server(page, "starting").StatusText, Server(page, "starting").StatusKind));
         Assert.Equal(("Not allowed", ServerStatusKind.Warning), (Server(page, "refused").StatusText, Server(page, "refused").StatusKind));
-        Assert.Equal("Not allowed: your organisation has not allowed MCP servers on this computer", Server(page, "refused").StatusTip);
+        Assert.Equal("Not allowed: this assistant may not use MCP servers on this computer", Server(page, "refused").StatusTip);
         Assert.Equal(("Can’t start: spawn node ENOENT", ServerStatusKind.Problem, false), (Server(page, "failed").StatusText, Server(page, "failed").StatusKind, Server(page, "failed").HasFix));
         Assert.Equal("Can’t start: no reason given", Server(page, "silent").StatusText);
         Assert.Equal(("Changed its tools", ServerStatusKind.Warning), (Server(page, "changed").StatusText, Server(page, "changed").StatusKind));
@@ -377,12 +377,12 @@ public class ToolsPageTests
         using var page = new ToolsViewModel(catalog, new FakeFiles(), new FakeUi(), () => UiStrings.For(System.Globalization.CultureInfo.GetCultureInfo(language)));
         var seen = new List<string?>();
         page.PropertyChanged += (_, e) => seen.Add(e.PropertyName);
-        Assert.Equal("Allowed by your organisation", page.PolicyText);
+        Assert.Equal("Allowed", page.PolicyText);
 
         language = "de";
         page.Retext();
 
         Assert.Contains(nameof(ToolsViewModel.Strings), seen);
-        Assert.Equal("Von Ihrer Organisation erlaubt", page.PolicyText);
+        Assert.Equal("Erlaubt", page.PolicyText);
     }
 }
