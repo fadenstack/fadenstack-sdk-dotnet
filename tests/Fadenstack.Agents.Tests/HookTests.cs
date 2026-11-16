@@ -340,6 +340,8 @@ public class HookTests
         var asked = new Probe("c", new List<string>());
         var gateway = Call("read_page");
         using var agent = gateway.Builder().AddTools(new PageTools()).AddHooks(asked).UseHookContent().Build();
+        Assert.False(agent.ContentLogging.IsOn); // offered is not on
+        agent.StartContentLogging(TimeSpan.FromHours(1));
         var s = await agent.StartSessionAsync(ToolMode.Auto);
         await s.SendAsync("Go.");
         Assert.NotNull(asked.ModelBefore[0].Messages);

@@ -21,6 +21,8 @@ public sealed class AgentBuilder
     private readonly List<(int Order, IToolStage Stage)> _toolStages = new();
     private readonly List<(int Order, IAgentHooks Hooks)> _hooks = new();
     private bool _hookContent;
+    internal Func<DateTimeOffset>? _contentLoggingClock; // tests: a clock they move
+    internal Func<TimeSpan, Action, IDisposable>? _contentLoggingSchedule; // tests: a timer they fire
     private AgentOpenTelemetryOptions? _openTelemetry;
     private readonly Dictionary<Type, Func<ToolInvocation, object>> _toolServices = new();
     private Func<FadenstackAgent, IAnswerCopyMarker>? _copyMarker;
@@ -374,8 +376,9 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
-    /// Whether the model-call hooks see the messages and the answer text (<see cref="ModelCallContext.Messages"/>,
-    /// <see cref="ModelCallResult.Text"/>). Off by default: hooks see names, ids, counts, outcomes and times only.
+    /// Offers content logging: the model-call hooks can see the messages and the answer text (<see cref="ModelCallContext.Messages"/>,
+    /// <see cref="ModelCallResult.Text"/>), but only while content logging is on (<see cref="FadenstackAgent.StartContentLogging"/>, a time-limited
+    /// choice of the person, 8.1). Off by default and after every restart: hooks see names, ids, counts, outcomes and times only.
     /// </summary>
     public AgentBuilder UseHookContent(bool enabled = true)
     {
@@ -387,7 +390,7 @@ public sealed class AgentBuilder
     /// Switches OpenTelemetry on (off by default): model calls through Microsoft.Extensions.AI's OpenTelemetry chat client (source
     /// <see cref="AgentOpenTelemetryOptions.ModelSourceName"/>), and GenAI attributes on the SDK's <c>invoke_agent</c> and <c>execute_tool</c> spans
     /// (<see cref="FadenstackTelemetry.AgentsSource"/>). No exporter is bundled: the app wires OTLP or anything else, and until it does
-    /// nothing leaves the process. No prompt or answer content unless <see cref="AgentOpenTelemetryOptions.EnableSensitiveData"/> is set. The
+    /// nothing leaves the process. No prompt or answer content unless <see cref="AgentOpenTelemetryOptions.EnableSensitiveData"/> is set and content logging is on. The
     /// GenAI conventions are in "Development" status and may change.
     /// </summary>
     public AgentBuilder UseOpenTelemetry(Action<AgentOpenTelemetryOptions>? configure = null)
@@ -543,16 +546,21 @@ public sealed class AgentBuilder
             clientLogging = client.Options.LoggerFactory;
             AssertNoDuplicateTools();
         }
+        var logs = _loggerFactory ?? clientLogging ?? NullLoggerFactory.Instance;
+        var contentLogging = new ContentLoggingState(agent, _hookContent || _openTelemetry is { EnableSensitiveData: true },
+            _policy.ContentLogging == PolicyAccess.Allowed, () => logs.CreateLogger(Log.Category), _contentLoggingClock, _contentLoggingSchedule);
         IChatClient chat = backend.ChatClient; // the model, under the chat stages
         if (_openTelemetry is { } telemetry)
         {
             // Innermost: it sees what goes out after the stages (masking, marking), not what they were given.
-            chat = new OpenTelemetryChatClient(chat, sourceName: telemetry.ModelSourceName) { EnableSensitiveData = telemetry.EnableSensitiveData };
+            // Whether the spans carry content follows the agent's content logging at each call (8.1), not the build-time flag.
+            chat = new ContentFollowingChatClient(
+                new OpenTelemetryChatClient(chat, sourceName: telemetry.ModelSourceName) { EnableSensitiveData = false }, contentLogging);
         }
         var hooks = _hooks.Select((h, i) => (h.Order, Index: i, h.Hooks)).ToList();
         if (_openTelemetry is { } traced)
         {
-            hooks.Add((int.MinValue, -1, new OpenTelemetryHooks(traced.EnableSensitiveData)));
+            hooks.Add((int.MinValue, -1, new OpenTelemetryHooks(() => contentLogging.IsOn)));
         }
         foreach (var stage in _chatStages.OrderByDescending(s => s.Order))
         {
@@ -565,12 +573,12 @@ public sealed class AgentBuilder
             Chat = chat,
             Instructions = string.IsNullOrEmpty(instructions) ? null : instructions,
             MachinePolicy = _policy,
-            LoggerFactory = _loggerFactory ?? clientLogging ?? NullLoggerFactory.Instance,
+            LoggerFactory = logs,
             Tools = _tools.ToList(),
             Sources = _sources.ToList(),
             ToolStages = _toolStages.OrderBy(s => s.Order).Select(s => s.Stage).ToList(),
             Hooks = hooks.OrderBy(h => h.Order).ThenBy(h => h.Index).Select(h => h.Hooks).ToList(),
-            HookContent = _hookContent,
+            ContentLogging = contentLogging,
             ToolServices = new Dictionary<Type, Func<ToolInvocation, object>>(_toolServices),
             CopyMarker = _copyMarker,
             Modules = _modules.ToList(),
@@ -648,7 +656,7 @@ internal sealed class AgentSettings
     public IReadOnlyList<ManifestPlugin> Plugins { get; init; } = [];
     public List<IToolStage> ToolStages { get; init; } = new();
     public List<IAgentHooks> Hooks { get; init; } = new();
-    public bool HookContent { get; init; }
+    public ContentLoggingState ContentLogging { get; init; } = null!;
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
     public Func<FadenstackAgent, IAnswerCopyMarker>? CopyMarker { get; init; }
     public List<string> Modules { get; init; } = new();

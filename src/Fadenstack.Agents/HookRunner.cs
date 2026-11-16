@@ -37,17 +37,20 @@ internal sealed class HookRunner
     private readonly IReadOnlyList<IAgentHooks> _hooks;
     private readonly Func<ILogger> _logger;
 
-    internal HookRunner(IReadOnlyList<IAgentHooks> hooks, bool content, Func<ILogger> logger)
+    private readonly Func<bool> _content;
+
+    // content: asked at each call; content logging is on, so the hooks see message and answer text (8.1).
+    internal HookRunner(IReadOnlyList<IAgentHooks> hooks, Func<bool> content, Func<ILogger> logger)
     {
         _hooks = hooks;
-        Content = content;
+        _content = content;
         _logger = logger;
     }
 
     internal bool Any => _hooks.Count > 0;
 
-    /// <summary>The app asked for message and answer text in the model-call hooks.</summary>
-    internal bool Content { get; }
+    /// <summary>The app offered message and answer text in the model-call hooks and content logging is on now.</summary>
+    internal bool Content => _content();
 
     internal async Task BeforeModelAsync(ModelCallContext context, CancellationToken cancellationToken)
     {

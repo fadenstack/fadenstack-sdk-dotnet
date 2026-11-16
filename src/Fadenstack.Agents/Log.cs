@@ -149,6 +149,15 @@ internal static partial class Log
         Message = "Agent {Agent} stopped everything: {Turns} turns stopped, {Grants} grants ended, {NotTold} the server was not told about")]
     internal static partial void StoppedEverything(ILogger logger, string agent, int turns, int grants, int notTold);
 
+    // Content logging (8.1): when it was switched on or off and when it ends; never any content.
+    [LoggerMessage(EventId = 2083, Level = LogLevel.Information,
+        Message = "Agent {Agent}: content logging was switched on for {Minutes} minutes, until {Until}")]
+    internal static partial void ContentLoggingStarted(ILogger logger, string agent, int minutes, DateTimeOffset until);
+
+    [LoggerMessage(EventId = 2084, Level = LogLevel.Information,
+        Message = "Agent {Agent}: content logging is off ({How}); it was set to end at {Until}")]
+    internal static partial void ContentLoggingStopped(ILogger logger, string agent, string how, DateTimeOffset until);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);

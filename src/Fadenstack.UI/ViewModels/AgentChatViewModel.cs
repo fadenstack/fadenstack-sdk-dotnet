@@ -9,6 +9,7 @@ using Fadenstack.Agents.Sessions;
 using Fadenstack.Models;
 using Fadenstack.Tools;
 using Fadenstack.UI.Services;
+using Fadenstack.UI.Settings;
 
 namespace Fadenstack.UI.ViewModels;
 
@@ -90,6 +91,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _agent.TurnedOffChanged += OnAgentTurnedOffChanged;
         CheckAgainCommand = new AsyncRelayCommand(CheckAgainAsync);
         Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session, async () => { await StartBypassAsync(); });
+        ContentLogging = new ContentLoggingBandViewModel(ContentLoggingSource.For(agent), dispatcher, () => Strings, _options.Clock);
         Grants.BypassEnded += OnBypassEnded;
         Grants.Ticked += (_, _) => ShowBypassTimes();
         SkillPicker = new SkillPickerViewModel(ct => _agent.ListSkillsAsync(null, ct), PickSkill, () => Strings, _options.Clock);
@@ -474,6 +476,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     }
 
     public ObservableCollection<ToolModeOption> ToolModes { get; }
+
+    /// <summary>
+    /// The band while content logging is on (8.1): "Content logging is on until 14:30. Prompts and answers are written to the app's logs." and
+    /// Stop. The skins show it above the conversation, in the compact chat too. TS: <c>contentLogging</c>.
+    /// </summary>
+    public ContentLoggingBandViewModel ContentLogging { get; }
 
     /// <summary>The mode menu is open (presentation state, so the skin needs no code).</summary>
     public bool IsModeMenuOpen
@@ -1219,6 +1227,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _bypassAsk?.Cancel();
         Grants.BypassEnded -= OnBypassEnded;
         Grants.Dispose();
+        ContentLogging.Dispose();
         _stop?.Cancel();
     }
 
@@ -1510,6 +1519,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         SkillPicker.Retext();
         Grants.Retext(strings);
+        ContentLogging.Retext();
         RefreshAbout();
         _languageOptions = BuildLanguageOptions();
         OnPropertyChanged(nameof(Language));

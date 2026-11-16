@@ -46,6 +46,12 @@
     "Property System.Object SignInContent",
     "Property System.Windows.Input.ICommand AttachCommand"
   ],
+  "src/Fadenstack.UI.Avalonia/Views/ContentLoggingSettingsView.axaml.cs": [
+    "Constructor Void .ctor()",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
+    "Method Void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs)",
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
+  ],
   "src/Fadenstack.UI.Avalonia/Views/MyDataSettingsView.axaml.cs": [
     "Constructor Void .ctor()",
     "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
@@ -144,11 +150,13 @@
     "Field System.Windows.Controls.Border AboutSeparator",
     "Field System.Windows.Controls.Border AgentOffNotice",
     "Field System.Windows.Controls.Border BypassMarker",
+    "Field System.Windows.Controls.Border ContentLoggingBand",
     "Field System.Windows.Controls.Border Header",
     "Field System.Windows.Controls.Border SettingsSeparator",
     "Field System.Windows.Controls.Border SkillPicker",
     "Field System.Windows.Controls.Button AboutClose",
     "Field System.Windows.Controls.Button CheckAgainButton",
+    "Field System.Windows.Controls.Button ContentLoggingStop",
     "Field System.Windows.Controls.ContentPresenter SettingsHost",
     "Field System.Windows.Controls.Primitives.Popup HistoryMenu",
     "Field System.Windows.Controls.Primitives.Popup ModeMenu",
@@ -185,6 +193,19 @@
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme",
     "Property System.Object ComposerToolbar",
     "Property System.Object SettingsContent"
+  ],
+  "src/Fadenstack.UI.Wpf/Views/ContentLoggingSettingsView.xaml.cs": [
+    "Constructor Void .cctor()",
+    "Constructor Void .ctor()",
+    "Field Boolean _contentLoaded",
+    "Field System.Windows.Controls.Button StartButton",
+    "Field System.Windows.Controls.Button StopButton",
+    "Field System.Windows.Controls.ComboBox DurationBox",
+    "Field System.Windows.Controls.StackPanel Column",
+    "Field System.Windows.Controls.TextBlock IntroText",
+    "Field System.Windows.Controls.TextBlock StatusLine",
+    "Field System.Windows.DependencyProperty ThemeProperty",
+    "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/MyDataSettingsView.xaml.cs": [
     "Constructor Void .cctor()",

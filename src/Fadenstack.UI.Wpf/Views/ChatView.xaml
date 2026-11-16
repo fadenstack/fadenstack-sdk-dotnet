@@ -258,6 +258,17 @@
                 </StackPanel>
             </DockPanel>
         </Border>
+        <!-- While content logging is on (8.1): until when, what is written to the logs, one click ends it. -->
+        <Border x:Name="ContentLoggingBand" Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Warning}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Fadenstack.WarningBackground}"
+                Visibility="{Binding ContentLogging.IsShown, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                AutomationProperties.Name="{Binding ContentLogging.Text}" AutomationProperties.LiveSetting="Polite">
+            <DockPanel>
+                <Button x:Name="ContentLoggingStop" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding ContentLogging.StopText}"
+                        AutomationProperties.Name="{Binding ContentLogging.StopName}" Command="{Binding ContentLogging.StopCommand}" Margin="8,0,0,0" />
+                <TextBlock Text="{Binding ContentLogging.Text}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
         <!-- After the chat's Bypass ended: why (its time, a Stop, an administrator, the kill switch, a narrower list). -->
         <Border Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1" Background="{DynamicResource Fadenstack.InfoBackground}"
                 Visibility="{Binding Grants.HasBypassEnded, Converter={StaticResource Fadenstack.BoolToVisibility}}">

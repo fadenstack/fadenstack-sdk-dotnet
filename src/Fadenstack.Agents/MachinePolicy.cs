@@ -63,7 +63,7 @@ public sealed record MachinePolicy
 {
     /// <summary>The known keys, as a policy file names them (declared first: the policies below read it).</summary>
     public static IReadOnlyList<string> Keys { get; } =
-        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention"];
+        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention", "contentLogging"];
 
     /// <summary>No policy at all: everything the person may choose stays theirs.</summary>
     public static MachinePolicy None { get; } = new();
@@ -108,6 +108,12 @@ public sealed record MachinePolicy
     /// <c>maxSessions</c>); null when the policy leaves it to the person. A governed agent follows its server instead.
     /// </summary>
     public ChatRetentionChoice? ChatRetention { get; init; }
+
+    /// <summary>
+    /// Content logging (<c>contentLogging</c>, 8.1): <c>forbidden</c> means no app can switch prompts and answers into its logs, even for a
+    /// time (<see cref="FadenstackAgent.StartContentLogging"/> throws). Absent: allowed, and the app and the person decide.
+    /// </summary>
+    public PolicyAccess ContentLogging { get; init; } = PolicyAccess.Allowed;
 
     /// <summary>The keys the policy set itself (the app locks them in its UI and never writes them into the person's settings).</summary>
     public IReadOnlyCollection<string> Locked { get; init; } = Array.Empty<string>();
@@ -169,6 +175,7 @@ public sealed record MachinePolicy
     {
         Standalone = PolicyAccess.Forbidden, PlainHttp = PolicyAccess.Forbidden, Mcp = PolicyRule.Forbidden,
         Skills = PolicyRule.Forbidden, WebSearch = PolicyAccess.Forbidden, Timestamping = TimestampingPolicy.Off,
+        ContentLogging = PolicyAccess.Forbidden,
         ChatRetention = ChatRetentionChoice.Default, // old chats are deleted as by default; the person cannot turn it off
         Locked = Keys.Where(k => k != "server").ToList(),
         Warnings = [why + ": standalone, local MCP, local skills, web search and plain http are forbidden; time-stamps are off."],
@@ -222,6 +229,7 @@ public sealed record MachinePolicy
             WebSearch = Access(values, "webSearch", byDefault, warnings),
             Timestamping = Timestamps(values, warnings),
             ChatRetention = values.TryGetValue("chatRetention", out var retention) ? Retention(retention, warnings) : null,
+            ContentLogging = Access(values, "contentLogging", PolicyAccess.Allowed, warnings),
             Locked = locked,
             Warnings = warnings,
         };

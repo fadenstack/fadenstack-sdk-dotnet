@@ -2171,6 +2171,41 @@ public sealed class UiStrings
     /// <summary>"Set by your organisation's policy on this computer."</summary>
     public string ChatRetentionPolicyFixed => Text();
 
+    // -- content logging (8.1): the band in the chat and the setting ------------------------------
+
+    /// <summary>"Content logging"</summary>
+    public string ContentLoggingTitle => Text();
+
+    /// <summary>"Content logging is on until {0}. Prompts and answers are written to the app's logs." ({0}: the end time in the person's locale)</summary>
+    public string ContentLoggingBand(string time) => Fill(time);
+
+    /// <summary>"While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts."</summary>
+    public string ContentLoggingIntro => Text();
+
+    /// <summary>"Switch on for"</summary>
+    public string ContentLoggingDuration => Text();
+
+    /// <summary>"1 hour"</summary>
+    public string ContentLoggingOneHour => Text();
+
+    /// <summary>"4 hours"</summary>
+    public string ContentLoggingFourHours => Text();
+
+    /// <summary>"24 hours"</summary>
+    public string ContentLoggingDay => Text();
+
+    /// <summary>"Start"</summary>
+    public string ContentLoggingStart => Text();
+
+    /// <summary>"Start content logging"</summary>
+    public string ContentLoggingStartName => Text();
+
+    /// <summary>"Stop content logging" (the name of the Stop buttons, whose text is <see cref="MarkerStop"/>)</summary>
+    public string ContentLoggingStopName => Text();
+
+    /// <summary>"On until {0}." ({0}: the end time in the person's locale)</summary>
+    public string ContentLoggingOnUntil(string time) => Fill(time);
+
     // -- "Your data on this device" ---------------------------------------------------------------
 
     /// <summary>"Your data on this device"</summary>
