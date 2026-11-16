@@ -53,6 +53,14 @@
     <Style Selector="Border.grant-marker.bypass c|FsIcon">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
     </Style>
+    <!-- And while content logging is on (8.1): the same warning look, because prompts and answers are being written to the logs. -->
+    <Style Selector="Border.grant-marker.content-logging">
+        <Setter Property="Background" Value="{DynamicResource Fadenstack.WarningBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Warning}" />
+    </Style>
+    <Style Selector="Border.grant-marker.content-logging c|FsIcon">
+        <Setter Property="Foreground" Value="{DynamicResource Fadenstack.WarningText}" />
+    </Style>
 
     <!-- The chat's popups that look like the menu (in a Border.popup-room, Controls.axaml). -->
     <Style Selector="Border.menu.popup">

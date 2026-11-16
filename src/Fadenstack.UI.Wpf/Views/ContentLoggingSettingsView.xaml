@@ -1,0 +1,48 @@
+<UserControl x:Class="Fadenstack.UI.Wpf.Views.ContentLoggingSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:st="clr-namespace:Fadenstack.UI.Settings;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Wpf.Behaviors"
+             xmlns:local="clr-namespace:Fadenstack.UI.Wpf.Views"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=st:ContentLoggingSettingsViewModel}"
+             d:DesignWidth="420" d:DesignHeight="260"
+             Background="{DynamicResource Fadenstack.Background}" Foreground="{DynamicResource Fadenstack.Foreground}"
+             FontFamily="{DynamicResource Fadenstack.Font}" FontSize="13" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" Focusable="True">
+    <!--
+        The setting for content logging (8.1): a ContentLoggingSettingsViewModel. Only where the app offers it and the machine policy allows it:
+        a choice of 1 hour, 4 hours or 24 hours, Start and Stop, the end time while it is on, and what is logged. Every text is a UiStrings
+        text; the view holds no logic.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Colors.Light.xaml" />
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Skills.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}"
+                    Visibility="{Binding IsAvailable, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text ContentLoggingTitle}" />
+            <TextBlock x:Name="IntroText" Style="{StaticResource Skill.Caption}" Text="{Binding IntroText}" Margin="{StaticResource Fadenstack.Space.Block}" TextWrapping="Wrap" />
+
+            <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text ContentLoggingDuration}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+            <ComboBox x:Name="DurationBox" b:WizardFocus.IsFirst="True" HorizontalAlignment="Left" MinWidth="160" Margin="{StaticResource Fadenstack.Space.Block}"
+                      ItemsSource="{Binding Choices}" SelectedItem="{Binding SelectedChoice, Mode=TwoWay}" DisplayMemberPath="Text"
+                      IsEnabled="{Binding CanStart, Mode=OneWay}" AutomationProperties.Name="{local:Text ContentLoggingDuration}" />
+
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.Block}">
+                <Button x:Name="StartButton" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Command="{Binding StartCommand}"
+                        Content="{local:Text ContentLoggingStart}" AutomationProperties.Name="{local:Text ContentLoggingStartName}" />
+                <Button x:Name="StopButton" Style="{StaticResource Form.Secondary}" Margin="8,0,0,0" Command="{Binding StopCommand}"
+                        Content="{local:Text MarkerStop}" AutomationProperties.Name="{local:Text ContentLoggingStopName}" />
+            </StackPanel>
+            <TextBlock x:Name="StatusLine" Style="{StaticResource Skill.Caption}" Text="{Binding OnUntilText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

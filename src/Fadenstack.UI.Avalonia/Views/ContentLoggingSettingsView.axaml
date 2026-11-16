@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:st="clr-namespace:Fadenstack.UI.Settings;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="260"
+             x:Class="Fadenstack.UI.Avalonia.Views.ContentLoggingSettingsView"
+             x:DataType="st:ContentLoggingSettingsViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
+    <!--
+        The setting for content logging (8.1): a ContentLoggingSettingsViewModel. Only where the app offers it and the machine policy allows it:
+        a choice of 1 hour, 4 hours or 24 hours, Start and Stop, the end time while it is on, and what is logged. Every text is a UiStrings text;
+        every look is a style class of the skin's.
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="12" Spacing="8" IsVisible="{Binding IsAvailable}">
+            <TextBlock Classes="title" Text="{v:Text ContentLoggingTitle}" TextWrapping="Wrap" />
+            <TextBlock Name="IntroText" Classes="caption muted" Text="{Binding IntroText}" TextWrapping="Wrap" />
+
+            <StackPanel Spacing="4">
+                <TextBlock Classes="strong" Text="{v:Text ContentLoggingDuration}" TextWrapping="Wrap" />
+                <ComboBox Name="DurationBox" b:WizardFocus.IsFirst="True" HorizontalAlignment="Left" MinWidth="160" ItemsSource="{Binding Choices}"
+                          SelectedItem="{Binding SelectedChoice, Mode=TwoWay}" IsEnabled="{Binding CanStart}"
+                          AutomationProperties.Name="{v:Text ContentLoggingDuration}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate DataType="st:ContentLoggingChoice">
+                            <TextBlock Text="{Binding Text}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Name="StartButton" Classes="primary" b:WizardFocus.IsPrimary="True" Command="{Binding StartCommand}"
+                        Content="{v:Text ContentLoggingStart}" AutomationProperties.Name="{v:Text ContentLoggingStartName}" />
+                <Button Name="StopButton" Classes="secondary" Command="{Binding StopCommand}"
+                        Content="{v:Text MarkerStop}" AutomationProperties.Name="{v:Text ContentLoggingStopName}" />
+            </StackPanel>
+            <TextBlock Name="StatusLine" Classes="caption muted" Text="{Binding OnUntilText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
