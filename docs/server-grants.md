@@ -2,7 +2,7 @@
 
 The server can hold what a person let the agent do for a while without asking: a grant for **a time** for one tool, a grant for **a stretch of work** in some places, and **Bypass**, which switches approvals off in one conversation. The SDK offers all three, on the same wire as the [TypeScript SDK](../typescript/server-grants.md).
 
-Grants need a server that holds them: it says so in the agent's profile (the feature `approval_scopes.grant`), and `agent.Grants.Available` reports it. A time or work grant never covers a call an administrator's rule asks about, a tool the agent's contract marks `always`, or a `Destructive` or `Unknown` call. Bypass covers the destructive and unclassified calls the gateway says it covers, in its own conversation, and nothing that asks every time.
+Grants need a server that holds them: it says so in the agent's profile (the feature `approval_scopes.grant`), and `agent.Grants.Available` reports it. A time or work grant never covers a call an administrator's rule asks about, a tool the agent's contract marks `always`, or a `Destructive` or `Unknown` call. Bypass covers the destructive and unclassified calls the gateway says it covers, in its own conversation, and nothing that asks every time. It never covers a call the gateway holds for the person (a gateway tool's approval), even if the gateway also names the grant for it.
 
 This page covers the grants, Bypass, the lifecycle that keeps a grant from running unattended, and where the device keeps its copy. [Host tools](tools.md#approvals) covers the approvals around them.
 

@@ -154,6 +154,8 @@ Each request carries the session's mode to the gateway, which applies the same r
 
 ## Approvals
 
+[Approvals](approvals.md) summarises the levels, the standing approvals, the never-skip list and what survives a restart.
+
 When the mode says a call asks, or an administrator's rule does, the agent asks your approval handler. Pass one to the builder, either as an `IApprovalHandler` or as a function:
 
 ```csharp

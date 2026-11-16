@@ -1957,7 +1957,7 @@ public sealed class ChatSession
                 if (coveredBy is { } covered && (await HeldAsync(covered.GrantId, covered.Request with
                     {
                         Arguments = i.Arguments.ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal),
-                    }, ct).ConfigureAwait(false)).GrantId is null)
+                    }, gatewayHeld: false, ct).ConfigureAwait(false)).GrantId is null)
                 {
                     throw new InvalidOperationException("The server-held grant changed or no longer covers this call. Review a new call.");
                 }
@@ -1982,7 +1982,8 @@ public sealed class ChatSession
         /// only, even in Bypass); a grant the gateway said covers the call (<c>faden.grant_used</c>) and the server, asked
         /// again, still holds approves (38 §6, the second line; read once more as the call goes out) -- in Bypass a
         /// destructive or unclassified call too, under the
-        /// conversation's Bypass grant while the turn runs in Bypass; a destructive or unclassified tool asks (once only);
+        /// conversation's Bypass grant while the turn runs in Bypass, but never when <paramref name="gatewayWait"/> says the
+        /// gateway holds the call for the person (only the server may skip its own question); a destructive or unclassified tool asks (once only);
         /// what the user allowed always, then what they allowed for this chat, approves; else the user is asked, and
         /// may allow once, for this chat, always, or for a time (a grant the server holds) -- as far as the agent allows those
         /// (its <c>standing</c>). Every outcome goes in the transcript and the server's record, with what let the call
@@ -1997,7 +1998,7 @@ public sealed class ChatSession
             // An open-world call below Auto is approved for this conversation at most: "always" and a time grant do not answer it
             // and are not offered (F08 §4). A grant the server says covers it still does: the grant is the server's.
             var always = open && !ToolModes.ConversationOnly(_mode, request.OpenWorld) && Offers(ApprovalScopes.Always);
-            var (granted, leadsOutside) = rule || individual ? (null, null) : await CoveredByGrantAsync(request, cancellationToken).ConfigureAwait(false);
+            var (granted, leadsOutside) = rule || individual ? (null, null) : await CoveredByGrantAsync(request, gatewayWait, cancellationToken).ConfigureAwait(false);
             var standing = rule || individual ? null
                 : granted is not null ? ApprovalScopes.Grant
                 : !open ? null
@@ -2077,9 +2078,11 @@ public sealed class ChatSession
         /// The grant that covers a call of the agent's own tool, or null (38 §6): the gateway said so (the first line), and
         /// the server's grant, read again now, is this device's and running, for this tool or class, and for a stretch of
         /// work the place the call names, where it really leads (the second). A server that cannot say covers nothing, and
-        /// the user is asked. <c>LeadsOutside</c>: the real place, when a link took the call out of the grant.
+        /// the user is asked. <c>LeadsOutside</c>: the real place, when a link took the call out of the grant. A call the
+        /// gateway holds for the person (<paramref name="gatewayHeld"/>) is never covered by a Bypass grant: only the server may
+        /// skip its own question (sdk/38 §4.3, the floor); time and work grants are not affected.
         /// </summary>
-        private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
+        private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, bool gatewayHeld, CancellationToken cancellationToken)
         {
             var marked = _covered.TryGetValue(request.CallId, out var mark);
             _covered.Remove(request.CallId); // counts once
@@ -2087,22 +2090,22 @@ public sealed class ChatSession
             {
                 return (null, null);
             }
-            return await HeldAsync(mark.GrantId, request, cancellationToken).ConfigureAwait(false);
+            return await HeldAsync(mark.GrantId, request, gatewayHeld, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Whether the server's grant <paramref name="grantId"/>, read now, covers <paramref name="request"/> in this
         /// conversation (<see cref="AgentGrants.CheckAsync"/>); a Bypass grant only the conversation's own, while the turn
-        /// runs in Bypass.
+        /// runs in Bypass, and never one for a call the gateway holds for the person (<paramref name="gatewayHeld"/>).
         /// </summary>
-        private async Task<(string? GrantId, string? LeadsOutside)> HeldAsync(string grantId, ApprovalRequest request, CancellationToken cancellationToken)
+        private async Task<(string? GrantId, string? LeadsOutside)> HeldAsync(string grantId, ApprovalRequest request, bool gatewayHeld, CancellationToken cancellationToken)
         {
             var (covered, leadsOutside) = await Agent.Grants.CheckAsync(grantId, _session.Id, request.ToolName, request.ToolClass,
                 PlaceOf(request), cancellationToken).ConfigureAwait(false);
             if (covered && Agent.Grants.Find(grantId) is { Kind: GrantKinds.Bypass } bypass
-                && (bypass.ConversationId != _session.Id || _mode != ToolMode.Bypass))
+                && (gatewayHeld || bypass.ConversationId != _session.Id || _mode != ToolMode.Bypass))
             {
-                covered = false; // another conversation's Bypass, or a turn that does not run in Bypass
+                covered = false; // another conversation's Bypass, a turn that does not run in Bypass, or a call the gateway holds
             }
             return (covered ? grantId : null, leadsOutside);
         }
