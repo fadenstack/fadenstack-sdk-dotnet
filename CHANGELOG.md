@@ -8,6 +8,15 @@ this file says where it does.
 
 ### Added
 
+- **Content logging is off until the person switches it on for a time** ([Interop: Content logging](docs/interop.md#content-logging), 8.1).
+  `FadenstackAgent.ContentLogging` (`ContentLoggingState`: `IsOn`, `Until`, `Offered`, `CanStart`, `Changed`),
+  `StartContentLogging(TimeSpan)` (15 minutes to 24 hours) and `StopContentLogging()`; `ContentLoggingException` when the app did
+  not offer it or the policy forbids it; the machine policy key `contentLogging` (`MachinePolicy.ContentLogging`). It ends by
+  itself, is not kept across restarts, and each start and stop is logged without content (event ids 2083, 2084).
+  - `ContentLoggingSettingsViewModel` (1 hour, 4 hours or 24 hours, Start, Stop, the end time) and the band in the chat
+    (`AgentChatViewModel.ContentLogging`, "Content logging is on until 14:30. ...", Stop), in the WPF and Avalonia skins; texts in
+    five languages.
+
 - **Your data per app** ([Data on the device: Export and delete](docs/data-on-device.md#export-and-delete)). `DeleteMyDataAsync`
   and `ExportMyDataAsync` take a `DataScope`: `ThisApp` (the default) covers the calling app's chats, "Allow always" and
   thinking levels, and the person's shared data (skills, the MCP list, keys, provenance records, other settings) only when no
@@ -102,6 +111,9 @@ this file says where it does.
 
 ### Changed
 
+- **Behaviour change:** `UseHookContent()` and `AgentOpenTelemetryOptions.EnableSensitiveData` now only mean that the app
+  *offers* content logging. Hooks and spans carry prompts, answers, tool arguments and results only while the person has
+  switched content logging on (`StartContentLogging`). A development setup calls `StartContentLogging` itself.
 - `EndpointCheck` probes with the first model `/models` lists when the endpoint names none, and its report names it (the
   wizard checks before the person picks a model).
 - **Breaking (unlikely to matter):** `find_tool` is the SDK's own name, `AgentTool.ToolSearchName`: `AddTool` and `AddTools`

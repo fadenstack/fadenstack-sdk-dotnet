@@ -70,6 +70,7 @@ When the panel closes, dispose the view model and then the agent.
 - **While a stretch of work runs**, a band under the header says "Working alongside you · 23 min left", counted by the server's clock, with *Stop*, which ends every grant of the agent on this device and the running turn. Two minutes before the end it also offers *Another 30 min*, within the agent's longest grant (`Grants.HasMarker`, `StopCommand`, `KeepGoingCommand`).
 - **Bypass**, where the server offers it (`agent.BypassOffered`), is the picker's last entry. Picking it shows the **confirmation** above the composer (`Grants.BypassCard`): what will no longer be asked in this chat, what still asks, what the server records of each call (as the organisation set it), the time (the shortest first), that it cannot be extended, and an optional reason that administrators see. *Not now* comes first; *Switch Bypass on* is never the default button, *Enter* and *Esc* never switch it on, and only the person's click does. The card then waits for the server: without its confirmation it says why (offline, not allowed, limits not readable) and the chat stays in its mode. A chat without a conversation yet gets one, which goes again when the card is declined (`StartBypassAsync`).
 - **While the chat runs in Bypass**, a band under the header says "Bypass on · 12 min left" and what is recorded, with *Stop*, which ends Bypass and the running turn (`Grants.HasBypass`, `BypassText`, `BypassRecordedText`, `StopBypassCommand`). It never offers more time. When Bypass ends -- its time, *Stop*, *Revoke* in the settings, an administrator, the organisation turning it off, a narrower limit -- the band goes, the chat goes back to the mode it had before, and a line says why (`HasBypassEnded`, `BypassEndedText`). Leaving the chat for another, or a new one, ends its Bypass; a chat opened again starts without it.
+- **While content logging is on**, a band under the header says "Content logging is on until 14:30. Prompts and answers are written to the app's logs." with *Stop* (`ContentLogging.IsShown`, `Text`, `StopCommand`). See [Interop: Content logging](interop.md#content-logging).
 - **The tool-mode picker** says whose limit a greyed-out level is: the organisation's, or the agent's own highest level.
 - **The thinking pill** sits beside the tool mode. The person picks how long the agent thinks there: *Auto*, *Off*, *Low*, *Medium* or *High*, up to the maximum the server sets. See [How long it thinks](agent.md#how-long-it-thinks-the-persons-choice). In the view model: `ReasoningOptions`, `SelectedReasoning`, `SelectReasoningCommand` and `ReasoningPillText`.
 - **The tool-mode menu** ends with *Reset approvals*, which forgets what the user allowed always for this agent on this device and what they allowed for the current chat (`ResetApprovalsCommand`).
@@ -232,6 +233,8 @@ var view = new ChatView
 ```
 
 The gear always shows, because *About* is always there.
+
+Where your app offers [content logging](interop.md#content-logging), put `ContentLoggingSettingsView` (`Fadenstack.UI.Wpf` or `.Avalonia`, with a `ContentLoggingSettingsViewModel`) in your settings. The panel itself shows the band "Content logging is on until ..." with *Stop* above the composer while it is on.
 
 ## Answers without an AI mark
 
