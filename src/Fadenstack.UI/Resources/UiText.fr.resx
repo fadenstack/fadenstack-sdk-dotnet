@@ -2350,4 +2350,97 @@
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Le http en clair n’est pas autorisé ici.</value>
   </data>
+  <data name="WebSearchRowName" xml:space="preserve">
+    <value>Recherche web</value>
+  </data>
+  <data name="WebSearchRowText" xml:space="preserve">
+    <value>Permet à l’assistant de chercher sur le web. Désactivée tant que vous ne la configurez pas.</value>
+  </data>
+  <data name="WebSearchStateOff" xml:space="preserve">
+    <value>Désactivée</value>
+  </data>
+  <data name="WebSearchStateBrave" xml:space="preserve">
+    <value>Brave</value>
+  </data>
+  <data name="WebSearchStateSearxng" xml:space="preserve">
+    <value>SearXNG · {0}</value>
+  </data>
+  <data name="WebSearchSetUp" xml:space="preserve">
+    <value>Configurer</value>
+  </data>
+  <data name="WebSearchChange" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="WebSearchTitle" xml:space="preserve">
+    <value>Recherche web</value>
+  </data>
+  <data name="WebSearchIntro" xml:space="preserve">
+    <value>Choisissez où vont les recherches web de l’assistant.</value>
+  </data>
+  <data name="WebSearchChoiceName" xml:space="preserve">
+    <value>Fournisseur de recherche</value>
+  </data>
+  <data name="WebSearchChoiceOff" xml:space="preserve">
+    <value>Désactivée</value>
+  </data>
+  <data name="WebSearchChoiceBrave" xml:space="preserve">
+    <value>Brave Search</value>
+  </data>
+  <data name="WebSearchChoiceSearxng" xml:space="preserve">
+    <value>SearXNG</value>
+  </data>
+  <data name="WebSearchOffHelp" xml:space="preserve">
+    <value>L’assistant n’a aucun outil de recherche web.</value>
+  </data>
+  <data name="WebSearchKeyLabel" xml:space="preserve">
+    <value>Clé d’API Brave</value>
+  </data>
+  <data name="WebSearchKeyHelp" xml:space="preserve">
+    <value>Utilisez votre propre clé, issue de votre compte API Brave Search.</value>
+  </data>
+  <data name="WebSearchKeyKept" xml:space="preserve">
+    <value>Une clé est enregistrée</value>
+  </data>
+  <data name="WebSearchKeyReplace" xml:space="preserve">
+    <value>Remplacer la clé</value>
+  </data>
+  <data name="WebSearchKeyRemove" xml:space="preserve">
+    <value>Supprimer la clé</value>
+  </data>
+  <data name="WebSearchKeyRemoved" xml:space="preserve">
+    <value>La clé sera supprimée à l’enregistrement.</value>
+  </data>
+  <data name="WebSearchKeyMissing" xml:space="preserve">
+    <value>Saisissez votre clé d’API Brave ou choisissez autre chose.</value>
+  </data>
+  <data name="WebSearchUrlLabel" xml:space="preserve">
+    <value>Adresse SearXNG</value>
+  </data>
+  <data name="WebSearchUrlHelp" xml:space="preserve">
+    <value>L’adresse de votre instance SearXNG, avec son format JSON activé.</value>
+  </data>
+  <data name="WebSearchUrlMissing" xml:space="preserve">
+    <value>Saisissez l’adresse de votre instance SearXNG.</value>
+  </data>
+  <data name="WebSearchUrlRefused" xml:space="preserve">
+    <value>Utilisez une adresse https, ou http sur cet ordinateur uniquement, sans nom d’utilisateur ni mot de passe.</value>
+  </data>
+  <data name="WebSearchKeptStore" xml:space="preserve">
+    <value>La clé est conservée chiffrée dans le magasin de clés de cet appareil et n’est plus jamais affichée.</value>
+  </data>
+  <data name="WebSearchKeptSession" xml:space="preserve">
+    <value>La clé n’est conservée que pour cette session : cet appareil n’a pas de magasin de clés, elle est donc oubliée à la fermeture de l’appli.</value>
+  </data>
+  <data name="WebSearchPrivacy" xml:space="preserve">
+    <value>Une recherche envoie les mots de la requête hors de votre organisation. L’assistant demande d’abord, sauf s’il est réglé sur Auto.</value>
+  </data>
+  <data name="WebSearchSave" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="WebSearchCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="WebSearchSaved" xml:space="preserve">
+    <value>Enregistré.</value>
+  </data>
 </root>

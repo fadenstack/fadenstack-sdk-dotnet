@@ -68,6 +68,16 @@
     "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)",
     "Method Void OnTextsChanged(System.Object, System.ComponentModel.PropertyChangedEventArgs)"
   ],
+  "src/Fadenstack.UI.Avalonia/Views/WebSearchSettingsView.axaml.cs": [
+    "Constructor Void .ctor()",
+    "Field Fadenstack.UI.Tools.IToolsTexts _texts",
+    "Method Void ApplyStrings()",
+    "Method Void Follow(Fadenstack.UI.Tools.IToolsTexts)",
+    "Method Void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs)",
+    "Method Void OnKeyDown(Avalonia.Input.KeyEventArgs)",
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)",
+    "Method Void OnTextsChanged(System.Object, System.ComponentModel.PropertyChangedEventArgs)"
+  ],
   "src/Fadenstack.UI.Avalonia/Views/WizardView.axaml.cs": [
     "Constructor Void .cctor()",
     "Constructor Void .ctor()",
@@ -223,6 +233,7 @@
     "Field System.Windows.Controls.Border ListNote",
     "Field System.Windows.Controls.Border PolicyBanner",
     "Field System.Windows.Controls.Border PolicyChip",
+    "Field System.Windows.Controls.Border WebSearchRow",
     "Field System.Windows.Controls.Button AddServerButton",
     "Field System.Windows.Controls.Button DrawerScrim",
     "Field System.Windows.Controls.Button EmptyAddButton",
@@ -231,6 +242,7 @@
     "Field System.Windows.Controls.Button RetryButton",
     "Field System.Windows.Controls.Button ScanButton",
     "Field System.Windows.Controls.Button SheetScrim",
+    "Field System.Windows.Controls.Button WebSearchButton",
     "Field System.Windows.Controls.Grid DrawerLayer",
     "Field System.Windows.Controls.Grid EmptyState",
     "Field System.Windows.Controls.Grid SheetLayer",
@@ -247,6 +259,7 @@
     "Field System.Windows.Controls.TextBlock AppNoMatch",
     "Field System.Windows.Controls.TextBlock NoMatch",
     "Field System.Windows.Controls.TextBlock SignInNeeded",
+    "Field System.Windows.Controls.TextBlock WebSearchState",
     "Field System.Windows.Controls.TextBox FilterBox",
     "Field System.Windows.Controls.WrapPanel ToolsTabs",
     "Field System.Windows.DependencyProperty CardColumnsProperty",
@@ -259,6 +272,18 @@
     "Property Double DrawerWidth",
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme",
     "Property Int32 CardColumns"
+  ],
+  "src/Fadenstack.UI.Wpf/Views/WebSearchSettingsView.xaml.cs": [
+    "Constructor Void .cctor()",
+    "Constructor Void .ctor()",
+    "Field Boolean _contentLoaded",
+    "Field Fadenstack.UI.Tools.IToolsTexts _texts",
+    "Field System.Windows.Controls.Border WebSearchRoot",
+    "Field System.Windows.DependencyProperty ThemeProperty",
+    "Method Void Follow(Fadenstack.UI.Tools.IToolsTexts)",
+    "Method Void OnKeyDown(System.Windows.Input.KeyEventArgs)",
+    "Method Void OnTextsChanged(System.Object, System.ComponentModel.PropertyChangedEventArgs)",
+    "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/WizardView.xaml.cs": [
     "Constructor Void .cctor()",

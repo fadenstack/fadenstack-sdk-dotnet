@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.LocalTools;
 using Fadenstack.UI.Services;
+using Fadenstack.WebSearch;
 
 namespace Fadenstack.UI.Tools;
 
@@ -35,6 +36,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     private readonly ILocalToolsCatalog _catalog;
     private readonly IUiDispatcher _dispatcher;
     private readonly IToolsFileHost? _files;
+    private readonly WebSearchStore? _webSearch;
     private readonly Func<UiStrings> _strings;
     private readonly List<LocalServerViewModel> _allServers = new List<LocalServerViewModel>();
     private CloudToolsResult? _cloud;
@@ -47,10 +49,16 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     /// <param name="files">Dialogs for the working folder and the import file; without it those buttons do nothing.</param>
     /// <param name="dispatcher">The UI thread; inline by default (tests, headless hosts).</param>
     /// <param name="strings">The texts; the current UI language's by default.</param>
-    public ToolsViewModel(ILocalToolsCatalog catalog, IToolsFileHost? files = null, IUiDispatcher? dispatcher = null, Func<UiStrings>? strings = null)
+    /// <param name="webSearch">
+    /// The person's web search settings. Given, <i>In this app</i> has a "Web search" row that opens the settings sheet
+    /// (<see cref="WebSearchSettingsViewModel"/>); an app without web search gives none and the row is not there.
+    /// </param>
+    public ToolsViewModel(ILocalToolsCatalog catalog, IToolsFileHost? files = null, IUiDispatcher? dispatcher = null, Func<UiStrings>? strings = null,
+        WebSearchStore? webSearch = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _files = files;
+        _webSearch = webSearch;
         _dispatcher = dispatcher ?? InlineDispatcher.Instance;
         var current = UiStrings.Current;
         _strings = strings ?? (() => current);
@@ -61,7 +69,12 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
         CloseDetailsCommand = new RelayCommand(CloseDetails);
         CloseTopCommand = new RelayCommand(CloseTop);
         RetryCommand = new AsyncRelayCommand(() => LoadCloudAsync());
+        OpenWebSearchCommand = new RelayCommand(OpenWebSearch);
         _catalog.Changed += OnCatalogChanged;
+        if (_webSearch is not null)
+        {
+            _webSearch.Changed += OnCatalogChanged;
+        }
         Refresh();
     }
 
@@ -179,6 +192,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     {
         Rebuild();
         BuildApp();
+        BuildWebSearch();
         BuildCloud();
     }
 
@@ -260,6 +274,69 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
     /// <summary>The app has tools but the filter hides every one: a short line says so.</summary>
     [ObservableProperty]
     private bool _showsAppNoMatch;
+
+    // ---- in this app: web search --------------------------------------------------------------------------------------
+
+    /// <summary>The app gave the page the person's web search settings, the "Web search" row is on <i>In this app</i> (and the filter lets it through).</summary>
+    [ObservableProperty]
+    private bool _showsWebSearch;
+
+    /// <summary>"Web search".</summary>
+    [ObservableProperty]
+    private string _webSearchName = "";
+
+    /// <summary>One line on what it is.</summary>
+    [ObservableProperty]
+    private string _webSearchText = "";
+
+    /// <summary>"Off", "Brave" or "SearXNG · host".</summary>
+    [ObservableProperty]
+    private string _webSearchState = "";
+
+    /// <summary>"Set up" while it is off, else "Change".</summary>
+    [ObservableProperty]
+    private string _webSearchButtonText = "";
+
+    /// <summary>Opens the settings sheet.</summary>
+    public IRelayCommand OpenWebSearchCommand { get; }
+
+    private void OpenWebSearch()
+    {
+        if (_webSearch is not { } store)
+        {
+            return;
+        }
+        Details = null;
+        var sheet = new WebSearchSettingsViewModel(store, _dispatcher, _strings);
+        sheet.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(Sheet, sheet))
+            {
+                CloseSheet(); // disposes the sheet: the typed key goes
+            }
+        };
+        OpenSheet(sheet);
+    }
+
+    private void BuildWebSearch()
+    {
+        var s = Strings;
+        WebSearchName = s.WebSearchRowName;
+        ShowsWebSearch = _webSearch is not null && Contains(WebSearchName, Filter);
+        if (_webSearch is not { } store)
+        {
+            return;
+        }
+        var settings = store.Settings;
+        WebSearchText = s.WebSearchRowText;
+        WebSearchState = settings.Provider switch
+        {
+            WebSearchProvider.Brave => s.WebSearchStateBrave,
+            WebSearchProvider.SearXng when settings.SearXngUrl is { } url => s.WebSearchStateSearxng(url.Authority),
+            _ => s.WebSearchStateOff,
+        };
+        WebSearchButtonText = settings.Provider == WebSearchProvider.None ? s.WebSearchSetUp : s.WebSearchChange;
+    }
 
     // ---- on your server -----------------------------------------------------------------------------------------------
 
@@ -399,6 +476,10 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
         }
         _disposed = true;
         _catalog.Changed -= OnCatalogChanged;
+        if (_webSearch is not null)
+        {
+            _webSearch.Changed -= OnCatalogChanged;
+        }
         if (Sheet is IDisposable disposable)
         {
             disposable.Dispose();
@@ -454,6 +535,7 @@ public sealed partial class ToolsViewModel : ObservableObject, IToolsTexts, IDis
         _allApp.Clear();
         _allApp.AddRange(_catalog.AppTools.Select(t => new AppToolViewModel(s, t)));
         BuildApp();
+        BuildWebSearch();
 
         // "On your server" exists only for a governed agent that somebody is signed in to; elsewhere nothing of it is loaded or kept.
         var governed = _catalog.IsGoverned && !NeedsSignIn;

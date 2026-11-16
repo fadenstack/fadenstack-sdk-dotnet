@@ -22,6 +22,10 @@
         The look is the form views' (Controls.axaml, Forms.axaml) and theme keys only; the module's own icons are Material Icons (Apache-2.0).
     -->
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Fadenstack.UI.Avalonia/Themes/WebSearch.axaml" />
+            </ResourceDictionary.MergedDictionaries>
         <!-- The scrim is the whole panel: square. -->
         <CornerRadius x:Key="Tools.Scrim.Radius">0</CornerRadius>
         <StreamGeometry x:Key="Icon.Tools.Radar">M19.74 18.33C21.15 16.6 22 14.4 22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10c2.4 0 4.6-.85 6.33-2.26.27-.22.53-.46.78-.71.03-.03.05-.06.07-.08.2-.2.39-.41.56-.62M12 20c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8c0 1.85-.63 3.54-1.69 4.9l-1.43-1.43c.69-.98 1.1-2.17 1.1-3.46 0-3.31-2.69-6-6-6s-6 2.69-6 6 2.69 6 6 6c1.3 0 2.51-.42 3.49-1.13l1.42 1.42C15.54 19.37 13.85 20 12 20m1.92-7.49c.17-.66.02-1.38-.49-1.9l-.02-.02c-.77-.77-2-.78-2.78-.04-.01.01-.03.02-.05.04-.78.78-.78 2.05 0 2.83l.02.02c.52.51 1.25.67 1.91.49l1.51 1.51c-.6.36-1.29.58-2.04.58-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4c0 .73-.21 1.41-.56 2z</StreamGeometry>
@@ -34,6 +38,7 @@
         <StreamGeometry x:Key="Icon.Tools.PowerSettingsNew">M13 3h-2v10h2zm4.83 2.17-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83</StreamGeometry>
         <StreamGeometry x:Key="Icon.Tools.EditOutlined">m14.06 9.02.92.92L5.92 19H5v-.92zM17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29m-3.6 3.19L3 17.25V21h3.75L17.81 9.94z</StreamGeometry>
         <StreamGeometry x:Key="Icon.Tools.CheckCircle">M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z</StreamGeometry>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <UserControl.Styles>
@@ -451,6 +456,11 @@
             </Border>
         </DataTemplate>
 
+        <!-- ===== Web search: a modal sheet (the template is WebSearchSettingsView's, Themes/WebSearch.axaml) ===== -->
+        <DataTemplate DataType="t:WebSearchSettingsViewModel" x:DataType="t:WebSearchSettingsViewModel">
+            <ContentControl Content="{Binding}" ContentTemplate="{StaticResource WebSearch.Sheet}" />
+        </DataTemplate>
+
         <!-- ===== Import from another program's file: a modal sheet ===== -->
         <DataTemplate DataType="t:ImportSheetViewModel" x:DataType="t:ImportSheetViewModel">
             <Border x:Name="ImportSheet" Classes="sheet wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{v:Text ToolsImportTitle}">
@@ -741,6 +751,22 @@
                     <StackPanel x:Name="AppSection" Spacing="12" IsVisible="{Binding ShowsApp}">
                         <TextBlock x:Name="AppEmpty" Classes="muted" Text="{v:Text ToolsAppNone}" IsVisible="{Binding ShowsAppEmpty}" TextWrapping="Wrap" />
                         <TextBlock x:Name="AppNoMatch" Classes="muted" Text="{v:Text ToolsNoToolsMatch}" IsVisible="{Binding ShowsAppNoMatch}" />
+                        <!-- Web search: only where the app gave the page the person's web search settings. -->
+                        <Border x:Name="WebSearchRow" Classes="listcard" Padding="12,8" IsVisible="{Binding ShowsWebSearch}">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <StackPanel Spacing="2">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Classes="strong" Text="{Binding WebSearchName}" VerticalAlignment="Center" />
+                                        <Border Classes="state muted">
+                                            <TextBlock x:Name="WebSearchState" Text="{Binding WebSearchState}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Classes="caption muted" Text="{Binding WebSearchText}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button x:Name="WebSearchButton" Grid.Column="1" Classes="secondary" Command="{Binding OpenWebSearchCommand}" VerticalAlignment="Center"
+                                        Content="{Binding WebSearchButtonText}" AutomationProperties.Name="{Binding WebSearchButtonText}" />
+                            </Grid>
+                        </Border>
                         <ItemsControl x:Name="AppTools" ItemsSource="{Binding AppTools}" AutomationProperties.Name="{Binding AppTabText}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>

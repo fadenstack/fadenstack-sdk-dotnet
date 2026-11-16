@@ -2350,4 +2350,97 @@
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>此处不允许使用明文 http。</value>
   </data>
+  <data name="WebSearchRowName" xml:space="preserve">
+    <value>网页搜索</value>
+  </data>
+  <data name="WebSearchRowText" xml:space="preserve">
+    <value>让助手搜索网页。在您设置之前保持关闭。</value>
+  </data>
+  <data name="WebSearchStateOff" xml:space="preserve">
+    <value>已关闭</value>
+  </data>
+  <data name="WebSearchStateBrave" xml:space="preserve">
+    <value>Brave</value>
+  </data>
+  <data name="WebSearchStateSearxng" xml:space="preserve">
+    <value>SearXNG · {0}</value>
+  </data>
+  <data name="WebSearchSetUp" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="WebSearchChange" xml:space="preserve">
+    <value>更改</value>
+  </data>
+  <data name="WebSearchTitle" xml:space="preserve">
+    <value>网页搜索</value>
+  </data>
+  <data name="WebSearchIntro" xml:space="preserve">
+    <value>选择助手的网页搜索发往何处。</value>
+  </data>
+  <data name="WebSearchChoiceName" xml:space="preserve">
+    <value>搜索提供方</value>
+  </data>
+  <data name="WebSearchChoiceOff" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="WebSearchChoiceBrave" xml:space="preserve">
+    <value>Brave Search</value>
+  </data>
+  <data name="WebSearchChoiceSearxng" xml:space="preserve">
+    <value>SearXNG</value>
+  </data>
+  <data name="WebSearchOffHelp" xml:space="preserve">
+    <value>助手没有网页搜索工具。</value>
+  </data>
+  <data name="WebSearchKeyLabel" xml:space="preserve">
+    <value>Brave API 密钥</value>
+  </data>
+  <data name="WebSearchKeyHelp" xml:space="preserve">
+    <value>请使用您 Brave Search API 账户中的个人密钥。</value>
+  </data>
+  <data name="WebSearchKeyKept" xml:space="preserve">
+    <value>已保存密钥</value>
+  </data>
+  <data name="WebSearchKeyReplace" xml:space="preserve">
+    <value>替换密钥</value>
+  </data>
+  <data name="WebSearchKeyRemove" xml:space="preserve">
+    <value>移除密钥</value>
+  </data>
+  <data name="WebSearchKeyRemoved" xml:space="preserve">
+    <value>保存时将移除该密钥。</value>
+  </data>
+  <data name="WebSearchKeyMissing" xml:space="preserve">
+    <value>请输入您的 Brave API 密钥，或选择其他选项。</value>
+  </data>
+  <data name="WebSearchUrlLabel" xml:space="preserve">
+    <value>SearXNG 地址</value>
+  </data>
+  <data name="WebSearchUrlHelp" xml:space="preserve">
+    <value>您的 SearXNG 实例的地址，需已开启其 JSON 格式。</value>
+  </data>
+  <data name="WebSearchUrlMissing" xml:space="preserve">
+    <value>请输入您的 SearXNG 实例的地址。</value>
+  </data>
+  <data name="WebSearchUrlRefused" xml:space="preserve">
+    <value>请使用 https 地址，或仅限本机的 http 地址，且不含用户名和密码。</value>
+  </data>
+  <data name="WebSearchKeptStore" xml:space="preserve">
+    <value>密钥加密保存在此设备的密钥库中，不会再次显示。</value>
+  </data>
+  <data name="WebSearchKeptSession" xml:space="preserve">
+    <value>密钥仅在本次会话中保留：此设备没有密钥库，因此应用关闭后即会遗忘。</value>
+  </data>
+  <data name="WebSearchPrivacy" xml:space="preserve">
+    <value>搜索会把查询的词句发送到您的组织之外。除非设为“自动”，助手会先征求您的同意。</value>
+  </data>
+  <data name="WebSearchSave" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="WebSearchCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="WebSearchSaved" xml:space="preserve">
+    <value>已保存。</value>
+  </data>
 </root>

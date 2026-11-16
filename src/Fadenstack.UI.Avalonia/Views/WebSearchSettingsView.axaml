@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:t="clr-namespace:Fadenstack.UI.Tools;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="520"
+             x:Class="Fadenstack.UI.Avalonia.Views.WebSearchSettingsView"
+             x:DataType="t:WebSearchSettingsViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
+    <!--
+        The web search settings (sdk/51 F06) for a WebSearchSettingsViewModel: the Tools view's sheet, and a view of its own for an app
+        with a Tools page of its own (the desktop). A title with its close button, the three choices (Off, Brave, SearXNG), the key box
+        (a masked box bound to the view model's Key, never filled from the store; a kept key shows as a line with Replace key and Remove
+        key), the address box, the lines on where the key is kept and on what leaves the organisation, the problem, Save and Cancel.
+        The Tools view's sheet is the same template (Themes/WebSearch.axaml), so the two cannot differ. Every text is a UiStrings name; every control has an
+        automation name; every look is a style class of the skin's (Controls.axaml, Forms.axaml) or a theme key.
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
+        <Style Selector="TextBlock.error">
+            <Setter Property="FontSize" Value="{DynamicResource Fadenstack.FontSize.Caption}" />
+            <Setter Property="Foreground" Value="{DynamicResource Fadenstack.DangerText}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <!-- A sheet is at most 480 wide: in a narrower panel (Office's task pane) it takes the panel. -->
+        <Style Selector="Border.sheet.wide">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="MaxWidth" Value="{DynamicResource Fadenstack.Sheet.Width}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Fadenstack.UI.Avalonia/Themes/WebSearch.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource WebSearch.Sheet}" />
+</UserControl>
