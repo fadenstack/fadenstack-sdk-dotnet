@@ -81,7 +81,7 @@ public class AgentHooks : IAgentHooks
     public virtual Task AfterToolCallAsync(ToolCallResult result, CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
-/// <summary>What a hook sees before a model call. No prompt text unless the app asked for it (<see cref="AgentBuilder.UseHookContent"/>).</summary>
+/// <summary>What a hook sees before a model call. No prompt text unless the app offers content logging (<see cref="AgentBuilder.UseHookContent"/>) and the person switched it on for a time (<see cref="FadenstackAgent.StartContentLogging"/>).</summary>
 public sealed class ModelCallContext
 {
     internal ModelCallContext(string agentName, string sessionId, string turnId, int round, string? model, int messageCount, int toolCount,
@@ -122,7 +122,7 @@ public sealed class ModelCallContext
     public IReadOnlyList<ChatMessage>? Messages { get; }
 }
 
-/// <summary>What a hook sees after a model call. No answer text unless the app asked for it (<see cref="AgentBuilder.UseHookContent"/>).</summary>
+/// <summary>What a hook sees after a model call. No answer text unless the app offers content logging (<see cref="AgentBuilder.UseHookContent"/>) and the person switched it on for a time (<see cref="FadenstackAgent.StartContentLogging"/>).</summary>
 public sealed class ModelCallResult
 {
     internal ModelCallResult(string agentName, string sessionId, string turnId, int round, string? model, HookOutcome outcome, TimeSpan duration,
