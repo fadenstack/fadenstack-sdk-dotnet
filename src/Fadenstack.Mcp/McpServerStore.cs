@@ -103,27 +103,78 @@ public sealed class McpServerStore
             return _entries.FirstOrDefault(e => e.Label == label);
     }
 
-    /// <summary>Adds a server; the problem when it is not valid or its label is taken.</summary>
-    public McpValidation Add(McpServerEntry entry) => Change(() =>
+    /// <summary>
+    /// Adds a server; the problem when it is not valid or its label is taken. A program is pinned as it is now
+    /// (<see cref="McpServerEntry.ProgramPin"/>, sdk/51 5.5), whatever pin the entry came with: adding is the person's word on it.
+    /// </summary>
+    public McpValidation Add(McpServerEntry entry)
     {
-        var check = McpServerValidator.Validate(entry, _entries.Select(e => e.Label));
-        if (!check.IsValid)
-            return (check, false);
-        _entries.Add(entry);
-        return (McpValidation.Ok, true);
-    });
+        // The file is hashed before the list's gate and lock: a big program must not hold up another app's change.
+        var pinned = entry with { ProgramPin = entry.IsProgram ? McpProgramPinner.Pin(entry) : null };
+        return Change(() =>
+        {
+            var check = McpServerValidator.Validate(pinned, _entries.Select(e => e.Label));
+            if (!check.IsValid)
+                return (check, false);
+            _entries.Add(pinned);
+            return (McpValidation.Ok, true);
+        });
+    }
 
-    /// <summary>Replaces the server <paramref name="label"/> by <paramref name="entry"/> (which may rename it), in the same place of the list.</summary>
-    public McpValidation Update(string label, McpServerEntry entry) => Change(() =>
+    /// <summary>
+    /// Replaces the server <paramref name="label"/> by <paramref name="entry"/> (which may rename it), in the same place of the list.
+    /// A program whose command, first argument or working folder changed is pinned again as it is now; one that stays keeps its pin
+    /// (an edit of the timeout is no word on the program).
+    /// </summary>
+    public McpValidation Update(string label, McpServerEntry entry)
+    {
+        // Hashed before the gate and the lock, and only when the program is not the one the list has now.
+        var fresh = entry.IsProgram && !SameProgram(Find(label), entry) ? McpProgramPinner.Pin(entry) : null;
+        return Change(() =>
+        {
+            var at = _entries.FindIndex(e => e.Label == label);
+            if (at < 0)
+                return (new McpValidation(McpProblem.LabelMissing, "label"), false);
+            var check = McpServerValidator.Validate(entry, _entries.Where((_, i) => i != at).Select(e => e.Label));
+            if (!check.IsValid)
+                return (check, false);
+            var old = _entries[at];
+            _entries[at] = entry with { ProgramPin = !entry.IsProgram ? null : SameProgram(old, entry) ? old.ProgramPin : fresh ?? McpProgramPinner.Pin(entry) };
+            return (McpValidation.Ok, true);
+        });
+    }
+
+    /// <summary>The same file is started: the command, its first argument (a script) and the folder it starts in are the same.</summary>
+    private static bool SameProgram(McpServerEntry? a, McpServerEntry b) =>
+        a is not null && a.IsProgram && b.IsProgram
+        && string.Equals(a.Command, b.Command, StringComparison.Ordinal)
+        && string.Equals(a.Arguments.FirstOrDefault() ?? "", b.Arguments.FirstOrDefault() ?? "", StringComparison.Ordinal)
+        && string.Equals(a.WorkingFolder ?? "", b.WorkingFolder ?? "", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The person confirmed the program as it is now ("Use the new program"): it is pinned again. False when there is no such
+    /// program server, or its command names no file that can be read (nothing is changed then).
+    /// </summary>
+    public bool Repin(string label) => Change(() =>
     {
         var at = _entries.FindIndex(e => e.Label == label);
-        if (at < 0)
-            return (new McpValidation(McpProblem.LabelMissing, "label"), false);
-        var check = McpServerValidator.Validate(entry, _entries.Where((_, i) => i != at).Select(e => e.Label));
-        if (!check.IsValid)
-            return (check, false);
-        _entries[at] = entry;
-        return (McpValidation.Ok, true);
+        if (at < 0 || !_entries[at].IsProgram || McpProgramPinner.Pin(_entries[at]) is not { } pin)
+            return (false, false);
+        _entries[at] = _entries[at] with { ProgramPin = pin };
+        return (true, true);
+    });
+
+    /// <summary>
+    /// Pins a program that has no pin yet (an entry kept before pins: it is pinned at its next successful start, once) to
+    /// <paramref name="pin"/>, the program as that start saw it. False when there is no such server or it has a pin already.
+    /// </summary>
+    public bool PinIfMissing(string label, McpProgramPin pin) => Change(() =>
+    {
+        var at = _entries.FindIndex(e => e.Label == label);
+        if (at < 0 || !_entries[at].IsProgram || _entries[at].ProgramPin is not null)
+            return (false, false);
+        _entries[at] = _entries[at] with { ProgramPin = pin };
+        return (true, true);
     });
 
     public bool Remove(string label) => Change(() =>
@@ -402,6 +453,24 @@ public sealed class McpServerStore
         public string Value { get; set; } = "";
     }
 
+    private sealed class PinDto
+    {
+        [JsonPropertyName("path")]
+        public string Path { get; set; } = "";
+
+        [JsonPropertyName("sha256")]
+        public string Sha256 { get; set; } = "";
+
+        [JsonPropertyName("scriptPath")]
+        public string? ScriptPath { get; set; }
+
+        [JsonPropertyName("scriptSha256")]
+        public string? ScriptSha256 { get; set; }
+
+        [JsonPropertyName("pinnedAt")]
+        public DateTimeOffset PinnedAt { get; set; }
+    }
+
     private sealed class EntryDto
     {
         [JsonPropertyName("label")]
@@ -445,8 +514,15 @@ public sealed class McpServerStore
         [JsonPropertyName("plainHttpInLan")]
         public bool? PlainHttpInLan { get; set; }
 
+        // Written only for a program that has a pin (sdk/51 5.5), so a file without it is the desktop's file as it always was.
+        [JsonPropertyName("programPin")]
+        public PinDto? ProgramPin { get; set; }
+
         public static EntryDto From(McpServerEntry e) => new()
         {
+            ProgramPin = e.ProgramPin is { } pin
+                ? new PinDto { Path = pin.Path, Sha256 = pin.Sha256, ScriptPath = pin.ScriptPath, ScriptSha256 = pin.ScriptSha256, PinnedAt = pin.PinnedAt }
+                : null,
             Label = e.Label,
             Enabled = e.Enabled,
             Command = e.Command,
@@ -478,6 +554,9 @@ public sealed class McpServerStore
             Origin = string.IsNullOrEmpty(Origin) ? McpServerEntry.TypedOrigin : Origin,
             Trusted = Trusted == true,
             PlainHttpInLan = PlainHttpInLan == true,
+            ProgramPin = ProgramPin is { Path.Length: > 0, Sha256.Length: > 0 } pin
+                ? new McpProgramPin(pin.Path, pin.Sha256, pin.ScriptPath, pin.ScriptSha256, pin.PinnedAt)
+                : null,
             ToolClasses = RaisesOf(ToolClasses),
         };
 

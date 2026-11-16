@@ -1810,6 +1810,39 @@
   <data name="ToolsFixAddValue" xml:space="preserve">
     <value>Ajouter la valeur</value>
   </data>
+  <data name="ToolsStateProgramChanged" xml:space="preserve">
+    <value>Le programme de {0} a changé depuis son ajout.</value>
+  </data>
+  <data name="ToolsFixReviewProgram" xml:space="preserve">
+    <value>Examiner le changement</value>
+  </data>
+  <data name="ToolsUseNewProgram" xml:space="preserve">
+    <value>Utiliser le nouveau programme</value>
+  </data>
+  <data name="ToolsUseNewProgramName" xml:space="preserve">
+    <value>Utiliser le nouveau programme de {0}</value>
+  </data>
+  <data name="ToolsProgramChangedTitle" xml:space="preserve">
+    <value>Le programme a changé</value>
+  </data>
+  <data name="ToolsProgramChangedHelp" xml:space="preserve">
+    <value>Ce serveur ne démarre pas. Son fichier programme n’est pas celui que vous avez ajouté : il a été modifié, déplacé ou supprimé. N’utilisez le nouveau programme que si vous attendiez ce changement, ou supprimez le serveur.</value>
+  </data>
+  <data name="ToolsFactProgramCheck" xml:space="preserve">
+    <value>Contrôle du programme</value>
+  </data>
+  <data name="ToolsProgramChecked" xml:space="preserve">
+    <value>Le fichier programme est vérifié avant chaque démarrage.</value>
+  </data>
+  <data name="ToolsProgramOnlyRunner" xml:space="preserve">
+    <value>Seul le lanceur est vérifié : le paquet qu’il télécharge peut changer.</value>
+  </data>
+  <data name="ToolsProgramNotPinned" xml:space="preserve">
+    <value>Le programme est enregistré à son prochain démarrage.</value>
+  </data>
+  <data name="ToolsTestProgramChanged" xml:space="preserve">
+    <value>Non démarré : le programme a changé depuis son ajout. Utilisez d’abord le nouveau programme.</value>
+  </data>
   <data name="ToolsOriginTyped" xml:space="preserve">
     <value>Ajouté par vous</value>
   </data>

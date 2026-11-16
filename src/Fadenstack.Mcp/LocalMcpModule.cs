@@ -41,7 +41,7 @@ public sealed record SkippedMcpServer(string Label, string Reason, Exception? Er
 /// sampling: a server cannot use the model.
 /// </para>
 /// </summary>
-public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICoreToolSource, IDisposable
+public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICoreToolSource, IDeviceProgramSource, IDisposable
 {
     /// <summary>The name of the tool that finds the other tools.</summary>
     public const string FindToolName = AgentTool.ToolSearchName;
@@ -155,7 +155,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             lock (_gate)
             {
-                return _entries.Where(e => e.State is McpServerState.NotAllowed or McpServerState.Failed)
+                return _entries.Where(e => e.State is McpServerState.NotAllowed or McpServerState.Failed or McpServerState.ProgramChanged)
                     .Select(e => new SkippedMcpServer(e.Server.Label, e.Detail ?? "", e.Error)).ToList();
             }
         }
@@ -170,6 +170,23 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             {
                 return _entries.Select(Status).ToList();
             }
+        }
+    }
+
+    /// <summary>
+    /// The programs of the enabled stdio servers that have a pin, for the device block of the manifest (sdk/51 8.3): the label, the
+    /// program's file name only (the folder can hold the user name) and the pinned SHA-256. A server over http has none.
+    /// </summary>
+    public IReadOnlyList<ManifestMcpProgram> McpPrograms()
+    {
+        lock (_gate)
+        {
+            return [.. _entries.Where(e => e.Enabled && e.Server.Command is not null && e.Server.ProgramPin is not null).Select(e => new ManifestMcpProgram
+            {
+                Name = e.Server.Label,
+                Program = DeviceReport.FileNameOf(e.Server.ProgramPin!.Path),
+                Sha256 = e.Server.ProgramPin.Sha256,
+            })];
         }
     }
 
@@ -492,6 +509,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     {
         Detail = e.Detail,
         PlainHttp = e.PlainHttp,
+        ProgramChange = e.State == McpServerState.ProgramChanged ? e.ProgramChange : null,
         Instructions = e.Instructions,
         ProtocolVersion = e.ProtocolVersion,
         Tools = e.Tools.Select(t => t.Info).ToList(),
@@ -534,6 +552,10 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             RaiseStatus(entry);
             return false;
         }
+        if (!CheckProgram(entry, log))
+        {
+            return false;
+        }
         lock (_gate)
         {
             entry.State = McpServerState.Starting;
@@ -558,12 +580,14 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 entry.Detail = null;
                 entry.Error = null;
                 entry.PlainHttp = null;
+                entry.ProgramChange = null;
                 entry.UsedLocalNetwork = connection.UsedLocalNetwork;
                 entry.Instructions = McpText.FirstLine(client.ServerInstructions, McpText.MaxIndexChars);
                 entry.ProtocolVersion = client.NegotiatedProtocolVersion;
                 entry.ConnectedAt = DateTime.UtcNow;
             }
             _ = WatchAsync(entry, client);
+            PinUnpinned(entry, log);
             Log.Attached(log, server.Label, server.Transport, listed.Count);
             RaiseStatus(entry);
             await ReportAttachedAsync(entry).ConfigureAwait(false);
@@ -598,6 +622,75 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             Log.AttachFailed(log, server.Label, server.Transport, e.GetType().Name);
             RaiseStatus(entry);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Raised when the program of a stdio server was checked and something is to be recorded (sdk/51 5.5): it changed (the server
+    /// did not start), or it had no pin and is pinned now (its first successful start). Called from the thread that starts the server.
+    /// </summary>
+    public event EventHandler<McpProgramEventArgs>? ProgramChecked;
+
+    /// <summary>
+    /// Before a program starts: it is hashed again and compared with its pin. A different file, other content or a missing file
+    /// stops the start, with the reason "The program of {label} changed since you added it." (the label, never a path). A server
+    /// with no pin starts, and is pinned once it has started (<see cref="PinUnpinned"/>). Servers that are no program are not checked.
+    /// </summary>
+    private bool CheckProgram(ServerEntry entry, ILogger log)
+    {
+        var server = entry.Server;
+        entry.UnpinnedObservation = null;
+        if (server.Command is null)
+        {
+            return true;
+        }
+        var observed = McpProgramPinner.Observe(server.Command, server.Arguments, server.WorkingDirectory, server.PathVariable, DateTimeOffset.UtcNow);
+        if (server.ProgramPin is null)
+        {
+            entry.UnpinnedObservation = observed;
+            return true;
+        }
+        var change = McpProgramPinner.Compare(server.ProgramPin, observed);
+        if (change == McpProgramChange.None)
+        {
+            return true;
+        }
+        lock (_gate)
+        {
+            entry.State = McpServerState.ProgramChanged; // never started
+            entry.ProgramChange = change;
+            entry.Detail = $"The program of {server.Label} changed since you added it.";
+            entry.Error = null;
+        }
+        Log.ProgramChanged(log, server.Label, server.Transport, change);
+        RaiseStatus(entry);
+        RaiseProgramChecked(new McpProgramEventArgs(server.Label, change, null));
+        return false;
+    }
+
+    /// <summary>A server that had no pin has started: it is pinned as the start saw it, and the host is told to keep it.</summary>
+    private void PinUnpinned(ServerEntry entry, ILogger log)
+    {
+        var server = entry.Server;
+        if (entry.UnpinnedObservation is not { } observed || server.ProgramPin is not null)
+        {
+            return;
+        }
+        entry.UnpinnedObservation = null;
+        server.ProgramPin = observed;
+        Log.ProgramPinned(log, server.Label, server.Transport);
+        RaiseProgramChecked(new McpProgramEventArgs(server.Label, McpProgramChange.None, observed));
+    }
+
+    private void RaiseProgramChecked(McpProgramEventArgs args)
+    {
+        try
+        {
+            ProgramChecked?.Invoke(this, args);
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            // a host's record that fails never fails a server
         }
     }
 
@@ -722,7 +815,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 lock (_gate)
                 {
                     // A rule's refusal (the policy, plain http) is not tried again; a failure is.
-                    refused = entry.State == McpServerState.NotAllowed;
+                    refused = entry.State is McpServerState.NotAllowed or McpServerState.ProgramChanged;
                     if (!refused)
                     {
                         entry.State = McpServerState.Starting;
@@ -1536,6 +1629,12 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
 
         /// <summary>Why plain http was refused, when it was.</summary>
         public McpPlainHttpRefusal? PlainHttp { get; set; }
+
+        /// <summary>What differs about the program, while <see cref="McpServerState.ProgramChanged"/>.</summary>
+        public McpProgramChange? ProgramChange { get; set; }
+
+        /// <summary>The program of a server with no pin as this start saw it; it is pinned when the start succeeds.</summary>
+        public McpProgramPin? UnpinnedObservation { get; set; }
 
         public int Reconnects { get; set; }
 

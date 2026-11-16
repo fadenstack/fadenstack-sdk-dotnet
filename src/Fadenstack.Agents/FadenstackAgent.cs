@@ -677,6 +677,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
             }).ToList(),
             Context = app.Context,
             Ui = app.Ui,
+            Device = DeviceBlock(app),
         };
         try
         {
@@ -686,6 +687,18 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
         {
             // Nothing to do: the server learns of the tools at the next start.
         }
+    }
+
+    /// <summary>
+    /// What the app reports about the device (sdk/51 8.3): the operating system, the app's version, its declared plugins and the
+    /// programs of the local MCP servers (file names and hashes only). Cut to the server's limits; an entry that does not fit is
+    /// left out and logged by kind and reason.
+    /// </summary>
+    private ManifestDevice DeviceBlock(AppDescription app)
+    {
+        var programs = _settings.Sources.OfType<IDeviceProgramSource>().SelectMany(s => s.McpPrograms());
+        return DeviceReport.Build(DeviceReport.DescribeOs(), app.Version, _settings.Plugins, programs,
+            (kind, reason) => Log.DeviceEntryDropped(Logger, kind, DeviceReport.Describe(reason)));
     }
 
     /// <summary>A new session, in the agent's default mode (<see cref="DefaultToolMode"/>) unless <paramref name="toolMode"/> says otherwise.</summary>

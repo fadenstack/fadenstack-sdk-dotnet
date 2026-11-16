@@ -40,4 +40,10 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 3009, Level = LogLevel.Information, Message = "MCP server {Label} was not reached over plain http ({Reason})")]
     internal static partial void PlainHttpRefused(ILogger logger, string label, McpPlainHttpRefusal reason);
+
+    [LoggerMessage(EventId = 3010, Level = LogLevel.Warning, Message = "MCP server {Label} ({Transport}) was not started: its program changed since it was added ({Change})")]
+    internal static partial void ProgramChanged(ILogger logger, string label, string transport, McpProgramChange change);
+
+    [LoggerMessage(EventId = 3011, Level = LogLevel.Information, Message = "MCP server {Label} ({Transport}) had no pinned program; it was pinned at this start")]
+    internal static partial void ProgramPinned(ILogger logger, string label, string transport);
 }

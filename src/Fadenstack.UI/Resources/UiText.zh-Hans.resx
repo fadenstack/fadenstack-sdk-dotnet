@@ -1810,6 +1810,39 @@
   <data name="ToolsFixAddValue" xml:space="preserve">
     <value>填写该值</value>
   </data>
+  <data name="ToolsStateProgramChanged" xml:space="preserve">
+    <value>{0} 的程序自添加以来已更改。</value>
+  </data>
+  <data name="ToolsFixReviewProgram" xml:space="preserve">
+    <value>查看更改</value>
+  </data>
+  <data name="ToolsUseNewProgram" xml:space="preserve">
+    <value>使用新程序</value>
+  </data>
+  <data name="ToolsUseNewProgramName" xml:space="preserve">
+    <value>使用 {0} 的新程序</value>
+  </data>
+  <data name="ToolsProgramChangedTitle" xml:space="preserve">
+    <value>程序已更改</value>
+  </data>
+  <data name="ToolsProgramChangedHelp" xml:space="preserve">
+    <value>此服务器不会运行。其程序文件不是您添加的那个：已被更改、移动或已不存在。仅当您预期有此更改时才使用新程序，否则请移除该服务器。</value>
+  </data>
+  <data name="ToolsFactProgramCheck" xml:space="preserve">
+    <value>程序检查</value>
+  </data>
+  <data name="ToolsProgramChecked" xml:space="preserve">
+    <value>每次启动前都会检查程序文件。</value>
+  </data>
+  <data name="ToolsProgramOnlyRunner" xml:space="preserve">
+    <value>仅检查启动器：它获取的软件包可能会更改。</value>
+  </data>
+  <data name="ToolsProgramNotPinned" xml:space="preserve">
+    <value>程序将在下次启动时被固定。</value>
+  </data>
+  <data name="ToolsTestProgramChanged" xml:space="preserve">
+    <value>未启动：程序自添加以来已更改。请先使用新程序。</value>
+  </data>
   <data name="ToolsOriginTyped" xml:space="preserve">
     <value>由您添加</value>
   </data>

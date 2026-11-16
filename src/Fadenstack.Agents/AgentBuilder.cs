@@ -49,6 +49,7 @@ public sealed class AgentBuilder
     private ReasoningEffort? _reasoning;
     private bool _pictures = true;
     private AppDescription? _app;
+    private List<ManifestPlugin> _plugins = [];
     private ILoggerFactory? _loggerFactory;
 
     internal AgentBuilder()
@@ -319,6 +320,23 @@ public sealed class AgentBuilder
     }
 
     /// <summary>
+    /// The plugins the app has loaded: name, version and the SHA-256 of each plugin's file (64 hex characters), which the app
+    /// knows and the SDK does not hash itself. They go into the manifest's <c>device</c> block when the agent starts, where the
+    /// organisation's administrators see them with the device (the agent's devices in the console) and the person sees them in
+    /// their own app sign-ins. An entry that does not fit the server's limits (<see cref="DeviceLimits"/>: a name up to 128
+    /// characters, a version up to 50, at most 100 plugins) is left out of the report, and the log says so (kind and reason only).
+    /// Replaces what was declared before. TS: <c>describePlugins</c>.
+    /// </summary>
+    public AgentBuilder DescribePlugins(IEnumerable<ManifestPlugin> plugins)
+    {
+        _plugins = [.. (plugins ?? throw new ArgumentNullException(nameof(plugins))).Select(p => p ?? throw new ArgumentException("A plugin is null.", nameof(plugins)))];
+        return this;
+    }
+
+    /// <summary><see cref="DescribePlugins(IEnumerable{ManifestPlugin})"/> for a few plugins.</summary>
+    public AgentBuilder DescribePlugins(params ManifestPlugin[] plugins) => DescribePlugins((IEnumerable<ManifestPlugin>)plugins);
+
+    /// <summary>
     /// Where the agent logs, and its client and local MCP servers with it: names, ids, counts, durations and outcomes, never
     /// content (no prompts, answers, reasoning, attachments, tool arguments or results, tokens, secrets or user ids). Spans
     /// and metrics need no factory: subscribe to <see cref="FadenstackTelemetry"/>'s sources. Default: no logging.
@@ -571,6 +589,7 @@ public sealed class AgentBuilder
             Pictures = _pictures,
             App = _app ?? new AppDescription { Name = "Fadenstack SDK app" },
             AppDescribed = _app is not null,
+            Plugins = [.. _plugins],
         });
     }
 
@@ -625,6 +644,8 @@ internal sealed class AgentSettings
     public ILoggerFactory LoggerFactory { get; init; } = NullLoggerFactory.Instance;
     public List<AgentTool> Tools { get; init; } = new();
     public List<IToolSource> Sources { get; init; } = new();
+    /// <summary>The plugins the app declared (<see cref="AgentBuilder.DescribePlugins(IEnumerable{ManifestPlugin})"/>), for the manifest's device block.</summary>
+    public IReadOnlyList<ManifestPlugin> Plugins { get; init; } = [];
     public List<IToolStage> ToolStages { get; init; } = new();
     public List<IAgentHooks> Hooks { get; init; } = new();
     public bool HookContent { get; init; }

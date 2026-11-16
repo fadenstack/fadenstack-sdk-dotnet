@@ -233,6 +233,7 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
                 McpServerState.Starting => LocalServerState.Starting,
                 McpServerState.Failed => LocalServerState.Failed,
                 McpServerState.NotAllowed => LocalServerState.NotAllowed,
+                McpServerState.ProgramChanged => LocalServerState.ProgramChanged,
                 _ => LocalServerState.Off,
             },
             Detail = row.Status?.Detail,
@@ -242,6 +243,9 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
             PlainHttpApplies = PlainHttpApplies(entry),
             PlainHttpInLan = entry.PlainHttpInLan,
             PlainHttpRefusal = row.Status?.PlainHttp is { } refusal ? Refusal(refusal) : null,
+            ProgramChange = row.Status?.ProgramChange is { } change ? ProgramChangeOf(change) : null,
+            OnlyRunnerChecked = McpProgramPinner.OnlyRunnerChecked(entry),
+            ProgramPinned = entry.ProgramPin is not null,
             Tools = [.. (row.Status?.Tools ?? []).Select(t => Tool(t, marks))],
         };
     }
@@ -261,6 +265,13 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
             },
             raised switch { ToolClass.Read => LocalToolRaise.Read, ToolClass.Write => LocalToolRaise.Write, _ => LocalToolRaise.None });
     }
+
+    private static LocalProgramChange ProgramChangeOf(McpProgramChange change) => change switch
+    {
+        McpProgramChange.Hash => LocalProgramChange.Hash,
+        McpProgramChange.Path => LocalProgramChange.Path,
+        _ => LocalProgramChange.Missing,
+    };
 
     private static LocalPlainHttpRefusal Refusal(McpPlainHttpRefusal refusal) => refusal switch
     {
@@ -329,6 +340,9 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
     public async Task<ServerProblem> SetPlainHttpInLanAsync(string label, bool on, string? warningVersion, CancellationToken cancellationToken = default) =>
         Problem((await _host.SetPlainHttpInLanAsync(label, on, warningVersion, cancellationToken).ConfigureAwait(false)).Problem);
 
+    public async Task<ServerProblem> ConfirmNewProgramAsync(string label, CancellationToken cancellationToken = default) =>
+        Problem((await _host.ConfirmNewProgramAsync(label, cancellationToken).ConfigureAwait(false)).Problem);
+
     public ServerDraft? GetDraft(string label)
     {
         if (_host.Store?.Find(label) is not { } e)
@@ -381,9 +395,30 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
     public async Task<ServerTestInfo> TestAsync(ServerDraft draft, string? originalLabel, CancellationToken cancellationToken = default)
     {
         var allowed = Policy is ToolsPolicy.Allowed or ToolsPolicy.DeveloperMode;
+        if (ChangedProgram(draft, originalLabel))
+        {
+            // A saved program that is not the one the person added does not start, not even to be tried (sdk/51 5.5).
+            return new ServerTestInfo(TestOutcome.ProgramChanged, [], null);
+        }
         var result = await _host.TestAsync(ToEntry(draft, originalLabel), allowed, cancellationToken, PlainHttpPermitted).ConfigureAwait(false);
         return new ServerTestInfo(result.NotAllowed ? TestOutcome.NotAllowed : result.Started ? TestOutcome.Started : TestOutcome.Failed, result.Tools,
             result.Error, result.PlainHttp is { } refusal ? Refusal(refusal) : null);
+    }
+
+    // The draft is a saved program, as saved, whose file is not the pinned one now.
+    private bool ChangedProgram(ServerDraft draft, string? originalLabel)
+    {
+        if (originalLabel is null || !draft.IsProgram || _host.Store?.Find(originalLabel) is not { IsProgram: true, ProgramPin: { } pin } saved)
+        {
+            return false;
+        }
+        var arguments = draft.Arguments;
+        if (draft.Command.Trim() != saved.Command || (arguments.FirstOrDefault() ?? "") != (saved.Arguments.FirstOrDefault() ?? ""))
+        {
+            return false; // the person is trying something else than what was pinned
+        }
+        var observed = McpProgramPinner.Pin(saved);
+        return McpProgramPinner.Compare(pin, observed) != McpProgramChange.None;
     }
 
     // The saved secret stays when the draft keeps it: the page never held it. The marks and the switch of a saved server stay too

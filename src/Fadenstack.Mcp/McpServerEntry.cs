@@ -77,6 +77,13 @@ public sealed record McpServerEntry
     /// </summary>
     public bool PlainHttpInLan { get; init; }
 
+    /// <summary>
+    /// The program as it was when the person added it or last confirmed it (sdk/51 5.5, <see cref="McpProgramPin"/>): its path and
+    /// SHA-256. The store sets it when a program is added, imported or its command saved; an entry kept before there were pins has
+    /// none and is pinned at its next successful start. Null for an address.
+    /// </summary>
+    public McpProgramPin? ProgramPin { get; init; }
+
     public bool IsProgram => Command is not null;
 
     /// <summary>The entry has a secret value to keep or show masked.</summary>

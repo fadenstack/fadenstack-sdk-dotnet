@@ -290,6 +290,8 @@ public sealed partial class ServerSheetViewModel : ObservableObject, IToolsTexts
         {
             case TestOutcome.NotAllowed:
                 return s.ToolsTestNotAllowed;
+            case TestOutcome.ProgramChanged:
+                return s.ToolsTestProgramChanged;
             case TestOutcome.Started:
                 return result.Tools.Count == 0 ? s.ToolsTestOkNoTools : s.ToolsTestOk(string.Join(", ", result.Tools));
             default:

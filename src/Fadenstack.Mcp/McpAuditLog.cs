@@ -10,18 +10,23 @@ namespace Fadenstack.Mcp;
 /// </summary>
 public sealed record McpAuditEntry
 {
-    /// <summary>The event: <c>local_mcp.plain_http</c> (the switch "Allow plain http on the local network").</summary>
+    /// <summary>
+    /// The event: <c>local_mcp.plain_http</c> (the switch "Allow plain http on the local network"); or, for a program (sdk/51 5.5),
+    /// <c>local_mcp.program_changed</c> (it was not started: <see cref="State"/> is <c>hash</c>, <c>path</c> or <c>missing</c>),
+    /// <c>local_mcp.program_confirmed</c> (the person chose "Use the new program": <c>confirmed</c>) or
+    /// <c>local_mcp.program_pinned</c> (an entry kept before pins was pinned at its first start: <c>first_start</c>).
+    /// </summary>
     [JsonPropertyName("event")]
     public string Event { get; init; } = "";
 
     [JsonPropertyName("at")]
     public DateTimeOffset At { get; init; }
 
-    /// <summary>The server's origin (<c>http://host[:port]</c>).</summary>
+    /// <summary>The server's origin (<c>http://host[:port]</c>); for a program event the server's label, never a path or an argument.</summary>
     [JsonPropertyName("source")]
     public string Source { get; init; } = "";
 
-    /// <summary><c>on</c> or <c>off</c>.</summary>
+    /// <summary><c>on</c> or <c>off</c> for the plain-http switch; the kind of change for a program event.</summary>
     [JsonPropertyName("state")]
     public string State { get; init; } = "";
 

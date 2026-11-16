@@ -168,6 +168,21 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
         return Task.CompletedTask;
     }
 
+    /// <summary>What "Use the new program" answers.</summary>
+    public ServerProblem ProgramAnswer { get; set; }
+
+    public Task<ServerProblem> ConfirmNewProgramAsync(string label, CancellationToken cancellationToken = default)
+    {
+        Calls.Add("use-new-program " + label);
+        if (ProgramAnswer == ServerProblem.None)
+        {
+            var server = Servers.Single(s => s.Label == label);
+            server.State = LocalServerState.Starting;
+            server.ProgramChange = null;
+        }
+        return Task.FromResult(ProgramAnswer);
+    }
+
     // ---- scan -----------------------------------------------------------------------------------------------------
 
     public bool CanScan { get; set; } = true;
@@ -228,7 +243,7 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
         catalog.Servers.Add(new LocalServerInfo
         {
             Label = "demo", Where = "faden-mcp-demo.exe", IsProgram = true, Enabled = true, State = LocalServerState.Running, Origin = "typed",
-            CallTimeoutSeconds = 120, RunningSince = new DateTimeOffset(2026, 11, 1, 17, 3, 0, TimeSpan.Zero),
+            CallTimeoutSeconds = 120, RunningSince = new DateTimeOffset(2026, 11, 1, 17, 3, 0, TimeSpan.Zero), ProgramPinned = true,
             Tools = new[]
             {
                 new LocalToolInfo("world_time", "The current time in a city.", null, true, null, null, null),
@@ -240,7 +255,7 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
         catalog.Servers.Add(new LocalServerInfo
         {
             Label = "notes-db", Where = "npx @acme/notes-mcp", IsProgram = true, Enabled = true, State = LocalServerState.Running, Origin = "Claude Desktop",
-            CallTimeoutSeconds = 45, SecretNames = new[] { "NOTES_DIR" },
+            CallTimeoutSeconds = 45, SecretNames = new[] { "NOTES_DIR" }, OnlyRunnerChecked = true,
             Tools = new[]
             {
                 new LocalToolInfo("search_notes", "Searches the notes.", null, true, null, null, null),
@@ -277,6 +292,13 @@ internal sealed class FakeLocalToolsCatalog : ILocalToolsCatalog
         }));
         return catalog;
     }
+
+    /// <summary>A program whose file changed since the person added it: it does not run.</summary>
+    public static LocalServerInfo ChangedProgram(LocalProgramChange change = LocalProgramChange.Hash) => new()
+    {
+        Label = "files", Where = "server-files.exe", IsProgram = true, Enabled = true, State = LocalServerState.ProgramChanged, Origin = "typed",
+        CallTimeoutSeconds = 60, ProgramChange = change, ProgramPinned = true,
+    };
 
     /// <summary>A server on the local network over plain http, with the switch in the state given.</summary>
     public static LocalServerInfo Nas(bool on = false, LocalServerState state = LocalServerState.Starting, LocalPlainHttpRefusal? refusal = null) => new()

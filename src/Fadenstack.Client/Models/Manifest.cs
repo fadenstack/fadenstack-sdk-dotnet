@@ -20,6 +20,64 @@ public sealed record AppManifest
     public IReadOnlyList<ManifestContext> Context { get; init; } = [];
 
     public ManifestUi? Ui { get; init; }
+
+    /// <summary>What the app reports about the device it runs on (sdk/51 8.3); null: nothing. The SDK fills it in when it sends the manifest.</summary>
+    public ManifestDevice? Device { get; init; }
+}
+
+/// <summary>
+/// What the app reports about the device (<c>device</c> of <c>PUT /v1/agents/{agent}/manifest</c>): a short description of the
+/// operating system, the app's version, its plugins and the local MCP programs it runs. Never a path, a user name, an argument or
+/// an environment value. The limits are the server's: see <see cref="DeviceLimits"/>. TS: <c>ManifestDevice</c>.
+/// </summary>
+public sealed record ManifestDevice
+{
+    /// <summary>The operating system and architecture, at most <see cref="DeviceLimits.Os"/> characters.</summary>
+    public string Os { get; init; } = "";
+
+    /// <summary>The app's own version, at most <see cref="DeviceLimits.AppVersion"/> characters.</summary>
+    public string AppVersion { get; init; } = "";
+
+    public IReadOnlyList<ManifestPlugin> Plugins { get; init; } = [];
+
+    public IReadOnlyList<ManifestMcpProgram> McpPrograms { get; init; } = [];
+}
+
+/// <summary>A plugin of the app, as the app declares it: its name, version and the SHA-256 of its file (64 lowercase hex). TS: <c>ManifestPlugin</c>.</summary>
+public sealed record ManifestPlugin
+{
+    public string Name { get; init; } = "";
+
+    public string Version { get; init; } = "";
+
+    public string Sha256 { get; init; } = "";
+}
+
+/// <summary>
+/// A local MCP server's program: the server's label, the program's file name (never its folder, which can hold the user name)
+/// and its SHA-256. A server reached over http has none. The browser starts no local program, so the TypeScript SDK never sends one.
+/// </summary>
+public sealed record ManifestMcpProgram
+{
+    public string Name { get; init; } = "";
+
+    public string Program { get; init; } = "";
+
+    public string Sha256 { get; init; } = "";
+}
+
+/// <summary>The server's limits for the device block (core 0.7.1): the SDK cuts to them before it sends. TS: <c>DEVICE_LIMITS</c>.</summary>
+public static class DeviceLimits
+{
+    public const int Os = 100;
+    public const int AppVersion = 50;
+
+    /// <summary>The most plugins, and the most MCP programs.</summary>
+    public const int Entries = 100;
+
+    public const int Name = 128;
+    public const int Version = 50;
+    public const int Program = 255;
 }
 
 /// <summary>The app: "Word add-in", "2.1.0".</summary>

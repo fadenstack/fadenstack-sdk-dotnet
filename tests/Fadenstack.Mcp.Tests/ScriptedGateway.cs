@@ -36,6 +36,9 @@ internal sealed class ScriptedGateway : HttpMessageHandler
     /// <summary>The bodies of every <c>POST .../events</c>, oldest first.</summary>
     public List<string> Events { get; } = [];
 
+    /// <summary>The bodies of every <c>PUT .../manifest</c>, oldest first.</summary>
+    public List<string> Manifests { get; } = [];
+
     /// <summary>What <c>GET .../tools</c> answers: a status and a body (404: an older server without the route).</summary>
     public (HttpStatusCode Status, string Body) Tools { get; set; } = (HttpStatusCode.NotFound, """{"detail":"Not Found"}""");
 
@@ -107,6 +110,11 @@ internal sealed class ScriptedGateway : HttpMessageHandler
             lock (Events)
                 Events.Add(body);
             return Json(HttpStatusCode.Accepted, """{"accepted":1}""");
+        }
+        if (path == $"{agent}/manifest")
+        {
+            lock (Manifests)
+                Manifests.Add(body);
         }
         if (path == $"{agent}/manifest")
             return Json(HttpStatusCode.OK, """{"sha256":"abc","new":true}""");

@@ -87,6 +87,7 @@ public sealed class McpHost : IDisposable
         _server = e =>
         {
             var made = make(e);
+            made.ProgramPin ??= e.ProgramPin;
             if (_marks(e) is { } own)
             {
                 made.Trusted = own.Trusted;
@@ -156,6 +157,7 @@ public sealed class McpHost : IDisposable
         module.Roots = CurrentRoots;
         module.Changed += OnModuleChanged;
         module.StatusChanged += OnStatusChanged;
+        module.ProgramChecked += OnProgramChecked;
         lock (_gate)
         {
             old = _module;
@@ -248,7 +250,10 @@ public sealed class McpHost : IDisposable
                 if (McpServerStore.Canonical(had) == McpServerStore.Canonical(entry))
                     continue;
                 given[entry.Label] = entry;
-                if (McpServerStore.Canonical(Settings(had)) != McpServerStore.Canonical(Settings(entry)))
+                // A pin that changed while the server waits for it ("Use the new program") starts it again with the new pin; a pin set by a
+                // start (an entry kept before pins) does not restart a server that runs.
+                var waiting = !Equals(had.ProgramPin, entry.ProgramPin) && module.GetStatus(entry.Label)?.State == McpServerState.ProgramChanged;
+                if (waiting || McpServerStore.Canonical(Settings(had)) != McpServerStore.Canonical(Settings(entry)))
                 {
                     await Quietly(() => module.RemoveAsync(entry.Label, cancellationToken)).ConfigureAwait(false);
                     await Quietly(() => module.AddAsync(_server(entry), entry.Enabled, cancellationToken)).ConfigureAwait(false);
@@ -268,7 +273,7 @@ public sealed class McpHost : IDisposable
 
     /// <summary>The entry without its switch and marks: what the server is started with.</summary>
     private static McpServerEntry Settings(McpServerEntry entry) =>
-        entry with { Enabled = true, Trusted = false, ToolClasses = new Dictionary<string, ToolClass>() };
+        entry with { Enabled = true, Trusted = false, ToolClasses = new Dictionary<string, ToolClass>(), ProgramPin = null };
 
     private static bool SameRaises(McpServerEntry a, McpServerEntry b) =>
         a.ToolClasses.Count == b.ToolClasses.Count
@@ -397,6 +402,49 @@ public sealed class McpHost : IDisposable
         {
             lock (_gate)
                 return _audit;
+        }
+    }
+
+    /// <summary>
+    /// The person's word on a program that changed (sdk/51 5.5, "Use the new program"): the program the command names now is pinned,
+    /// and the server starts with it. Recorded in the device's audit log (<c>local_mcp.program_confirmed</c>, the server's label only).
+    /// The problem <see cref="McpProblem.CommandInvalid"/> when the command names no file that can be read now (nothing is changed),
+    /// and <see cref="McpProblem.LabelMissing"/> for a server that is not a program or not there.
+    /// </summary>
+    public async Task<McpValidation> ConfirmNewProgramAsync(string label, CancellationToken cancellationToken = default)
+    {
+        var store = Store ?? throw new InvalidOperationException("No user is loaded.");
+        if (store.Find(label) is not { IsProgram: true })
+            return new McpValidation(McpProblem.LabelMissing, "label");
+        if (!store.Repin(label))
+            return new McpValidation(McpProblem.CommandInvalid, "command");
+        Audit("local_mcp.program_confirmed", label, "confirmed");
+        await SyncAsync(cancellationToken).ConfigureAwait(false);
+        return McpValidation.Ok;
+    }
+
+    // One line of the device's audit log for a program: the server's label is the source, never a path (sdk/51 5.5).
+    private void Audit(string kind, string label, string state)
+    {
+        string person;
+        McpAuditLog? audit;
+        lock (_gate)
+        {
+            person = _userId ?? "";
+            audit = _audit;
+        }
+        audit?.Append(new McpAuditEntry { Event = kind, At = DateTimeOffset.UtcNow, Source = label, State = state, Person = person });
+    }
+
+    private void OnProgramChecked(object? sender, McpProgramEventArgs e)
+    {
+        if (e.Change != McpProgramChange.None)
+        {
+            Audit("local_mcp.program_changed", e.Label, e.Change.ToString().ToLowerInvariant());
+        }
+        else if (e.Pinned is { } pin && Store is { } store && store.PinIfMissing(e.Label, pin))
+        {
+            Audit("local_mcp.program_pinned", e.Label, "first_start");
         }
     }
 
@@ -541,6 +589,7 @@ public sealed class McpHost : IDisposable
         }
         server.CallTimeout = TimeSpan.FromSeconds(entry.CallTimeoutSeconds);
         server.AllowPlainHttpInLan = entry.PlainHttpInLan;
+        server.ProgramPin = entry.ProgramPin;
         if (marks is not null)
         {
             server.Trusted = marks.Trusted;

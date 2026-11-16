@@ -1810,6 +1810,39 @@
   <data name="ToolsFixAddValue" xml:space="preserve">
     <value>Añadir el valor</value>
   </data>
+  <data name="ToolsStateProgramChanged" xml:space="preserve">
+    <value>El programa de {0} cambió desde que lo añadió.</value>
+  </data>
+  <data name="ToolsFixReviewProgram" xml:space="preserve">
+    <value>Revisar el cambio</value>
+  </data>
+  <data name="ToolsUseNewProgram" xml:space="preserve">
+    <value>Usar el programa nuevo</value>
+  </data>
+  <data name="ToolsUseNewProgramName" xml:space="preserve">
+    <value>Usar el programa nuevo de {0}</value>
+  </data>
+  <data name="ToolsProgramChangedTitle" xml:space="preserve">
+    <value>El programa cambió</value>
+  </data>
+  <data name="ToolsProgramChangedHelp" xml:space="preserve">
+    <value>Este servidor no se ejecuta. Su archivo de programa no es el que usted añadió: cambió, se movió o ya no está. Use el programa nuevo solo si esperaba el cambio, o quite el servidor.</value>
+  </data>
+  <data name="ToolsFactProgramCheck" xml:space="preserve">
+    <value>Comprobación del programa</value>
+  </data>
+  <data name="ToolsProgramChecked" xml:space="preserve">
+    <value>El archivo del programa se comprueba antes de cada inicio.</value>
+  </data>
+  <data name="ToolsProgramOnlyRunner" xml:space="preserve">
+    <value>Solo se comprueba el lanzador: el paquete que descarga puede cambiar.</value>
+  </data>
+  <data name="ToolsProgramNotPinned" xml:space="preserve">
+    <value>El programa se fija en su próximo inicio.</value>
+  </data>
+  <data name="ToolsTestProgramChanged" xml:space="preserve">
+    <value>No se inició: el programa cambió desde que lo añadió. Use primero el programa nuevo.</value>
+  </data>
   <data name="ToolsOriginTyped" xml:space="preserve">
     <value>Añadido por usted</value>
   </data>

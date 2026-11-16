@@ -70,6 +70,24 @@ public class ToolsViewTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task A_program_that_changed_shows_its_reason_and_both_ways_out_and_Use_the_new_program_asks_the_catalog()
+    {
+        using var host = await ToolsHost.OpenAsync("drawer-program");
+        var s = host.Page.Strings;
+        Assert.Contains(s.ToolsStateProgramChanged("files"), host.Texts());
+        Assert.Contains(s.ToolsProgramChangedHelp, host.Texts());
+        Assert.True(host.Has("ProgramChangedBanner"));
+        var use = host.Find<Button>("UseNewProgramButton");
+        Assert.Equal(s.ToolsUseNewProgram, use.Content);
+        Assert.True(host.Find<Button>("RemoveButton").IsEffectivelyVisible);
+
+        use.Command!.Execute(null);
+        await host.PumpAsync();
+        Assert.Contains("use-new-program files", host.Catalog.Calls);
+        Assert.False(host.Has("ProgramChangedBanner"));
+    }
+
     // ---- Advanced: the plain-http switch and its warning --------------------------------------------------------------
 
     [AvaloniaFact]
