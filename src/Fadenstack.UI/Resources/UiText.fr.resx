@@ -382,6 +382,12 @@
   <data name="CopyCode" xml:space="preserve">
     <value>Copier le code</value>
   </data>
+  <data name="Copied" xml:space="preserve">
+    <value>Copié</value>
+  </data>
+  <data name="CopyRefused" xml:space="preserve">
+    <value>Non copié : cette réponse n’a pas pu être marquée comme générée par l’IA, et votre organisation l’exige.</value>
+  </data>
   <data name="NotSent" xml:space="preserve">
     <value>Non envoyé</value>
   </data>

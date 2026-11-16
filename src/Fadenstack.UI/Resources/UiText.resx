@@ -498,6 +498,12 @@
     <value>Copy code</value>
     <comment>Copies a code block</comment>
   </data>
+  <data name="Copied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="CopyRefused" xml:space="preserve">
+    <value>Not copied: this answer could not be marked as AI-generated, and your organisation requires it.</value>
+  </data>
   <data name="NotSent" xml:space="preserve">
     <value>Not sent</value>
     <comment>A refused message</comment>

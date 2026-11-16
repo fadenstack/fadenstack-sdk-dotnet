@@ -336,7 +336,8 @@ public static class MarkdownParser
         {
             var t = c.Trim();
             return t.StartsWith(":", StringComparison.Ordinal) && t.EndsWith(":", StringComparison.Ordinal) ? ColumnAlignment.Center
-                : t.EndsWith(":", StringComparison.Ordinal) ? ColumnAlignment.Right : ColumnAlignment.Left;
+                : t.EndsWith(":", StringComparison.Ordinal) ? ColumnAlignment.Right
+                : t.StartsWith(":", StringComparison.Ordinal) ? ColumnAlignment.Left : ColumnAlignment.None;
         }).ToList();
         i += 2;
         var rows = new List<TableRow>();
@@ -348,7 +349,7 @@ public static class MarkdownParser
         }
         while (alignments.Count < header.Count)
         {
-            alignments.Add(ColumnAlignment.Left);
+            alignments.Add(ColumnAlignment.None);
         }
         return new TableBlock(Row(header, header.Count), rows, alignments.Take(header.Count).ToList());
     }
@@ -518,12 +519,19 @@ public static class MarkdownParser
                 i += count;
                 continue;
             }
+            if (c == '!' && i + 1 < end && s[i + 1] == '[' && Image(s, i, end) is { } image)
+            {
+                // An image is never loaded (a remote one can carry data out): it is its alt text in brackets.
+                plain.Append(image.Alt.Length > 0 ? "[" + image.Alt + "]" : "");
+                i = image.End;
+                continue;
+            }
             if (c == '[')
             {
                 var closeText = FindBracket(s, i + 1, end);
                 if (closeText > 0 && closeText + 1 < end && s[closeText + 1] == '(')
                 {
-                    var closeUrl = s.IndexOf(')', closeText + 2);
+                    var closeUrl = FindParen(s, closeText + 2, end);
                     if (closeUrl > 0 && closeUrl < end)
                     {
                         FlushPlain();
@@ -560,6 +568,21 @@ public static class MarkdownParser
             i++;
         }
         FlushPlain();
+    }
+
+    /// <summary><c>![alt](address)</c> at <paramref name="i"/>: its alt text and where it ends; null when it is not one.</summary>
+    private static (string Alt, int End)? Image(string s, int i, int end)
+    {
+        var closeText = FindBracket(s, i + 2, end);
+        if (closeText > 0 && closeText + 1 < end && s[closeText + 1] == '(')
+        {
+            var closeUrl = FindParen(s, closeText + 2, end);
+            if (closeUrl > 0 && closeUrl < end)
+            {
+                return (s.Substring(i + 2, closeText - i - 2), closeUrl + 1);
+            }
+        }
+        return null;
     }
 
     private static bool StartsUrl(string s, int i, int end) =>
@@ -603,6 +626,28 @@ public static class MarkdownParser
                 return k + count - width;
             }
             k += count - 1;
+        }
+        return -1;
+    }
+
+    /// <summary>The <c>)</c> that closes an address, balanced against the <c>(</c> inside it (<c>javascript:alert(1)</c>).</summary>
+    private static int FindParen(string s, int from, int end)
+    {
+        var depth = 0;
+        for (var k = from; k < end; k++)
+        {
+            if (s[k] == '(')
+            {
+                depth++;
+            }
+            else if (s[k] == ')')
+            {
+                if (depth == 0)
+                {
+                    return k;
+                }
+                depth--;
+            }
         }
         return -1;
     }

@@ -53,6 +53,9 @@ public enum ColumnAlignment
     Left,
     Center,
     Right,
+
+    /// <summary>The separator names no alignment (<c>---</c>): a skin shows it as left; the HTML export writes no style for it.</summary>
+    None,
 }
 
 public sealed record TableRow(IReadOnlyList<IReadOnlyList<InlineRun>> Cells);

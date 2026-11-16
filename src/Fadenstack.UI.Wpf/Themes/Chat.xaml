@@ -1232,6 +1232,10 @@
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Margin="8,0,0,0" Text="{Binding DurationText}" />
                 <TextBlock Style="{StaticResource Fadenstack.Muted}" FontSize="11" Margin="8,0,0,0" Text="{Binding UsageText}" />
             </StackPanel>
+            <!-- What the last copy said: "Copied", or why nothing was copied (the agent's policy requires the AI mark). -->
+            <TextBlock Style="{StaticResource Fadenstack.Muted}" Margin="30,2,0,0" TextWrapping="Wrap" Text="{Binding CopyStatus}"
+                       AutomationProperties.LiveSetting="Polite"
+                       Visibility="{Binding CopyStatus, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
         </StackPanel>
         <DataTemplate.Triggers>
             <DataTrigger Binding="{Binding IsPromptBlocked}" Value="True">

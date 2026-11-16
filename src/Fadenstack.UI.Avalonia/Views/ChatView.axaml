@@ -498,6 +498,9 @@
                     <TextBlock Classes="caption muted" Text="{Binding DurationText}" VerticalAlignment="Center" />
                     <TextBlock Classes="caption muted" Text="{Binding UsageText}" VerticalAlignment="Center" />
                 </StackPanel>
+                <!-- What the last copy said: "Copied", or why nothing was copied (the agent's policy requires the AI mark). -->
+                <TextBlock Classes="caption muted" Text="{Binding CopyStatus}" TextWrapping="Wrap" IsVisible="{Binding HasCopyStatus}"
+                           AutomationProperties.LiveSetting="Polite" />
             </StackPanel>
         </DataTemplate>
 

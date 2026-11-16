@@ -687,6 +687,61 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         return session;
     }
 
+    private IAnswerCopyMarker? _copyMarker;
+
+    /// <summary>
+    /// Marks an answer the person copies out of a chat, through the module that marks content (<c>Fadenstack.Provenance</c>), as
+    /// a tool's placement is: the same policy, a record signed by the server (or by this device, without one), a report and a
+    /// transcript entry. Without that module the copy comes back as it is (<see cref="MarkedCopy.Marked"/> false). The chat view
+    /// calls it for its Copy; an app that shows answers in its own view calls it itself, before it puts them on the clipboard.
+    /// TS: <c>markCopy</c>.
+    /// </summary>
+    /// <returns>What to put on the clipboard; <see cref="MarkedCopy.Refused"/> when the policy forbids the copy and nothing is to be copied.</returns>
+    public async Task<MarkedCopy> MarkCopyAsync(AnswerCopy copy, CancellationToken cancellationToken = default)
+    {
+        if (copy is null)
+        {
+            throw new ArgumentNullException(nameof(copy));
+        }
+        var marker = _copyMarker ??= _settings.CopyMarker?.Invoke(this);
+        if (marker is null)
+        {
+            return new MarkedCopy(copy.Text, copy.Html, null, false);
+        }
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return await marker.MarkAsync(copy, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// A call that is no tool call, for the module that marks copies to place content with: the tool is <c>copy</c>, the chat and
+    /// turn are the copy's, and its transcript entries go into the chat when this agent gave that chat out.
+    /// </summary>
+    internal ToolInvocation CopyInvocation(AnswerCopy copy)
+    {
+        ChatSession? session = null;
+        lock (_handedOut)
+        {
+            foreach (var reference in _handedOut)
+            {
+                if (copy.Chat is not null && reference.TryGetTarget(out var open) && open.Id == copy.Chat)
+                {
+                    session = open;
+                    break;
+                }
+            }
+        }
+        var tool = new AgentTool(AIFunctionFactory.Create(() => "", ToolName.Copy));
+        var turn = copy.Turn ?? "";
+        return new ToolInvocation(tool, new FunctionCallContent("copy-" + Guid.NewGuid().ToString("N"), ToolName.Copy),
+            new AIFunctionArguments(), copy.Chat ?? "", turn, this,
+            session is null ? null : (type, data) => session.RecordAsync(type, copy.Turn, data), null, session);
+    }
+
+    private static class ToolName
+    {
+        public const string Copy = "copy";
+    }
+
     /// <summary>A session from this device's store, to go on with.</summary>
     public async Task<ChatSession> OpenSessionAsync(string sessionId, CancellationToken cancellationToken = default)
     {

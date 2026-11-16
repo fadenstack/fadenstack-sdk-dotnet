@@ -644,6 +644,38 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     internal IClipboard Clipboard => _options.Clipboard;
 
+    /// <summary>
+    /// Copies an answer, or part of one, to the clipboard through the agent's marking (<see cref="FadenstackAgent.MarkCopyAsync"/>):
+    /// the HTML gets its mark where the agent has the provenance module, the text stays as it is. A clipboard that takes HTML gets
+    /// both; any other gets the text. Code is exempt (recorded, not marked). When the policy refuses the copy nothing is copied.
+    /// A marking that fails on its own is not the policy: the copy goes on as it was (ASVS 5.0 V16: the agent has logged it).
+    /// </summary>
+    internal async Task<CopyOutcome> CopyAsync(string text, string? html, bool isCode = false, string? turn = null)
+    {
+        MarkedCopy marked;
+        try
+        {
+            marked = await _agent.MarkCopyAsync(new AnswerCopy(text, html, _session?.Id, turn) { IsCode = isCode }).ConfigureAwait(true);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            marked = new MarkedCopy(text, html, null, false);
+        }
+        if (marked.Refused)
+        {
+            return CopyOutcome.Refused;
+        }
+        if (marked.Html is { } richer && Clipboard is IHtmlClipboard rich)
+        {
+            rich.SetContent(marked.Text, richer);
+        }
+        else
+        {
+            Clipboard.SetText(marked.Text);
+        }
+        return CopyOutcome.Copied;
+    }
+
     // -- commands ------------------------------------------------------------------------------------
 
     public IAsyncRelayCommand InitializeCommand { get; }

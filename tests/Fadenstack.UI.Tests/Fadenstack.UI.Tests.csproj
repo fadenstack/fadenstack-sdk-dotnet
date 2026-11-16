@@ -27,6 +27,8 @@
     <!-- The skins' Markdown drawing code, read as text: no bitmap, no download (G4). -->
     <None Include="..\..\src\Fadenstack.UI.Wpf\Behaviors\MarkdownText.cs" Link="Skins\Behaviors\MarkdownText.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Fadenstack.UI.Avalonia\Views\MarkdownView.cs" Link="Skins\Views\MarkdownView.cs" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The cases both SDKs test their Markdown-to-HTML against: the TypeScript SDK has the same file. -->
+    <None Include="vectors\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->

@@ -8,6 +8,19 @@ this file says where it does.
 
 ### Added
 
+- **The mark on copy** ([Content provenance: Copying an answer](docs/provenance.md#copying-an-answer), AI Act Art. 50(2)).
+  `FadenstackAgent.MarkCopyAsync(AnswerCopy)` marks what the person copies out of the chat through the provenance module's
+  pipeline (the tool `copy`, the sink `clipboard` that carries `html-attribute`, the receipt of the turn): the HTML carries the
+  mark, the plain text stays as it is, code and exempt content is recorded as exempt, and with the policy `refuse` a copy that
+  cannot be marked is not made (`MarkedCopy.Refused`; the chat says so in five languages). The chat's Copy and a code block's
+  Copy use it; an app with its own view of answers calls it itself. `IAnswerCopyMarker` and `AgentBuilder.UseAnswerCopyMarker` are
+  the seam (the provenance module sets it), so `Fadenstack.UI` has no reference to the provenance package. `IHtmlClipboard`
+  (`SetContent(text, html)`; `IClipboard` is unchanged) is implemented by `WpfClipboard` (the `HTML Format`, CF_HTML, with its
+  header and offsets: `ClipboardHtml`) and `AvaloniaClipboard` (`public.html` on macOS, `text/html` on Linux). `MarkdownSerializer`
+  (`MarkdownToHtml`, `ToHtml`, `TableToTsv`, `TablesIn`) is the TypeScript SDK's `markdownToHtml` for .NET, tested against the same
+  cases. Under each answer a line says "Copied" or why nothing was copied (`TurnViewModel.CopyStatus`) in WPF and Avalonia.
+  Behaviour change: a pipe-less table separator (`---`) is `ColumnAlignment.None`, not `Left`, and `![alt](url)` is its alt text
+  `[alt]`, never a link.
 - **Your data per app** ([Data on the device: Export and delete](docs/data-on-device.md#export-and-delete)). `DeleteMyDataAsync`
   and `ExportMyDataAsync` take a `DataScope`: `ThisApp` (the default) covers the calling app's chats, "Allow always" and
   thinking levels, and the person's shared data (skills, the MCP list, keys, provenance records, other settings) only when no
