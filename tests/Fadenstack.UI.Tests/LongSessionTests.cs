@@ -95,7 +95,7 @@ public class LongSessionTests : IDisposable
         var broker = new ApprovalBroker();
         using var agent = FadenstackAgent.CreateBuilder()
             .UseServer(new Uri("https://demo.invalid"), new StaticTokenProvider("demo"), o => o.HttpClient = new HttpClient(new DemoGateway()))
-            .UseAgent(DemoGateway.Agent).UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore())
+            .UseAgent(DemoGateway.Agent).UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore()).UseAuditLog(new Fadenstack.Agents.Audit.MemoryAuditLog())
             .AddTools(new Fadenstack.Samples.DemoTools()).UseApprovals(broker).Build();
         var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance, new AgentChatOptions { RenderInterval = TimeSpan.Zero });
         await chat.InitializeAsync();

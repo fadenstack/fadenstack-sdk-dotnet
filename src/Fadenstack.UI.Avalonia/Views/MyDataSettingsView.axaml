@@ -65,6 +65,11 @@
                     <Button Name="ExportAllButton" Classes="secondary" Margin="0,0,8,8" Command="{Binding ExportAllCommand}"
                             Content="{v:Text MyDataExportAll}" AutomationProperties.Name="{v:Text MyDataExportAllName}" />
                 </WrapPanel>
+                <!-- The person's record of tool calls: how many entries since when, intact or damaged; and its export as a web page. -->
+                <TextBlock Name="AuditLine" Classes="caption muted" Classes.strong="{Binding AuditDamaged}" Text="{Binding AuditLine}" TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite" IsVisible="{Binding HasAuditLine}" />
+                <Button Name="ExportAuditButton" Classes="secondary" HorizontalAlignment="Left" Command="{Binding ExportAuditCommand}" IsVisible="{Binding HasAudit}"
+                        Content="{v:Text MyDataAuditExport}" AutomationProperties.Name="{v:Text MyDataAuditExportName}" />
                 <Button Name="RemoveButton" Classes="secondary" HorizontalAlignment="Left" Command="{Binding RemoveCommand}"
                         Content="{v:Text MyDataRemove}" AutomationProperties.Name="{v:Text MyDataRemoveName}" />
                 <!-- Visually the quieter of the two removals. -->

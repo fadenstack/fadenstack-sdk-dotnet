@@ -2292,6 +2292,27 @@ public sealed class UiStrings
     /// <summary>", "</summary>
     public string MyDataListSeparator => Text();
 
+    /// <summary>"Record of tool calls: {0} entries since {1}, intact" ({0} how many, 2 or more; {1} the date of the first)</summary>
+    public string MyDataAuditIntact(int count, string since) => Fill2(count, since);
+
+    /// <summary>"Record of tool calls: 1 entry since {0}, intact"</summary>
+    public string MyDataAuditIntactOne(string since) => Fill(since);
+
+    /// <summary>"Record of tool calls: damaged at entry {0}"</summary>
+    public string MyDataAuditDamaged(long entry) => Fill(entry);
+
+    /// <summary>"Record of tool calls: no entries yet"</summary>
+    public string MyDataAuditEmpty => Text();
+
+    /// <summary>"Record of tool calls: could not be checked"</summary>
+    public string MyDataAuditUnreadable => Text();
+
+    /// <summary>"Export the record of tool calls…"</summary>
+    public string MyDataAuditExport => Text();
+
+    /// <summary>"Export the record of tool calls as a web page" (the button's accessible name)</summary>
+    public string MyDataAuditExportName => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));

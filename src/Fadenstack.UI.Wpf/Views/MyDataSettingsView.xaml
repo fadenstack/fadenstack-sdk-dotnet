@@ -76,6 +76,22 @@
                     <Button x:Name="ExportAllButton" Style="{StaticResource Form.Secondary}" Margin="0,0,8,8" Command="{Binding ExportAllCommand}"
                             Content="{local:Text MyDataExportAll}" AutomationProperties.Name="{local:Text MyDataExportAllName}" />
                 </WrapPanel>
+                <!-- The person's record of tool calls: how many entries since when, intact or damaged; and its export as a web page. -->
+                <TextBlock x:Name="AuditLine" Text="{Binding AuditLine}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Block}"
+                           AutomationProperties.LiveSetting="Polite" Visibility="{Binding HasAuditLine, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Skill.Caption}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AuditDamaged}" Value="True">
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Button x:Name="ExportAuditButton" Style="{StaticResource Form.Secondary}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Block}"
+                        Command="{Binding ExportAuditCommand}" Visibility="{Binding HasAudit, Converter={StaticResource Fadenstack.BoolToVisibility}}"
+                        Content="{local:Text MyDataAuditExport}" AutomationProperties.Name="{local:Text MyDataAuditExportName}" />
                 <Button x:Name="RemoveButton" Style="{StaticResource Form.Secondary}" HorizontalAlignment="Left" Margin="{StaticResource Fadenstack.Space.Block}"
                         Command="{Binding RemoveCommand}"
                         Content="{local:Text MyDataRemove}" AutomationProperties.Name="{local:Text MyDataRemoveName}" />

@@ -21,7 +21,7 @@ public class ChatRetentionSettingsViewModelTests
     {
         var builder = FadenstackAgent.CreateBuilder().UseChatClient(new ScriptedChat())
             .UseLocalProfile(AgentDefinition.FromJson(Definition))
-            .UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore());
+            .UseSessionStore(new MemorySessionStore()).UseApprovalStore(new MemoryApprovalStore()).UseAuditLog(new Fadenstack.Agents.Audit.MemoryAuditLog());
         return (policy is null ? builder : builder.UseMachinePolicy(policy)).Build();
     }
 

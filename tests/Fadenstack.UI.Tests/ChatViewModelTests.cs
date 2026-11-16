@@ -518,7 +518,7 @@ public class ChatViewModelTests
         var agent = FadenstackAgent.CreateBuilder()
             .UseServer(new Uri("https://faden.test"), new Fadenstack.Auth.AgentTokenProvider(new Uri("https://faden.test"), Gateway.Slug,
                 new Fadenstack.Auth.MemoryTokenStore(), new HttpClient(gateway.Server)), o => o.HttpClient = new HttpClient(gateway.Server))
-            .UseAgent(Gateway.Slug).UseSessionStore(new MemorySessionStore()).UseApprovals(broker).Build();
+            .UseAgent(Gateway.Slug).UseSessionStore(new MemorySessionStore()).UseAuditLog(new Fadenstack.Agents.Audit.MemoryAuditLog()).UseApprovals(broker).Build();
         var chat = new AgentChatViewModel(agent, broker, InlineDispatcher.Instance);
         await chat.InitializeAsync();
         Assert.True(chat.SignInRequired);

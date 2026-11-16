@@ -63,7 +63,7 @@ public sealed record MachinePolicy
 {
     /// <summary>The known keys, as a policy file names them (declared first: the policies below read it).</summary>
     public static IReadOnlyList<string> Keys { get; } =
-        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention", "contentLogging"];
+        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention", "contentLogging", "auditRetentionDays"];
 
     /// <summary>No policy at all: everything the person may choose stays theirs.</summary>
     public static MachinePolicy None { get; } = new();
@@ -114,6 +114,12 @@ public sealed record MachinePolicy
     /// time (<see cref="FadenstackAgent.StartContentLogging"/> throws). Absent: allowed, and the app and the person decide.
     /// </summary>
     public PolicyAccess ContentLogging { get; init; } = PolicyAccess.Allowed;
+
+    /// <summary>
+    /// How many days entries of the person's record of tool calls are kept (<c>auditRetentionDays</c>, 30 to 3650), fixed by IT; null:
+    /// 180 days. A value out of bounds or not a whole number is reported and becomes 180. TS: <c>auditRetentionDays</c>.
+    /// </summary>
+    public int? AuditRetentionDays { get; init; }
 
     /// <summary>The keys the policy set itself (the app locks them in its UI and never writes them into the person's settings).</summary>
     public IReadOnlyCollection<string> Locked { get; init; } = Array.Empty<string>();
@@ -177,6 +183,7 @@ public sealed record MachinePolicy
         Skills = PolicyRule.Forbidden, WebSearch = PolicyAccess.Forbidden, Timestamping = TimestampingPolicy.Off,
         ContentLogging = PolicyAccess.Forbidden,
         ChatRetention = ChatRetentionChoice.Default, // old chats are deleted as by default; the person cannot turn it off
+        AuditRetentionDays = Audit.AuditRetention.DefaultDays,
         Locked = Keys.Where(k => k != "server").ToList(),
         Warnings = [why + ": standalone, local MCP, local skills, web search and plain http are forbidden; time-stamps are off."],
     };
@@ -230,6 +237,7 @@ public sealed record MachinePolicy
             Timestamping = Timestamps(values, warnings),
             ChatRetention = values.TryGetValue("chatRetention", out var retention) ? Retention(retention, warnings) : null,
             ContentLogging = Access(values, "contentLogging", PolicyAccess.Allowed, warnings),
+            AuditRetentionDays = values.TryGetValue("auditRetentionDays", out var audit) ? AuditDays(audit, warnings) : null,
             Locked = locked,
             Warnings = warnings,
         };
@@ -316,6 +324,16 @@ public sealed record MachinePolicy
             }
         }
         return new ChatRetentionChoice(autoDelete, days, chats);
+    }
+
+    private static int AuditDays(JsonElement value, List<string> warnings)
+    {
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var days) && Audit.AuditRetention.IsValid(days))
+        {
+            return days;
+        }
+        warnings.Add($"'auditRetentionDays' is not a whole number from {Audit.AuditRetention.MinDays} to {Audit.AuditRetention.MaxDays}: the default ({Audit.AuditRetention.DefaultDays}).");
+        return Audit.AuditRetention.DefaultDays;
     }
 
     private static int Limit(JsonElement value, string name, Func<int, bool> valid, int fallback, List<string> warnings)

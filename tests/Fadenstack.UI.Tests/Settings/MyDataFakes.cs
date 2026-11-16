@@ -1,4 +1,5 @@
 using Fadenstack.Agents;
+using Fadenstack.Agents.Audit;
 using Fadenstack.UI.Settings;
 
 namespace Fadenstack.UI.Tests.Settings;
@@ -20,7 +21,7 @@ internal sealed class RecordingStream : MemoryStream
 /// the wait to make it show every state; and a save target that answers with a stream or with "cancelled". For the view model's
 /// and the skins' tests.
 /// </summary>
-internal sealed class FakeMyData : IMyDataSource, IMyDataSaveTarget
+internal sealed class FakeMyData : IMyDataSource, IMyDataSaveTarget, IMyDataAuditSource
 {
     public static readonly MyDataApp ThisApp = new("Word add-in", new[] { "docs-assistant" }, null, IsThisApp: true, Recorded: true);
     public static readonly MyDataApp Desktop = new("Desktop agent", new[] { "desktop-assistant" }, null, IsThisApp: false, Recorded: true);
@@ -30,6 +31,36 @@ internal sealed class FakeMyData : IMyDataSource, IMyDataSaveTarget
     public static readonly MyDataApp Legacy = new("old-assistant", new[] { "old-assistant" }, null, IsThisApp: false, Recorded: false);
 
     public IReadOnlyList<MyDataApp> Apps { get; set; } = new[] { ThisApp };
+
+    /// <summary>What the check of the record of tool calls finds: 12 entries since 1 August 2026, intact, unless a test says otherwise.</summary>
+    public AuditVerification Audit { get; set; } = new(true, 12, 1, new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 11, 16, 9, 0, 0, TimeSpan.Zero));
+
+    public Exception? ThrowOnAudit { get; set; }
+
+    public Exception? ThrowOnAuditExport { get; set; }
+
+    /// <summary>How many times the record was exported.</summary>
+    public int AuditExports { get; private set; }
+
+    /// <summary>How many times the record was checked.</summary>
+    public int AuditReads { get; private set; }
+
+    public Task<AuditVerification> AuditAsync(CancellationToken cancellationToken)
+    {
+        AuditReads++;
+        return ThrowOnAudit is null ? Task.FromResult(Audit) : throw ThrowOnAudit;
+    }
+
+    public async Task ExportAuditAsync(Stream destination, CancellationToken cancellationToken)
+    {
+        if (ThrowOnAuditExport is not null)
+        {
+            throw ThrowOnAuditExport;
+        }
+        AuditExports++;
+        var bytes = System.Text.Encoding.UTF8.GetBytes("<!DOCTYPE html>");
+        await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>What a removal reports (the scope is the one asked for unless this says otherwise).</summary>
     public Func<DataScope, DataDeletion> Deletion { get; set; } = scope => new DataDeletion(1, false, false) { Scope = scope };

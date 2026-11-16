@@ -221,8 +221,16 @@ public sealed class AgentResource
     /// scope with HTTP 409, and the call goes on waiting. A server may also refuse an approval that names no scope.
     /// </summary>
     public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken = default) =>
-        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"), new { approved, scope },
-            cancellationToken);
+        AnswerApprovalAsync(approvalId, approved, scope, null, cancellationToken);
+
+    /// <summary>
+    /// The same, with the SHA-256 (lowercase hex) of the held call's arguments' JSON text, as the audit log keeps it. Send it only to a
+    /// server whose profile lists <c>client_events.arguments_sha256</c>; null leaves it out.
+    /// </summary>
+    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, string? argumentsSha256,
+        CancellationToken cancellationToken = default) =>
+        _transport.PostAsync<bool>(Route($"approvals/{Uri.EscapeDataString(approvalId)}"),
+            new { approved, scope, ArgumentsSha256 = argumentsSha256 }, cancellationToken);
 
     /// <summary>
     /// Asks the server for a grant the person allowed on this device: what it answers is what holds, perhaps less than

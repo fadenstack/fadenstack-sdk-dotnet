@@ -27,6 +27,12 @@ public static class FadenstackPaths
     internal static string? RootForTests { get; set; }
 
     /// <summary>
+    /// What a test assembly's module initializer sets: the root in force while no test has set <see cref="RootForTests"/> (a test that sets it
+    /// and then clears it falls back to this), so no test ever writes into the OS user's own folders.
+    /// </summary>
+    internal static string? FallbackRootForTests { get; set; }
+
+    /// <summary>
     /// For an app's own tests: points every root (<see cref="DataRoot"/>, <see cref="SettingsRoot"/>, <see cref="LogRoot"/>) at
     /// <c>data</c>, <c>settings</c> and <c>logs</c> below <paramref name="folder"/> until the returned scope is disposed, so a test
     /// never writes into the OS user's own folders (the standalone language, sessions, approvals, keys, logs). The roots are
@@ -65,7 +71,7 @@ public static class FadenstackPaths
         }
     }
 
-    private static Roots Current => RootForTests is { } root
+    private static Roots Current => (RootForTests ?? FallbackRootForTests) is { } root
         ? new Roots(Path.Combine(root, "data"), Path.Combine(root, "settings"), Path.Combine(root, "logs"))
         : Real.Value;
 

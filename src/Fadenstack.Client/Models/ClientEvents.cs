@@ -27,6 +27,12 @@ public sealed record ToolExecutedEvent : AgentClientEvent
 
     /// <summary><c>ok</c>, <c>error</c>, <c>denied</c> or <c>cancelled</c>.</summary>
     public string Outcome { get; init; } = "ok";
+
+    /// <summary>
+    /// SHA-256 (lowercase hex) of the arguments' JSON text, as the audit log keeps it. Sent only where the profile's <c>features</c> list
+    /// <c>client_events.arguments_sha256</c> (an older server refuses the whole batch, 400 <c>invalid_events</c>); null otherwise, and left out.
+    /// </summary>
+    public string? ArgumentsSha256 { get; init; }
 }
 
 /// <summary>A call that needed approval was decided: by the user, or by an approval that stood (this chat, always, bypass).</summary>
@@ -49,6 +55,12 @@ public sealed record ApprovalDecidedEvent : AgentClientEvent
 
     /// <summary>The grant that let it through, with <c>grant</c>; left out otherwise, so an older server never sees it.</summary>
     public string? GrantId { get; init; }
+
+    /// <summary>
+    /// SHA-256 (lowercase hex) of the call's arguments' JSON text. Sent only where the profile's <c>features</c> list
+    /// <c>client_events.arguments_sha256</c>; null otherwise, and left out.
+    /// </summary>
+    public string? ArgumentsSha256 { get; init; }
 }
 
 /// <summary>A local MCP server was attached, and the tools it offers.</summary>

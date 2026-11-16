@@ -391,4 +391,173 @@ public class MyDataSettingsViewModelTests
         Assert.Contains("\u00a0:", fr.MyDataConfirmAll);
         Assert.DoesNotContain(" :", fr.MyDataConfirmThisAppShared("A").Replace("\u00a0:", ""));
     }
+
+    // ---- the record of tool calls (sdk/51 8.10) ----
+
+    private static string Since(FakeMyData fake) => fake.Audit.FirstTime!.Value.ToLocalTime().ToString("d", English.FormatCulture);
+
+    [Fact]
+    public void The_record_of_tool_calls_shows_how_many_entries_since_when_and_that_it_is_intact()
+    {
+        var fake = new FakeMyData();
+        var model = Model(fake);
+
+        Assert.True(model.HasAudit);
+        Assert.Equal($"Record of tool calls: 12 entries since {Since(fake)}, intact", model.AuditLine);
+        Assert.True(model.HasAuditLine);
+        Assert.False(model.AuditDamaged);
+        Assert.True(model.ExportAuditCommand.CanExecute(null));
+        Assert.Equal(1, fake.AuditReads);
+    }
+
+    [Fact]
+    public void One_entry_none_a_damaged_record_and_a_check_that_failed_each_have_their_sentence()
+    {
+        var fake = new FakeMyData { Audit = new(true, 1, 1, new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero)) };
+        Assert.Equal($"Record of tool calls: 1 entry since {Since(fake)}, intact", Model(fake).AuditLine);
+
+        fake.Audit = new(true, 0, null, null, null);
+        Assert.Equal("Record of tool calls: no entries yet", Model(fake).AuditLine);
+
+        fake.Audit = new(false, 7, 1, new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), null, 8, "seal_mismatch");
+        var damaged = Model(fake);
+        Assert.Equal("Record of tool calls: damaged at entry 8", damaged.AuditLine);
+        Assert.True(damaged.AuditDamaged);
+        Assert.DoesNotContain("seal_mismatch", damaged.AuditLine); // the kind of problem is for the export, not for a sentence
+
+        fake.ThrowOnAudit = new InvalidOperationException("secret detail of the failure");
+        var failed = Model(fake);
+        Assert.Equal("Record of tool calls: could not be checked", failed.AuditLine);
+        Assert.DoesNotContain("secret", failed.AuditLine);
+    }
+
+    [Fact]
+    public async Task The_record_is_checked_again_after_a_removal_is_dismissed()
+    {
+        var fake = new FakeMyData();
+        var model = Model(fake);
+        await model.RemoveCommand.ExecuteAsync(null);
+        await model.ConfirmCommand.ExecuteAsync(null);
+        Assert.Equal(1, fake.AuditReads);
+
+        model.CancelCommand.Execute(null);
+        await model.AuditLoading;
+        await model.RefreshAuditAsync();
+
+        Assert.True(fake.AuditReads >= 2); // the removal may have taken the record
+    }
+
+    [Fact]
+    public async Task Exporting_the_record_saves_one_web_page_through_the_hosts_save_path()
+    {
+        var fake = new FakeMyData();
+        var model = Model(fake);
+
+        await model.ExportAuditCommand.ExecuteAsync(null);
+
+        Assert.Equal(new[] { "fadenstack-tool-calls.html" }, fake.Suggested);
+        Assert.Equal(1, fake.AuditExports);
+        Assert.True(fake.Target!.Closed);
+        Assert.Equal("<!DOCTYPE html>", System.Text.Encoding.UTF8.GetString(fake.Target.ToArray()));
+        Assert.Equal(MyDataState.Idle, model.State);
+        Assert.Equal("Your data was saved to the file you chose.", model.StatusText);
+    }
+
+    [Fact]
+    public async Task Cancelling_the_save_dialog_of_the_record_changes_nothing()
+    {
+        var fake = new FakeMyData { Target = null };
+        var model = Model(fake);
+
+        await model.ExportAuditCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, fake.AuditExports);
+        Assert.Equal((MyDataState.Idle, ""), (model.State, model.StatusText));
+        Assert.True(model.ExportAuditCommand.CanExecute(null));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_failed_export_of_the_record_is_a_sentence_without_the_reason(bool dialog)
+    {
+        var fake = new FakeMyData();
+        if (dialog)
+        {
+            fake.ThrowOnOpen = new InvalidOperationException("secret detail of the failure");
+        }
+        else
+        {
+            fake.ThrowOnAuditExport = new InvalidOperationException("secret detail of the failure");
+        }
+        var model = Model(fake);
+
+        await model.ExportAuditCommand.ExecuteAsync(null);
+
+        Assert.Equal(MyDataState.Error, model.State);
+        Assert.Equal(English.MyDataErrorExport, model.ErrorText);
+        Assert.DoesNotContain("secret", model.ErrorText);
+    }
+
+    [Fact]
+    public void A_source_that_keeps_no_record_shows_neither_the_line_nor_the_button()
+    {
+        var fake = new FakeMyData();
+        var model = new MyDataSettingsViewModel(new PlainSource(fake), fake, strings: () => English);
+
+        Assert.False(model.HasAudit);
+        Assert.Equal("", model.AuditLine);
+        Assert.False(model.HasAuditLine);
+        Assert.False(model.ExportAuditCommand.CanExecute(null));
+        Assert.Equal(0, fake.AuditReads);
+    }
+
+    private sealed class PlainSource : IMyDataSource
+    {
+        private readonly FakeMyData _inner;
+
+        public PlainSource(FakeMyData inner) => _inner = inner;
+
+        public Task<IReadOnlyList<MyDataApp>> AppsAsync(CancellationToken cancellationToken) => _inner.AppsAsync(cancellationToken);
+
+        public Task<DataDeletion> DeleteAsync(DataScope scope, CancellationToken cancellationToken) => _inner.DeleteAsync(scope, cancellationToken);
+
+        public Task ExportAsync(Stream destination, DataScope scope, CancellationToken cancellationToken) => _inner.ExportAsync(destination, scope, cancellationToken);
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    [InlineData("fr")]
+    [InlineData("es")]
+    [InlineData("zh-Hans")]
+    public void The_record_of_tool_calls_has_its_texts_in_every_language(string language)
+    {
+        var s = UiStrings.For(new CultureInfo(language));
+        var texts = new[]
+        {
+            s.MyDataAuditIntact(12, "1.8.2026"), s.MyDataAuditIntactOne("1.8.2026"), s.MyDataAuditDamaged(8), s.MyDataAuditEmpty,
+            s.MyDataAuditUnreadable, s.MyDataAuditExport, s.MyDataAuditExportName,
+        };
+
+        Assert.All(texts, t => Assert.DoesNotContain("MyDataAudit", t));
+        Assert.All(texts, t => Assert.False(string.IsNullOrWhiteSpace(t)));
+        Assert.Contains("12", texts[0]);
+        Assert.Contains("1.8.2026", texts[0]);
+        Assert.Contains("8", texts[2]);
+        Assert.Contains(s.MyDataAuditExport, s.MyDataAuditExportName); // the name says what the button says (WCAG 2.5.3)
+        if (language != "en")
+        {
+            Assert.NotEqual(UiStrings.For(new CultureInfo("en")).MyDataAuditExport, s.MyDataAuditExport);
+        }
+    }
+
+    [Fact]
+    public void French_keeps_its_non_breaking_space_before_the_colon_of_the_record_line()
+    {
+        var fr = UiStrings.For(new CultureInfo("fr"));
+
+        Assert.Contains("\u00a0: ", fr.MyDataAuditIntact(12, "1.8.2026"));
+        Assert.Contains("\u00a0: ", fr.MyDataAuditEmpty);
+    }
 }

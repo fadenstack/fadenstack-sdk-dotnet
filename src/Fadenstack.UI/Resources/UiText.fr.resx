@@ -2710,4 +2710,25 @@
   <data name="BypassEnded_agent_turned_off" xml:space="preserve">
     <value>Bypass terminé : votre organisation a éteint cet agent. Les approbations demandent à nouveau.</value>
   </data>
+  <data name="MyDataAuditIntact" xml:space="preserve">
+    <value>Journal des appels d'outils : {0} entrées depuis le {1}, intact</value>
+  </data>
+  <data name="MyDataAuditIntactOne" xml:space="preserve">
+    <value>Journal des appels d'outils : 1 entrée depuis le {0}, intact</value>
+  </data>
+  <data name="MyDataAuditDamaged" xml:space="preserve">
+    <value>Journal des appels d'outils : endommagé à l'entrée {0}</value>
+  </data>
+  <data name="MyDataAuditEmpty" xml:space="preserve">
+    <value>Journal des appels d'outils : aucune entrée pour le moment</value>
+  </data>
+  <data name="MyDataAuditUnreadable" xml:space="preserve">
+    <value>Journal des appels d'outils : n'a pas pu être vérifié</value>
+  </data>
+  <data name="MyDataAuditExport" xml:space="preserve">
+    <value>Exporter le journal des appels d'outils…</value>
+  </data>
+  <data name="MyDataAuditExportName" xml:space="preserve">
+    <value>Exporter le journal des appels d'outils… (sous forme de page web)</value>
+  </data>
 </root>

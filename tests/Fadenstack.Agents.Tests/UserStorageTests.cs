@@ -99,7 +99,8 @@ public class UserStorageTests : IDisposable
         await Use(agent);
         Assert.Same(sessions, agent.SessionStore);
         Assert.Same(approvals, agent.ApprovalStore);
-        Assert.False(Directory.Exists(Data("users")));
+        // the host's stores are its own: no sessions or approvals of the SDK's (its record of tool calls is, and is durable)
+        Assert.False(Directory.Exists(Path.Combine(Data("users", "u-1"), "sessions")) || Directory.Exists(Path.Combine(Data("users", "u-1"), "approvals")));
         Assert.Single(await agent.ListSessionsAsync());
     }
 

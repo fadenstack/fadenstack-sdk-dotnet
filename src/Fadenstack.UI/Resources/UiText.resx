@@ -3037,4 +3037,32 @@
   <data name="BypassEnded_agent_turned_off" xml:space="preserve">
     <value>Bypass ended: your organisation turned this agent off. Approvals ask again.</value>
   </data>
+  <data name="MyDataAuditIntact" xml:space="preserve">
+    <value>Record of tool calls: {0} entries since {1}, intact</value>
+    <comment>Line of the record of tool calls: {0} how many entries (2 or more), {1} the date of the first</comment>
+  </data>
+  <data name="MyDataAuditIntactOne" xml:space="preserve">
+    <value>Record of tool calls: 1 entry since {0}, intact</value>
+    <comment>Line of the record of tool calls with one entry: {0} the date of it</comment>
+  </data>
+  <data name="MyDataAuditDamaged" xml:space="preserve">
+    <value>Record of tool calls: damaged at entry {0}</value>
+    <comment>Line of the record of tool calls: the chain breaks at entry {0}</comment>
+  </data>
+  <data name="MyDataAuditEmpty" xml:space="preserve">
+    <value>Record of tool calls: no entries yet</value>
+    <comment>Line of the record of tool calls: nothing recorded yet</comment>
+  </data>
+  <data name="MyDataAuditUnreadable" xml:space="preserve">
+    <value>Record of tool calls: could not be checked</value>
+    <comment>Line of the record of tool calls: the check itself failed</comment>
+  </data>
+  <data name="MyDataAuditExport" xml:space="preserve">
+    <value>Export the record of tool calls…</value>
+    <comment>Button that saves the record of tool calls as a web page</comment>
+  </data>
+  <data name="MyDataAuditExportName" xml:space="preserve">
+    <value>Export the record of tool calls… (as a web page)</value>
+    <comment>Accessible name of that button</comment>
+  </data>
 </root>

@@ -165,7 +165,7 @@ internal sealed class LocalAgentBackend : IAgentBackend
     public Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<AgentToolInfo>?>(Array.Empty<AgentToolInfo>());
 
-    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken) =>
+    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, string? argumentsSha256, CancellationToken cancellationToken) =>
         throw NoServer("a gateway approval");
 
     /// <summary>Never a blanket allow: without a server there is no central word, and the local class and floor decide.</summary>
