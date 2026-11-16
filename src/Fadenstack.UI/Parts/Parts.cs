@@ -660,13 +660,15 @@ public sealed class NoticePart : ResponsePart
         var severity = notice.Outcome switch
         {
             "prompt_blocked" or "response_blocked" => NoticeSeverity.Blocked,
-            "tool_denied" or "rate_limited" or "empty_answer" => NoticeSeverity.Warning,
+            "tool_denied" or "rate_limited" or "empty_answer" or "images_disabled" => NoticeSeverity.Warning,
             _ => NoticeSeverity.Info,
         };
         return Localized(strings, severity, s => (
             s.NoticeTitle(notice.Outcome) ?? s.NoticeFallback,
             // An empty answer is the SDK's own notice, not a policy's: no admin's message to show, the panel's words instead.
             notice.Outcome == "empty_answer" ? (notice.Category == "length" ? s.EmptyAnswerLength : s.EmptyAnswer)
+                // Image generation off: the owner's note, in the panel's language, not the server's message.
+                : notice.Outcome == "images_disabled" ? s.ImagesDisabled
                 : notice.RetryAfter is { } wait ? $"{notice.Message} {s.TryAgainIn(Math.Ceiling(wait.TotalSeconds))}"
                 : notice.Message,
             notice.DecisionId is null ? null : s.Decision(notice.DecisionId)));

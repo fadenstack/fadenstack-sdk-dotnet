@@ -217,6 +217,9 @@
   <data name="Notice_empty_answer" xml:space="preserve">
     <value>未收到回答</value>
   </data>
+  <data name="Notice_images_disabled" xml:space="preserve">
+    <value>图像生成已关闭</value>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>提示</value>
   </data>
@@ -249,6 +252,9 @@
   </data>
   <data name="EmptyAnswerLength" xml:space="preserve">
     <value>模型在写出回答之前已达到长度上限，例如在思考时。您可以重试。</value>
+  </data>
+  <data name="ImagesDisabled" xml:space="preserve">
+    <value>此版本已关闭图像生成功能。自 2026 年 12 月 2 日起，欧盟《人工智能法》（第 5 条）要求采取防范生成有害图像的保障措施，而此版本尚未具备这些措施。图像生成功能将在以后的版本中恢复，并带有这些保障措施。</value>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>思考中…</value>

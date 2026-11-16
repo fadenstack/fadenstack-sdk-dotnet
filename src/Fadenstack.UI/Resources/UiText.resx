@@ -286,6 +286,10 @@
     <value>No answer came back</value>
     <comment>A notice's title: a model call ended with no text and no tool call</comment>
   </data>
+  <data name="Notice_images_disabled" xml:space="preserve">
+    <value>Image generation is off</value>
+    <comment>A notice's title: image generation is turned off in this version (core 0.7.1)</comment>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>Notice</value>
     <comment>A notice's title the chat does not know</comment>
@@ -329,6 +333,10 @@
   <data name="EmptyAnswerLength" xml:space="preserve">
     <value>The model reached its length limit before it wrote an answer, for example while thinking. You can try again.</value>
     <comment>The same, when the model ran out of tokens first (finish reason length)</comment>
+  </data>
+  <data name="ImagesDisabled" xml:space="preserve">
+    <value>Image generation is turned off in this version. From 2 December 2026 the EU AI Act (Article 5) requires safeguards against generating harmful images, and this version does not have them yet. Image generation will return in a later version, with those safeguards.</value>
+    <comment>The owner's note when image generation is off (images_disabled): shown instead of the server's message</comment>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>Thinking...</value>

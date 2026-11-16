@@ -85,6 +85,7 @@ public static class WorkspaceTools
             tools.Add(new AgentTool(function, marker.Class, openWorld: marker.OpenWorld ? true : null)
             {
                 Outputs = AgentTool.OutputsOf(method, instance),
+                MakesPictures = marker.MakesPictures,
             });
         }
         if (tools.Count == 0)

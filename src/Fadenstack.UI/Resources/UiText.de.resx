@@ -217,6 +217,9 @@
   <data name="Notice_empty_answer" xml:space="preserve">
     <value>Keine Antwort erhalten</value>
   </data>
+  <data name="Notice_images_disabled" xml:space="preserve">
+    <value>Bilderzeugung ist ausgeschaltet</value>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>Hinweis</value>
   </data>
@@ -249,6 +252,9 @@
   </data>
   <data name="EmptyAnswerLength" xml:space="preserve">
     <value>Das Modell hat seine maximale Länge erreicht, bevor es eine Antwort geschrieben hat, zum Beispiel beim Nachdenken. Sie können es erneut versuchen.</value>
+  </data>
+  <data name="ImagesDisabled" xml:space="preserve">
+    <value>Die Bilderzeugung ist in dieser Version ausgeschaltet. Ab dem 2. Dezember 2026 verlangt die EU-KI-Verordnung (Artikel 5) Schutzmaßnahmen gegen das Erzeugen schädlicher Bilder, und diese Version hat sie noch nicht. Die Bilderzeugung kommt in einer späteren Version mit diesen Schutzmaßnahmen zurück.</value>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>Denkt nach…</value>

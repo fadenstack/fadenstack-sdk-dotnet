@@ -217,6 +217,9 @@
   <data name="Notice_empty_answer" xml:space="preserve">
     <value>Aucune réponse reçue</value>
   </data>
+  <data name="Notice_images_disabled" xml:space="preserve">
+    <value>La génération d’images est désactivée</value>
+  </data>
   <data name="NoticeFallback" xml:space="preserve">
     <value>Remarque</value>
   </data>
@@ -249,6 +252,9 @@
   </data>
   <data name="EmptyAnswerLength" xml:space="preserve">
     <value>Le modèle a atteint sa limite de longueur avant d'écrire une réponse, par exemple pendant sa réflexion. Vous pouvez réessayer.</value>
+  </data>
+  <data name="ImagesDisabled" xml:space="preserve">
+    <value>La génération d’images est désactivée dans cette version. À partir du 2 décembre 2026, le règlement européen sur l’IA (article 5) exige des garde-fous contre la génération d’images préjudiciables, et cette version n’en dispose pas encore. La génération d’images reviendra dans une version ultérieure, avec ces garde-fous.</value>
   </data>
   <data name="Thinking" xml:space="preserve">
     <value>Réflexion…</value>

@@ -466,6 +466,9 @@ public sealed class UiStrings
     /// <summary>The same when the model ran out of tokens first (<c>empty_answer</c>, <c>length</c>), often while thinking.</summary>
     public string EmptyAnswerLength => Text();
 
+    /// <summary>The owner's note for a refusal with <c>images_disabled</c> (the notice's title is <c>Notice_images_disabled</c>).</summary>
+    public string ImagesDisabled => Text();
+
     // -- reasoning and references --------------------------------------------------------------------
 
     public string Thinking => Text();

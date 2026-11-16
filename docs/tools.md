@@ -35,6 +35,7 @@ The rules:
 - The description comes from `[Description]` on the method. The model reads it to decide when to call the tool, so say what the tool does and what it returns.
 - `[AgentTool(ToolClass.Read)]` gives the tool its class. Without a class, the tool is `Unknown`.
 - `OpenWorld = true` marks a tool that reaches outside the organisation, such as a web search. It is recorded, and its approval request says so (`ApprovalRequest.OpenWorld`): the chat panel's card says that what it is given leaves the organisation. Below `Auto`, a call to such a tool asks ([Open-world tools](#open-world-tools)).
+- `MakesPictures = true` marks a tool that asks the server's image model for a picture (an app's `insert_image` or `add_image`). The agent hides it while `FadenstackAgent.ImagesAvailable` is false ([Tools that make pictures](#tools-that-make-pictures)).
 - Tool names must be unique. `Build()` throws when two tools share a name.
 
 `AddTool(function, toolClass)` adds a Microsoft.Extensions.AI `AIFunction` made elsewhere, for example with `AIFunctionFactory.Create`. Without a class it is `Unknown`.
@@ -248,6 +249,45 @@ for LLM Applications 2025, LLM02 and LLM06). So:
   the SDK's `web_search`.
 - An agent's contract that sets `approval: never` for a read or write tool still runs it unasked, as for any tool the
   mode would ask about.
+
+### Tools that make pictures
+
+A tool that asks the server's image model for a picture (an app's `insert_image` or `add_image`) says so with `MakesPictures`:
+`[AgentTool(ToolClass.Write, MakesPictures = true)]`, the `makesPictures` argument of `AgentTool.FromMethod` and of
+`AddTool(function, toolClass, makesPictures)`, or `MakesPictures = true` on an `AgentTool` you build yourself. The SDK has no
+picture tool of its own.
+
+`FadenstackAgent.ImagesAvailable` says whether such tools are offered. It is true only for a governed agent whose current
+profile says `Images` and that the server has not refused with `images_disabled` since. It is false in standalone (there are no
+pictures there yet) and before `StartAsync`. While it is false:
+
+- the agent leaves every `MakesPictures` tool out of what the model is offered, on every turn: a profile refresh that flips
+  `Images` changes the next turn;
+- a call to such a tool by name is refused like an unknown tool ("Tool 'insert_image' does not exist here.") and does not run;
+- the tools stay registered: `FadenstackAgent.Tools` and the app's own list do not change.
+
+An app that keeps its own list of picture tools, such as the Office add-ins, reads `ImagesAvailable` instead of its own
+standalone check.
+
+#### Image generation is off in core 0.7.1
+
+From 2 December 2026 the EU AI Act (Article 5) requires safeguards against generating harmful images, and core 0.7.1 does not
+have them yet. It refuses `/v1/images/generations` and the agent's `images/generations` route with HTTP 403, error type
+`invalid_request_error` and code `images_disabled`, and its agent profile always says `images: false`, so the picture tools are
+hidden. If a call is refused anyway, the agent:
+
+1. gives the model the tool result "Image generation is turned off in this version (EU AI Act, Article 5). Do not try again.";
+2. raises one notice per turn: outcome `images_disabled`, stage `tool`, category `images`;
+3. sets `ImagesAvailable` to false, so the picture tools are hidden from the next round on.
+
+The chat panel shows that notice with the title "Image generation is off" and the owner's note, in the person's language
+(English, German, French, Spanish, Simplified Chinese), instead of the server's message:
+"Image generation is turned off in this version. From 2 December 2026 the EU AI Act (Article 5) requires safeguards against
+generating harmful images, and this version does not have them yet. Image generation will return in a later version, with
+those safeguards."
+
+An app that calls `AgentResource.GenerateImagesAsync` itself tells this refusal from other errors with
+`FadenstackApiException.IsImagesDisabled` (a 403 whose `Code` is `ErrorCodes.ImagesDisabled`, `"images_disabled"`). Do not retry.
 
 ### Allow always
 

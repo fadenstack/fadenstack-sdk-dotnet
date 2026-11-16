@@ -136,10 +136,13 @@ public sealed class AgentBuilder
 
     public AgentBuilder AddTools<T>() where T : new() => AddTools(new T());
 
-    /// <summary>A function as a host tool. Without a class it is <see cref="ToolClass.Unknown"/> and always asks.</summary>
-    public AgentBuilder AddTool(AIFunction function, ToolClass toolClass = ToolClass.Unknown)
+    /// <summary>
+    /// A function as a host tool. Without a class it is <see cref="ToolClass.Unknown"/> and always asks. <paramref name="makesPictures"/>
+    /// says it asks the image model for a picture (<see cref="AgentTool.MakesPictures"/>).
+    /// </summary>
+    public AgentBuilder AddTool(AIFunction function, ToolClass toolClass = ToolClass.Unknown, bool makesPictures = false)
     {
-        Add(new AgentTool(function, toolClass));
+        Add(new AgentTool(function, toolClass) { MakesPictures = makesPictures });
         return this;
     }
 

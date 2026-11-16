@@ -30,6 +30,13 @@ public sealed class AgentToolAttribute : Attribute
     /// of it stands for the conversation at most (<see cref="ToolModes.Decide"/>).
     /// </summary>
     public bool OpenWorld { get; set; }
+
+    /// <summary>
+    /// The tool asks the server's image model for a picture (an app's <c>insert_image</c>, <c>add_image</c>). The agent offers
+    /// it to the model only while <see cref="FadenstackAgent.ImagesAvailable"/> is true, and refuses a call to it by name otherwise,
+    /// as it refuses an unknown tool. The tool stays registered: <see cref="FadenstackAgent.Tools"/> does not change.
+    /// </summary>
+    public bool MakesPictures { get; set; }
 }
 
 /// <summary>
@@ -153,6 +160,13 @@ public sealed class AgentTool
     /// <summary>Reaches outside the organisation (a web search, opening a page): below Auto a call to it asks. Null when nobody said.</summary>
     public bool? OpenWorld { get; }
 
+    /// <summary>
+    /// The tool asks the server's image model for a picture (an app's <c>insert_image</c>, <c>add_image</c>); see
+    /// <see cref="AgentToolAttribute.MakesPictures"/>. While <see cref="FadenstackAgent.ImagesAvailable"/> is false the agent leaves
+    /// it out of what the model is offered, on every turn, and a call to it by name is refused as unknown and does not run.
+    /// </summary>
+    public bool MakesPictures { get; init; }
+
     /// <summary>What the MCP server's annotations say: the tool only reads. Null when the server did not say; the card shows it, no mode acts on it.</summary>
     public bool? ReadOnlyHint { get; init; }
 
@@ -239,7 +253,9 @@ public sealed class AgentTool
     /// <param name="name">The name the model calls it by; letters, digits, <c>_</c> and <c>-</c>.</param>
     /// <param name="toolClass">What it does.</param>
     /// <param name="description">What the model is told it does.</param>
-    public static AgentTool FromMethod(MethodInfo method, object? target, string? name = null, ToolClass? toolClass = null, string? description = null)
+    /// <param name="makesPictures">Whether the tool asks the image model for a picture (<see cref="MakesPictures"/>); null: what its <see cref="AgentToolAttribute.MakesPictures"/> says.</param>
+    public static AgentTool FromMethod(MethodInfo method, object? target, string? name = null, ToolClass? toolClass = null, string? description = null,
+        bool? makesPictures = null)
     {
         if (method is null)
         {
@@ -259,6 +275,7 @@ public sealed class AgentTool
         return new AgentTool(function, toolClass ?? marker?.Class ?? ToolClass.Unknown, openWorld: marker?.OpenWorld == true ? true : null)
         {
             Outputs = OutputsOf(method, target),
+            MakesPictures = makesPictures ?? marker?.MakesPictures == true,
         };
     }
 

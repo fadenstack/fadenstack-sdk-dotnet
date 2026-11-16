@@ -1519,7 +1519,8 @@ public sealed class ChatSession
             var hookState = new ToolHookState();
             if (tool is null)
             {
-                (result, outcome) = (Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
+                (result, outcome) = (Agent.IsRefusedPictureTool(call.Name) ? ImagesDisabledResult
+                    : Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
             }
             else if (planned.Denied)
             {
@@ -1773,10 +1774,45 @@ public sealed class ChatSession
             {
                 return (e.Message, "denied", askedFor + _commandWaited, Array.Empty<DataContent>(), approval);
             }
+            catch (Exception e) when (ImagesDisabledIn(e))
+            {
+                // The server turned image generation off (core 0.7.1): the model is told in English and not to retry, the person
+                // gets the owner's note once per turn (the panel words it in their language), and the picture tools go from the next round.
+                Agent.MarkImagesRefused();
+                if (!_imagesNoticed)
+                {
+                    _imagesNoticed = true;
+                    await NoticeAsync(new GovernanceNotice
+                    {
+                        Outcome = "images_disabled", Stage = "tool", Category = "images", Message = ImagesDisabledNote,
+                    }).ConfigureAwait(false);
+                }
+                return (ImagesDisabledResult, "error", askedFor + _commandWaited, Array.Empty<DataContent>(), approval);
+            }
             catch (Exception e)
             {
                 return ($"Error: {e.Message}", "error", askedFor + _commandWaited, Array.Empty<DataContent>(), approval);
             }
+        }
+
+        private bool _imagesNoticed;
+
+        /// <summary>What the model reads when a tool's picture was refused with <c>images_disabled</c>.</summary>
+        internal const string ImagesDisabledResult = "Image generation is turned off in this version (EU AI Act, Article 5). Do not try again.";
+
+        /// <summary>The owner's note, in English: for a host that shows <see cref="GovernanceNotice.Message"/> as it is (the panel words it in the person's language).</summary>
+        internal const string ImagesDisabledNote = "Image generation is turned off in this version. From 2 December 2026 the EU AI Act (Article 5) requires safeguards against generating harmful images, and this version does not have them yet. Image generation will return in a later version, with those safeguards.";
+
+        private static bool ImagesDisabledIn(Exception e)
+        {
+            for (var inner = e; inner is not null; inner = inner.InnerException)
+            {
+                if (inner is FadenstackApiException { IsImagesDisabled: true })
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
