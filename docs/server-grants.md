@@ -10,9 +10,11 @@ This page covers the grants, Bypass, the lifecycle that keeps a grant from runni
 
 A grant lets the agent run, for a while, what would ask. Unlike "Allow always", the server holds it: the gateway checks
 every call against it, counts it, and ends it when the time is up, when the user or an administrator revokes it, or
-when the agent gets a new version. The device keeps a copy, `agent.Grants`, as the second line: a call runs under a
-grant only when the gateway says the grant covers it and the copy holds that grant, running. A copy that does not know
-the grant reads the server's list once; if it still lacks it, the user is asked. Grants need a server that holds them:
+when the agent gets a new version. The device checks a second time: a call runs under a grant only when the gateway
+says the grant covers it and the server's grant, read again for that call, is this device's and running, for this
+conversation where it is bound to one; it is read once more as the call goes out, with the arguments the tool gets, so a
+grant ended meanwhile (Stop, an administrator, the kill switch) runs nothing, and the call ends with an error. A server
+that cannot say covers nothing, and the user is asked. `agent.Grants` keeps what the server answered. Grants need a server that holds them:
 `agent.Grants.Available` says so (the profile's feature `approval_scopes.grant`).
 
 There are two kinds:
