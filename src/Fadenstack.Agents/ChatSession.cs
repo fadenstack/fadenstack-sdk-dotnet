@@ -610,6 +610,9 @@ public sealed class ChatSession
         }
     }
 
+    /// <summary>An entry a module writes outside a turn's own flow (the mark on a copy): into the transcript, in the turn it names.</summary>
+    internal Task RecordAsync(string type, string? turnId, object data) => AppendAsync(type, turnId, data);
+
     private async Task AppendAsync(string type, string? turnId, object data, string? status = null)
     {
         var entry = new TranscriptEntry

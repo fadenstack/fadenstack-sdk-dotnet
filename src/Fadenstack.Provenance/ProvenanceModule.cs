@@ -12,7 +12,8 @@ namespace Fadenstack.Provenance;
 /// <c>builder.Use(new ProvenanceModule(o =&gt; o.AddMarker(new CrmNoteMarker())))</c>. It keeps each turn's generation
 /// receipts (a chat stage), gives each tool call an <see cref="IProvenance"/> to place content with, and checks after
 /// each call that the content a tool declared (<c>[Emits]</c>) went through it (a tool stage); a call that placed
-/// nothing is recorded as <c>provenance.unmarked</c>, and in development mode fails.
+/// nothing is recorded as <c>provenance.unmarked</c>, and in development mode fails. It also marks what the person copies
+/// out of the chat (<see cref="FadenstackAgent.MarkCopyAsync"/>), as a placement of the tool <c>copy</c>.
 /// </summary>
 public sealed class ProvenanceModule : IFadenstackModule
 {
@@ -34,6 +35,7 @@ public sealed class ProvenanceModule : IFadenstackModule
         builder.AddChatStage(StageOrder.Provenance, inner => new ReceiptStage(inner, state.Receipts));
         builder.AddToolStage(StageOrder.Provenance, new OutputCheckStage(state));
         builder.AddToolService<IProvenance>(invocation => new ProvenanceCall(state, invocation));
+        builder.UseAnswerCopyMarker(agent => new AnswerCopyMarker(state, agent));
     }
 }
 

@@ -23,6 +23,7 @@ public sealed class AgentBuilder
     private bool _hookContent;
     private AgentOpenTelemetryOptions? _openTelemetry;
     private readonly Dictionary<Type, Func<ToolInvocation, object>> _toolServices = new();
+    private Func<FadenstackAgent, IAnswerCopyMarker>? _copyMarker;
     private readonly List<string> _modules = new();
     private FadenstackClient? _client;
     private FadenstackClientOptions? _options;
@@ -395,6 +396,16 @@ public sealed class AgentBuilder
         return this;
     }
 
+    /// <summary>
+    /// Who marks what the person copies out of a chat (<see cref="FadenstackAgent.MarkCopyAsync"/>): <paramref name="create"/> is
+    /// given the agent when it is first needed. <c>Fadenstack.Provenance</c> sets it; one set later replaces it. TS: <c>useAnswerCopyMarker</c>.
+    /// </summary>
+    public AgentBuilder UseAnswerCopyMarker(Func<FadenstackAgent, IAnswerCopyMarker> create)
+    {
+        _copyMarker = create ?? throw new ArgumentNullException(nameof(create));
+        return this;
+    }
+
     public AgentBuilder Use(IFadenstackModule module)
     {
         if (module is null)
@@ -543,6 +554,7 @@ public sealed class AgentBuilder
             Hooks = hooks.OrderBy(h => h.Order).ThenBy(h => h.Index).Select(h => h.Hooks).ToList(),
             HookContent = _hookContent,
             ToolServices = new Dictionary<Type, Func<ToolInvocation, object>>(_toolServices),
+            CopyMarker = _copyMarker,
             Modules = _modules.ToList(),
             Approvals = _approvals,
             Sessions = _sessions,
@@ -617,6 +629,7 @@ internal sealed class AgentSettings
     public List<IAgentHooks> Hooks { get; init; } = new();
     public bool HookContent { get; init; }
     public Dictionary<Type, Func<ToolInvocation, object>> ToolServices { get; init; } = new();
+    public Func<FadenstackAgent, IAnswerCopyMarker>? CopyMarker { get; init; }
     public List<string> Modules { get; init; } = new();
     public IApprovalHandler Approvals { get; init; } = DenyAllApprovals.Instance;
 
