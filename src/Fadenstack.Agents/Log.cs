@@ -103,11 +103,11 @@ internal static partial class Log
         Message = "Agent {Agent} keeps session transcripts in memory only: no OS key store is available to encrypt them on disk")]
     internal static partial void TranscriptsNotKept(ILogger logger, string agent);
 
-    [LoggerMessage(EventId = 2083, Level = LogLevel.Warning,
+    [LoggerMessage(EventId = 2085, Level = LogLevel.Warning,
         Message = "A tool call could not be written to the audit log ({Kind}); the call goes on and the next check of the log reports the gap")]
     internal static partial void AuditNotWritten(ILogger logger, string kind);
 
-    [LoggerMessage(EventId = 2084, Level = LogLevel.Warning,
+    [LoggerMessage(EventId = 2086, Level = LogLevel.Warning,
         Message = "Old entries of the audit log could not be removed ({Kind})")]
     internal static partial void AuditNotPruned(ILogger logger, string kind);
 

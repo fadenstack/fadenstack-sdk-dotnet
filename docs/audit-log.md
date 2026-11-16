@@ -85,7 +85,7 @@ data root's `audit/` from a server that names no user.
 **Several processes.** Each writer holds the exclusive lock on `audit.lock` while it reads the last entry and appends the
 next, retrying for a few seconds, so two apps never fork the chain. Two instances appending in parallel are tested.
 
-**Writing never breaks a turn.** An append that fails is logged (the kind of failure only, event 2083), the tool call goes
+**Writing never breaks a turn.** An append that fails is logged (the kind of failure only, event 2085), the tool call goes
 on, and the next verify reports the gap.
 
 ## Keeping and removing it
