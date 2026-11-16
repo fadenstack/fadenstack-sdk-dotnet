@@ -194,6 +194,10 @@
     <value>What it is given leaves your organisation: it goes to another site.</value>
     <comment>Why a card asks about a tool that reaches outside the organisation</comment>
   </data>
+  <data name="ApprovalArgumentsShortened" xml:space="preserve">
+    <value>The arguments are shortened.</value>
+    <comment>The note under the arguments of a card whose text was cut or is not a JSON object</comment>
+  </data>
   <data name="ApprovalLeadsOutside" xml:space="preserve">
     <value>This path leads through a link outside the places you let it work in: to {0}.</value>
     <comment>Why a card asks although the user let the agent work in a place: a link (a symbolic link, a junction) leads out of it; {0} is where it really leads</comment>

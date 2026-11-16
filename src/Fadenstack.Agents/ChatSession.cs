@@ -1574,6 +1574,8 @@ public sealed class ChatSession
                 Reason = ChatWire.Str(value, "message") ?? "",
                 OpenWorld = OpenWorld(value),
             };
+            var (shown, shortened) = GatewayArguments(value);
+            request = request with { Arguments = shown, ArgumentsShortened = shortened };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
             var audit = _audit = new ToolAudit();
@@ -1625,6 +1627,49 @@ public sealed class ChatSession
                 // the gateway expires it on its own
             }
         }
+
+        /// <summary>
+        /// The arguments a held call's card shows, from the event's <c>arguments</c> text (core 0.7.1 rc22; capped at 8000 characters there and
+        /// here): the members of the JSON object when the text is complete, else the text as one read-only value, with the flag that the card says
+        /// it is shortened. Nothing from an older gateway or an empty text. TS: <c>gatewayArguments</c>.
+        /// </summary>
+        internal static (IReadOnlyDictionary<string, object?> Arguments, bool Shortened) GatewayArguments(JsonElement value)
+        {
+            var none = (new Dictionary<string, object?>() as IReadOnlyDictionary<string, object?>, false);
+            if (ChatWire.Str(value, "arguments") is not { Length: > 0 } text)
+            {
+                return none;
+            }
+            var cut = value.TryGetProperty("argumentsTruncated", out var t) && t.ValueKind == JsonValueKind.True;
+            if (text.Length > MaxGatewayArgumentsText)
+            {
+                text = text.Substring(0, MaxGatewayArgumentsText);
+                cut = true;
+            }
+            if (!cut)
+            {
+                try
+                {
+                    using var document = JsonDocument.Parse(text);
+                    if (document.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        var members = new Dictionary<string, object?>();
+                        foreach (var member in document.RootElement.EnumerateObject())
+                        {
+                            members[member.Name] = member.Value.Clone();
+                        }
+                        return (members, false);
+                    }
+                }
+                catch (JsonException)
+                {
+                    // not JSON: shown as the text it is
+                }
+            }
+            return (new Dictionary<string, object?> { ["arguments"] = text }, true);
+        }
+
+        private const int MaxGatewayArgumentsText = 8000;
 
         /// <summary>The hash of a held call's arguments, from what the gateway's event says (see the comment at the call).</summary>
         private static string? GatewayArgumentsHash(JsonElement value)

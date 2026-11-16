@@ -49,6 +49,10 @@ These ask, or are refused, at every level, Bypass included. Bypass skips questio
 
 **Destructive and unclassified calls** (`destructive_or_unclassified`, `ApprovalFloor.DestructiveOrUnclassified`; not on the list) ask at every level except Bypass. Bypass covers them only where the tenant allows it, after the second sign-in ([Bypass](server-grants.md#bypass)), and only the calls the gateway says the conversation's grant covers; the rest still ask.
 
+## The arguments of a call the gateway holds
+
+From core 0.7.1 (rc22) the event of a call the gateway holds for the person carries the call's `arguments` text (cut at 8000 characters), `argumentsTruncated` when it was cut, and `argumentsSha256`. The SDK fills `ApprovalRequest.Arguments` from it, so the card shows them as it does for the app's own calls: when the text is a complete JSON object, its members; when it was cut or is not a JSON object, the text as one read-only value under the note "The arguments are shortened." (`ApprovalRequest.ArgumentsShortened`, `ApprovalPart.ArgumentsNote`; five languages). The card never shows more than its usual preview. An older gateway sends none, and the card shows no arguments, as before. The record of tool calls takes the hash from the same event. TypeScript: `ApprovalRequest.arguments`, `argumentsShortened`, `ApprovalPart.argumentsNote`.
+
 ## After a restart
 
 Neither SDK stores a pending approval card. When the app closes or reloads (an Office pane reloads, Chrome stops an extension's worker), the turn ends and the person asks again. What survives a restart is "Allow always", sealed as above. A Bypass grant is the server's; `agent.Grants.PauseBypassAsync()` and `ResumeBypassAsync()` carry it across a restart ([Bypass](server-grants.md#bypass)).

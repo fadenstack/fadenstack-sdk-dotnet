@@ -487,6 +487,12 @@ public sealed class ApprovalPart : ResponsePart
 
     public string ArgumentsText => ToolCallPart.Preview(_arguments, _previewLength, _strings);
 
+    /// <summary>"The arguments are shortened." under a held call's arguments that were cut or are not a JSON object; else "". TS: <c>argumentsNote</c>.</summary>
+    public string ArgumentsNote => Request.ArgumentsShortened && _arguments.Length > 0 ? _strings.ApprovalArgumentsShortened : "";
+
+    /// <summary>Whether the card shows <see cref="ArgumentsNote"/>.</summary>
+    public bool HasArgumentsNote => ArgumentsNote.Length > 0;
+
     public ApprovalState State
     {
         get => _state;
@@ -604,8 +610,11 @@ public sealed class ApprovalPart : ResponsePart
         State = state;
     }
 
+    // A shortened text (cut, or not a JSON object) is one read-only value: its text alone, no name before it.
     private static string Arguments(ApprovalRequest request) =>
-        request.Arguments.Count == 0 ? "" : string.Join("\n", request.Arguments.Select(a => $"{a.Key}: {Value(a.Value)}"));
+        request.Arguments.Count == 0 ? ""
+        : request.ArgumentsShortened && request.Arguments.Count == 1 && request.Arguments.TryGetValue("arguments", out var text) ? Value(text)
+        : string.Join("\n", request.Arguments.Select(a => $"{a.Key}: {Value(a.Value)}"));
 
     private static string Value(object? value) => value switch
     {

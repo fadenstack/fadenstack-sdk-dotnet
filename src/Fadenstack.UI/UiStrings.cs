@@ -159,6 +159,9 @@ public sealed class UiStrings
     /// <summary>Why a card asks about a tool that reaches outside the organisation.</summary>
     public string ApprovalOutsideWhy => Text();
 
+    /// <summary>The note under the arguments of a card whose text was cut or is not a JSON object: "The arguments are shortened." TS: <c>approvalArgumentsShortened</c>.</summary>
+    public string ApprovalArgumentsShortened => Text();
+
     /// <summary>Why a card asks although the user let the agent work in a place: a link leads out of it, to <c>{0}</c>.</summary>
     public string ApprovalLeadsOutside(string realPlace) => Fill(realPlace);
 
