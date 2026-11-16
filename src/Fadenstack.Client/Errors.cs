@@ -37,6 +37,22 @@ public class FadenstackApiException : FadenstackException
     /// whatever its status, so a refusal's details are not lost.
     /// </summary>
     public JsonElement? Faden { get; internal set; }
+
+    /// <summary>
+    /// The server refused a picture because image generation is off in this version (core 0.7.1, EU AI Act Article 5): a 403 whose code is
+    /// <see cref="ErrorCodes.ImagesDisabled"/>. Other 403s are not.
+    /// </summary>
+    public bool IsImagesDisabled => (int)Status == 403 && string.Equals(Code, ErrorCodes.ImagesDisabled, StringComparison.Ordinal);
+}
+
+/// <summary>Error codes the server sends that an app may act on (<see cref="FadenstackApiException.Code"/>).</summary>
+public static class ErrorCodes
+{
+    /// <summary>
+    /// 403, error type <c>invalid_request_error</c>: image generation (<c>/v1/images/generations</c>, <see cref="Resources.AgentResource.GenerateImagesAsync"/>)
+    /// is turned off in this version, and <see cref="Models.AgentProfile.Images"/> is false. It is not temporary: do not retry.
+    /// </summary>
+    public const string ImagesDisabled = "images_disabled";
 }
 
 /// <summary>401: no or a bad token. For an agent: sign in again.</summary>

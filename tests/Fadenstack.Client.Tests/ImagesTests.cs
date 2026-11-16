@@ -51,4 +51,28 @@ public class ImagesTests
         var error = await Assert.ThrowsAnyAsync<FadenstackException>(() => client.Agent!.GenerateImagesAsync(new ImageRequest { Prompt = "x" }));
         Assert.Contains("No image model", error.Message);
     }
+
+    private static FadenstackClient ClientFor(FakeServer server) => new(new FadenstackClientOptions
+    {
+        ServerUrl = new Uri("https://faden.test"), Agent = "powerpoint-assistant", Credentials = new StaticTokenProvider("t"),
+        HttpClient = new HttpClient(server),
+    });
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "images_disabled", "invalid_request_error", true)]
+    [InlineData(HttpStatusCode.Forbidden, "agent_not_granted", "permission_error", false)]
+    [InlineData(HttpStatusCode.Forbidden, null, "permission_error", false)]
+    [InlineData(HttpStatusCode.BadRequest, "images_disabled", "invalid_request_error", false)]
+    public async Task A_refusal_with_images_disabled_is_told_apart_from_other_errors(HttpStatusCode status, string? code, string type, bool expected)
+    {
+        var server = new FakeServer().Json("POST", "/v1/agents/powerpoint-assistant/images/generations",
+            new { error = new { message = "No.", type, code } }, status);
+        using var client = ClientFor(server);
+
+        var error = await Assert.ThrowsAnyAsync<FadenstackApiException>(() => client.Agent!.GenerateImagesAsync(new ImageRequest { Prompt = "x" }));
+
+        Assert.Equal(expected, error.IsImagesDisabled);
+        Assert.Equal(expected, error.Code == ErrorCodes.ImagesDisabled && (int)error.Status == 403);
+        Assert.Equal("images_disabled", ErrorCodes.ImagesDisabled);
+    }
 }

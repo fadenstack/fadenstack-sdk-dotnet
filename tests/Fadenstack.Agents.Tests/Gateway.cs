@@ -84,6 +84,9 @@ public sealed class Gateway
 
     public FakeServer Server { get; }
 
+    /// <summary>The profile's <c>images</c>: whether the server has an image model for the agent's tools; read at each profile request.</summary>
+    public bool Images { get; set; }
+
     /// <summary>The profile's <c>version</c> (the agent's published version); tests change it on the way.</summary>
     public int Version { get; set; } = 3;
 
@@ -274,7 +277,7 @@ public sealed class Gateway
         var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
         return $$"""
                 {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":{{Version}},"draft":false,
-                 "model":"qwen3-32b","vision":{{vision}},"images":false,"skills":{{skills}},"ui":{{ui}},
+                 "model":"qwen3-32b","vision":{{vision}},"images":{{(Images ? "true" : "false")}},"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},
                  "approvals":{{Approvals}},

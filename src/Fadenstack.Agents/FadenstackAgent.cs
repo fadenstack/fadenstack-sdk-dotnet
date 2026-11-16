@@ -305,7 +305,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             tools.Add(new AgentTool(tool.Function, risk == ToolClass.Unknown ? ToolClass.Unknown : AgentTool.Effective(tool.Class, risk),
                 tool.Source, tool.Server, tool.OpenWorld) {
                 Describe = tool.Describe, Outputs = tool.Outputs, Scope = tool.Scope, ReadOnlyHint = tool.ReadOnlyHint, DestructiveHint = tool.DestructiveHint,
-                Approval = entry?.Approval,
+                Approval = entry?.Approval, MakesPictures = tool.MakesPictures,
             });
         }
         return tools;
@@ -858,10 +858,40 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         }
     }
 
-    /// <summary>The tools the model gets in <paramref name="session"/> this round: the mode's, and those the tool's scope offers.</summary>
-    internal IList<AITool> Offer(ToolMode mode, ChatSession session) =>
-        _tools.Where(t => (t.Scope is null || t.Scope.Offers(t, session)) && ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden)
+    /// <summary>
+    /// The tools the model gets in <paramref name="session"/> this round: the mode's, and those the tool's scope offers; a tool that
+    /// <see cref="AgentTool.MakesPictures"/> only while <see cref="ImagesAvailable"/> (read at each round, so a profile that changed
+    /// <c>images</c> or a refusal counts from the next one).
+    /// </summary>
+    internal IList<AITool> Offer(ToolMode mode, ChatSession session)
+    {
+        var pictures = ImagesAvailable;
+        return _tools.Where(t => (pictures || !t.MakesPictures) && (t.Scope is null || t.Scope.Offers(t, session))
+                && ToolModes.Decide(mode, t.Class) != ToolModeDecision.Hidden)
             .Select(t => (AITool)t.Function).ToList();
+    }
 
-    internal AgentTool? Find(string name) => _tools.FirstOrDefault(t => t.Name == name);
+    /// <summary>The tool of this name a call may run; a picture tool while <see cref="ImagesAvailable"/> is false is not one (refused as unknown).</summary>
+    internal AgentTool? Find(string name)
+    {
+        var tool = _tools.FirstOrDefault(t => t.Name == name);
+        return tool is { MakesPictures: true } && !ImagesAvailable ? null : tool;
+    }
+
+    private volatile bool _imagesRefused;
+
+    /// <summary>Whether <paramref name="name"/> is a picture tool that is hidden because the server refused pictures (a second call in the round that got the refusal).</summary>
+    internal bool IsRefusedPictureTool(string name) => _imagesRefused && _tools.Any(t => t.MakesPictures && t.Name == name);
+
+    /// <summary>
+    /// Whether tools that make pictures (<see cref="AgentTool.MakesPictures"/>) are offered: only for a governed agent whose
+    /// current profile says <c>images: true</c> and that the server has not refused with <c>images_disabled</c> since
+    /// (<see cref="FadenstackApiException.IsImagesDisabled"/>). False in standalone (no pictures there yet) and before
+    /// <see cref="StartAsync"/>. An app that keeps its own list of picture tools (the Office add-ins) passes this instead of its own check.
+    /// </summary>
+    public bool ImagesAvailable =>
+        Connection == AgentConnection.Governed && _profile is { Images: true } && !_imagesRefused;
+
+    /// <summary>The server refused a picture with <c>images_disabled</c>: the picture tools are hidden from the next round on.</summary>
+    internal void MarkImagesRefused() => _imagesRefused = true;
 }
