@@ -43,7 +43,14 @@ public sealed record DelegationStatus(string TaskId, string Agent, string State,
 
 /// <summary>An approval the other agent's loop needs, for the caller's person to decide.</summary>
 public sealed record DelegationApprovalRequest(string TaskId, string ApprovalId, string Agent, string AgentName, string Tool,
-    ToolClass ToolClass, string Summary, string ArgumentsPreview);
+    ToolClass ToolClass, string Summary, string ArgumentsPreview)
+{
+    /// <summary>
+    /// The other agent asks for this call every time (an admin rule, a destructive or unclassified tool, or an agent too old to
+    /// say). Do not offer "for this task" then: such an approval covers this call only, and the next call asks again.
+    /// </summary>
+    public bool AsksEveryTime { get; init; } = true;
+}
 
 /// <summary>The agent has several documents open and the task named none: which one, for the caller's person to choose.</summary>
 public sealed record DelegationChoiceRequest(string TaskId, string Agent, string AgentName, IReadOnlyList<string> Documents);

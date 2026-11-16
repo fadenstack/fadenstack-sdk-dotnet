@@ -44,6 +44,8 @@ var result = await delegation.RunAsync(
 // result.Outcome: Completed, Failed, Canceled, Rejected or NotRunning; result.Text is the answer or the reason
 ```
 
+An approval with `ForSession` ("for this task") answers that tool's later calls in the same task without asking again, except where the other agent asks every time: `DelegationApprovalRequest.AsksEveryTime` is true for an admin's rule, the author's `approval: always`, a destructive or unclassified tool, and for an agent too old to say. Hide "for this task" on such a card; an approval of it covers that one call, and the next call is asked again ([Tools](tools.md), the calls that always ask).
+
 ## As a tool: `delegate`
 
 `DelegateToolModule` gives the model one `delegate(agent, task, references)` tool for all other agents. The `agent` argument is an enum of the slugs in the agent profile's `ui.delegates`, which is also the allowlist; with none, or with a tool contract that does not list `delegate`, the tool is not offered. The description lists each agent as `slug: name, summary`, taken from the card of the agent when it is running. The tool is class `write`, and the answer comes back fenced as untrusted content.
@@ -64,7 +66,7 @@ Each call is reported to the server as a `tool.executed` event for the tool `del
 
 ## On the wire
 
-The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview}`; the answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
+The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview, asksEveryTime}`; only `asksEveryTime: false` lets the caller answer later calls of the tool for the task, and a missing flag (an agent on 0.3.0-standalone.8 or older) counts as true. The answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
 
 ## Getting the package
 

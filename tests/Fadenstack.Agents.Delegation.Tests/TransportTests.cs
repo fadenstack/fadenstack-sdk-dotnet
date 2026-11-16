@@ -133,9 +133,75 @@ public sealed class TransportTests : IDisposable
 
         Assert.Equal((TaskState.Completed, "decided " + choice), (outcome.State, outcome.Text));
         var ask = Assert.Single(observer.Asked);
-        Assert.Equal(("ap-1", "add_comment", "write", "Comment on page 2", """{"page":2}"""),
-            (ask.ApprovalId, ask.Tool, ask.ToolClass, ask.Summary, ask.ArgumentsPreview));
+        Assert.Equal(("ap-1", "add_comment", "write", "Comment on page 2", """{"page":2}""", true),
+            (ask.ApprovalId, ask.Tool, ask.ToolClass, ask.Summary, ask.ArgumentsPreview, ask.AsksEveryTime));
         Assert.Contains(observer.Statuses, s => s.StartsWith("input-required"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Whether_a_call_asks_every_time_travels_with_the_approval(bool asksEveryTime)
+    {
+        var (server, runner) = Serve();
+        runner.Run = async (request, channel, token) =>
+        {
+            await channel.RequestApprovalAsync(new ApprovalAsk("ap-1", "a", "write", "", "") { AsksEveryTime = asksEveryTime }, token);
+            return new TaskOutcome(request.TaskId, TaskState.Completed, "ok");
+        };
+        var observer = new Observer();
+
+        await new PipeDelegationClient().RunAsync(server.Endpoint, Request(), observer, CancellationToken.None);
+
+        Assert.Equal(asksEveryTime, Assert.Single(observer.Asked).AsksEveryTime);
+    }
+
+    [Theory]
+    // 0.3.0-standalone.8 and older send no flag: their asks are asked every time (09-handoffs 2.1)
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":""}""", true)]
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":"","asksEveryTime":null}""", true)]
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":"","asksEveryTime":"false"}""", true)]
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":"","asksEveryTime":0}""", true)]
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":"","asksEveryTime":true}""", true)]
+    [InlineData("""{"approvalId":"ap-1","tool":"a","toolClass":"write","summary":"","argumentsPreview":"","asksEveryTime":false}""", false)]
+    public void Only_an_explicit_false_lets_the_caller_answer_an_ask_for_the_rest_of_the_task(string data, bool asksEveryTime)
+    {
+        using var json = System.Text.Json.JsonDocument.Parse(data);
+
+        var ask = A2AParts.Ask(json.RootElement);
+
+        Assert.Equal(("ap-1", "a", "write", asksEveryTime), (ask.ApprovalId, ask.Tool, ask.ToolClass, ask.AsksEveryTime));
+    }
+
+    [Theory]
+    [InlineData(true, 2, "Once,Once")] // asked twice; "for this task" counts for the one call
+    [InlineData(false, 1, "Chat,Once")] // the second call is answered from the person's "for this task"
+    public async Task The_caller_answers_for_the_task_only_what_the_agent_lets_it(bool asksEveryTime, int asked, string answers)
+    {
+        var (server, runner) = Serve();
+        runner.Run = async (request, channel, token) =>
+        {
+            var first = await channel.RequestApprovalAsync(new ApprovalAsk("ap-1", "add_comment", "write", "", "") { AsksEveryTime = asksEveryTime }, token);
+            var second = await channel.RequestApprovalAsync(new ApprovalAsk("ap-2", "add_comment", "write", "", "") { AsksEveryTime = asksEveryTime }, token);
+            return new TaskOutcome(request.TaskId, TaskState.Completed, first + "," + second);
+        };
+        var registry = new DeviceAgentRegistry(_folder);
+        using var registration = registry.Register(new AgentPresence { Agent = "word-assistant", Delegation = server.Endpoint });
+        var requests = new List<DelegationApprovalRequest>();
+
+        var result = await new LocalAgentDelegate(registry, "desktop-assistant", "Desktop agent").RunAsync(new DelegationRequest("word-assistant", "Comment twice."),
+            new DelegationCallbacks
+            {
+                Approve = (r, _) =>
+                {
+                    requests.Add(r);
+                    return Task.FromResult(ApprovalDecision.ApproveForSession());
+                },
+            });
+
+        Assert.Equal((DelegationOutcome.Completed, answers), (result.Outcome, result.Text));
+        Assert.Equal(asked, requests.Count);
+        Assert.All(requests, r => Assert.Equal(asksEveryTime, r.AsksEveryTime));
     }
 
     [Fact]
