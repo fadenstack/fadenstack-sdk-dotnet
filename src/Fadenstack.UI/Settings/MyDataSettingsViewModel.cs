@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Agents;
+using Fadenstack.Agents.Audit;
 using Fadenstack.UI.Services;
 using Fadenstack.UI.Skills;
 
@@ -17,6 +18,19 @@ public interface IMyDataSource
 
     /// <summary>Writes the ZIP of the person's data in <paramref name="scope"/> to <paramref name="destination"/> (left open).</summary>
     Task ExportAsync(Stream destination, DataScope scope, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// What a source adds when it keeps the person's record of tool calls (sdk/51 8.10): the check of the record and its export as a web
+/// page. The agent's source does; a source that does not leaves the line and its button out. TS: <c>MyDataSource.audit</c>.
+/// </summary>
+public interface IMyDataAuditSource
+{
+    /// <summary>Checks the person's record of tool calls on this device (<see cref="FadenstackAgent.VerifyAuditAsync"/>).</summary>
+    Task<AuditVerification> AuditAsync(CancellationToken cancellationToken);
+
+    /// <summary>Writes the record as one self-contained HTML page to <paramref name="destination"/> (left open).</summary>
+    Task ExportAuditAsync(Stream destination, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -81,6 +95,8 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
     private Failure _failure;
     private bool _exported;
     private bool _picking;
+    private AuditVerification? _audit;
+    private bool _auditUnreadable;
 
     /// <param name="agent">The agent whose app it is.</param>
     /// <param name="saveTarget">Where the host lets the person save an export.</param>
@@ -108,7 +124,52 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         RemoveAllCommand = new AsyncRelayCommand(() => BeginRemoveAsync(DataScope.AllApps), CanStart);
         ConfirmCommand = new AsyncRelayCommand(ConfirmAsync, () => IsConfirming);
         CancelCommand = new RelayCommand(Cancel, () => IsConfirming || IsDone || IsError);
+        ExportAuditCommand = new AsyncRelayCommand(ExportAuditAsync, () => CanStart() && HasAudit);
+        AuditLoading = RefreshAuditAsync();
     }
+
+    /// <summary>The first check of the record of tool calls (a test waits for it).</summary>
+    public Task AuditLoading { get; }
+
+    /// <summary>Whether the source keeps the person's record of tool calls: the line and the button show.</summary>
+    public bool HasAudit => _source is IMyDataAuditSource;
+
+    /// <summary>
+    /// "Record of tool calls: N entries since &lt;date&gt;, intact", or "damaged at entry N", "no entries yet", "could not be checked"; empty until
+    /// the first check is done, and where the source keeps no record.
+    /// </summary>
+    public string AuditLine
+    {
+        get
+        {
+            if (_auditUnreadable)
+            {
+                return Strings.MyDataAuditUnreadable;
+            }
+            if (_audit is not { } audit)
+            {
+                return "";
+            }
+            if (!audit.Intact)
+            {
+                return Strings.MyDataAuditDamaged(audit.BrokenAtSeq ?? audit.FirstSeq ?? 0);
+            }
+            if (audit.Entries == 0)
+            {
+                return Strings.MyDataAuditEmpty;
+            }
+            var since = (audit.FirstTime ?? DateTimeOffset.UtcNow).ToLocalTime().ToString("d", Strings.FormatCulture);
+            return audit.Entries == 1 ? Strings.MyDataAuditIntactOne(since) : Strings.MyDataAuditIntact(audit.Entries, since);
+        }
+    }
+
+    public bool HasAuditLine => AuditLine.Length > 0;
+
+    /// <summary>The record is damaged: the line shows as a warning, not as a caption.</summary>
+    public bool AuditDamaged => _auditUnreadable || _audit is { Intact: false };
+
+    /// <summary>Saves the record of tool calls as one web page (a table; no script, nothing loaded from outside).</summary>
+    public IAsyncRelayCommand ExportAuditCommand { get; }
 
     public UiStrings Strings => _strings();
 
@@ -217,6 +278,33 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         OnPropertyChanged(nameof(ConfirmButtonText));
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(ErrorText));
+        OnPropertyChanged(nameof(AuditLine));
+    }
+
+    /// <summary>Checks the record of tool calls again (it changes as the agents work); a failed check is a sentence, never its reason.</summary>
+    public async Task RefreshAuditAsync()
+    {
+        if (_source is not IMyDataAuditSource audit)
+        {
+            return;
+        }
+        AuditVerification? result = null;
+        try
+        {
+            result = await audit.AuditAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // said as a sentence, without the reason
+        }
+        _dispatcher.Post(() =>
+        {
+            (_audit, _auditUnreadable) = (result, result is null);
+            OnPropertyChanged(nameof(AuditLine));
+            OnPropertyChanged(nameof(HasAuditLine));
+            OnPropertyChanged(nameof(AuditDamaged));
+            NotifyCommands();
+        });
     }
 
     private bool CanStart() => IsIdle && !_picking;
@@ -350,6 +438,60 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         _exported = false;
         _deletion = null;
         SetState(MyDataState.Idle);
+        _ = RefreshAuditAsync(); // a removal may have taken the record
+    }
+
+    private async Task ExportAuditAsync()
+    {
+        if (_source is not IMyDataAuditSource audit)
+        {
+            return;
+        }
+        Stream? stream;
+        _picking = true;
+        NotifyCommands();
+        try
+        {
+            // the host's dialog opens on the UI thread: no ConfigureAwait(false) before it has answered
+            stream = await _saveTarget.OpenAsync(AuditFileName, CancellationToken.None);
+        }
+        catch (Exception)
+        {
+            _picking = false;
+            Fail(Failure.Export);
+            return;
+        }
+        _picking = false;
+        if (stream is null)
+        {
+            NotifyCommands(); // cancelled: nothing changes
+            return;
+        }
+        _exported = false;
+        SetState(MyDataState.Busy);
+        var written = false;
+        try
+        {
+            using (stream)
+            {
+                await audit.ExportAuditAsync(stream, CancellationToken.None).ConfigureAwait(false);
+            }
+            written = true;
+        }
+        catch (Exception)
+        {
+            // said as a sentence, without the reason
+        }
+        _dispatcher.Post(() =>
+        {
+            if (!written)
+            {
+                Fail(Failure.Export);
+                return;
+            }
+            _exported = true;
+            SetState(MyDataState.Idle);
+        });
     }
 
     private void Fail(Failure failure)
@@ -371,6 +513,7 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         ExportAllCommand.NotifyCanExecuteChanged();
         RemoveCommand.NotifyCanExecuteChanged();
         RemoveAllCommand.NotifyCanExecuteChanged();
+        ExportAuditCommand.NotifyCanExecuteChanged();
         ConfirmCommand.NotifyCanExecuteChanged();
         CancelCommand.NotifyCanExecuteChanged();
     }
@@ -380,7 +523,10 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
 
     internal const string AllFileName = "fadenstack-all-my-data.zip";
 
-    private sealed class AgentSource : IMyDataSource
+    /// <summary>The name the record of tool calls is suggested under.</summary>
+    internal const string AuditFileName = "fadenstack-tool-calls.html";
+
+    private sealed class AgentSource : IMyDataSource, IMyDataAuditSource
     {
         private readonly FadenstackAgent _agent;
 
@@ -392,5 +538,10 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
 
         public Task ExportAsync(Stream destination, DataScope scope, CancellationToken cancellationToken) =>
             _agent.ExportMyDataAsync(destination, scope, cancellationToken);
+
+        public Task<AuditVerification> AuditAsync(CancellationToken cancellationToken) => _agent.VerifyAuditAsync(cancellationToken);
+
+        public Task ExportAuditAsync(Stream destination, CancellationToken cancellationToken) =>
+            _agent.ExportAuditAsync(AuditExportFormat.Html, destination, cancellationToken);
     }
 }

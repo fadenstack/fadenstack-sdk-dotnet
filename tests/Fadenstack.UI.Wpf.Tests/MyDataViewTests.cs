@@ -158,6 +158,10 @@ public class MyDataViewTests
             Assert.Contains(s.MyDataExportAll, texts);
             Assert.Contains(s.MyDataRemove, texts);
             Assert.Contains(s.MyDataRemoveAll, texts);
+            // The record of tool calls: its line (12 entries, intact) and the button that saves it as a web page.
+            Assert.Contains(s.MyDataAuditExport, texts);
+            Assert.NotEqual("", host.Model.AuditLine);
+            Assert.Equal(host.Model.AuditLine, host.Find<TextBlock>("AuditLine").Text);
         }
         if (state == "exported")
         {
@@ -233,10 +237,11 @@ public class MyDataViewTests
         Assert.Same(host.Model.ExportAllCommand, host.Find<Button>("ExportAllButton").Command);
         Assert.Same(host.Model.RemoveCommand, host.Find<Button>("RemoveButton").Command);
         Assert.Same(host.Model.RemoveAllCommand, host.Find<Button>("RemoveAllButton").Command);
+        Assert.Same(host.Model.ExportAuditCommand, host.Find<Button>("ExportAuditButton").Command);
         Assert.Same(host.Model.ConfirmCommand, host.Find<Button>("ConfirmButton").Command);
         Assert.Same(host.Model.CancelCommand, host.Find<Button>("CancelButton").Command);
         Assert.Same(host.Model.CancelCommand, host.Find<Button>("DismissButton").Command);
-        Assert.All(new[] { "ExportButton", "ExportAllButton", "RemoveButton", "RemoveAllButton" }, n => Assert.True(host.Find<Button>(n).IsEnabled, n));
+        Assert.All(new[] { "ExportButton", "ExportAllButton", "ExportAuditButton", "RemoveButton", "RemoveAllButton" }, n => Assert.True(host.Find<Button>(n).IsEnabled, n));
     });
 
     [Fact]

@@ -2587,4 +2587,25 @@
   <data name="MyDataListSeparator" xml:space="preserve">
     <value>, </value>
   </data>
+  <data name="MyDataAuditIntact" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe: {0} Einträge seit {1}, unversehrt</value>
+  </data>
+  <data name="MyDataAuditIntactOne" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe: 1 Eintrag seit {0}, unversehrt</value>
+  </data>
+  <data name="MyDataAuditDamaged" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe: beschädigt bei Eintrag {0}</value>
+  </data>
+  <data name="MyDataAuditEmpty" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe: noch keine Einträge</value>
+  </data>
+  <data name="MyDataAuditUnreadable" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe: konnte nicht geprüft werden</value>
+  </data>
+  <data name="MyDataAuditExport" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe exportieren…</value>
+  </data>
+  <data name="MyDataAuditExportName" xml:space="preserve">
+    <value>Protokoll der Werkzeugaufrufe exportieren… (als Webseite)</value>
+  </data>
 </root>
