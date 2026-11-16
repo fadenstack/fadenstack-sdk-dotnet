@@ -109,6 +109,7 @@ internal sealed class LiveCheck
             ["raw-rule-deny"] = RawRuleDenyAsync,
             ["raw-force-time"] = RawForceTimeAsync,
             ["gateway-decline"] = GatewayDeclineAsync,
+            ["images-off"] = ImagesOffAsync,
         };
         Console.WriteLine($"LiveCheck {phase}: {_server} agent {_slug} as {_email}");
         foreach (var name in names)
@@ -248,6 +249,26 @@ internal sealed class LiveCheck
         Expect(p.LocalMcp.Mode == "disable", $"local MCP {p.LocalMcp.Mode}");
         return $"{p.Name} v{p.Version} ({p.Edition}), model {p.Model}, tool modes default {p.ToolModes.Default} ceiling {p.ToolModes.Ceiling ?? "none"}, "
             + $"tools {string.Join(", ", agent.Tools.Select(t => $"{t.Name}:{t.Class.ToWire()}"))} (stamp_page dropped)";
+    }
+
+    // Core 0.7.1 turns image generation off for every install (EU AI Act, Article 5, from 2 Dec 2026): the profile says no
+    // images, the SDK offers no picture tool, and the agent's picture route refuses with images_disabled. Run on 0.7.1 only:
+    // on an older core this check asks the image model for a picture.
+    private async Task<string> ImagesOffAsync()
+    {
+        using var agent = Build();
+        await agent.StartAsync();
+        Expect(!agent.Profile.Images, "the profile says images: true");
+        Expect(!agent.ImagesAvailable, "ImagesAvailable is true");
+        try
+        {
+            await Client.Agent!.GenerateImagesAsync(new Fadenstack.Models.ImageRequest { Prompt = "A plain green square.", Size = "256x256" });
+        }
+        catch (FadenstackApiException e) when (e.IsImagesDisabled)
+        {
+            return $"profile images false, no picture tools; the picture route refused: {(int)e.Status} {e.Code} \"{Short(e.Message)}\"";
+        }
+        throw new CheckFailed("the picture route made a picture: image generation is not off");
     }
 
     private async Task<string> ChatAsync()
