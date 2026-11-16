@@ -2503,6 +2503,39 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Défini par la politique de votre organisation sur cet ordinateur.</value>
   </data>
+  <data name="ContentLoggingTitle" xml:space="preserve">
+    <value>Journalisation du contenu</value>
+  </data>
+  <data name="ContentLoggingBand" xml:space="preserve">
+    <value>La journalisation du contenu est activée jusqu'à {0}. Les prompts et les réponses sont écrits dans les journaux de l'application.</value>
+  </data>
+  <data name="ContentLoggingIntro" xml:space="preserve">
+    <value>Tant qu'elle est activée, les prompts et les réponses sont écrits dans les journaux de cette application. Elle s'arrête d'elle-même à la fin du délai et au redémarrage de l'application.</value>
+  </data>
+  <data name="ContentLoggingDuration" xml:space="preserve">
+    <value>Activer pour</value>
+  </data>
+  <data name="ContentLoggingOneHour" xml:space="preserve">
+    <value>1 heure</value>
+  </data>
+  <data name="ContentLoggingFourHours" xml:space="preserve">
+    <value>4 heures</value>
+  </data>
+  <data name="ContentLoggingDay" xml:space="preserve">
+    <value>24 heures</value>
+  </data>
+  <data name="ContentLoggingStart" xml:space="preserve">
+    <value>Démarrer</value>
+  </data>
+  <data name="ContentLoggingStartName" xml:space="preserve">
+    <value>Démarrer la journalisation du contenu</value>
+  </data>
+  <data name="ContentLoggingStopName" xml:space="preserve">
+    <value>Arrêter la journalisation du contenu</value>
+  </data>
+  <data name="ContentLoggingOnUntil" xml:space="preserve">
+    <value>Activée jusqu'à {0}.</value>
+  </data>
   <data name="MyDataTitle" xml:space="preserve">
     <value>Vos données sur cet appareil</value>
   </data>

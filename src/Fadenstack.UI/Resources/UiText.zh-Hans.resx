@@ -2503,6 +2503,39 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>由您的组织在此电脑上的策略设定。</value>
   </data>
+  <data name="ContentLoggingTitle" xml:space="preserve">
+    <value>内容日志记录</value>
+  </data>
+  <data name="ContentLoggingBand" xml:space="preserve">
+    <value>内容日志记录已开启，截止到 {0}。提示词和回答会写入应用的日志。</value>
+  </data>
+  <data name="ContentLoggingIntro" xml:space="preserve">
+    <value>开启期间，提示词和回答会写入此应用的日志。时间到或应用重启时，它会自动关闭。</value>
+  </data>
+  <data name="ContentLoggingDuration" xml:space="preserve">
+    <value>开启时长</value>
+  </data>
+  <data name="ContentLoggingOneHour" xml:space="preserve">
+    <value>1 小时</value>
+  </data>
+  <data name="ContentLoggingFourHours" xml:space="preserve">
+    <value>4 小时</value>
+  </data>
+  <data name="ContentLoggingDay" xml:space="preserve">
+    <value>24 小时</value>
+  </data>
+  <data name="ContentLoggingStart" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="ContentLoggingStartName" xml:space="preserve">
+    <value>开始内容日志记录</value>
+  </data>
+  <data name="ContentLoggingStopName" xml:space="preserve">
+    <value>停止内容日志记录</value>
+  </data>
+  <data name="ContentLoggingOnUntil" xml:space="preserve">
+    <value>已开启，截止到 {0}。</value>
+  </data>
   <data name="MyDataTitle" xml:space="preserve">
     <value>您在此设备上的数据</value>
   </data>

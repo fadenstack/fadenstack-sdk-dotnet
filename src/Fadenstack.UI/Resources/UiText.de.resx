@@ -2503,6 +2503,39 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Von der Richtlinie Ihrer Organisation auf diesem Computer festgelegt.</value>
   </data>
+  <data name="ContentLoggingTitle" xml:space="preserve">
+    <value>Inhalte protokollieren</value>
+  </data>
+  <data name="ContentLoggingBand" xml:space="preserve">
+    <value>Die Inhaltsprotokollierung ist bis {0} eingeschaltet. Prompts und Antworten werden in die Protokolle der App geschrieben.</value>
+  </data>
+  <data name="ContentLoggingIntro" xml:space="preserve">
+    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App.</value>
+  </data>
+  <data name="ContentLoggingDuration" xml:space="preserve">
+    <value>Einschalten für</value>
+  </data>
+  <data name="ContentLoggingOneHour" xml:space="preserve">
+    <value>1 Stunde</value>
+  </data>
+  <data name="ContentLoggingFourHours" xml:space="preserve">
+    <value>4 Stunden</value>
+  </data>
+  <data name="ContentLoggingDay" xml:space="preserve">
+    <value>24 Stunden</value>
+  </data>
+  <data name="ContentLoggingStart" xml:space="preserve">
+    <value>Starten</value>
+  </data>
+  <data name="ContentLoggingStartName" xml:space="preserve">
+    <value>Inhaltsprotokollierung starten</value>
+  </data>
+  <data name="ContentLoggingStopName" xml:space="preserve">
+    <value>Inhaltsprotokollierung stoppen</value>
+  </data>
+  <data name="ContentLoggingOnUntil" xml:space="preserve">
+    <value>Eingeschaltet bis {0}.</value>
+  </data>
   <data name="MyDataTitle" xml:space="preserve">
     <value>Ihre Daten auf diesem Gerät</value>
   </data>

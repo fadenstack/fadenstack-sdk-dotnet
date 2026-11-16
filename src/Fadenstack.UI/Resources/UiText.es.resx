@@ -2503,6 +2503,39 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Lo establece la directiva de su organización en este equipo.</value>
   </data>
+  <data name="ContentLoggingTitle" xml:space="preserve">
+    <value>Registro de contenido</value>
+  </data>
+  <data name="ContentLoggingBand" xml:space="preserve">
+    <value>El registro de contenido está activado hasta {0}. Los prompts y las respuestas se escriben en los registros de la aplicación.</value>
+  </data>
+  <data name="ContentLoggingIntro" xml:space="preserve">
+    <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación.</value>
+  </data>
+  <data name="ContentLoggingDuration" xml:space="preserve">
+    <value>Activar durante</value>
+  </data>
+  <data name="ContentLoggingOneHour" xml:space="preserve">
+    <value>1 hora</value>
+  </data>
+  <data name="ContentLoggingFourHours" xml:space="preserve">
+    <value>4 horas</value>
+  </data>
+  <data name="ContentLoggingDay" xml:space="preserve">
+    <value>24 horas</value>
+  </data>
+  <data name="ContentLoggingStart" xml:space="preserve">
+    <value>Iniciar</value>
+  </data>
+  <data name="ContentLoggingStartName" xml:space="preserve">
+    <value>Iniciar el registro de contenido</value>
+  </data>
+  <data name="ContentLoggingStopName" xml:space="preserve">
+    <value>Detener el registro de contenido</value>
+  </data>
+  <data name="ContentLoggingOnUntil" xml:space="preserve">
+    <value>Activado hasta {0}.</value>
+  </data>
   <data name="MyDataTitle" xml:space="preserve">
     <value>Sus datos en este dispositivo</value>
   </data>

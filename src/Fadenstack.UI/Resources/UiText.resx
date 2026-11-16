@@ -2786,6 +2786,39 @@
     <value>Set by your organisation's policy on this computer.</value>
     <comment>When the machine policy fixes it, read only</comment>
   </data>
+  <data name="ContentLoggingTitle" xml:space="preserve">
+    <value>Content logging</value>
+  </data>
+  <data name="ContentLoggingBand" xml:space="preserve">
+    <value>Content logging is on until {0}. Prompts and answers are written to the app's logs.</value>
+  </data>
+  <data name="ContentLoggingIntro" xml:space="preserve">
+    <value>While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts.</value>
+  </data>
+  <data name="ContentLoggingDuration" xml:space="preserve">
+    <value>Switch on for</value>
+  </data>
+  <data name="ContentLoggingOneHour" xml:space="preserve">
+    <value>1 hour</value>
+  </data>
+  <data name="ContentLoggingFourHours" xml:space="preserve">
+    <value>4 hours</value>
+  </data>
+  <data name="ContentLoggingDay" xml:space="preserve">
+    <value>24 hours</value>
+  </data>
+  <data name="ContentLoggingStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="ContentLoggingStartName" xml:space="preserve">
+    <value>Start content logging</value>
+  </data>
+  <data name="ContentLoggingStopName" xml:space="preserve">
+    <value>Stop content logging</value>
+  </data>
+  <data name="ContentLoggingOnUntil" xml:space="preserve">
+    <value>On until {0}.</value>
+  </data>
   <data name="MyDataTitle" xml:space="preserve">
     <value>Your data on this device</value>
     <comment>The heading of "Your data on this device"</comment>
