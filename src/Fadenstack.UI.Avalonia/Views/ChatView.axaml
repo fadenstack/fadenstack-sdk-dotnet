@@ -135,6 +135,9 @@
                             <SelectableTextBlock Classes="mono caption" TextWrapping="Wrap" Text="{Binding ArgumentsText}" />
                         </ScrollViewer>
                     </Border>
+                    <!-- A held call's arguments that were cut or are not a JSON object: "The arguments are shortened." -->
+                    <TextBlock Classes="muted" Text="{Binding ArgumentsNote}" TextWrapping="Wrap"
+                               IsVisible="{Binding ArgumentsNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                     <!-- "Say why": a reason for declining, sent with Deny; Esc in the box closes it without deciding. -->
                     <Border Classes="reason" IsVisible="{Binding IsReasonOpen}">
                         <TextBox Classes="reason" Text="{Binding DenyReason, Mode=TwoWay}" MaxLength="500" AcceptsReturn="True" TextWrapping="Wrap"

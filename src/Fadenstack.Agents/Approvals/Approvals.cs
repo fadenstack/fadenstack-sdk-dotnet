@@ -35,8 +35,18 @@ public sealed record ApprovalRequest
     /// <summary>Why it asks: the tool mode, or the admin's message for a rule (<see cref="RequiredByRule"/>).</summary>
     public string Reason { get; init; } = "";
 
-    /// <summary>The call's arguments, for the prompt (empty for gateway tools: the gateway keeps them).</summary>
+    /// <summary>
+    /// The call's arguments, for the prompt. For a gateway tool: what the gateway's event carried (core 0.7.1 rc22), the JSON object's
+    /// members, or, when the text was cut or is not a JSON object, one member <c>arguments</c> holding the text (see
+    /// <see cref="ArgumentsShortened"/>); empty from an older gateway. TS: <c>arguments</c>.
+    /// </summary>
     public IReadOnlyDictionary<string, object?> Arguments { get; init; } = new Dictionary<string, object?>();
+
+    /// <summary>
+    /// <see cref="Arguments"/> holds the call's text as one read-only value because it was cut (at most 8000 characters from the gateway) or
+    /// is not a JSON object: the card says "The arguments are shortened." TS: <c>argumentsShortened</c>.
+    /// </summary>
+    public bool ArgumentsShortened { get; init; }
 
     /// <summary>SHA-256 of the arguments' JSON text for the audit log and the server's events; null where the SDK never had the text.</summary>
     internal string? ArgumentsSha256 { get; init; }

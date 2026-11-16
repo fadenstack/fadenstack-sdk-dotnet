@@ -743,6 +743,9 @@
                         <TextBlock Style="{StaticResource Fadenstack.Mono}" Text="{Binding ArgumentsText}" />
                     </ScrollViewer>
                 </Border>
+                <!-- A held call's arguments that were cut or are not a JSON object: "The arguments are shortened." -->
+                <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding ArgumentsNote}" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Visibility="{Binding ArgumentsNote, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                 <!-- "Say why": a reason for declining, sent with Deny (Esc in the box closes it without deciding). -->
                 <Border Margin="0,12,0,0" Padding="8,6" BorderThickness="1" CornerRadius="{StaticResource Fadenstack.Radius.Container}"
                         BorderBrush="{DynamicResource Fadenstack.Border}" Background="{DynamicResource Fadenstack.Background}"

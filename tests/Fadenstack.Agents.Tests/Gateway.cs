@@ -379,6 +379,18 @@ public sealed class Gateway
 
     public static string Custom(string name, object value) => FakeServer.Fadenstack(new { type = "CUSTOM", name, value });
 
+    /// <summary>
+    /// The event of a call the gateway holds for the person (<c>faden.approval_required</c> with an approval id: <c>ap-1</c>, a write tool). From
+    /// core 0.7.1 rc22 it carries <paramref name="arguments"/> (the call's text, cut at 8000 characters), <paramref name="truncated"/> (only when
+    /// cut) and <paramref name="sha256"/> (of the whole text); an older gateway sends none. TS: <c>argumentsEvent</c> of the fake gateway's held tool.
+    /// </summary>
+    public static string HeldCall(string? arguments = null, bool? truncated = null, string? sha256 = null) => Custom("faden.approval_required", new Dictionary<string, object?>
+    {
+        ["approvalId"] = "ap-1", ["toolCallId"] = "gw-1", ["toolCallName"] = "mcp.github.comment", ["message"] = "The tool mode asks.",
+        ["timeoutS"] = 300, ["toolClass"] = "write", ["rule"] = true,
+        ["arguments"] = arguments, ["argumentsTruncated"] = truncated, ["argumentsSha256"] = sha256,
+    });
+
     /// <summary>A builder for this gateway; sessions and "Allow always" in memory (never the user's data folder).</summary>
     public AgentBuilder Builder(ISessionStore? store = null, IApprovalStore? approvals = null) => FadenstackAgent.CreateBuilder()
         .UseServer(new Uri("https://faden.test"), new StaticTokenProvider("agent-token"), o => o.HttpClient = new HttpClient(Server))
