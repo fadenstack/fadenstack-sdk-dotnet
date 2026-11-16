@@ -36,6 +36,8 @@ public class UiStringsTests
         "WebSearchStateBrave", "WebSearchStateSearxng", "WebSearchChoiceBrave", "WebSearchChoiceSearxng",
         // "Your data on this device": "OK" and the comma between names read the same in several languages.
         "MyDataDismiss", "MyDataListSeparator",
+        // "Stop everything": "1 chat" is the same word in Spanish.
+        "StopEverythingChatsOne",
     };
 
     public static TheoryData<string> Translations() => new() { "de", "fr", "es", "zh-Hans" };

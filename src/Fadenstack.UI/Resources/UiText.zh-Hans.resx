@@ -2593,4 +2593,55 @@
   <data name="MyDataListSeparator" xml:space="preserve">
     <value>、</value>
   </data>
+  <data name="Notice_agent_disabled" xml:space="preserve">
+    <value>智能体已关闭</value>
+  </data>
+  <data name="AgentTurnedOff" xml:space="preserve">
+    <value>您的组织已关闭此智能体。</value>
+  </data>
+  <data name="AgentTurnedOffCheckAgain" xml:space="preserve">
+    <value>重新检查</value>
+  </data>
+  <data name="StopEverything" xml:space="preserve">
+    <value>全部停止</value>
+  </data>
+  <data name="StopEverythingTip" xml:space="preserve">
+    <value>停止所有正在运行的聊天并结束所有授权。您设为始终允许的内容保持不变。</value>
+  </data>
+  <data name="StopEverythingBusy" xml:space="preserve">
+    <value>正在停止...</value>
+  </data>
+  <data name="StopEverythingNothing" xml:space="preserve">
+    <value>没有正在运行的内容。</value>
+  </data>
+  <data name="StopEverythingChatsOne" xml:space="preserve">
+    <value>1 个聊天</value>
+  </data>
+  <data name="StopEverythingChatsMany" xml:space="preserve">
+    <value>{0} 个聊天</value>
+  </data>
+  <data name="StopEverythingGrantsOne" xml:space="preserve">
+    <value>1 项授权</value>
+  </data>
+  <data name="StopEverythingGrantsMany" xml:space="preserve">
+    <value>{0} 项授权</value>
+  </data>
+  <data name="StopEverythingBoth" xml:space="preserve">
+    <value>已停止 {0}，并结束 {1}。</value>
+  </data>
+  <data name="StopEverythingChatsOnly" xml:space="preserve">
+    <value>已停止 {0}。</value>
+  </data>
+  <data name="StopEverythingGrantsOnly" xml:space="preserve">
+    <value>已结束 {0}。</value>
+  </data>
+  <data name="StopEverythingNotTold" xml:space="preserve">
+    <value>已停止。无法通知服务器 {0}；它将在到期时结束。</value>
+  </data>
+  <data name="GrantsEndedByOff" xml:space="preserve">
+    <value>您的组织已关闭此智能体；其授权已结束。</value>
+  </data>
+  <data name="BypassEnded_agent_turned_off" xml:space="preserve">
+    <value>绕过已结束：您的组织已关闭此智能体。审批将重新询问。</value>
+  </data>
 </root>

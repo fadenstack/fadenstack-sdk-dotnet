@@ -347,6 +347,7 @@ public static class AgUiEvents
             ChatOutcome.ToolDenied => "tool_denied",
             ChatOutcome.ApprovalRequired => "approval_required",
             ChatOutcome.RateLimited => "rate_limited",
+            ChatOutcome.AgentDisabled => "agent_disabled",
             _ => "completed",
         };
 

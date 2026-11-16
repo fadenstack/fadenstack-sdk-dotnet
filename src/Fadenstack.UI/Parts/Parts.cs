@@ -668,7 +668,7 @@ public sealed class NoticePart : ResponsePart
         var severity = notice.Outcome switch
         {
             "prompt_blocked" or "response_blocked" => NoticeSeverity.Blocked,
-            "tool_denied" or "rate_limited" or "empty_answer" or "images_disabled" => NoticeSeverity.Warning,
+            "tool_denied" or "rate_limited" or "empty_answer" or "images_disabled" or "agent_disabled" => NoticeSeverity.Warning,
             _ => NoticeSeverity.Info,
         };
         return Localized(strings, severity, s => (
@@ -677,6 +677,8 @@ public sealed class NoticePart : ResponsePart
             notice.Outcome == "empty_answer" ? (notice.Category == "length" ? s.EmptyAnswerLength : s.EmptyAnswer)
                 // Image generation off: the owner's note, in the panel's language, not the server's message.
                 : notice.Outcome == "images_disabled" ? s.ImagesDisabled
+                // The organisation turned the agent off: the server console's words in the panel's language.
+                : notice.Outcome == "agent_disabled" ? s.AgentTurnedOff
                 : notice.RetryAfter is { } wait ? $"{notice.Message} {s.TryAgainIn(Math.Ceiling(wait.TotalSeconds))}"
                 : notice.Message,
             notice.DecisionId is null ? null : s.Decision(notice.DecisionId)));

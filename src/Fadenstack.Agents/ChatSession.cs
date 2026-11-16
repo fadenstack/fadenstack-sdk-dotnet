@@ -135,6 +135,96 @@ public sealed class ChatSession
     }
 
     /// <summary>
+    /// How many tools the person allowed for this chat (what <see cref="ResetApprovals"/> forgets), and forgets them: for "Stop everything"
+    /// (<see cref="FadenstackAgent.StopAllAsync(CancellationToken)"/>). What the person allowed always stays.
+    /// </summary>
+    internal int EndChatApprovals()
+    {
+        lock (_approvedForSession)
+        {
+            var count = _approvedForSession.Count;
+            _approvedForSession.Clear();
+            return count;
+        }
+    }
+
+    // The running turn's stop (the linked source of its stream), while one runs; set under _stopGate.
+    private readonly object _stopGate = new();
+    private CancellationTokenSource? _running;
+    private volatile bool _stopRequested;
+
+    /// <summary>Whether a turn (or a command) runs in this session now.</summary>
+    public bool IsRunning
+    {
+        get
+        {
+            lock (_stopGate)
+            {
+                return _running is not null;
+            }
+        }
+    }
+
+    /// <summary>Whether the running turn was stopped by <see cref="Stop"/> (not by the app's own token): its pending approval is answered no.</summary>
+    internal bool StopRequested => _stopRequested;
+
+    private volatile bool _stoppedForOff;
+
+    /// <summary>Whether the running turn was stopped because the organisation turned the agent off: it ends with that sentence, not as stopped.</summary>
+    internal bool StoppedForOff => _stoppedForOff;
+
+    /// <summary>The off-switch stops the running turn: <see cref="Stop"/>, and the turn ends as <see cref="Governance.ChatOutcome.AgentDisabled"/>.</summary>
+    internal bool StopForOff()
+    {
+        _stoppedForOff = true;
+        return Stop();
+    }
+
+    /// <summary>
+    /// Stops the running turn the way the chat's own Stop button does: the turn ends as stopped (its stream throws
+    /// <see cref="OperationCanceledException"/>, the transcript says <c>cancelled</c>), a tool call waiting for the person's answer is
+    /// answered no, and no further tool call of the turn runs. Returns whether a turn was running. TypeScript: <c>stop()</c>.
+    /// </summary>
+    public bool Stop()
+    {
+        lock (_stopGate)
+        {
+            if (_running is not { } running)
+            {
+                return false;
+            }
+            _stopRequested = true;
+            try
+            {
+                running.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                return false; // it ended just now
+            }
+            return true;
+        }
+    }
+
+    private void Running(CancellationTokenSource stop)
+    {
+        lock (_stopGate)
+        {
+            _stopRequested = false;
+            _stoppedForOff = false;
+            _running = stop;
+        }
+    }
+
+    private void NotRunning()
+    {
+        lock (_stopGate)
+        {
+            _running = null;
+        }
+    }
+
+    /// <summary>
     /// Asks the person to let the agent work alongside them in this chat (desktop 37 §5.3): read and write in
     /// <paramref name="places"/>, for a while, without asking -- never for anything destructive, unclassified, or an
     /// admin's "Ask first" rule. The card is drawn by the app's grant handler (<see cref="IGrantHandler"/>); the person
@@ -384,6 +474,7 @@ public sealed class ChatSession
             throw new InvalidOperationException("A turn is already running in this session.");
         }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Running(stop);
         var channel = Channel.CreateUnbounded<AgentEvent>(new UnboundedChannelOptions { SingleReader = true });
         var run = RunAsync(message, options ?? new SendOptions(), channel.Writer, stop.Token);
         try
@@ -411,6 +502,7 @@ public sealed class ChatSession
                     // the reader left; the turn is recorded as cancelled
                 }
             }
+            NotRunning();
             _turn.Release();
         }
     }
@@ -456,6 +548,7 @@ public sealed class ChatSession
             throw new InvalidOperationException("A turn is already running in this session.");
         }
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Running(stop);
         var channel = Channel.CreateUnbounded<AgentEvent>(new UnboundedChannelOptions { SingleReader = true });
         var run = RunCommandAsync(name, copy, options.Origin, label, channel.Writer, stop.Token);
         try
@@ -483,6 +576,7 @@ public sealed class ChatSession
                     // the reader left; the command is recorded as cancelled
                 }
             }
+            NotRunning();
             _turn.Release();
         }
     }
@@ -988,9 +1082,11 @@ public sealed class ChatSession
             Emit(new TurnStarted(_mode));
             try
             {
+                ThrowIfOff(); // an agent the organisation turned off: no request at all
                 await Agent.RefreshToolsAsync(cancellationToken).ConfigureAwait(false); // tools that changed since the last turn, never inside one
                 for (var round = 0; ; round++)
                 {
+                    ThrowIfOff();
                     if (round == Agent.Settings.MaxRounds)
                     {
                         await NoticeAsync(new GovernanceNotice
@@ -1007,9 +1103,22 @@ public sealed class ChatSession
                     }
                     foreach (var call in calls)
                     {
+                        ThrowIfOff(); // one call refused as off or signed out ends the turn: the calls after it never run
                         await RunToolAsync(call, cancellationToken).ConfigureAwait(false);
                     }
                 }
+            }
+            catch (Exception e) when (IsAgentOff(e) || (e is OperationCanceledException && _session.StoppedForOff))
+            {
+                // The organisation turned the agent off (agent_disabled, in force at the next request): the turn ends at once, with the
+                // fixed sentence and no more requests. A grant the person had is already ended (MarkTurnedOff).
+                Agent.MarkTurnedOff();
+                await NoticeAsync(new GovernanceNotice
+                {
+                    Outcome = "agent_disabled", Stage = "agent", Message = FadenstackAgent.TurnedOffText, Code = ErrorCodes.AgentDisabled,
+                }).ConfigureAwait(false);
+                await EndAsync(TurnStatus.Error, ChatOutcome.AgentDisabled).ConfigureAwait(false);
+                return;
             }
             catch (OperationCanceledException)
             {
@@ -1044,6 +1153,52 @@ public sealed class ChatSession
                 _ => _toolDenied ? ChatOutcome.ToolDenied : ChatOutcome.Completed,
             };
             await EndAsync(status, outcome).ConfigureAwait(false);
+        }
+
+        /// <summary>The turn ends because the agent is off (<see cref="FadenstackAgent.TurnedOff"/>): thrown before a request or a tool call.</summary>
+        private void ThrowIfOff()
+        {
+            if (Agent.TurnedOff)
+            {
+                throw new AgentTurnedOffException();
+            }
+        }
+
+        private sealed class AgentTurnedOffException : Exception
+        {
+            public AgentTurnedOffException() : base(FadenstackAgent.TurnedOffText)
+            {
+            }
+        }
+
+        /// <summary>Whether <paramref name="e"/>, or what it wraps, is the server's <c>agent_disabled</c> (or ours, once the agent is off).</summary>
+        private static bool IsAgentOff(Exception e)
+        {
+            for (var inner = e; inner is not null; inner = inner.InnerException)
+            {
+                if (inner is AgentTurnedOffException or FadenstackApiException { IsAgentDisabled: true })
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="e"/> must end the turn instead of becoming a tool's error result: the agent is off, or the sign-in is
+        /// gone (a refresh the server refused: signed out, device signed out, grant gone). Nothing of the turn runs after either (ASVS 5.0
+        /// V7, session ending).
+        /// </summary>
+        private static bool EndsTurn(Exception e)
+        {
+            for (var inner = e; inner is not null; inner = inner.InnerException)
+            {
+                if (inner is FadenstackSignInRequiredException)
+                {
+                    return true;
+                }
+            }
+            return IsAgentOff(e);
         }
 
         /// <summary>One model call; returns the calls of the agent's own tools to run.</summary>
@@ -1407,7 +1562,16 @@ public sealed class ChatSession
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
-            var settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
+            Settled settled;
+            try
+            {
+                settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_session.StopRequested)
+            {
+                await DeclineStoppedAsync(approvalId).ConfigureAwait(false);
+                throw;
+            }
             if (settled.TimedOut)
             {
                 return; // the gateway expires it on its own
@@ -1418,6 +1582,24 @@ public sealed class ChatSession
             if (!settled.Approved)
             {
                 _toolDenied = true;
+            }
+        }
+
+        /// <summary>A stop while the gateway holds a call for the person: it is told no, once, best effort (it expires the call on its own otherwise).</summary>
+        private async Task DeclineStoppedAsync(string approvalId)
+        {
+            if (Agent.TurnedOff)
+            {
+                return; // the server ended it with the switch
+            }
+            try
+            {
+                using var wait = new CancellationTokenSource(Agent.ApprovalAnswerTimeout);
+                await Agent.Backend.AnswerApprovalAsync(approvalId, false, ApprovalScopes.Once, wait.Token).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is FadenstackException or HttpRequestException or OperationCanceledException)
+            {
+                // the gateway expires it on its own
             }
         }
 
@@ -1664,6 +1846,10 @@ public sealed class ChatSession
                 {
                     throw;
                 }
+                catch (Exception e) when (EndsTurn(e))
+                {
+                    throw; // the sign-in ended or the agent is off: not "an error result" the loop goes on after
+                }
                 catch (Exception e)
                 {
                     return ($"Error: {e.Message}", "error", TimeSpan.Zero, Array.Empty<DataContent>(), null);
@@ -1777,6 +1963,10 @@ public sealed class ChatSession
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 throw;
+            }
+            catch (Exception e) when (EndsTurn(e))
+            {
+                throw; // as at the check above
             }
             catch (CommandDenied e)
             {
@@ -2038,6 +2228,14 @@ public sealed class ChatSession
             {
                 decision = null; // the time ran out
             }
+            catch (OperationCanceledException) when (_session.StopRequested)
+            {
+                // "Stop" (the chat's, or Stop everything) while the person was asked: the answer is no, in the transcript and the record.
+                await RecordAsync(request, null, asked: true, rule, timedOut: false, (long)watch.Elapsed.TotalMilliseconds, reason: "Stopped.")
+                    .ConfigureAwait(false);
+                Emit(new ApprovalDecided(request, ApprovalDecision.Deny("Stopped.")));
+                throw;
+            }
             var waited = (long)watch.Elapsed.TotalMilliseconds;
             // What the request offered, and nothing more: a handler cannot widen it.
             var scope = decision is not { Approved: true } ? null
@@ -2132,7 +2330,7 @@ public sealed class ChatSession
             {
                 return await Agent.Grants.GrantForTimeAsync(tool, duration, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e) when (e is not OperationCanceledException && !EndsTurn(e))
             {
                 await NoticeAsync(new GovernanceNotice
                 {

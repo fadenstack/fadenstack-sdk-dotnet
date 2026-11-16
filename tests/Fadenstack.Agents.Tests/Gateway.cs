@@ -33,6 +33,7 @@ public sealed class Gateway
     {
         UserLanguage = userLanguage;
         Ceiling = ceiling;
+
         var skillsModule = skills is null ? "false" : "true";
         ProvenancePolicy = provenancePolicy;
         Server = new FakeServer()
@@ -80,9 +81,50 @@ public sealed class Gateway
             .On("POST", Chat, r => _answers.Count == 0
                 ? FakeServer.Respond(HttpStatusCode.InternalServerError, new { error = new { message = "unscripted" } })
                 : _answers.Dequeue()(r));
+        Server.Filter = r => Off && Refuses(r) ? FakeServer.Respond(HttpStatusCode.Forbidden, new
+        {
+            error = new { type = "permission_error", code = "agent_disabled", message = "Your organisation turned this agent off." },
+        }) : null;
     }
 
     public FakeServer Server { get; }
+
+    /// <summary>Whether the organisation has the agent turned off (<see cref="TurnOff"/>): the profile says <c>enabled: false</c>.</summary>
+    public bool Off { get; private set; }
+
+    /// <summary>How many requests the server had recorded when the switch was turned.</summary>
+    public int OffAt { get; private set; }
+
+    /// <summary>The grants route's fake, once <see cref="UseGrants"/> made it: <see cref="TurnOff"/> ends its grants.</summary>
+    public FakeGrants? Grants { get; private set; }
+
+    /// <summary>
+    /// The off-switch (core 0.7.1): every agent route but the profile, the events, the manifest and <c>DELETE</c> of a grant answers 403
+    /// <c>agent_disabled</c>, the profile says <c>enabled: false</c>, and the grants end with <c>revoked_by: agent_turned_off</c>.
+    /// </summary>
+    public Gateway TurnOff()
+    {
+        Off = true;
+        OffAt = Server.Requests.Count;
+        Grants?.EndAll("agent_turned_off");
+        return this;
+    }
+
+    /// <summary>The agent is turned on again: the routes answer, the profile says <c>enabled: true</c>.</summary>
+    public Gateway TurnOn()
+    {
+        Off = false;
+        return this;
+    }
+
+    /// <summary>The requests the agent made to agent routes the off-switch refuses, since <paramref name="from"/> requests were recorded.</summary>
+    public List<Recorded> RefusedWhileOff(int from) => Server.Requests.Skip(from).Where(Refuses).ToList();
+
+    private bool Refuses(Recorded r) =>
+        r.Path.StartsWith("/v1/agents/docs-assistant/", StringComparison.Ordinal)
+        && r.Path != "/v1/agents/docs-assistant/profile" && r.Path != "/v1/agents/docs-assistant/events" && r.Path != "/v1/agents/docs-assistant/manifest"
+        && !(r.Method == "DELETE" && r.Path.StartsWith("/v1/agents/docs-assistant/grants/", StringComparison.Ordinal));
+
 
     /// <summary>The profile's <c>images</c>: whether the server has an image model for the agent's tools; read at each profile request.</summary>
     public bool Images { get; set; }
@@ -155,7 +197,7 @@ public sealed class Gateway
     {
         Features = """["agents","approval_scopes.grant"]""";
         Approvals = approvals;
-        return new FakeGrants(Server);
+        return Grants = new FakeGrants(Server);
     }
 
     /// <summary>How often the agent read its profile.</summary>
@@ -276,7 +318,7 @@ public sealed class Gateway
     {
         var language = System.Text.Json.JsonSerializer.Serialize(UserLanguage);
         return $$"""
-                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":{{Version}},"draft":false,
+                {"object":"agent.profile","id":"a-1","slug":"docs-assistant","name":"Docs","version":{{Version}},"draft":false,"enabled":{{(Off ? "false" : "true")}},
                  "model":"qwen3-32b","vision":{{vision}},"images":{{(Images ? "true" : "false")}},"skills":{{skills}},"ui":{{ui}},
                  "host_tool_contract":{{contract ?? Contract}},"local_mcp":{{localMcp}},
                  "tool_modes":{"default":{{DefaultLevel}},"ceiling":{{ceiling}},"max":{{MaxLevel}},"open_world_enforced":false},

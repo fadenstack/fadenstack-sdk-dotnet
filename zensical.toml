@@ -12,6 +12,7 @@ nav = [
   { "Host tools" = "tools.md" },
   { "Approvals" = "approvals.md" },
   { "Server-held grants and Bypass" = "server-grants.md" },
+  { "Stop everything and the off-switch" = "stop-everything.md" },
   { "Host commands and policy" = "host-commands.md" },
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },

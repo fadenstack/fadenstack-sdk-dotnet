@@ -174,6 +174,7 @@ The moved types are `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence` 
 - [Connecting an agent](connecting.md): the connection wizard, to a server or the person's own AI.
 - [Skills](skills.md): skills on the device, the rules that pick them, the editor and its security rules.
 - [Server-held grants and Bypass](server-grants.md): what the server holds so the agent need not ask again.
+- [Stop everything and the off-switch](stop-everything.md): the emergency stop, and what happens when the organisation turns an agent off.
 - [Testing](testing.md): how to test an app against the SDK.
 - [Parity with the TypeScript SDK](parity.md): each feature, and its name in both SDKs.
 - [Your first agent](../../get-started/first-agent.md): registering an agent on the server and signing in.

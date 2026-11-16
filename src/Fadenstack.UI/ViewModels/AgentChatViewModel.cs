@@ -87,6 +87,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _selectedMode = ToolModes[2];
         ReasoningOptions = new ObservableCollection<ReasoningOption>();
         _approvals.Requested += OnApprovalRequested;
+        _agent.TurnedOffChanged += OnAgentTurnedOffChanged;
+        CheckAgainCommand = new AsyncRelayCommand(CheckAgainAsync);
         Grants = new GrantsViewModel(agent, approvals, dispatcher, _strings, Stop, () => _session, async () => { await StartBypassAsync(); });
         Grants.BypassEnded += OnBypassEnded;
         Grants.Ticked += (_, _) => ShowBypassTimes();
@@ -96,7 +98,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         SetLanguageCommand = new ItemCommand<string>(id => SetLanguage(id ?? Automatic), _ => CanChangeLanguage);
         ToggleTellUnmarkedCommand = new RelayCommand(() => TellUnmarked = !TellUnmarked);
         SendCommand = new AsyncRelayCommand(() => SendAsync(Input), () => CanSend);
-        SendSuggestionCommand = new AsyncItemCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy);
+        SendSuggestionCommand = new AsyncItemCommand<string>(s => SendAsync(s ?? ""), _ => _isReady && !_isBusy && !IsAgentOff);
         StopCommand = new RelayCommand(Stop, () => _isBusy);
         NewChatCommand = new RelayCommand(NewChat, () => _isReady && !_isBusy);
         OpenSessionCommand = new AsyncItemCommand<SessionItemViewModel>(s => s is null ? Task.CompletedTask : OpenSessionAsync(s.Id),
@@ -381,7 +383,44 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
     }
 
-    public bool CanSend => _isReady && !_isBusy && !string.IsNullOrWhiteSpace(_input);
+    public bool CanSend => _isReady && !_isBusy && !IsAgentOff && !string.IsNullOrWhiteSpace(_input);
+
+    /// <summary>
+    /// The organisation turned this agent off (<see cref="FadenstackAgent.TurnedOff"/>): the chat shows <see cref="AgentOffText"/> with
+    /// "Check again" (<see cref="CheckAgainCommand"/>), and the composer is disabled. TypeScript: <c>isAgentOff</c>.
+    /// </summary>
+    public bool IsAgentOff => _agent.TurnedOff;
+
+    /// <summary>The notice: "Your organisation turned this agent off." in the panel's language.</summary>
+    public string AgentOffText => Strings.AgentTurnedOff;
+
+    /// <summary>The label of the button under the notice.</summary>
+    public string CheckAgainText => Strings.AgentTurnedOffCheckAgain;
+
+    /// <summary>The composer takes input: the chat is ready and the agent is not off.</summary>
+    public bool IsInputEnabled => _isReady && !IsAgentOff;
+
+    /// <summary>"Check again": reads the agent's profile again (<see cref="FadenstackAgent.CheckAgainAsync"/>); <c>enabled: true</c> clears the notice.</summary>
+    public IAsyncRelayCommand CheckAgainCommand { get; }
+
+    private async Task CheckAgainAsync()
+    {
+        try
+        {
+            await _agent.CheckAgainAsync();
+        }
+        catch (Exception e) when (e is FadenstackException or HttpRequestException)
+        {
+            // the server cannot be reached: the notice stays, and the person can try again
+        }
+    }
+
+    private void OnAgentTurnedOffChanged(object? sender, EventArgs e) => _dispatcher.Post(() =>
+    {
+        OnPropertyChanged(nameof(IsAgentOff));
+        OnPropertyChanged(nameof(IsInputEnabled));
+        Refresh();
+    });
 
     public bool IsReady
     {
@@ -1176,6 +1215,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _approvals.Requested -= OnApprovalRequested;
+        _agent.TurnedOffChanged -= OnAgentTurnedOffChanged;
         _bypassAsk?.Cancel();
         Grants.BypassEnded -= OnBypassEnded;
         Grants.Dispose();
@@ -1462,6 +1502,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             session.Retext(strings, now);
         }
         OnPropertyChanged(nameof(SessionTitle));
+        OnPropertyChanged(nameof(AgentOffText));
+        OnPropertyChanged(nameof(CheckAgainText));
         foreach (var turn in Turns)
         {
             turn.Retext(strings);
@@ -1815,6 +1857,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private void Refresh()
     {
         OnPropertyChanged(nameof(CanSend));
+        OnPropertyChanged(nameof(IsInputEnabled));
         SendCommand.NotifyCanExecuteChanged();
         SendSuggestionCommand.NotifyCanExecuteChanged();
         StopCommand.NotifyCanExecuteChanged();

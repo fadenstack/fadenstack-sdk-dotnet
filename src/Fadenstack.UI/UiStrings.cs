@@ -443,6 +443,38 @@ public sealed class UiStrings
 
     public string NoticeFallback => Text();
 
+    /// <summary>The server console's own words when the organisation turned the agent off (<c>agent_disabled</c>); the notice's title is <c>Notice_agent_disabled</c>.</summary>
+    public string AgentTurnedOff => Text();
+
+    /// <summary>The button under that notice: reads the agent's profile again.</summary>
+    public string AgentTurnedOffCheckAgain => Text();
+
+    /// <summary>The emergency stop's accessible name.</summary>
+    public string StopEverything => Text();
+
+    public string StopEverythingTip => Text();
+
+    public string StopEverythingBusy => Text();
+
+    public string StopEverythingNothing => Text();
+
+    /// <summary>"1 chat" / "3 chats": a part of the result line.</summary>
+    public string StopEverythingChats(int count) => count == 1 ? this["StopEverythingChatsOne"] : string.Format(FormatCulture, this["StopEverythingChatsMany"], count);
+
+    /// <summary>"1 grant" / "3 grants": a part of the result line.</summary>
+    public string StopEverythingGrants(int count) => count == 1 ? this["StopEverythingGrantsOne"] : string.Format(FormatCulture, this["StopEverythingGrantsMany"], count);
+
+    public string StopEverythingBoth(string chats, string grants) => Fill2(chats, grants);
+
+    public string StopEverythingChatsOnly(string chats) => Fill(chats);
+
+    public string StopEverythingGrantsOnly(string grants) => Fill(grants);
+
+    public string StopEverythingNotTold(string grants) => Fill(grants);
+
+    /// <summary>The grants view while the organisation has the agent off.</summary>
+    public string GrantsEndedByOff => Text();
+
     public string TryAgainIn(double seconds) => Fill(seconds);
 
     public string Decision(string id) => Fill(id);

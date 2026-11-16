@@ -26,6 +26,12 @@ public sealed class FakeServer : HttpMessageHandler
         }
     }
 
+    /// <summary>
+    /// Looked at first for every request (after it is recorded): an answer here replaces the route's; null lets the route answer. For a
+    /// switch that makes whole families of routes answer one way (the off-switch).
+    /// </summary>
+    public Func<Recorded, HttpResponseMessage?>? Filter { get; set; }
+
     public FakeServer On(string method, string path, Func<Recorded, HttpResponseMessage> answer)
     {
         _routes.Add((method, path, answer));
@@ -79,6 +85,10 @@ public sealed class FakeServer : HttpMessageHandler
         lock (_requests)
         {
             _requests.Add(recorded); // requests may come at once (two chats starting Bypass in parallel)
+        }
+        if (Filter?.Invoke(recorded) is { } filtered)
+        {
+            return filtered;
         }
         var route = _routes.LastOrDefault(r => r.Method == recorded.Method && r.Path == recorded.Path);
         return route.Answer is null

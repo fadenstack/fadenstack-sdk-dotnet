@@ -2593,4 +2593,55 @@
   <data name="MyDataListSeparator" xml:space="preserve">
     <value>, </value>
   </data>
+  <data name="Notice_agent_disabled" xml:space="preserve">
+    <value>Agent éteint</value>
+  </data>
+  <data name="AgentTurnedOff" xml:space="preserve">
+    <value>Votre organisation a éteint cet agent.</value>
+  </data>
+  <data name="AgentTurnedOffCheckAgain" xml:space="preserve">
+    <value>Vérifier à nouveau</value>
+  </data>
+  <data name="StopEverything" xml:space="preserve">
+    <value>Tout arrêter</value>
+  </data>
+  <data name="StopEverythingTip" xml:space="preserve">
+    <value>Arrête toutes les conversations en cours et met fin à toutes les autorisations. Ce que vous avez toujours autorisé reste en place.</value>
+  </data>
+  <data name="StopEverythingBusy" xml:space="preserve">
+    <value>Arrêt en cours...</value>
+  </data>
+  <data name="StopEverythingNothing" xml:space="preserve">
+    <value>Rien n'était en cours.</value>
+  </data>
+  <data name="StopEverythingChatsOne" xml:space="preserve">
+    <value>1 conversation</value>
+  </data>
+  <data name="StopEverythingChatsMany" xml:space="preserve">
+    <value>{0} conversations</value>
+  </data>
+  <data name="StopEverythingGrantsOne" xml:space="preserve">
+    <value>1 autorisation</value>
+  </data>
+  <data name="StopEverythingGrantsMany" xml:space="preserve">
+    <value>{0} autorisations</value>
+  </data>
+  <data name="StopEverythingBoth" xml:space="preserve">
+    <value>Arrêté : {0}. Terminé : {1}.</value>
+  </data>
+  <data name="StopEverythingChatsOnly" xml:space="preserve">
+    <value>Arrêté : {0}.</value>
+  </data>
+  <data name="StopEverythingGrantsOnly" xml:space="preserve">
+    <value>Terminé : {0}.</value>
+  </data>
+  <data name="StopEverythingNotTold" xml:space="preserve">
+    <value>Arrêté. Le serveur n'a pas pu être informé pour {0} ; la fin intervient à l'heure prévue.</value>
+  </data>
+  <data name="GrantsEndedByOff" xml:space="preserve">
+    <value>Votre organisation a éteint cet agent ; ses autorisations ont pris fin.</value>
+  </data>
+  <data name="BypassEnded_agent_turned_off" xml:space="preserve">
+    <value>Bypass terminé : votre organisation a éteint cet agent. Les approbations demandent à nouveau.</value>
+  </data>
 </root>

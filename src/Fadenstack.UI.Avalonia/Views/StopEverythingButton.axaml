@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:st="clr-namespace:Fadenstack.UI.Settings;assembly=Fadenstack.UI"
+             xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+             mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="36"
+             x:Class="Fadenstack.UI.Avalonia.Views.StopEverythingButton"
+             x:DataType="st:StopEverythingViewModel"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
+    <!--
+        "Stop everything", the emergency stop for an app's tray menu or title bar: a StopEverythingViewModel. An icon button with its name and
+        tooltip, and the line that says what it did. No confirmation. Every text is the view model's; every look is a style class of the skin's.
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Chat.axaml" />
+    </UserControl.Styles>
+    <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Name="StopButton" Classes="icon" Command="{Binding StopCommand}" ToolTip.Tip="{Binding ToolTip}"
+                AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding ToolTip}">
+            <c:FsIcon Data="{DynamicResource Icon.Stop}" />
+        </Button>
+        <TextBlock Name="ResultLabel" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320" Text="{Binding ResultText}"
+                   AutomationProperties.LiveSetting="Polite" IsVisible="{Binding HasResult}" />
+    </StackPanel>
+</UserControl>
