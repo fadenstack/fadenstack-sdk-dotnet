@@ -228,6 +228,27 @@ public class ApprovalFloorTests
         RanIn(gateway, level);
     }
 
+    [Fact]
+    public async Task Gateway_held_a_bypass_grant_never_answers_a_call_the_gateway_holds_even_when_the_gateway_also_names_it()
+    {
+        var (gateway, _) = Server();
+        var card = new Card(approve: false);
+        using var agent = gateway.Builder().UseApprovals(card).Build();
+        var session = await OpenAsync(agent, ToolMode.Bypass);
+        gateway.Then(Gateway.Custom("faden.grant_used", new { toolCallId = "gw-1", toolCallName = "mcp.github.comment", grantId = session.Bypass!.Id }),
+            Gateway.Custom("faden.approval_required", new
+            {
+                approvalId = "ap-1", toolCallId = "gw-1", toolCallName = "mcp.github.comment", message = "Commenting needs your OK.",
+                timeoutS = 300, toolClass = "write", rule = false,
+            }), Gateway.Text("Done."), Gateway.Finish("stop"), FakeServer.Done);
+
+        await session.SendAsync("Comment on the issue.");
+
+        Assert.Equal("mcp.github.comment", Assert.Single(card.Asked).ToolName);
+        Assert.False(gateway.Server.Requests.Single(r => r.Path.EndsWith("/approvals/ap-1")).Json.GetProperty("approved").GetBoolean());
+        RanIn(gateway, ToolMode.Bypass);
+    }
+
     [Theory]
     [InlineData("delete_page", """{"page":1}""")]
     [InlineData("stamp", "{}")]

@@ -43,7 +43,7 @@ These ask, or are refused, at every level, Bypass included. Bypass skips questio
 | `physical` | A tool that acts in the physical world. | See the note below. |
 | `open_world_tainted` | An open-world tool in a turn that read untrusted content. | See the note below. |
 | `mcp_server_question` | A question an MCP server asks the person itself (elicitation). | It goes to the app's question handler (`LocalMcpModule.Ask`); the SDK never answers it. Without a handler the module does not declare elicitation, so a server cannot ask. |
-| `gateway_held` | A call the gateway holds for the person (a gateway tool's approval). | The person is asked and the SDK sends their answer. Bypass never answers the gateway: only the server may skip its own question. |
+| `gateway_held` | A call the gateway holds for the person (a gateway tool's approval). | The person is asked and the SDK sends their answer. Bypass never answers the gateway: only the server may skip its own question, so a Bypass grant does not cover a call the gateway holds, even if the gateway also names the grant for it (time and work grants are not affected). |
 
 **Not marked yet.** Neither the SDK nor the gateway has a marker for `physical` and `open_world_tainted` (`ApprovalFloor.NotMarkedYet`; desktop 16 F-10, intent IM-09). Until they do, a tool of that kind needs `approval: always` in its contract or an administrator's "Ask first" rule to be held to the floor.
 
