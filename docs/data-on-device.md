@@ -25,6 +25,10 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       approvals/approvals-seal.key
       preferences/reasoning.json
       preferences/retention.json
+      audit/audit.jsonl                 the record of tool calls (every app of the person writes to it)
+      audit/audit-seal.key
+      audit/audit-anchor.json
+      audit/audit.lock
       language
       skills/<skill>/SKILL.md
       preferences/skills.json
@@ -41,6 +45,10 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       approvals/<agent>.json
       approvals/approvals-seal.key
       preferences/reasoning.json
+      audit/audit.jsonl                 the record of tool calls (every app of the person writes to it)
+      audit/audit-seal.key
+      audit/audit-anchor.json
+      audit/audit.lock
       skills/<skill>/SKILL.md
       preferences/skills.json
       preferences/web-search.json
@@ -83,6 +91,9 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `keys/provenance-signing.key` (standalone) | The device's key that signs provenance records ([Content provenance](provenance.md)). | Encrypted by DPAPI or the OS key store. Without either it is never written: a new key lives in memory for the run. | Until deleted. | Never exported; deleted. |
 | `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Exported (`KeptRecords()` also reads them); deleted. |
 | `provenance/placements.jsonl` (standalone) | Where tools placed marked content: hashes and outcomes. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Exported, with the old files; deleted. |
+| `audit/audit.jsonl` | The record of tool calls: one entry per tool call, with the tool's name and class, who or what let it run, the outcome and a hash of the arguments, never the prompt, the answer, the arguments or the result ([The record of tool calls](audit-log.md)). Every Fadenstack app of the person on the device appends to the same file; each entry links to the one before by a hash. | Every line encrypted as the approvals are; sealed with the key below. | 180 days by default, or the machine policy's `auditRetentionDays` (30 to 3650); older entries go at the start and at most once a day, and the last removed one stays in the anchor. | Exported as `audit/tool-calls.csv` with its verification on top, and by `ExportAuditAsync` as a CSV or a web page. Shared data: deleted with "Remove all", or with this app's data when no other app uses the person's data. |
+| `audit/audit-seal.key`, `audit/audit-anchor.json` | The seal key of the record (32 random bytes) and the sealed mark a prune leaves (the last removed entry's number and hash). | The key encrypted as the approvals; the anchor sealed with it. | As long as the record. | Never exported; deleted with the record. |
+| `audit/audit.lock` | Nothing: an empty file whose lock keeps two apps' appends apart. | Owner-only. | As long as the record. | Deleted with it. |
 | `apps/<app>.json` | Which apps use the person's data on this device: the app's name (what it described with `DescribeApp`, else the agent's slug), its agents, when it was first and last seen. Written at each agent start; no content. | A file only its owner may read. | As long as the app's data. | Exported; deleted with the app's data. |
 
 In governed mode the server signs and keeps the provenance records, so nothing of provenance is written to the person's folder.
@@ -115,10 +126,10 @@ A person can ask for the data a device holds about them (GDPR Art. 15 and 20) an
 Several Fadenstack apps may use one person's folder: the Word add-in, the desktop agent, Excel. Since standalone.9 the calls work per app (`DataScope`):
 
 - **This app** (`DataScope.ThisApp`, the default): the sessions and "Allow always" of the app's agents, their thinking levels, and the app's record (`apps/<app>.json`). An agent that another app's record names too keeps its data (`DataDeletion.AgentsKept`).
-- **The shared data**, which no single app owns: skills and the skills turned off, the MCP list and its audit log, keys, provenance records and log, the web search and old-chats settings, the standalone language, the approvals' seal key. It goes with this app's data only when no other app uses the person's data: no other app's record, and no data of an agent that no record names (an app on an SDK before standalone.9 writes no record, so its data stands for it, which keeps the shared data). Otherwise it stays, and `DataDeletion.OtherApps` names the apps it stays for. When nothing is left, the person's folder goes as a whole. The seal key goes with the last "Allow always".
+- **The shared data**, which no single app owns: skills and the skills turned off, the MCP list and its audit log, the record of tool calls, keys, provenance records and log, the web search and old-chats settings, the standalone language, the approvals' seal key. It goes with this app's data only when no other app uses the person's data: no other app's record, and no data of an agent that no record names (an app on an SDK before standalone.9 writes no record, so its data stands for it, which keeps the shared data). Otherwise it stays, and `DataDeletion.OtherApps` names the apps it stays for. When nothing is left, the person's folder goes as a whole. The seal key goes with the last "Allow always".
 - **All apps** (`DataScope.AllApps`): the person's whole folder, every app's data and the shared data. `agent.MyDataAppsAsync()` lists the apps it affects first, this app first (`MyDataApp.Recorded` false for an app known only by its data, named by its agent).
 
-**The control.** `Fadenstack.UI` has `MyDataSettingsViewModel` ("Your data on this device"), with a view in `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia`, in the five languages the package ships. It offers "Export my data…" and "Export all…" (the same scopes as the export calls), "Remove my data…" and, visually quieter, "Remove all my Fadenstack data on this device…". Neither removal runs at once. The person first reads what goes and what stays:
+**The control.** `Fadenstack.UI` has `MyDataSettingsViewModel` ("Your data on this device"), with a view in `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia`, in the five languages the package ships. It offers "Export my data…" and "Export all…" (the same scopes as the export calls), a line about the person's record of tool calls ("Record of tool calls: 12 entries since 01.08.2026, intact", or "damaged at entry 8") with "Export the record of tool calls…", which saves it as one web page through the same save target, "Remove my data…" and, visually quieter, "Remove all my Fadenstack data on this device…". Neither removal runs at once. The person first reads what goes and what stays:
 
 - "Remove my data…" reads `agent.MyDataAppsAsync()`. When other apps use the person's data, it says that this app's chats, approvals and preferences go and that the shared data (skills, the MCP list, keys, provenance records) stays for those apps, and names them (an app on an older SDK by its agent's name). When no other app does, it says that everything of the person's on this device goes.
 - "Remove all my Fadenstack data on this device…" lists every app it affects, this app marked.
@@ -133,7 +144,7 @@ settingsPage.Content = new MyDataSettingsView { DataContext = data };   // besid
 | Call | What it covers | What it leaves |
 |---|---|---|
 | `agent.ExportMyDataAsync(stream)`, `(stream, DataScope.ThisApp)` | A ZIP with exactly what this app's removal takes: its agents' sessions, decrypted, their "Allow always" approvals, their thinking levels and its record; with the shared data when no other app uses the person's data. The README names the scope and, when other apps use the data, what stayed and for which apps. | What other apps use; tokens, keys and secret values; what the server keeps. |
-| `agent.ExportMyDataAsync(stream, DataScope.AllApps)` | A ZIP with all the person's data on this device: every app's sessions, decrypted, and "Allow always" approvals, the apps' records, the preferences (the thinking levels, the skills turned off), the standalone language, skills, the MCP servers without what can hold a secret and their audit log, the standalone provenance records and log, and a README. A file the export does not know is named in the README, not exported. From a server that names no user: the shared folders, `preferences` too. | Tokens, the provenance signing key and secret values (MCP arguments, environment and header values), which are never exported; the shared folders; what the server keeps. |
+| `agent.ExportMyDataAsync(stream, DataScope.AllApps)` | A ZIP with all the person's data on this device: every app's sessions, decrypted, and "Allow always" approvals, the apps' records, the preferences (the thinking levels, the skills turned off), the standalone language, skills, the MCP servers without what can hold a secret and their audit log, the standalone provenance records and log, the record of tool calls as `audit/tool-calls.csv` (with its verification on top), and a README. A file the export does not know is named in the README, not exported. From a server that names no user: the shared folders, `preferences` too. | Tokens, the provenance signing key and secret values (MCP arguments, environment and header values), which are never exported; the shared folders; what the server keeps. |
 | `agent.DeleteMyDataAsync()`, `(DataScope.ThisApp)` | This app's data, as above; the shared data and the folder only when no other app uses the person's data. From a server that names no user: this agent's sessions and "Allow always" in the shared folders. | Other apps' data and, while they use it, the shared data (`OtherApps`, `AgentsKept`); the sign-in; another person's folder; a store your app passed (`HostStoresLeft`); what the server keeps. |
 | `agent.DeleteMyDataAsync(DataScope.AllApps)` | The person's whole folder, `users/<user>/`, with everything in it. From a server that names no user: the shared `sessions`, `approvals` and `preferences` folders. | The sign-in (sign out for that); the shared folders; another person's folder (deleting a governed person's data leaves `users/standalone/`, and the other way round); a store your app passed (`HostStoresLeft`); what the server keeps. |
 | `tokens.SignOutAsync()` | Revokes the sign-in on the server where it can be reached, and deletes the token file. | The person's folder. |

@@ -16,6 +16,7 @@ nav = [
   { "Outcomes and errors" = "outcomes.md" },
   { "Sessions on the device" = "sessions.md" },
   { "Data on the device" = "data-on-device.md" },
+  { "Record of tool calls" = "audit-log.md" },
   { "Local MCP servers" = "local-mcp.md" },
   { "Skills" = "skills.md" },
   { "Pictures and web search" = "web-search.md" },

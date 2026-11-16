@@ -24,6 +24,7 @@ var agent = FadenstackAgent.CreateBuilder()
 | `skills` | `allowed`, `forbidden`, or a list of allowed skill folders | like `standalone` |
 | `webSearch` | `allowed`, `forbidden` | like `standalone` |
 | `chatRetention` | An object that fixes how long a standalone agent keeps old chats: `{ "autoDelete": true, "maxAgeDays": 30, "maxSessions": 100 }`. `autoDelete` is true or false (default true), `maxAgeDays` a whole number from 1 to 3650 (default 90), `maxSessions` from 1 to 10000 (default 50). The person sees the values in their settings and cannot change them. A governed agent ignores it: the server decides. | the person chooses |
+| `auditRetentionDays` | A whole number from 30 to 3650: how many days entries of the person's [record of tool calls](audit-log.md#keeping-and-removing-it) are kept, in governed and standalone mode. A value out of bounds, or not a whole number, is reported in `policy.Warnings` and the default applies. It is `policy.AuditRetentionDays` (null when the key is absent) and `agent.AuditRetentionDays` says the number in force. | 180 |
 | `timestamping` | `on` (DigiCert), `off`, or the address of the organisation's own time-stamp server: RFC 3161 time-stamps for records signed on the device (only a hash leaves); anything else is `off` | `on` |
 
 ## Rules

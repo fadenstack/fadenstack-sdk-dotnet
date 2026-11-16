@@ -21,6 +21,17 @@ this file says where it does.
     Fadenstack data on this device…" lists every app it affects; "Export my data…" and "Export all…" follow the same scopes. The
     host picks where an export goes through `IMyDataSaveTarget` (`WpfMyDataSaveTarget`, `AvaloniaMyDataSaveTarget`); the view model
     opens no dialog.
+- **The record of tool calls** ([The record of tool calls](docs/audit-log.md)). Every agent keeps a content-free, hash-chained, sealed
+  record of what its tools did on the device: one entry per tool call decision and outcome (the tool, its class, who or what let
+  it run, the outcome, and `arguments_sha256`), in the person's own folder, encrypted like the approvals, written by every app of
+  the person into the same log under an exclusive lock. `agent.VerifyAuditAsync()` finds a changed, deleted, swapped or forged
+  entry; `agent.ExportAuditAsync(AuditExportFormat.Csv | Html, stream)` writes it readable; entries older than 180 days go (the
+  machine policy's `auditRetentionDays`, 30 to 3650), the last one removed stays in a sealed anchor. `AgentBuilder.UseAuditLog` replaces
+  the log; an agent whose app passes both its own session and approval store keeps it in memory unless the app passes one. The
+  events `tool.executed` and `approval.decided`, and the answer to a call the server holds, carry `arguments_sha256` only where the
+  profile lists `client_events.arguments_sha256`. "Your data on this device" shows "Record of tool calls: N entries since <date>,
+  intact" and exports it as a web page (`IMyDataAuditSource`); the export of the person's data holds it as `audit/tool-calls.csv`;
+  it is shared data, removed with "Remove all" or when no other app uses the person's data. Five languages.
 - **Old chats are a setting** ([Sessions: Retention](docs/sessions.md#retention)). In standalone mode the person chooses whether old
   chats are deleted automatically, and the limits (days 1 to 3650, chats 1 to 10000; defaults on, 90 days, 50 chats, or the app's
   `UseSessionRetention`); off keeps every chat until the person deletes it. In governed mode the server decides as before (the
