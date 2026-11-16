@@ -32,6 +32,8 @@ public class UiStringsTests
     {
         "ToolsSourceVsCode", "ToolsSourceCursor", "ToolsSourceClaude", "ToolsOriginLine", "ToolsValueSaved", "ToolsScanChip", "ToolsScanPortRange",
         "ToolsMoreTools", "ToolsRowName", "ToolsFieldLabel", "ToolsMinutesOne",
+        // The web search settings: product names (Brave, SearXNG) and a state line of a name and a host.
+        "WebSearchStateBrave", "WebSearchStateSearxng", "WebSearchChoiceBrave", "WebSearchChoiceSearxng",
     };
 
     public static TheoryData<string> Translations() => new() { "de", "fr", "es", "zh-Hans" };

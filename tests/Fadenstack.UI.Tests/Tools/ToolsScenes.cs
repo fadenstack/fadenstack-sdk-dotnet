@@ -1,5 +1,6 @@
 using Fadenstack.LocalTools;
 using Fadenstack.UI.Tools;
+using Fadenstack.WebSearch;
 
 namespace Fadenstack.UI.Tests.ToolsView;
 
@@ -22,7 +23,14 @@ internal sealed class ToolsScene : IDisposable
     /// <summary>Set by the scan sheet's states that wait: completes the scan.</summary>
     public TaskCompletionSource<bool>? ScanGate { get; init; }
 
-    public void Dispose() => Page.Dispose();
+    /// <summary>The person's web search settings the page was given (the states with web search); the fixture deletes its folder with the scene.</summary>
+    public WebSearchFixture? WebSearch { get; init; }
+
+    public void Dispose()
+    {
+        Page.Dispose();
+        WebSearch?.Dispose();
+    }
 }
 
 /// <summary>
@@ -39,6 +47,7 @@ internal static class ToolsScenes
         "drawer", "drawer-tools", "drawer-advanced", "drawer-warning", "drawer-governed", "drawer-remove",
         "add-program", "add-address", "edit-kept", "edit-address", "import", "scan-running", "scan-done",
         "cloud", "cloud-unavailable", "app", "app-standalone", "standalone",
+        "app-websearch", "websearch", "websearch-kept", "websearch-refused",
     };
 
     public static ToolsScene Create(string state, string language = "en")
@@ -47,6 +56,11 @@ internal static class ToolsScenes
         var files = new FakeFiles();
         TaskCompletionSource<bool>? gate = null;
         var strings = UiStrings.For(System.Globalization.CultureInfo.GetCultureInfo(language));
+        var web = state.StartsWith("websearch", StringComparison.Ordinal) || state == "app-websearch" ? new WebSearchFixture() : null;
+        if (state == "websearch-kept")
+        {
+            web!.WithBrave();
+        }
 
         switch (state)
         {
@@ -145,9 +159,9 @@ internal static class ToolsScenes
                 new CloudToolInfo("delete_everything", "github", "Deletes the organisation's repositories.", true, false)).ToList());
         }
 
-        var page = new ToolsViewModel(catalog, files, strings: () => strings);
+        var page = new ToolsViewModel(catalog, files, strings: () => strings, webSearch: web?.Store);
         page.OpenAsync().GetAwaiter().GetResult();
-        var scene = new ToolsScene(page, catalog, files) { ScanGate = gate };
+        var scene = new ToolsScene(page, catalog, files) { ScanGate = gate, WebSearch = web };
 
         switch (state)
         {
@@ -209,9 +223,23 @@ internal static class ToolsScenes
             case "cloud" or "cloud-unavailable":
                 page.ShowsServer = true;
                 break;
-            case "app" or "app-standalone":
+            case "app" or "app-standalone" or "app-websearch":
                 page.ShowsApp = true;
                 break;
+            case "websearch" or "websearch-kept":
+                page.ShowsApp = true;
+                page.OpenWebSearchCommand.Execute(null);
+                break;
+            case "websearch-refused":
+            {
+                page.ShowsApp = true;
+                page.OpenWebSearchCommand.Execute(null);
+                var sheet = (WebSearchSettingsViewModel)page.Sheet!;
+                sheet.IsSearXng = true;
+                sheet.Address = "http://search.example.org";
+                sheet.SaveCommand.Execute(null);
+                break;
+            }
         }
         return scene;
     }

@@ -26,6 +26,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Colors.Light.xaml" />
                 <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Tools.xaml" />
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/WebSearch.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <Style x:Key="Tools.Subtitle" TargetType="TextBlock" BasedOn="{StaticResource Form.Strong}">
@@ -152,6 +153,13 @@
                             </StackPanel>
                         </ScrollViewer>
                     </DockPanel>
+                </Border>
+            </DataTemplate>
+
+            <!-- ===== Web search: a modal sheet (the template is WebSearchSettingsView's, Themes/WebSearch.xaml) ===== -->
+            <DataTemplate DataType="{x:Type t:WebSearchSettingsViewModel}">
+                <Border x:Name="WebSearchSheet" Style="{StaticResource Tools.Sheet}" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{Binding Title}">
+                    <ContentControl ContentTemplate="{StaticResource WebSearch.Body}" Content="{Binding}" Focusable="False" />
                 </Border>
             </DataTemplate>
 
@@ -466,6 +474,23 @@
                                    Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding ShowsAppEmpty, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
                         <TextBlock x:Name="AppNoMatch" Style="{StaticResource Form.Caption}" Foreground="{DynamicResource Fadenstack.ForegroundMuted}" Text="{local:Text ToolsNoToolsMatch}"
                                    Margin="{StaticResource Fadenstack.Space.Block}" Visibility="{Binding ShowsAppNoMatch, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                        <!-- Web search: only where the app gave the page the person's web search settings. -->
+                        <Border x:Name="WebSearchRow" Style="{StaticResource Tools.ListCard}" Margin="{StaticResource Fadenstack.Space.Block}" Padding="12,8"
+                                Visibility="{Binding ShowsWebSearch, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                            <DockPanel LastChildFill="True">
+                                <Button x:Name="WebSearchButton" DockPanel.Dock="Right" Style="{StaticResource Form.Secondary}" Command="{Binding OpenWebSearchCommand}" Margin="8,0,0,0"
+                                        VerticalAlignment="Center" Content="{Binding WebSearchButtonText}" AutomationProperties.Name="{Binding WebSearchButtonText}" />
+                                <StackPanel>
+                                    <DockPanel LastChildFill="False">
+                                        <TextBlock Style="{StaticResource Form.Strong}" Text="{Binding WebSearchName}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <Border Style="{StaticResource Tools.StateChip.Muted}" VerticalAlignment="Center">
+                                            <TextBlock x:Name="WebSearchState" Style="{StaticResource Tools.MicroText}" Text="{Binding WebSearchState}" />
+                                        </Border>
+                                    </DockPanel>
+                                    <TextBlock Style="{StaticResource Form.Caption}" Text="{Binding WebSearchText}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
                         <ItemsControl x:Name="AppTools" ItemsSource="{Binding AppTools}" Focusable="False" AutomationProperties.Name="{Binding AppTabText}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>

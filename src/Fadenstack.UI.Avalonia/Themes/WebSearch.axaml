@@ -1,0 +1,85 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:t="clr-namespace:Fadenstack.UI.Tools;assembly=Fadenstack.UI"
+                    xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+                    xmlns:c="clr-namespace:Fadenstack.UI.Avalonia.Controls"
+                    xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views">
+    <!--
+        The web search settings (sdk/51 F06) for a WebSearchSettingsViewModel: a title with its close button, the three choices (Off, Brave,
+        SearXNG), the key box (a masked box bound to the view model's Key, never filled from the store; a kept key shows as a line with
+        Replace key and Remove key), the address box, the lines on where the key is kept and on what leaves the organisation, the problem,
+        Save and Cancel. One template for the Tools view's sheet and for WebSearchSettingsView, so the two cannot differ; it is made when
+        it is shown, under the panel that gives the texts their language. Every text is a UiStrings name; every control has an
+        automation name; every look is a style class of the skin's (Controls.axaml, Forms.axaml) or a theme key.
+    -->
+    <DataTemplate x:Key="WebSearch.Sheet" x:DataType="t:WebSearchSettingsViewModel">
+        <Border x:Name="WebSearchSheet" Classes="sheet wide" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{Binding Title}">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="16,16,8,8">
+                    <TextBlock Classes="subtitle" Text="{v:Text WebSearchTitle}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <Button x:Name="WebSearchCloseButton" Grid.Column="1" Classes="icon" Command="{Binding CancelCommand}" ToolTip.Tip="{v:Text ToolsCloseSheet}"
+                            AutomationProperties.Name="{v:Text ToolsCloseSheet}">
+                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                    </Button>
+                </Grid>
+                <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Padding="16,12">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                        <Button x:Name="WebSearchCancelButton" Classes="secondary" Command="{Binding CancelCommand}"
+                                Content="{v:Text WebSearchCancel}" AutomationProperties.Name="{v:Text WebSearchCancel}" />
+                        <Button x:Name="WebSearchSaveButton" Classes="primary" Command="{Binding SaveCommand}"
+                                Content="{v:Text WebSearchSave}" AutomationProperties.Name="{v:Text WebSearchSave}" />
+                    </StackPanel>
+                </Border>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="16,0,16,12" Spacing="12">
+                        <TextBlock Classes="caption muted" Text="{v:Text WebSearchIntro}" TextWrapping="Wrap" />
+
+                        <!-- The choice: three segments. -->
+                        <Border x:Name="WebSearchChoices" Classes="segmented" AutomationProperties.Name="{v:Text WebSearchChoiceName}">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="WebSearchOffButton" Classes="segment" GroupName="WebSearchChoice" IsChecked="{Binding IsOff}"
+                                             Content="{v:Text WebSearchChoiceOff}" AutomationProperties.Name="{v:Text WebSearchChoiceOff}" />
+                                <RadioButton x:Name="WebSearchBraveButton" Classes="segment" GroupName="WebSearchChoice" IsChecked="{Binding IsBrave}"
+                                             Content="{v:Text WebSearchChoiceBrave}" AutomationProperties.Name="{v:Text WebSearchChoiceBrave}" />
+                                <RadioButton x:Name="WebSearchSearxngButton" Classes="segment" GroupName="WebSearchChoice" IsChecked="{Binding IsSearXng}"
+                                             Content="{v:Text WebSearchChoiceSearxng}" AutomationProperties.Name="{v:Text WebSearchChoiceSearxng}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Off. -->
+                        <TextBlock x:Name="WebSearchOffHelp" Classes="caption muted" Text="{v:Text WebSearchOffHelp}" IsVisible="{Binding IsOff}" TextWrapping="Wrap" />
+
+                        <!-- Brave: the person's own key. -->
+                        <StackPanel x:Name="WebSearchBraveSection" Spacing="4" IsVisible="{Binding IsBrave}">
+                            <TextBlock Classes="strong" Text="{v:Text WebSearchKeyLabel}" />
+                            <TextBox x:Name="WebSearchKeyBox" Text="{Binding Key}" PasswordChar="&#9679;" IsVisible="{Binding ShowsKeyInput}"
+                                     AutomationProperties.Name="{v:Text WebSearchKeyLabel}" />
+                            <Grid x:Name="WebSearchKeyState" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4" IsVisible="{Binding ShowsReplaceKey}">
+                                <TextBlock x:Name="WebSearchKeyKept" Text="{v:Text WebSearchKeyKept}" IsVisible="{Binding ShowsKeptKey}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                <TextBlock x:Name="WebSearchKeyRemoved" Text="{v:Text WebSearchKeyRemoved}" IsVisible="{Binding ShowsRemovedKey}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           AutomationProperties.LiveSetting="Polite" />
+                                <Button x:Name="WebSearchReplaceKeyButton" Grid.Column="1" Classes="quiet small" Command="{Binding ReplaceKeyCommand}"
+                                        Content="{v:Text WebSearchKeyReplace}" AutomationProperties.Name="{v:Text WebSearchKeyReplace}" />
+                                <Button x:Name="WebSearchRemoveKeyButton" Grid.Column="2" Classes="quiet small" Command="{Binding RemoveKeyCommand}" IsVisible="{Binding ShowsKeptKey}"
+                                        Content="{v:Text WebSearchKeyRemove}" AutomationProperties.Name="{v:Text WebSearchKeyRemove}" />
+                            </Grid>
+                            <TextBlock Classes="caption muted" Text="{v:Text WebSearchKeyHelp}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="WebSearchKeptWhere" Classes="caption muted" Text="{Binding KeptWhereText}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <!-- SearXNG: the person's own address. -->
+                        <StackPanel x:Name="WebSearchSearxngSection" Spacing="4" IsVisible="{Binding IsSearXng}">
+                            <TextBlock Classes="strong" Text="{v:Text WebSearchUrlLabel}" />
+                            <TextBox x:Name="WebSearchAddressBox" Text="{Binding Address}" AutomationProperties.Name="{v:Text WebSearchUrlLabel}" />
+                            <TextBlock Classes="caption muted" Text="{v:Text WebSearchUrlHelp}" TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="WebSearchPrivacy" Classes="caption muted" Text="{Binding PrivacyText}" IsVisible="{Binding !IsOff}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="WebSearchError" Classes="error" Text="{Binding ErrorText}" IsVisible="{Binding HasError}" AutomationProperties.LiveSetting="Assertive" />
+                        <TextBlock x:Name="WebSearchSaved" Text="{Binding SavedText}" IsVisible="{Binding HasSaved}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </DataTemplate>
+</ResourceDictionary>

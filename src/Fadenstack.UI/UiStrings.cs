@@ -1951,6 +1951,102 @@ public sealed class UiStrings
     /// <summary>"Plain http is not allowed here."</summary>
     public string McpPlainHttpNotAllowed => Text();
 
+    /// <summary>"Web search"</summary>
+    public string WebSearchRowName => Text();
+
+    /// <summary>"Lets the assistant search the web. Off until you set it up."</summary>
+    public string WebSearchRowText => Text();
+
+    /// <summary>"Off"</summary>
+    public string WebSearchStateOff => Text();
+
+    /// <summary>"Brave"</summary>
+    public string WebSearchStateBrave => Text();
+
+    /// <summary>"SearXNG · {0}"</summary>
+    public string WebSearchStateSearxng(string host) => Fill(host);
+
+    /// <summary>"Set up"</summary>
+    public string WebSearchSetUp => Text();
+
+    /// <summary>"Change"</summary>
+    public string WebSearchChange => Text();
+
+    /// <summary>"Web search"</summary>
+    public string WebSearchTitle => Text();
+
+    /// <summary>"Choose where the assistant’s web searches go."</summary>
+    public string WebSearchIntro => Text();
+
+    /// <summary>"Search provider"</summary>
+    public string WebSearchChoiceName => Text();
+
+    /// <summary>"Off"</summary>
+    public string WebSearchChoiceOff => Text();
+
+    /// <summary>"Brave Search"</summary>
+    public string WebSearchChoiceBrave => Text();
+
+    /// <summary>"SearXNG"</summary>
+    public string WebSearchChoiceSearxng => Text();
+
+    /// <summary>"The assistant has no web search tool."</summary>
+    public string WebSearchOffHelp => Text();
+
+    /// <summary>"Brave API key"</summary>
+    public string WebSearchKeyLabel => Text();
+
+    /// <summary>"Use your own key from your Brave Search API account."</summary>
+    public string WebSearchKeyHelp => Text();
+
+    /// <summary>"A key is saved"</summary>
+    public string WebSearchKeyKept => Text();
+
+    /// <summary>"Replace key"</summary>
+    public string WebSearchKeyReplace => Text();
+
+    /// <summary>"Remove key"</summary>
+    public string WebSearchKeyRemove => Text();
+
+    /// <summary>"The key will be removed when you save."</summary>
+    public string WebSearchKeyRemoved => Text();
+
+    /// <summary>"Enter your Brave API key, or pick another choice."</summary>
+    public string WebSearchKeyMissing => Text();
+
+    /// <summary>"SearXNG address"</summary>
+    public string WebSearchUrlLabel => Text();
+
+    /// <summary>"The address of your SearXNG instance, with its JSON format turned on."</summary>
+    public string WebSearchUrlHelp => Text();
+
+    /// <summary>"Enter the address of your SearXNG instance."</summary>
+    public string WebSearchUrlMissing => Text();
+
+    /// <summary>"Use an https address, or http on this computer only, without a user name or password."</summary>
+    public string WebSearchUrlRefused => Text();
+
+    /// <summary>"The key is kept encrypted in this device’s key store and is never shown again."</summary>
+    public string WebSearchKeptStore => Text();
+
+    /// <summary>"The key is kept for this session only: this device has no key store, so it is forgotten when the app closes."</summary>
+    public string WebSearchKeptSession => Text();
+
+    /// <summary>"A search sends the words of the query outside your organisation. The assistant asks first, unless it is set to Auto."</summary>
+    public string WebSearchPrivacy => Text();
+
+    /// <summary>"Save"</summary>
+    public string WebSearchSave => Text();
+
+    /// <summary>"Cancel"</summary>
+    public string WebSearchCancel => Text();
+
+    /// <summary>"Saved."</summary>
+    public string WebSearchSaved => Text();
+
+    /// <summary>"The settings could not be saved on this device. Try again."</summary>
+    public string WebSearchSaveFailed => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));
