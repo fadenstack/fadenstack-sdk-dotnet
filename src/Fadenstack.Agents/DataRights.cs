@@ -112,6 +112,10 @@ internal static class DataExport
         {
             files.AddFolder(zip, personFolder);
         }
+        else if (sharedPreferences is not null && only is not null)
+        {
+            files.AddOwnReasoning(zip, Path.Combine(sharedPreferences, "reasoning.json"), scope!.Plan.OwnAgents);
+        }
         else if (sharedPreferences is not null)
         {
             files.AddPreferences(zip, sharedPreferences);
@@ -222,13 +226,18 @@ internal static class DataExport
             {
                 Copy(zip, record, "apps/" + Path.GetFileName(record));
             }
-            var reasoning = Path.Combine(folder, "preferences", "reasoning.json");
+            AddOwnReasoning(zip, Path.Combine(folder, "preferences", "reasoning.json"), scope.Plan.OwnAgents);
+        }
+
+        /// <summary>The agents' thinking levels from <paramref name="reasoning"/>, without the other agents'.</summary>
+        public void AddOwnReasoning(ZipArchive zip, string reasoning, IReadOnlyList<string> agents)
+        {
             try
             {
                 if (File.Exists(reasoning)
                     && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(reasoning)) is { } all)
                 {
-                    var own = all.Where(p => scope.Plan.OwnAgents.Any(a => FadenstackPaths.SafeName(a) == FadenstackPaths.SafeName(p.Key)))
+                    var own = all.Where(p => agents.Any(a => FadenstackPaths.SafeName(a) == FadenstackPaths.SafeName(p.Key)))
                         .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
                     if (own.Count > 0)
                     {
@@ -401,7 +410,13 @@ internal static class DataExport
         }
         text.AppendLine("Not included")
             .AppendLine("- Sign-in tokens and other secrets: they give access to your account and are never exported.");
-        if (scope is { Plan.SharedGoes: false } plan)
+        if (scope is { Plan.SharedGoes: false, Plan.OtherApps.Count: 0 })
+        {
+            // A server that names no user: the data is the device's, shared by every agent on it.
+            text.AppendLine("- The other agents' chats and the settings this device shares between Fadenstack apps. Export all of your")
+                .AppendLine("  Fadenstack data to get them.");
+        }
+        else if (scope is { Plan.SharedGoes: false } plan)
         {
             text.AppendLine($"- What other Fadenstack apps on this device use ({string.Join(", ", plan.Plan.OtherApps.Select(a => a.Name))}): your skills,")
                 .AppendLine("  your MCP servers, your provenance records and your other settings. Export all of your Fadenstack data to get them.");

@@ -301,4 +301,47 @@ public sealed class MyDataScopeTests : IDisposable
         Assert.Equal(new[] { "agents", "app", "firstSeen", "lastSeen" },
             record.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray());
     }
+
+    [Fact]
+    public async Task From_a_gateway_that_names_no_user_the_export_holds_exactly_what_the_removal_takes()
+    {
+        using var agent = FadenstackAgent.CreateBuilder()
+            .UseServer(new Uri("https://faden.test"), new StaticTokenProvider("agent-token"),
+                o => o.HttpClient = new HttpClient(new Gateway { Principal = null }.Server))
+            .UseAgent(Gateway.Slug)
+            .DescribeApp(new AppDescription { Name = AppA, Version = "1.0" })
+            .Build();
+        await SeedA(agent);
+        string Shared(params string[] parts) => Path.Combine(new[] { FadenstackPaths.DataRoot }.Concat(parts).ToArray());
+        await new FileSessionStore(Shared("sessions")).AppendAsync(AgentB, "b1", Entry("B's chat"));
+        Directory.CreateDirectory(Shared("preferences"));
+        File.WriteAllText(Shared("preferences", "reasoning.json"), $$"""{"{{Gateway.Slug}}":"high","{{AgentB}}":"low"}""");
+        File.WriteAllText(Shared("preferences", "web-search.json"), """{"provider":"searxng"}""");
+
+        using var zip = new MemoryStream();
+        await agent.ExportMyDataAsync(zip); // the default: this app
+        var files = Unzip(zip);
+
+        Assert.Contains(files.Keys, k => k.StartsWith($"sessions/{Gateway.Slug}/", StringComparison.Ordinal));
+        Assert.Contains($"approvals/{Gateway.Slug}.json", files.Keys);
+        Assert.DoesNotContain(files.Keys, k => k.StartsWith($"sessions/{AgentB}/", StringComparison.Ordinal));
+        Assert.DoesNotContain(files.Values, v => v.Contains("B's chat"));
+        Assert.Equal(new[] { Gateway.Slug },
+            JsonSerializer.Deserialize<Dictionary<string, string>>(files["preferences/reasoning.json"])!.Keys.ToArray());
+        Assert.DoesNotContain("preferences/web-search.json", files.Keys);
+        Assert.Contains("The other agents' chats and the settings this device shares", files["README.txt"]);
+        Assert.DoesNotContain("()", files["README.txt"]);
+
+        var deletion = await agent.DeleteMyDataAsync(); // the default: this app
+
+        Assert.Equal(DataScope.ThisApp, deletion.Scope);
+        Assert.Empty(deletion.OtherApps);
+        Assert.False(Directory.Exists(Shared("sessions", Gateway.Slug)));
+        Assert.False(File.Exists(Shared("approvals", Gateway.Slug + ".json")));
+        Assert.True(Directory.Exists(Shared("sessions", AgentB)));
+        Assert.Equal(new[] { AgentB },
+            JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Shared("preferences", "reasoning.json")))!.Keys.ToArray());
+        Assert.True(File.Exists(Shared("preferences", "web-search.json")));
+        Assert.False(Directory.Exists(FadenstackPaths.UserFolder("u-1"))); // no person, no record
+    }
 }

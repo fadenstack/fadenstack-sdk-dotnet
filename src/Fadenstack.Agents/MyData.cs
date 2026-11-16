@@ -33,8 +33,19 @@ public sealed record MyDataApp(string Name, IReadOnlyList<string> Agents, DateTi
 /// <summary>What a removal of <see cref="DataScope.ThisApp"/> takes and leaves, worked out before anything is deleted.</summary>
 internal sealed record MyDataPlan(IReadOnlyList<string> OwnAgents, IReadOnlyList<string> KeptAgents, IReadOnlyList<MyDataApp> OtherApps)
 {
-    /// <summary>No other app uses the person's data: the shared data goes too, and with it the person's whole folder.</summary>
-    public bool SharedGoes => OtherApps.Count == 0;
+    /// <summary>
+    /// No other app uses the person's data: the shared data goes too, and with it the person's whole folder. Never for a server
+    /// that names no user (<see cref="NoUser"/>).
+    /// </summary>
+    public bool SharedGoes { get; init; } = OtherApps.Count == 0;
+
+    /// <summary>
+    /// A server that names no user: the shared folders of an older SDK hold no app records, and every agent on the device uses
+    /// them. This app's part is the agent's own data (its chats, "Allow always" and thinking level); the rest stays, for the
+    /// removal and the export alike.
+    /// </summary>
+    public static MyDataPlan NoUser(string agent) =>
+        new(new[] { agent }, Array.Empty<string>(), Array.Empty<MyDataApp>()) { SharedGoes = false };
 }
 
 /// <summary>
@@ -234,7 +245,7 @@ internal static class MyDataApps
     }
 
     /// <summary>Removes the agents' thinking levels from the file; the file goes when nothing is left in it.</summary>
-    private static int ForgetReasoning(string path, IReadOnlyList<string> agents)
+    internal static int ForgetReasoning(string path, IReadOnlyList<string> agents)
     {
         var all = Reasoning(path);
         var gone = all.Keys.Where(k => agents.Any(a => FadenstackPaths.SafeName(a) == FadenstackPaths.SafeName(k))).ToList();
