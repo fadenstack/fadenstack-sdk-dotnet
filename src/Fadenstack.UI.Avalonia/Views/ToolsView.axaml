@@ -701,15 +701,16 @@
                 <StackPanel Spacing="12" IsVisible="{Binding ShowsLists}">
                     <!-- The bar: where tools run, the policy, the filter. -->
                     <WrapPanel ItemSpacing="8" LineSpacing="8">
-                        <Border x:Name="ToolsTabs" Classes="segmented" AutomationProperties.Name="{v:Text ToolsTitle}">
-                            <StackPanel Orientation="Horizontal">
+                        <!-- The tabs wrap in a narrow pane (Office's), so the frame's height follows its rows: none may be cut. -->
+                        <Border x:Name="ToolsTabs" Classes="segmented" Height="NaN" AutomationProperties.Name="{v:Text ToolsTitle}">
+                            <WrapPanel Orientation="Horizontal">
                                 <RadioButton x:Name="AppTab" Classes="segment" IsChecked="{Binding ShowsApp}" Content="{Binding AppTabText}"
                                              AutomationProperties.Name="{Binding AppTabText}" />
                                 <RadioButton x:Name="LocalTab" Classes="segment" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
                                              AutomationProperties.Name="{Binding LocalTabText}" />
                                 <RadioButton x:Name="ServerTab" Classes="segment" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
                                              AutomationProperties.Name="{Binding ServerTabText}" IsVisible="{Binding ShowsServerTab}" />
-                            </StackPanel>
+                            </WrapPanel>
                         </Border>
                         <Border x:Name="PolicyChip" Classes="policy" Classes.warn="{Binding PolicyIsWarning}" IsVisible="{Binding ShowsLocalChip}"
                                 ToolTip.Tip="{Binding PolicyTip}" AutomationProperties.Name="{Binding PolicyTip}">
