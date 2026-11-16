@@ -10,6 +10,7 @@ public sealed class DemoTools
     /// <summary>The agent definition for standalone runs (<c>--endpoint</c>): what an app ships as its <c>contracts/*.json</c>.</summary>
     public const string Definition = """
         {"slug":"console-assistant","name":"Console assistant","version":{
+          "local_mcp_mode":"allow","local_skills_mode":"allow",
           "instructions":"You are a helpful assistant in a console. The open document has pages; read them with read_page before you answer about them. Keep answers short.",
           "host_tool_contract":[{"name":"read_page","risk":"read"},{"name":"add_comment","risk":"write"},
             {"name":"delete_page","risk":"destructive"},{"name":"stamp_page"}],

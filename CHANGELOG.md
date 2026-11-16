@@ -8,6 +8,8 @@ this file says where it does.
 
 ### Added
 
+- **The arguments of a call the gateway holds on the approval card** ([Approvals](docs/approvals.md#the-arguments-of-a-call-the-gateway-holds)). From core 0.7.1 rc22 the event of a held call carries its arguments text; `ApprovalRequest.Arguments` now holds the members of the JSON object when the text is complete. A cut text, or one that is not a JSON object, is one read-only value (`ApprovalRequest.ArgumentsShortened`), and the card says "The arguments are shortened." (`ApprovalPart.ArgumentsNote`; five languages; WPF and Avalonia). An older gateway sends none: the card stays as it was.
+- **The console sample shows standalone mode** ([Samples](docs/samples.md)): the endpoint and what the check found, the AI notice, a write tool that asks (with the arguments it is given), `--skills`, `--mcp`, content marking with device-signed records, `/skills`, `/copy`, `/stop` and `/record`. `samples/README.md` says how to run it against Ollama or LM Studio.
 - **The mark on copy** ([Content provenance: Copying an answer](docs/provenance.md#copying-an-answer), AI Act Art. 50(2)).
   `FadenstackAgent.MarkCopyAsync(AnswerCopy)` marks what the person copies out of the chat through the provenance module's
   pipeline (the tool `copy`, the sink `clipboard` that carries `html-attribute`, the receipt of the turn): the HTML carries the
