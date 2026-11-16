@@ -101,6 +101,7 @@ internal sealed class LiveCheck
             ["local-mcp-allowed"] = LocalMcpAllowedAsync,
             ["tool-rule-deny"] = ToolRuleDenyAsync,
             ["gateway-approval"] = GatewayApprovalAsync,
+            ["held-arguments"] = HeldArgumentsAsync,
             ["profile-v2"] = ProfileV2Async,
             ["refresh"] = RefreshAsync,
             ["refresh-reuse"] = RefreshReuseAsync,
@@ -588,6 +589,38 @@ internal sealed class LiveCheck
         Expect(!declined.Completed.Any(c => c.Source == "gateway" && c.Outcome == "ok"), "the declined gateway tool ran");
         return $"{asked.ToolName} waited for approval in the gateway; approved -> ran (try {approveTries}); "
             + $"declined -> not run (try {declineTries}); \"{Short(declined.Text)}\"";
+    }
+
+    // A call the gateway holds shows its arguments on the card (core 0.7.1 rc22: `arguments` on faden.approval_required).
+    // An older gateway sends none, and this check fails there by design.
+    private async Task<string> HeldArgumentsAsync()
+    {
+        using var agent = Build();
+        await agent.StartAsync();
+        const string Prompt = "Use the current_time tool with the timezone Europe/Berlin and tell me the hour there.";
+        ApprovalRequest? asked = null;
+        TurnLog? turn = null;
+        var tries = 0;
+        while (asked is null && tries < 3)
+        {
+            tries++;
+            _approvals.Clear();
+            _approvals.Decide = _ => ApprovalDecision.Approve();
+            turn = await TurnAsync(await agent.StartSessionAsync(), Prompt);
+            asked = _approvals.Asked.FirstOrDefault(a => a.Source == "gateway");
+        }
+        if (asked is null)
+        {
+            throw new CheckFailed($"the gateway never asked in {tries} tries");
+        }
+        var shown = string.Join(", ", asked.Arguments.Select(a => $"{a.Key}={a.Value}"));
+        Expect(asked.Arguments.Count > 0, "the card shows no arguments (a gateway older than rc22 sends none)");
+        Expect(!asked.ArgumentsShortened, $"the arguments were shortened: {Short(shown, 120)}");
+        Expect(asked.Arguments.TryGetValue("timezone", out var zone) && zone?.ToString() == "Europe/Berlin",
+            $"the card does not show timezone=Europe/Berlin: {Short(shown, 120)}");
+        var ran = turn!.Completed.FirstOrDefault(c => c.Source == "gateway");
+        Expect(ran is { Outcome: "ok" }, $"approved gateway tool: {ran?.Outcome ?? "did not run"}");
+        return $"{asked.ToolName} held by the gateway; the card shows {shown} (try {tries}); approved -> ran";
     }
 
     // ── The server enforces it too ──────────────────────────────────────────────────────────────────
