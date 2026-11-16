@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.Json;
 using Fadenstack;
 using Fadenstack.Agents;
+using Fadenstack.Agents.Audit;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Governance;
@@ -110,6 +111,9 @@ internal sealed class LiveCheck
             ["raw-force-time"] = RawForceTimeAsync,
             ["gateway-decline"] = GatewayDeclineAsync,
             ["images-off"] = ImagesOffAsync,
+            ["agent-off"] = AgentOffAsync,
+            ["agent-on"] = AgentOnAsync,
+            ["audit-hash"] = AuditHashAsync,
         };
         Console.WriteLine($"LiveCheck {phase}: {_server} agent {_slug} as {_email}");
         foreach (var name in names)
@@ -249,6 +253,73 @@ internal sealed class LiveCheck
         Expect(p.LocalMcp.Mode == "disable", $"local MCP {p.LocalMcp.Mode}");
         return $"{p.Name} v{p.Version} ({p.Edition}), model {p.Model}, tool modes default {p.ToolModes.Default} ceiling {p.ToolModes.Ceiling ?? "none"}, "
             + $"tools {string.Join(", ", agent.Tools.Select(t => $"{t.Name}:{t.Class.ToWire()}"))} (stamp_page dropped)";
+    }
+
+    // Core 0.7.1 rc21's off-switch (8.3): with sdk-livecheck turned off in the console, the profile says enabled: false, the agent is
+    // off from its start, a new turn is refused without a request, the server refuses an agent route with agent_disabled, and the
+    // events still go. Run between the admin steps turn-off and turn-on.
+    private async Task<string> AgentOffAsync()
+    {
+        using var agent = Build();
+        await agent.StartAsync();
+        Expect(!agent.Profile.Enabled, "the profile says enabled: true");
+        Expect(agent.TurnedOff, "TurnedOff is false after the start");
+        var session = await agent.StartSessionAsync();
+        var turn = await TurnAsync(session, "Answer in one short sentence: what is a table of contents used for?");
+        Expect(turn.Result?.Outcome == ChatOutcome.AgentDisabled, $"outcome {turn.Result?.Outcome}");
+        try
+        {
+            await Client.Agent!.GetGrantAsync("0123456789abcdef0123456789abcdef");
+            throw new CheckFailed("a grants route answered while the agent is off");
+        }
+        catch (FadenstackApiException e) when (e.IsAgentDisabled)
+        {
+            // the server's word: 403 agent_disabled
+        }
+        await agent.FlushAsync();
+        return $"profile enabled false, TurnedOff, turn {turn.Result?.Outcome}; a grants route 403 agent_disabled; events flushed";
+    }
+
+    // After the admin step turn-on: the profile says enabled: true again and a chat works (the same sign-in, no new one).
+    private async Task<string> AgentOnAsync()
+    {
+        using var agent = Build();
+        await agent.StartAsync();
+        Expect(agent.Profile.Enabled, "the profile says enabled: false");
+        Expect(!agent.TurnedOff, "TurnedOff is true");
+        var session = await agent.StartSessionAsync();
+        var turn = await TurnAsync(session, "Answer in one short sentence: what is a table of contents used for?");
+        Expect(turn.Result?.Outcome == ChatOutcome.Completed, $"outcome {turn.Result?.Outcome}");
+        return $"profile enabled true, on again; \"{Short(turn.Text)}\"";
+    }
+
+    // The record of tool calls (8.10) against the server: a host tool call is in the run's own record, the record verifies, and its
+    // arguments_sha256 is printed for the admin step events-hash, which looks for the same value in the agent's events (core rc21
+    // lists client_events.arguments_sha256, so the SDK sends it).
+    private async Task<string> AuditHashAsync()
+    {
+        using var agent = Build();
+        await agent.StartAsync();
+        Expect(agent.Profile.Features.Contains(AuditChain.ArgumentsFeature), "the profile does not list " + AuditChain.ArgumentsFeature);
+        var session = await agent.StartSessionAsync();
+        await TurnAsync(session, "Use the read_page tool to read page 3, then tell me which table is on it.");
+        Expect(_tools.Calls.Contains("read_page:3"), $"read_page(3) did not run (calls: {string.Join(",", _tools.Calls)})");
+        await agent.FlushAsync();
+        var verification = await agent.VerifyAuditAsync();
+        Expect(verification.Intact, $"the record does not verify: {verification.Problem} at {verification.BrokenAtSeq}");
+        using var csv = new MemoryStream();
+        await agent.ExportAuditAsync(AuditExportFormat.Csv, csv);
+        var rows = Encoding.UTF8.GetString(csv.ToArray()).Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+        var header = rows.FindIndex(l => l.StartsWith("seq,time,", StringComparison.Ordinal));
+        Expect(header >= 0, "the CSV has no header");
+        var names = rows[header].Split(',');
+        var tool = Array.IndexOf(names, "tool");
+        var hash = Array.IndexOf(names, "arguments_sha256");
+        var last = rows.Skip(header + 1).Select(l => l.Split(',')).LastOrDefault(r => r.Length == names.Length && r[tool] == "read_page")
+            ?? throw new CheckFailed("no read_page entry in the record");
+        Expect(last[hash].Length == 64 && last[hash].All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f'), $"arguments_sha256 '{last[hash]}'");
+        Console.WriteLine($"AUDIT-SHA {last[hash]}");
+        return $"record intact ({verification.Entries} entries); read_page arguments_sha256 {last[hash]}";
     }
 
     // Core 0.7.1 turns image generation off for every install (EU AI Act, Article 5, from 2 Dec 2026): the profile says no
@@ -644,7 +715,8 @@ internal sealed class LiveCheck
             .UseAgent(_slug)
             .AddTools(_tools)
             .UseApprovals(_approvals)
-            .UseSessionStore(_sessions);
+            .UseSessionStore(_sessions)
+            .UseAuditLog(new FileAuditLog(Path.Combine(_data, "audit"))); // the run's own record of tool calls, beside its sessions
         if (mcp is not null)
         {
             builder.AddLocalMcp(mcp);
