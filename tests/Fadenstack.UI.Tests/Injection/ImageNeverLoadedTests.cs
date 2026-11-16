@@ -44,12 +44,14 @@ public sealed class ImageNeverLoadedTests
     }
 
     [Fact]
-    public void A_markdown_image_becomes_text_and_a_link_that_only_a_click_opens()
+    public void A_markdown_image_becomes_its_alt_text_and_its_address_goes()
     {
+        // As the TypeScript SDK: an image is its alt text in brackets, with no address left to load or to click.
         var blocks = MarkdownParser.Parse("Look: ![status](https://evil.example/pixel.png?q=SECRET)");
         var runs = Assert.IsType<ParagraphBlock>(Assert.Single(blocks)).Inlines;
-        Assert.DoesNotContain(runs, r => r.Url is not null && (r.Style & InlineStyle.Link) == 0); // an address is only ever a link
-        Assert.Contains(runs, r => (r.Style & InlineStyle.Link) != 0 && r.Url == "https://evil.example/pixel.png?q=SECRET");
+        Assert.DoesNotContain(runs, r => r.Url is not null);
+        Assert.DoesNotContain(runs, r => r.Text.Contains("evil.example"));
+        Assert.Contains("[status]", string.Concat(runs.Select(r => r.Text)));
     }
 
     [Theory]
