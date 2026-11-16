@@ -1995,8 +1995,8 @@ public sealed class UiStrings
     /// <summary>"Your organisation keeps at most {0} chats for {1} days on this device."</summary>
     public string ChatRetentionOrganisationLimit(int first, int second) => Fill2(first, second);
 
-    /// <summary>"Your organisation sets no limit."</summary>
-    public string ChatRetentionOrganisationNoLimit => Text();
+    /// <summary>"This device keeps at most {0} chats for {1} days." (governed, the server sets no limit: the app's limits)</summary>
+    public string ChatRetentionDeviceLimit(int first, int second) => Fill2(first, second);
 
     /// <summary>"Set by your organisation's policy on this computer."</summary>
     public string ChatRetentionPolicyFixed => Text();

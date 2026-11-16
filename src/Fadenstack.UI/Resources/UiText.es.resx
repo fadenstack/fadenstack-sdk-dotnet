@@ -2395,8 +2395,8 @@
   <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
     <value>Su organización conserva como máximo {0} chats durante {1} días en este dispositivo.</value>
   </data>
-  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
-    <value>Su organización no establece ningún límite.</value>
+  <data name="ChatRetentionDeviceLimit" xml:space="preserve">
+    <value>Este dispositivo conserva como máximo {0} chats durante {1} días.</value>
   </data>
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Lo establece la directiva de su organización en este equipo.</value>

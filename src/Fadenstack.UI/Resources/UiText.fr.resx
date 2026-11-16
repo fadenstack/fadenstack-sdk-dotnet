@@ -2395,8 +2395,8 @@
   <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
     <value>Votre organisation conserve au plus {0} conversations pendant {1} jours sur cet appareil.</value>
   </data>
-  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
-    <value>Votre organisation ne fixe aucune limite.</value>
+  <data name="ChatRetentionDeviceLimit" xml:space="preserve">
+    <value>Cet appareil conserve au plus {0} conversations pendant {1} jours.</value>
   </data>
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Défini par la politique de votre organisation sur cet ordinateur.</value>

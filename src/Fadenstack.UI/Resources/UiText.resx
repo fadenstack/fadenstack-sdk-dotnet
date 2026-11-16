@@ -2674,9 +2674,9 @@
     <value>Your organisation keeps at most {0} chats for {1} days on this device.</value>
     <comment>Governed mode, read only: {0} chats, {1} days</comment>
   </data>
-  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
-    <value>Your organisation sets no limit.</value>
-    <comment>Governed mode, read only, when the server sets no limit</comment>
+  <data name="ChatRetentionDeviceLimit" xml:space="preserve">
+    <value>This device keeps at most {0} chats for {1} days.</value>
+    <comment>Governed mode, read only, when the server sets no limit: the limits in force are the app's: {0} chats, {1} days</comment>
   </data>
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Set by your organisation's policy on this computer.</value>

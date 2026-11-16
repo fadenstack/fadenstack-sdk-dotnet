@@ -2395,8 +2395,8 @@
   <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
     <value>您的组织在此设备上最多保留 {0} 个聊天，保留 {1} 天。</value>
   </data>
-  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
-    <value>您的组织未设置限制。</value>
+  <data name="ChatRetentionDeviceLimit" xml:space="preserve">
+    <value>此设备最多保留 {0} 个聊天，保留 {1} 天。</value>
   </data>
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>由您的组织在此电脑上的策略设定。</value>

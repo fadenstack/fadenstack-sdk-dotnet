@@ -91,12 +91,12 @@ public sealed class ChatRetentionSettingsViewModel : ObservableObject, ISkillTex
     /// <summary>The sentence about who decides shows (governed, or fixed by the machine policy).</summary>
     public bool ShowNote => _state.Control != ChatRetentionControl.Person;
 
-    /// <summary>"Your organisation keeps at most N chats for D days on this device.", "Your organisation sets no limit." or "Set by your organisation's policy on this computer."</summary>
+    /// <summary>"Your organisation keeps at most N chats for D days on this device.", "This device keeps at most N chats for D days." or "Set by your organisation's policy on this computer."</summary>
     public string Note => _state.Control switch
     {
         ChatRetentionControl.Organisation => _state.OrganisationSetsLimit
             ? Strings.ChatRetentionOrganisationLimit(_state.MaxSessions, _state.MaxAgeDays)
-            : Strings.ChatRetentionOrganisationNoLimit,
+            : Strings.ChatRetentionDeviceLimit(_state.MaxSessions, _state.MaxAgeDays),
         ChatRetentionControl.MachinePolicy => Strings.ChatRetentionPolicyFixed,
         _ => "",
     };

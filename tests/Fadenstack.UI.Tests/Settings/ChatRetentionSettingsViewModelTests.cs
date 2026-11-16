@@ -139,12 +139,31 @@ public class ChatRetentionSettingsViewModelTests
     }
 
     [Fact]
-    public async Task Governed_without_a_server_limit_says_so()
+    public async Task Governed_without_a_server_limit_states_the_limits_in_force()
     {
         using var agent = Governed();
         var model = View(agent);
         await model.LoadAsync();
-        Assert.Equal("Your organisation sets no limit.", model.Note);
+        Assert.Equal("This device keeps at most 50 chats for 90 days.", model.Note);
+
+        var german = new ChatRetentionSettingsViewModel(agent, strings: () => UiStrings.For(new System.Globalization.CultureInfo("de")));
+        await german.LoadAsync();
+        Assert.Equal("Dieses Gerät behält höchstens 50 Chats für 90 Tage.", german.Note);
+    }
+
+    [Fact]
+    public async Task Governed_shows_the_stricter_of_the_servers_and_the_apps_limits()
+    {
+        // The server is stricter on chats (30 < 50), the app on days (20 < 90): the card shows what applies, not the server's raw values.
+        using var agent = new Gateway { LocalRetention = """{"max_sessions":30,"max_age_days":200}""" }.Builder()
+            .UseSessionRetention(new SessionRetention(MaxSessions: 50, MaxAgeDays: 20)).Build();
+        var model = View(agent);
+        await model.LoadAsync();
+        Assert.Equal("Your organisation keeps at most 30 chats for 20 days on this device.", model.Note);
+
+        var german = new ChatRetentionSettingsViewModel(agent, strings: () => UiStrings.For(new System.Globalization.CultureInfo("de")));
+        await german.LoadAsync();
+        Assert.Equal("Ihre Organisation behält auf diesem Gerät höchstens 30 Chats für 20 Tage.", german.Note);
     }
 
     [Fact]
@@ -195,7 +214,7 @@ public class ChatRetentionSettingsViewModelTests
                      translated.ChatRetentionTitle, translated.ChatRetentionAutoDelete, translated.ChatRetentionAutoDeleteHint, translated.ChatRetentionMaxAge,
                      translated.ChatRetentionMaxSessions, translated.ChatRetentionMaxAgeName, translated.ChatRetentionMaxSessionsName, translated.ChatRetentionSave,
                      translated.ChatRetentionCancel, translated.ChatRetentionSaveName, translated.ChatRetentionCancelName, translated.ChatRetentionSaved,
-                     translated.ChatRetentionOrganisationNoLimit, translated.ChatRetentionPolicyFixed,
+                     translated.ChatRetentionDeviceLimit(50, 90), translated.ChatRetentionPolicyFixed,
                      translated.ChatRetentionOrganisationLimit(30, 14), translated.ChatRetentionDaysError(1, 3650), translated.ChatRetentionChatsError(1, 10000),
                  })
         {
