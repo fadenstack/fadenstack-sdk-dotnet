@@ -2451,6 +2451,7 @@
   </data>
   <data name="WebSearchSaveFailed" xml:space="preserve">
     <value>无法在此设备上保存设置。请重试。</value>
+  </data>
   <data name="ChatRetentionTitle" xml:space="preserve">
     <value>旧聊天记录</value>
   </data>

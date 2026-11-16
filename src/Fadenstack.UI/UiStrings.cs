@@ -2046,6 +2046,7 @@ public sealed class UiStrings
 
     /// <summary>"The settings could not be saved on this device. Try again."</summary>
     public string WebSearchSaveFailed => Text();
+
     // -- the old-chats setting ----------------------------------------------------------------------
 
     /// <summary>"Old chats"</summary>

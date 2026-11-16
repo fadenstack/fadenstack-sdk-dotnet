@@ -2451,6 +2451,7 @@
   </data>
   <data name="WebSearchSaveFailed" xml:space="preserve">
     <value>Les paramètres n’ont pas pu être enregistrés sur cet appareil. Réessayez.</value>
+  </data>
   <data name="ChatRetentionTitle" xml:space="preserve">
     <value>Anciennes conversations</value>
   </data>

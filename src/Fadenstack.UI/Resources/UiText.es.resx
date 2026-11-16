@@ -2451,6 +2451,7 @@
   </data>
   <data name="WebSearchSaveFailed" xml:space="preserve">
     <value>No se pudo guardar la configuración en este dispositivo. Inténtelo de nuevo.</value>
+  </data>
   <data name="ChatRetentionTitle" xml:space="preserve">
     <value>Chats antiguos</value>
   </data>
