@@ -774,8 +774,8 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
         var folder = principal is null ? null : FadenstackPaths.UserFolder(principal.UserId);
-        var app = scope == DataScope.ThisApp && folder is not null
-            ? new DataExport.AppScope(AppName, MyDataApps.Plan(folder, AppName, Slug)) : null;
+        var app = scope == DataScope.ThisApp
+            ? new DataExport.AppScope(AppName, folder is null ? MyDataPlan.NoUser(Slug) : MyDataApps.Plan(folder, AppName, Slug)) : null;
         var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken, folder,
             principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null, app).ConfigureAwait(false);
         Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
@@ -850,7 +850,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     }
 
     // This app's part (DataScope.ThisApp). From a gateway that names no user, the shared folders of an older SDK: this agent's
-    // sessions and "Allow always" only; the shared preferences stay.
+    // sessions, "Allow always" and thinking level only (MyDataPlan.NoUser); the other agents' data and the shared preferences stay.
     private DataDeletion DeleteThisAppsData(AgentPrincipal? principal)
     {
         try
@@ -868,7 +868,8 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
                 {
                     File.Delete(approvals);
                 }
-                plan = new MyDataPlan(new[] { Slug }, Array.Empty<string>(), Array.Empty<MyDataApp>());
+                plan = MyDataPlan.NoUser(Slug);
+                removed += MyDataApps.ForgetReasoning(Path.Combine(FadenstackPaths.DataRoot, "preferences", "reasoning.json"), plan.OwnAgents);
             }
             else
             {
