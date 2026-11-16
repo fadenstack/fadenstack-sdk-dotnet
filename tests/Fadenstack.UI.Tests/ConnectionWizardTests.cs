@@ -3078,4 +3078,145 @@ public class ConnectionWizardTests
         Assert.Null(rig.Wizard.AppStep);
         Assert.Empty(rig.Checker.Checked);
     }
+
+    // ===================================================================================================================
+    // Retext: the language changes while the wizard stands somewhere
+    // ===================================================================================================================
+
+    private static readonly System.Globalization.CultureInfo English = System.Globalization.CultureInfo.GetCultureInfo("en");
+    private static readonly System.Globalization.CultureInfo German = System.Globalization.CultureInfo.GetCultureInfo("de");
+
+    /// <summary>First run, "Use my own AI", an endpoint checked with this report: in English, or in the rig's German.</summary>
+    private static WizardRig Checked(EndpointReport report, bool english)
+    {
+        var rig = Rig();
+        if (english)
+        {
+            rig.Strings = UiStrings.For(English);
+        }
+        rig.Checker.Report.Returns(report);
+        rig.Start();
+        rig.Press(rig.Wizard.ChooseOwnAiCommand);
+        rig.Wizard.Accepted = true;
+        rig.Press(rig.Wizard.AcceptCommand);
+        Pick(rig, EndpointPreset.Ollama);
+        UseEndpoint(rig);
+        return rig;
+    }
+
+    /// <summary>Every text a skin binds, said by the wizard now.</summary>
+    private static object?[] Texts(ConnectionWizardViewModel w) => new object?[]
+    {
+        w.Strings.Language, w.Strings.WizardServerTitle, w.Strings.WizardOwnWorks, w.AddressErrorText, w.StartFailureText,
+        w.PasswordFailureText, w.ProblemText, w.WaitingText, w.SignedInText, string.Join("|", w.ResultLines), w.ConnectedText,
+    };
+
+    private static object?[] State(ConnectionWizardViewModel w) => new object?[]
+    {
+        w.Step, w.Outcome, w.Report, w.Problem, string.Join("|", w.Models), w.SelectedModel, w.EndpointAddressText, w.Accepted,
+        w.SelectedPreset, w.IsBusy, w.AddressError, w.NeedsKey,
+    };
+
+    [Fact]
+    public void Retext_a_check_result_shown_in_English_is_German_and_nothing_else_changes()
+    {
+        var report = Reports.Usable(new Uri("http://localhost:11434/v1")) with
+        {
+            ToolCalls = false,
+            Problems = new[] { EndpointProblem.NoToolCalls, EndpointProblem.OllamaDefaultContext },
+            Watermark = new EndpointWatermarkStatus { Status = TextWatermark.Never },
+        };
+        using var english = Checked(report, english: true);
+        using var german = Checked(report, english: false);
+        Assert.Equal(WizardStep.OwnResult, english.Wizard.Step);
+        Assert.Equal("en", english.Wizard.Strings.Language);
+        Assert.NotEqual(german.Wizard.ResultLines, english.Wizard.ResultLines);
+        var before = State(english.Wizard);
+        var changed = new List<string?>();
+        english.Wizard.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        english.Wizard.Retext(German);
+
+        Assert.Equal(Texts(german.Wizard), Texts(english.Wizard));
+        Assert.Equal("Die Verbindung funktioniert.", english.Wizard.ResultLines[0]);
+        Assert.Equal(before, State(english.Wizard));
+        Assert.Contains(nameof(ConnectionWizardViewModel.Strings), changed);
+        Assert.Contains(nameof(ConnectionWizardViewModel.ResultLines), changed);
+        Assert.Contains(nameof(ConnectionWizardViewModel.ProblemText), changed);
+        Assert.Contains(nameof(ConnectionWizardViewModel.AddressErrorText), changed);
+        Assert.Contains(nameof(ConnectionWizardViewModel.ConnectedText), changed);
+
+        english.Wizard.Retext(UiStrings.For(English)); // and back
+        Assert.Equal("The connection works.", english.Wizard.ResultLines[0]);
+    }
+
+    [Fact]
+    public void Retext_a_problem_shown_in_English_is_German()
+    {
+        var report = Reports.Failing(new Uri("http://localhost:11434/v1"), EndpointProblem.KeyRejected);
+        using var english = Checked(report, english: true);
+        using var german = Checked(report, english: false);
+        Assert.Equal(WizardStep.OwnFailed, english.Wizard.Step);
+        Assert.NotEqual(german.Wizard.ProblemText, english.Wizard.ProblemText);
+        var before = State(english.Wizard);
+
+        english.Wizard.Retext(German);
+
+        Assert.Equal("Der Server hat den Schlüssel abgelehnt.", english.Wizard.ProblemText);
+        Assert.Equal(Texts(german.Wizard), Texts(english.Wizard));
+        Assert.Equal(before, State(english.Wizard));
+    }
+
+    [Fact]
+    public void Retext_an_address_error_and_the_waiting_line_are_German_with_the_typed_text_kept()
+    {
+        using var own = Rig();
+        own.Strings = UiStrings.For(English);
+        own.Start();
+        own.Press(own.Wizard.ChooseOwnAiCommand);
+        own.Wizard.Accepted = true;
+        own.Press(own.Wizard.AcceptCommand);
+        Type(own, "http://8.8.8.8/v1");
+        UseEndpoint(own);
+        Assert.Equal(own.Strings.WizardEndpointHttpsRequired, own.Wizard.AddressErrorText);
+
+        own.Wizard.Retext(German);
+
+        Assert.Equal(UiStrings.For(German).WizardEndpointHttpsRequired, own.Wizard.AddressErrorText);
+        Assert.Equal("http://8.8.8.8/v1", own.Wizard.EndpointAddressText);
+        Assert.Equal(WizardStep.OwnPick, own.Wizard.Step);
+
+        using var code = PairCode(before: r => r.Strings = UiStrings.For(English));
+        Assert.StartsWith("Waiting", code.Wizard.WaitingText);
+        var userCode = code.Wizard.UserCode;
+
+        code.Wizard.Retext(German);
+
+        Assert.Equal("Warten auf Ihre Bestätigung… Der Code läuft in 10:00 ab.", code.Wizard.WaitingText);
+        Assert.Equal(userCode, code.Wizard.UserCode);
+        Assert.Equal(WizardStep.PairCode, code.Wizard.Step);
+    }
+
+    [Fact]
+    public void Retext_the_settings_line_names_the_connection_in_the_new_language()
+    {
+        using var rig = Settings();
+        rig.Strings = UiStrings.For(English);
+        rig.Start();
+        var english = rig.Wizard.ConnectedText;
+
+        rig.Wizard.Retext(German);
+
+        Assert.NotNull(english);
+        Assert.Equal(UiStrings.For(German).WizardConnectedServer(Org.AbsoluteUri), rig.Wizard.ConnectedText);
+        Assert.NotEqual(english, rig.Wizard.ConnectedText);
+    }
+
+    [Fact]
+    public void Retext_needs_a_language()
+    {
+        using var rig = Rig();
+        Assert.Throws<ArgumentNullException>(() => rig.Wizard.Retext((System.Globalization.CultureInfo)null!));
+        Assert.Throws<ArgumentNullException>(() => rig.Wizard.Retext((UiStrings)null!));
+    }
 }

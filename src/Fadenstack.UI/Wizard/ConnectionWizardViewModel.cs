@@ -98,7 +98,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
     private readonly IUiDispatcher _dispatcher;
     private readonly IClipboard _clipboard;
     private readonly ILinkOpener? _links;
-    private readonly Func<UiStrings> _strings;
+    private Func<UiStrings> _strings;
 
     private CancellationTokenSource? _run;
     private IDisposable? _timer;
@@ -407,6 +407,42 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
 
     /// <summary>The texts; a skin binds the fixed ones (<c>Strings.WizardServerTitle</c>) and the computed ones below.</summary>
     public UiStrings Strings => _strings();
+
+    /// <summary>
+    /// The app's language changed: every text the wizard shows (the fixed ones of <see cref="Strings"/> and the computed ones:
+    /// the address error, the failures, the problem, the waiting line, the result lines, the connection line) is read from the
+    /// texts of <paramref name="language"/> from now on, and the skin is told. The step, the typed values, the check result
+    /// and everything else stay as they are. Call on the UI thread.
+    /// </summary>
+    /// <param name="language">The new language (de-AT finds German, as <see cref="UiStrings.For"/> says).</param>
+    public void Retext(System.Globalization.CultureInfo language)
+    {
+        if (language is null)
+        {
+            throw new ArgumentNullException(nameof(language));
+        }
+        Retext(UiStrings.For(language));
+    }
+
+    /// <summary>As <see cref="Retext(System.Globalization.CultureInfo)"/>, with texts the host made (its own resources, its own words).</summary>
+    /// <param name="strings">The texts of the new language.</param>
+    public void Retext(UiStrings strings)
+    {
+        if (strings is null)
+        {
+            throw new ArgumentNullException(nameof(strings));
+        }
+        _strings = () => strings;
+        OnPropertyChanged(nameof(Strings));
+        OnPropertyChanged(nameof(AddressErrorText));
+        OnPropertyChanged(nameof(StartFailureText));
+        OnPropertyChanged(nameof(PasswordFailureText));
+        OnPropertyChanged(nameof(ProblemText));
+        OnPropertyChanged(nameof(WaitingText));
+        OnPropertyChanged(nameof(SignedInText));
+        OnPropertyChanged(nameof(ResultLines));
+        OnPropertyChanged(nameof(ConnectedText));
+    }
 
     /// <summary>Why the typed address was not taken, for the step showing it; null when it was.</summary>
     public string? AddressErrorText => _addressError switch

@@ -94,10 +94,16 @@ if (report.ChatOnly) { /* the model calls no tools: the agent can only talk */ }
 1. `GET {base}/models`: reachable, the key, the models.
 2. A one-token streamed chat: does it answer, do usage figures come back?
 3. The tool-call probe: one dummy function with `tool_choice: "required"`.
-4. A picture, only with `ProbeVision`.
-5. The context length: Ollama's `/api/show`, vLLM's `max_model_len`, LM Studio's own API, or the person's setting. Ollama
-   runs a model with its default context unless the model sets `num_ctx`, and cuts longer prompts without a word: the
-   report says so (`OllamaDefaultContext`).
+4. A picture, only with `ProbeVision`: a 64x64 picture of one solid green, with the question "What colour is this picture?
+   One word." (`MaxOutputTokens` 256, so a reasoning model can think and still answer). `Vision` is `true` only when the
+   answer text, not the reasoning, contains the word "green" (any case); any other answer, an empty one, a refusal ("I can't
+   see images") or an API error gives `false`: a model that cannot see answers anyway.
+5. The context length: Ollama's `/api/show` (the model's maximum) and `/api/ps` (the length it runs with), vLLM's
+   `max_model_len`, LM Studio's own API, or the person's setting. For Ollama the running length is the model's `num_ctx`;
+   without one, the length of the loaded model in `/api/ps` (read after the chat probe loaded it, matching the endpoint's
+   model by `name` or `model`), which is the server's own default (`OLLAMA_CONTEXT_LENGTH`). Where neither says, the length
+   stays unknown, and Ollama then runs a model with its default context and cuts longer prompts without a word: the report
+   says so (`OllamaDefaultContext`).
 6. The text watermark status (below).
 
 `EndpointCheck.FindLocalAsync(personConsented, ...)` looks for Ollama, LM Studio, vLLM and llama.cpp on this computer
