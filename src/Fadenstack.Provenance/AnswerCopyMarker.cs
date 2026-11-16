@@ -20,6 +20,9 @@ internal sealed class AnswerCopyMarker : IAnswerCopyMarker
     /// <summary>The sink kind the report and the transcript name.</summary>
     internal const string SinkKind = "clipboard";
 
+    /// <summary>The sink kind of a saved Markdown export: it carries front matter.</summary>
+    internal const string FileSinkKind = "file";
+
     private readonly ProvenanceState _state;
     private readonly FadenstackAgent _agent;
 
@@ -31,8 +34,9 @@ internal sealed class AnswerCopyMarker : IAnswerCopyMarker
 
     public async Task<MarkedCopy> MarkAsync(AnswerCopy copy, CancellationToken cancellationToken = default)
     {
-        var hasHtml = !string.IsNullOrEmpty(copy.Html);
-        var sink = new SinkInfo(SinkKind, Carriers.HtmlAttribute) { Container = hasHtml };
+        var hasHtml = !copy.IsFile && !string.IsNullOrEmpty(copy.Html);
+        var sink = copy.IsFile ? new SinkInfo(FileSinkKind, Carriers.FrontMatter) { Container = true }
+            : new SinkInfo(SinkKind, Carriers.HtmlAttribute) { Container = hasHtml };
         var mediaType = copy.IsCode ? "text/x-code" : hasHtml ? "text/html" : "text/markdown";
         var content = new MarkableContent(hasHtml ? copy.Html! : copy.Text, mediaType, sink) { EditKind = EditKind.Generated };
         var call = new ProvenanceCall(_state, _agent.CopyInvocation(copy));
@@ -50,7 +54,15 @@ internal sealed class AnswerCopyMarker : IAnswerCopyMarker
         {
             return new MarkedCopy(copy.Text, null, null, false) { Refused = true };
         }
-        var marks = hasHtml && !placement.Exempt && placement.Record is not null && landed is not null && landed != copy.Html;
+        var carried = (hasHtml || copy.IsFile) && !placement.Exempt && placement.Record is not null && landed is not null && landed != (hasHtml ? copy.Html : copy.Text);
+        if (copy.IsFile)
+        {
+            return new MarkedCopy(carried ? landed! : copy.Text, null, placement.RecordId, carried)
+            {
+                ExemptBecause = placement.Exempt ? placement.ExemptBecause : null,
+            };
+        }
+        var marks = carried;
         return new MarkedCopy(copy.Text, hasHtml ? (marks ? landed : copy.Html) : null, placement.RecordId, marks)
         {
             ExemptBecause = placement.Exempt ? placement.ExemptBecause : null,

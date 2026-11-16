@@ -704,9 +704,12 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             throw new ArgumentNullException(nameof(copy));
         }
         var marker = _copyMarker ??= _settings.CopyMarker?.Invoke(this);
-        return marker is null
-            ? new MarkedCopy(copy.Text, copy.Html, null, false)
-            : await marker.MarkAsync(copy, cancellationToken).ConfigureAwait(false);
+        if (marker is null)
+        {
+            return new MarkedCopy(copy.Text, copy.Html, null, false);
+        }
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return await marker.MarkAsync(copy, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

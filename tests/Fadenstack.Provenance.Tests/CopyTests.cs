@@ -123,6 +123,23 @@ public class CopyTests : IDisposable
     }
 
     [Fact]
+    public async Task A_saved_markdown_export_is_marked_in_its_front_matter_under_the_sink_file()
+    {
+        var gateway = Answering(NewGateway());
+        using var agent = gateway.Builder().Use(new ProvenanceModule()).Build();
+        var (session, turn) = await AskAsync(agent);
+
+        var copied = await agent.MarkCopyAsync(new AnswerCopy("# Chat\n\n" + TestAgents.LongText + "\n", null, session.Id, turn) { IsFile = true });
+
+        Assert.True(copied.Marked);
+        Assert.StartsWith("---\nai-generated: true\nai-record-id: \"" + Id + "\"\n---\n", copied.Text.Replace("\r\n", "\n"));
+        Assert.Contains(TestAgents.LongText, copied.Text);
+        var report = Assert.Single(gateway.Placements).Json;
+        Assert.Equal(("copy", "file", "text/markdown"), (report.GetProperty("tool").GetString(), report.GetProperty("sink_kind").GetString(),
+            report.GetProperty("media_type").GetString()));
+    }
+
+    [Fact]
     public async Task With_the_policy_refuse_a_copy_that_cannot_get_its_layer_is_not_copied()
     {
         var gateway = Answering(NewGateway("""{"on_missing":"refuse"}"""));

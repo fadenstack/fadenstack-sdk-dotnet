@@ -13,12 +13,18 @@ public sealed record AnswerCopy(string Text, string? Html = null, string? Chat =
 {
     /// <summary>The text is code (a code block): code is exempt from marking. Default false.</summary>
     public bool IsCode { get; init; }
+
+    /// <summary>
+    /// The text is a Markdown file the person saves (a chat export), not a copy: it is marked in its front matter, and
+    /// <see cref="MarkedCopy.Text"/> is the file with it. <see cref="Html"/> is not used. TS: <c>file</c>.
+    /// </summary>
+    public bool IsFile { get; init; }
 }
 
 /// <summary>
 /// What goes on the clipboard: the text as it was, and the HTML with its mark when it was marked. TS: <c>MarkedCopy</c>.
 /// </summary>
-/// <param name="Text">The text to copy: always the text as it was given.</param>
+/// <param name="Text">The text to copy: the text as it was given (for a file, the file with its front matter).</param>
 /// <param name="Html">The HTML to copy, marked when <paramref name="Marked"/>; null when none was given.</param>
 /// <param name="RecordId">The id of the record signed for this copy; null when there is none.</param>
 /// <param name="Marked">The HTML carries the mark.</param>
