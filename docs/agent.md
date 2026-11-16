@@ -168,6 +168,7 @@ using var agent = FadenstackAgent.CreateBuilder()
 | `UseReasoning(effort)` | How much the model reasons before it answers, on every request. |
 | `UseEventReporting(enabled)` | Whether the agent reports its activity and the app's manifest to the server (default on). |
 | `DescribeApp(app)` | Describes the app the agent runs in. |
+| `DescribePlugins(plugins)` | The plugins the app has loaded (name, version, SHA-256), for the device report. See [What your app reports about the device](#what-your-app-reports-about-the-device). |
 | `Use(module)`, `AddChatStage(...)`, `AddToolStage(...)`, `AddToolSource(...)` | Extensions. See [Extending](extending.md). |
 
 `Build()` throws `InvalidOperationException` when no agent is set, when neither `UseClient` nor `UseServer` was called, when the client is for another agent, or when two tools have the same name.
@@ -192,6 +193,27 @@ builder.DescribeApp(new AppDescription
 ```
 
 The report never fails the start. `UseEventReporting(false)` turns it off, together with the activity reports.
+
+### What your app reports about the device
+
+The manifest also carries a `device` block, per device (`PUT /v1/agents/{agent}/manifest`; `AppManifest.Device`, `ManifestDevice`). The SDK fills it in; an older server drops what it does not know, so nothing is switched on or off:
+
+| Field | What it holds |
+| --- | --- |
+| `os` | A short description from the runtime: the OS description and the architecture (`Microsoft Windows 10.0.26100 X64`), cut to 100 characters. |
+| `app_version` | The app's own version (`AppDescription.Version`), cut to 50 characters. |
+| `plugins` | What you declare with `builder.DescribePlugins(...)`: for each plugin its name, version and the SHA-256 of its file (64 hex characters). The SDK does not hash plugins; your plugin loader knows them. |
+| `mcp_programs` | For each enabled local MCP server that starts a program: its label, the program's file name and the pinned SHA-256 ([The program is pinned](local-mcp.md#the-program-is-pinned)). A server over http has no entry. |
+
+```csharp
+builder.DescribePlugins(
+    new ManifestPlugin { Name = "contoso-crm", Version = "1.0.0", Sha256 = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" });
+```
+
+- **The limits** are the server's: at most 100 plugins and 100 programs, names up to 128 characters, versions up to 50, a program name up to 255. An entry that does not fit (an empty name, a hash that is not 64 hex characters) is left out and the log says that a plugin or program was left out and why (event 2018; never the entry).
+- **What is never sent:** a path (a program goes by its file name only), a user name, an argument, an environment value.
+- **When.** At the agent's start, with the rest of the manifest. The block is not sent again by itself: a pin that changed, or a plugin that was loaded later, goes with the next start. `UseEventReporting(false)` sends no manifest and so no block.
+- **Who sees it.** The server keeps the latest report per device (the sign-in's device) and shows it to an administrator with the agent's devices in the console, and to the person in their own app sign-ins; it is erased with the person's account, and a block not reported for 90 days goes. The TypeScript SDK sends the same block (`describePlugins`), with the browser's or Node's platform as `os` and no MCP programs.
 
 ## Start the agent
 

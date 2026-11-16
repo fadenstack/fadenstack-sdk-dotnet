@@ -37,6 +37,9 @@ internal static partial class Log
     [LoggerMessage(EventId = 2002, Level = LogLevel.Warning, Message = "Host tool {Tool} is not in the agent's contract and was dropped")]
     internal static partial void ToolDropped(ILogger logger, string tool);
 
+    [LoggerMessage(EventId = 2018, Level = LogLevel.Warning, Message = "A {Kind} was left out of the device report: {Reason}")]
+    internal static partial void DeviceEntryDropped(ILogger logger, string kind, string reason);
+
     [LoggerMessage(EventId = 2016, Level = LogLevel.Warning, Message = "A tool source's tool {Tool} was left out: the name is the SDK's own")]
     internal static partial void ToolNameReserved(ILogger logger, string tool);
 
