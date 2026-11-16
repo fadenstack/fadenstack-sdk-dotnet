@@ -26,6 +26,8 @@
     <None Include="Definitions\*.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- The AG-UI golden files (F07): the same bytes as the TypeScript SDK's packages/agents/test/agui. -->
     <None Include="AgUi\*.jsonl" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The injection corpus (sdk/51 7.1): the same bytes as the TypeScript SDK's packages/agents/test/injection/corpus.json. -->
+    <None Include="Injection\corpus.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Net.Http" />

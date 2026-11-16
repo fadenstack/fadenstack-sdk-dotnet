@@ -196,3 +196,25 @@ A tool is a method, so a unit test can call it directly. A tool that writes cont
 ## The SDK's own tests
 
 The repository has one test project per package, on xUnit, in `tests/`. They target `net10.0`, and the WPF skin's tests `net10.0-windows`. Run them from the repository's root with `dotnet test`.
+
+## The injection suite
+
+The SDK's own tests include a suite that runs injected content through every untrusted channel (an MCP server's result, a web
+search result, another agent's answer, a document's text fenced with `UntrustedContent.Fence`) against the fake gateway with a
+scripted model. No real model, no network. A corpus of 46 attacks (instruction overrides, forged closing lines, chat-template
+tags, hidden characters, forged approvals, forged tool calls, exfiltration by image or link, induced calls, encoded
+instructions, padding, prompt-leak requests) is the same file in the .NET and the TypeScript SDK; each suite checks its hash.
+
+Four gates hold for every case and channel: the content reaches the model only inside one fence of ours (G1); a call the content
+asks for meets the rules any call meets and never runs without approval where the rules say ask (G2); below Auto an open-world
+call to an address from the content asks (G3, and in Auto it runs today: a known limit until the tainted-turn marker, sdk/51
+item 8.4); a remote image in an answer is never loaded (G4). It lives in `tests/Fadenstack.Agents.Tests/Injection` (and
+`tests/Fadenstack.UI.Tests/Injection`), carries the trait `Category=Injection`, and runs as its own step, "Injection suite
+(sdk/51 7.1)", in the release workflow:
+
+```
+dotnet test Fadenstack.slnx --filter "Category=Injection"
+```
+
+The README beside the corpus says what each kind tests and how to add a case. What is not done: the live run with promptfoo
+against a real model endpoint (0.3.1). See also [Fencing content you did not write](tools.md#fencing-content-you-did-not-write).
