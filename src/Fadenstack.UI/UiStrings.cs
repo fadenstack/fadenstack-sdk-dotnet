@@ -2187,13 +2187,13 @@ public sealed class UiStrings
     public string MyDataListSeparator => Text();
 
     /// <summary>"Record of tool calls: {0} entries since {1}, intact" ({0} how many, 2 or more; {1} the date of the first)</summary>
-    public string MyDataAuditIntact(object count, object since) => Fill2(count, since);
+    public string MyDataAuditIntact(int count, string since) => Fill2(count, since);
 
     /// <summary>"Record of tool calls: 1 entry since {0}, intact"</summary>
     public string MyDataAuditIntactOne(string since) => Fill(since);
 
     /// <summary>"Record of tool calls: damaged at entry {0}"</summary>
-    public string MyDataAuditDamaged(object entry) => Fill(entry);
+    public string MyDataAuditDamaged(long entry) => Fill(entry);
 
     /// <summary>"Record of tool calls: no entries yet"</summary>
     public string MyDataAuditEmpty => Text();

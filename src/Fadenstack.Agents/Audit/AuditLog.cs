@@ -59,6 +59,7 @@ public sealed class MemoryAuditLog : IAuditLog
     private readonly byte[] _key = RandomKey();
     private readonly Func<DateTimeOffset> _clock;
     private AuditAnchor? _anchor;
+    private AuditHead? _head;
 
     /// <param name="clock">The time of an entry that names none; now by default.</param>
     public MemoryAuditLog(Func<DateTimeOffset>? clock = null) => _clock = clock ?? (() => DateTimeOffset.UtcNow);
@@ -83,6 +84,7 @@ public sealed class MemoryAuditLog : IAuditLog
             (long, string)? prev = last is not null ? (last.Seq, last.Hash) : _anchor is { } a ? (a.Seq, a.Hash) : null;
             var entry = AuditChain.Next(record, prev, _key, _clock());
             _entries.Add(entry);
+            _head = new AuditHead(entry.Seq, entry.Hash, AuditChain.HeadSeal(_key, entry.Seq, entry.Hash));
             return Task.FromResult(entry);
         }
     }
@@ -91,7 +93,7 @@ public sealed class MemoryAuditLog : IAuditLog
     {
         lock (_gate)
         {
-            return Task.FromResult(AuditChain.Verify(_entries.Cast<AuditEntry?>().ToList(), _key, _anchor));
+            return Task.FromResult(AuditChain.Verify(_entries.Cast<AuditEntry?>().ToList(), _key, _anchor, _head));
         }
     }
 
@@ -102,7 +104,7 @@ public sealed class MemoryAuditLog : IAuditLog
         lock (_gate)
         {
             entries = _entries.ToList();
-            verification = AuditChain.Verify(entries.Cast<AuditEntry?>().ToList(), _key, _anchor);
+            verification = AuditChain.Verify(entries.Cast<AuditEntry?>().ToList(), _key, _anchor, _head);
         }
         await AuditExport.WriteAsync(format, destination, verification, entries, cancellationToken).ConfigureAwait(false);
     }
@@ -136,7 +138,8 @@ public sealed class MemoryAuditLog : IAuditLog
 /// The log on disk, in the person's own data folder (<c>users/&lt;user&gt;/audit/</c> under <see cref="FadenstackPaths.DataRoot"/>; the data
 /// root's <c>audit/</c> when the server names no user): <c>audit.jsonl</c>, one entry per line, each line the entry's JSON encrypted with
 /// the same <see cref="ISecretProtector"/> as the approvals (DPAPI on Windows; owner-only files elsewhere) and written in base64;
-/// <c>audit-seal.key</c> (32 random bytes, protected, made at the first write); <c>audit-anchor.json</c> (sealed; what a prune leaves).
+/// <c>audit-seal.key</c> (32 random bytes, protected, made at the first write); <c>audit-anchor.json</c> (sealed; what a prune leaves);
+/// <c>audit-head.json</c> (sealed; the last entry's number and hash, written with every append, so that a cut-off end is found).
 /// <para>
 /// Other apps of the person (Word and Excel add-ins, the desktop) append to the same file: an exclusive lock on <c>audit.lock</c> is held while
 /// the last entry is read and the next appended, so the chain never forks. Writing never breaks a turn: the agent logs a failed
@@ -154,6 +157,9 @@ public sealed class FileAuditLog : IAuditLog
     /// <summary>The anchor's file.</summary>
     public const string AnchorName = "audit-anchor.json";
 
+    /// <summary>The sealed head's file: the last entry's number and hash.</summary>
+    public const string HeadName = "audit-head.json";
+
     /// <summary>The lock file the writers of all apps take.</summary>
     public const string LockName = "audit.lock";
 
@@ -164,6 +170,7 @@ public sealed class FileAuditLog : IAuditLog
     private readonly string _lockFile;
     private readonly string _keyFile;
     private readonly string _anchorFile;
+    private readonly string _headFile;
     private readonly ISecretProtector _protector;
     private readonly Func<DateTimeOffset> _clock;
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -179,6 +186,7 @@ public sealed class FileAuditLog : IAuditLog
         _lockFile = Path.Combine(_root, LockName);
         _keyFile = Path.Combine(_root, SealKeyName);
         _anchorFile = Path.Combine(_root, AnchorName);
+        _headFile = Path.Combine(_root, HeadName);
         _protector = protector ?? SecretProtection.Default;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _ = logger ?? NullLogger.Instance;
@@ -206,6 +214,7 @@ public sealed class FileAuditLog : IAuditLog
                 stream.Write(bytes, 0, bytes.Length);
                 stream.Flush(true);
             }
+            WriteHead(key, entry); // in the same lock: a log from before the head takes its head with its first append here
             return entry;
         }
         finally
@@ -220,7 +229,7 @@ public sealed class FileAuditLog : IAuditLog
         try
         {
             using var held = await LockAsync(create: false, cancellationToken).ConfigureAwait(false);
-            return AuditChain.Verify(ReadAll(), SealKey(create: false), ReadAnchor());
+            return AuditChain.Verify(ReadAll(), SealKey(create: false), ReadAnchor(), ReadHead());
         }
         finally
         {
@@ -238,7 +247,7 @@ public sealed class FileAuditLog : IAuditLog
             using var held = await LockAsync(create: false, cancellationToken).ConfigureAwait(false);
             var all = ReadAll();
             var key = SealKey(create: false);
-            verification = AuditChain.Verify(all, key, ReadAnchor());
+            verification = AuditChain.Verify(all, key, ReadAnchor(), ReadHead());
             entries = all.Where(e => e is not null).Select(e => e!).ToList();
         }
         finally
@@ -454,6 +463,39 @@ public sealed class FileAuditLog : IAuditLog
         {
             return new AuditAnchor(0, "", DateTimeOffset.MinValue, ""); // present but unreadable: never verifies
         }
+    }
+
+    private AuditHead? ReadHead()
+    {
+        try
+        {
+            if (!File.Exists(_headFile))
+            {
+                return null;
+            }
+            using var doc = JsonDocument.Parse(SecretProtection.ReadShared(_headFile));
+            var root = doc.RootElement;
+            return new AuditHead(root.GetProperty("seq").GetInt64(), root.GetProperty("hash").GetString() ?? "", root.GetProperty("seal").GetString() ?? "");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException
+            or InvalidOperationException or FormatException)
+        {
+            return new AuditHead(0, "", ""); // present but unreadable: never verifies
+        }
+    }
+
+    private void WriteHead(byte[] key, AuditEntry last)
+    {
+        using var stream = new MemoryStream();
+        using (var w = new Utf8JsonWriter(stream))
+        {
+            w.WriteStartObject();
+            w.WriteNumber("seq", last.Seq);
+            w.WriteString("hash", last.Hash);
+            w.WriteString("seal", AuditChain.HeadSeal(key, last.Seq, last.Hash));
+            w.WriteEndObject();
+        }
+        SecretProtection.WriteOwnerOnly(_headFile, stream.ToArray());
     }
 
     private void WriteAnchor(byte[] key, AuditEntry last, DateTimeOffset now)

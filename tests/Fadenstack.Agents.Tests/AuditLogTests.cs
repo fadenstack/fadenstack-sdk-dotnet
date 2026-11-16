@@ -79,6 +79,7 @@ public class AuditLogTests : IDisposable
         Assert.Equal("4ede970e8bfea453d7762d5b94669e6ec36fb8b6175ff9419fcc61228dffc6a2", AuditChain.HashOf(two));
         Assert.Equal("W96Za/zLEg2/Eopq8rv7EgtpDs/Jbc6h/mUCQblIsO8=", AuditChain.SealOf(VectorKey, AuditChain.HashOf(two)));
         Assert.Equal("k1NEiONJG9RFLUFaoPd4RhaN7N+bJVDg5RLzCmrVrbQ=", AuditChain.AnchorSeal(VectorKey, 7, AuditChain.HashOf(one)));
+        Assert.Equal("kQnmGQD/HVREn3S+2Wge+RAR7wEUNYQggSql1Ys2i+w=", AuditChain.HeadSeal(VectorKey, 7, AuditChain.HashOf(one)));
     }
 
     [Fact]
@@ -284,6 +285,83 @@ public class AuditLogTests : IDisposable
         var result = await log.VerifyAsync();
         Assert.False(result.Intact);
         Assert.Equal(AuditProblems.Unreadable, result.Problem);
+    }
+
+    // ---- the sealed head: the end of the log ----
+
+    private async Task AppendMany(IAuditLog log, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            await log.AppendAsync(Record());
+        }
+    }
+
+    private string HeadFile(string name = "log") => Path.Combine(_folder, name, FileAuditLog.HeadName);
+
+    [Fact]
+    public async Task A_tail_cut_by_one_entry_or_by_several_is_found()
+    {
+        var log = Open();
+        await AppendMany(log, 5);
+        var lines = File.ReadAllLines(FileOf());
+
+        File.WriteAllLines(FileOf(), lines.Take(4));
+        var one = await log.VerifyAsync();
+        Assert.False(one.Intact);
+        Assert.Equal((5L, AuditProblems.HeadMismatch), (one.BrokenAtSeq, one.Problem));
+
+        File.WriteAllLines(FileOf(), lines.Take(2));
+        var several = await log.VerifyAsync();
+        Assert.Equal((3L, AuditProblems.HeadMismatch), (several.BrokenAtSeq, several.Problem));
+
+        File.WriteAllText(FileOf(), "");
+        Assert.Equal(AuditProblems.HeadMismatch, (await log.VerifyAsync()).Problem); // everything gone
+    }
+
+    [Fact]
+    public async Task A_deleted_head_is_found_and_a_log_from_before_the_head_takes_one_with_its_next_append()
+    {
+        var log = Open();
+        await AppendMany(log, 3);
+        File.Delete(HeadFile());
+
+        var missing = await log.VerifyAsync();
+        Assert.Equal((3L, AuditProblems.HeadMissing), (missing.BrokenAtSeq, missing.Problem));
+
+        await log.AppendAsync(Record()); // a valid chain without a head: the head is written once, with this entry
+        Assert.True((await log.VerifyAsync()).Intact);
+        Assert.True(File.Exists(HeadFile()));
+    }
+
+    [Fact]
+    public async Task A_forged_or_stale_head_is_found()
+    {
+        var log = Open();
+        await AppendMany(log, 3);
+        var head = File.ReadAllText(HeadFile());
+
+        File.WriteAllText(HeadFile(), head.Replace("\"seq\":3", "\"seq\":2")); // another number, the old seal
+        Assert.Equal(AuditProblems.HeadMismatch, (await log.VerifyAsync()).Problem);
+
+        File.WriteAllText(HeadFile(), "not json");
+        Assert.Equal(AuditProblems.HeadMismatch, (await log.VerifyAsync()).Problem);
+
+        File.WriteAllText(HeadFile(), head);
+        Assert.True((await log.VerifyAsync()).Intact);
+    }
+
+    [Fact]
+    public async Task Pruning_leaves_the_head_alone_and_the_head_goes_with_the_log()
+    {
+        var log = Open();
+        await AppendMany(log, 2);
+        var head = File.ReadAllText(HeadFile());
+        _now = _now.AddDays(400);
+        await log.PruneAsync(180);
+
+        Assert.Equal(head, File.ReadAllText(HeadFile()));
+        Assert.True((await log.VerifyAsync()).Intact);
     }
 
     // ---- retention ----

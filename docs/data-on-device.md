@@ -28,6 +28,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       audit/audit.jsonl                 the record of tool calls (every app of the person writes to it)
       audit/audit-seal.key
       audit/audit-anchor.json
+      audit/audit-head.json
       audit/audit.lock
       language
       skills/<skill>/SKILL.md
@@ -48,6 +49,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       audit/audit.jsonl                 the record of tool calls (every app of the person writes to it)
       audit/audit-seal.key
       audit/audit-anchor.json
+      audit/audit-head.json
       audit/audit.lock
       skills/<skill>/SKILL.md
       preferences/skills.json
@@ -92,7 +94,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 | `provenance/records/<record id>.json` (standalone) | Each signed provenance record with its time-stamp: hashes, the media type and the kind of edit, never the content. | A file only its owner may read; not encrypted. | No limit. | Exported (`KeptRecords()` also reads them); deleted. |
 | `provenance/placements.jsonl` (standalone) | Where tools placed marked content: hashes and outcomes. | Not encrypted. | Rotates at 1 MiB; three old files kept. | Exported, with the old files; deleted. |
 | `audit/audit.jsonl` | The record of tool calls: one entry per tool call, with the tool's name and class, who or what let it run, the outcome and a hash of the arguments, never the prompt, the answer, the arguments or the result ([The record of tool calls](audit-log.md)). Every Fadenstack app of the person on the device appends to the same file; each entry links to the one before by a hash. | Every line encrypted as the approvals are; sealed with the key below. | 180 days by default, or the machine policy's `auditRetentionDays` (30 to 3650); older entries go at the start and at most once a day, and the last removed one stays in the anchor. | Exported as `audit/tool-calls.csv` with its verification on top, and by `ExportAuditAsync` as a CSV or a web page. Shared data: deleted with "Remove all", or with this app's data when no other app uses the person's data. |
-| `audit/audit-seal.key`, `audit/audit-anchor.json` | The seal key of the record (32 random bytes) and the sealed mark a prune leaves (the last removed entry's number and hash). | The key encrypted as the approvals; the anchor sealed with it. | As long as the record. | Never exported; deleted with the record. |
+| `audit/audit-seal.key`, `audit/audit-anchor.json`, `audit/audit-head.json` | The seal key of the record (32 random bytes), the sealed mark a prune leaves (the last removed entry's number and hash) and the sealed head (the last entry's number and hash, so a cut-off end is found). | The key encrypted as the approvals; the anchor sealed with it. | As long as the record. | Never exported; deleted with the record. |
 | `audit/audit.lock` | Nothing: an empty file whose lock keeps two apps' appends apart. | Owner-only. | As long as the record. | Deleted with it. |
 | `apps/<app>.json` | Which apps use the person's data on this device: the app's name (what it described with `DescribeApp`, else the agent's slug), its agents, when it was first and last seen. Written at each agent start; no content. | A file only its owner may read. | As long as the app's data. | Exported; deleted with the app's data. |
 

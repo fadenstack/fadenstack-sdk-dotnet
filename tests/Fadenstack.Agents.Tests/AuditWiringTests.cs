@@ -215,18 +215,31 @@ public sealed class AuditWiringTests : IDisposable
         Assert.DoesNotContain("arguments_sha256", string.Join("", gateway.Reports.Select(r => r.Json.GetRawText())));
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task The_answer_to_a_call_the_server_holds_carries_the_hash_only_with_the_feature(bool feature)
+    private const string HeldText = """{"title":"x"}""";
+
+    private static readonly string Other = new('b', 64);
+
+    /// <summary>What the event of a call the gateway holds carries (core 0.7.1 rc22): the text, whether it was cut, the hash of the whole text.</summary>
+    public static IEnumerable<object?[]> HeldCalls() => new[]
     {
-        var text = """{"title":"x"}""";
-        var gateway = new Gateway { Features = feature ? WithHash : """["agents"]""" };
+        new object?[] { "a gateway of rc22 with the hash", null, null, Other, Other },
+        new object?[] { "the text alone", HeldText, null, null, Sha(HeldText) },
+        new object?[] { "the text and its hash", HeldText, null, Sha(HeldText), Sha(HeldText) },
+        new object?[] { "a cut text with the hash of the whole", "{\"ti", true, Other, Other },
+        new object?[] { "a cut text without a hash", "{\"ti", true, null, null },
+        new object?[] { "an older gateway", null, null, null, null },
+    };
+
+    [Theory]
+    [MemberData(nameof(HeldCalls))]
+    public async Task A_call_the_server_holds_takes_its_hash_from_the_event_and_the_answer_carries_none(string why, string? text, bool? cut, string? given, string? expected)
+    {
+        var gateway = new Gateway { Features = WithHash };
         gateway.Then(
-            Gateway.Custom("faden.approval_required", new
+            Gateway.Custom("faden.approval_required", new Dictionary<string, object?>
             {
-                approvalId = "ap-1", toolCallId = "gw-1", toolCallName = "mcp.github.comment", message = "The tool mode asks.",
-                timeoutS = 300, toolClass = "write", rule = true, arguments = text,
+                ["approvalId"] = "ap-1", ["toolCallId"] = "gw-1", ["toolCallName"] = "mcp.github.comment", ["message"] = "The tool mode asks.",
+                ["timeoutS"] = 300, ["toolClass"] = "write", ["rule"] = true, ["arguments"] = text, ["argumentsTruncated"] = cut, ["argumentsSha256"] = given,
             }),
             Gateway.Text("Done."), Gateway.Finish("stop"), FakeServer.Done);
         gateway.Server.Json("POST", "/v1/agents/docs-assistant/approvals/ap-1", new { approval_id = "ap-1", approved = true });
@@ -236,10 +249,10 @@ public sealed class AuditWiringTests : IDisposable
         await (await agent.StartSessionAsync(ToolMode.Ask)).SendAsync("Comment.");
 
         var answer = Assert.Single(gateway.Server.Requests, r => r.Path == "/v1/agents/docs-assistant/approvals/ap-1");
-        Assert.Equal(feature ? Sha(text) : null, Str(answer.Json, "arguments_sha256"));
-        var entry = Assert.Single(log.Entries); // the record keeps it either way, as far as the SDK knows it
+        Assert.True(Str(answer.Json, "arguments_sha256") is null, why); // the server records its own hash of a call it holds
+        var entry = Assert.Single(log.Entries);
         Assert.Equal(("mcp.github.comment", "gateway", AuditDecisions.AskedApproved), (entry.Tool, entry.Source, entry.Decision));
-        Assert.Equal(Sha(text), entry.ArgumentsSha256);
+        Assert.Equal(expected, entry.ArgumentsSha256);
     }
 
     // ---- retention ----
@@ -308,6 +321,24 @@ public sealed class AuditWiringTests : IDisposable
         var text = Encoding.UTF8.GetString(csv.ToArray());
         Assert.Contains("Word add-in", text);
         Assert.Contains("Excel add-in", text);
+    }
+
+    [Fact]
+    public async Task An_app_that_passes_both_of_its_own_stores_still_gets_the_durable_record_and_a_memory_log_is_the_apps_own_choice()
+    {
+        var gateway = new Gateway { Principal = Principal }.Calls(("c1", "read_page", """{"page":1}""")).Says("Done.");
+        using (var agent = gateway.Builder().AddTools(new PageTools()).Build()) // Gateway.Builder passes a session store and an approval store
+        {
+            await (await agent.StartSessionAsync(ToolMode.Auto)).SendAsync("Read.");
+            Assert.True(File.Exists(AuditFile));
+            Assert.Equal(1, (await agent.VerifyAuditAsync()).Entries);
+        }
+
+        var quiet = new Gateway { Principal = Principal }.Calls(("c2", "read_page", """{"page":1}""")).Says("Done.");
+        var before = File.ReadAllLines(AuditFile).Length;
+        using var own = quiet.Builder().UseAuditLog(new MemoryAuditLog()).AddTools(new PageTools()).Build(); // an app whose server keeps the record
+        await (await own.StartSessionAsync(ToolMode.Auto)).SendAsync("Read.");
+        Assert.Equal(before, File.ReadAllLines(AuditFile).Length);
     }
 
     [Fact]

@@ -27,9 +27,10 @@ this file says where it does.
   the person into the same log under an exclusive lock. `agent.VerifyAuditAsync()` finds a changed, deleted, swapped or forged
   entry; `agent.ExportAuditAsync(AuditExportFormat.Csv | Html, stream)` writes it readable; entries older than 180 days go (the
   machine policy's `auditRetentionDays`, 30 to 3650), the last one removed stays in a sealed anchor. `AgentBuilder.UseAuditLog` replaces
-  the log; an agent whose app passes both its own session and approval store keeps it in memory unless the app passes one. The
-  events `tool.executed` and `approval.decided`, and the answer to a call the server holds, carry `arguments_sha256` only where the
-  profile lists `client_events.arguments_sha256`. "Your data on this device" shows "Record of tool calls: N entries since <date>,
+  the log (an app whose server keeps the record passes a `MemoryAuditLog`); the record is durable for every agent, and a sealed head (`audit-head.json`)
+  makes a cut-off end visible. The
+  events `tool.executed` and `approval.decided` carry `arguments_sha256` only where the profile lists
+  `client_events.arguments_sha256`; for a call the gateway holds (core rc22) the entry takes the gateway's `argumentsSha256`, or the hash of its `arguments` text. "Your data on this device" shows "Record of tool calls: N entries since <date>,
   intact" and exports it as a web page (`IMyDataAuditSource`); the export of the person's data holds it as `audit/tool-calls.csv`;
   it is shared data, removed with "Remove all" or when no other app uses the person's data. Five languages.
 - **Old chats are a setting** ([Sessions: Retention](docs/sessions.md#retention)). In standalone mode the person chooses whether old

@@ -59,7 +59,7 @@ SDKs must agree, and they do (a shared test vector is in both suites).
 | A gateway chat, or a standalone endpoint that streams tool calls | The `function.arguments` string as the stream carried it (`ChatWire.ArgumentsText` reads it from the call's `faden.arguments_text` property); blank is `{}`. |
 | A provider that hands over parsed arguments only (Microsoft.Extensions.AI) | The JSON the SDK itself writes back as `function.arguments` in its next request (compact, properties in their order). |
 | A person's own command (`InvokeToolAsync`) | The canonical command JSON the server's check also sees. |
-| A call a gateway holds | The gateway keeps the arguments: the hash is there only if its word carries them as a text (`arguments`), else the entry has none. |
+| A call a gateway holds (`faden.approval_required` with an `approvalId`) | From core 0.7.1 rc22 the event carries `arguments` (the text, cut at 8000 characters), `argumentsTruncated` (only when it was cut) and `argumentsSha256` (of the whole text). The entry takes the gateway's hash; if only the text came and it was not cut, the SDK hashes it; a cut text without a hash leaves the field empty. An older gateway sends none of these, so the field is empty. |
 
 ## The chain
 
@@ -79,6 +79,7 @@ data root's `audit/` from a server that names no user.
 | `audit.jsonl` | One entry per line; each line is `base64(protector.Protect(utf8 json))`, with the same `ISecretProtector` the approvals use (DPAPI on Windows, owner-only files elsewhere). |
 | `audit-seal.key` | The seal key: 32 random bytes, protected the same way. |
 | `audit-anchor.json` | What a prune leaves: the last removed entry's `seq` and `hash`, sealed. |
+| `audit-head.json` | The sealed head: the last entry's `seq` and `hash`, written under the lock with every append (HMAC over `fadenstack.audit.head.v1`, the seq and the hash, the same shape as the anchor's seal). A prune leaves it alone. |
 | `audit.lock` | An empty file whose exclusive lock the writers of every app take. |
 
 **Several processes.** Each writer holds the exclusive lock on `audit.lock` while it reads the last entry and appends the
@@ -107,7 +108,7 @@ await agent.ExportAuditAsync(AuditExportFormat.Html, file);   // or AuditExportF
 `VerifyAsync` checks that every line decrypts and parses, that `seq` has no gap, that every `prev` links, that every hash
 recomputes, that every seal holds, and that the first entry links to the anchor (or to zeros at entry 1). A problem names
 its kind (`AuditProblems`: `unreadable_line`, `seq_gap`, `prev_mismatch`, `hash_mismatch`, `seal_mismatch`, `anchor_mismatch`,
-`anchor_missing`, `key_missing`) and the entry's number, never content.
+`anchor_missing`, `key_missing`, `head_mismatch`, `head_missing`) and the entry's number, never content. The head makes a cut-off end visible: the last entry must be the one the sealed head names (`head_mismatch` when entries after the head's number are missing, or the head names another hash or was forged; `head_missing` when entries exist and the head was deleted). A log from before the head existed takes its head with its next append.
 
 `ExportAsync` writes every entry readable, with the verification result at the top. The CSV has the verification in its
 first two lines, then one row per entry; a cell that starts with `=`, `+`, `-` or `@` gets a leading apostrophe so a
@@ -123,17 +124,17 @@ var agent = FadenstackAgent.CreateBuilder()
     .Build();
 ```
 
-- **By default** an agent keeps the record in the person's folder. An agent whose app passes **both** its own session store and
-  its own approval store (`UseSessionStore` and `UseApprovalStore`) has taken over the device's storage: its record then stays in
-  memory for the run unless the app passes its own log (the same rule as the thinking level).
+- **By default** every agent keeps the durable record in the person's folder, whatever stores the app passed. An app that wants no
+  durable record (one whose server keeps the record, like the Nextcloud app) passes a `MemoryAuditLog` on purpose.
 - `UseAuditLog(IAuditLog)` replaces the log. `IAuditLog` has `AppendAsync`, `VerifyAsync`, `ExportAsync` and `PruneAsync`;
   `MemoryAuditLog` and `FileAuditLog` implement it.
 - The agent appends in one place: where it settles and finishes a tool call (`ChatSession`), not in every tool.
 
 ## What the server is told
 
-`approval.decided` and `tool.executed` carry `arguments_sha256`, and so does the answer to a call the server holds
-(`POST /v1/approvals/{id}`), **only when the profile's `features` list `client_events.arguments_sha256`**. An older server
+`approval.decided` and `tool.executed` of a call the SDK runs carry `arguments_sha256` **only when the profile's `features` list
+`client_events.arguments_sha256`**. The answer to a call the gateway holds carries none: the server records its own hash of those
+(it still accepts one). An older server
 refuses a whole batch with an unknown field (400 `invalid_events`), so without the feature nothing new is sent
 (`FadenstackAgent`'s `SendsArgumentsHash`; the fake gateways teach the field and the feature). The server can pair its own
 record of a call with the device's by this hash without ever holding the arguments' text.
@@ -151,7 +152,7 @@ are in the five languages the package ships.
 ## What it does not do
 
 It is tamper-evident, not tamper-proof. Someone who can read the person's protected files as that person (the same OS
-account) holds the seal key and can write a chain that verifies. Taking away the **last** entries leaves a chain that still
-verifies, because nothing after them names them: pair the record with the server's own count where the server keeps one.
-What it does find is what the person or a defence file needs: a changed field, a deleted or swapped entry, an entry from
-another person's log, a seal that does not hold, and a log that was cut at the front without its anchor.
+account) holds the seal key and can write a chain that verifies. What it finds is what the person or a defence file needs: a
+changed field, a deleted or swapped entry, an entry from another person's log, a seal that does not hold, a log cut at the
+front without its anchor, and one cut at the end (the sealed head). What it can still miss: the whole folder replaced by an
+older copy of itself, which verifies as it did then.

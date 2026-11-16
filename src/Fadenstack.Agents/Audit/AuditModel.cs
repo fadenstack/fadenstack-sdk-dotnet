@@ -201,6 +201,12 @@ public static class AuditProblems
 
     /// <summary>The log has entries and the seal key is gone: no seal can be checked.</summary>
     public const string KeyMissing = "key_missing";
+
+    /// <summary>The last entry is not the one the sealed head names: entries after the head's number are missing (the tail was cut), or the head names another hash, or the head was forged.</summary>
+    public const string HeadMismatch = "head_mismatch";
+
+    /// <summary>The log has entries and no head: the head was deleted (or the log is from before the head existed and has not been written to since).</summary>
+    public const string HeadMissing = "head_missing";
 }
 
 /// <summary>The format of <see cref="IAuditLog.ExportAsync"/>. TS: <c>"csv" | "html"</c>.</summary>
@@ -212,6 +218,9 @@ public enum AuditExportFormat
     /// <summary>One self-contained page: a table, escaped text, inline CSS, no script and no outside resource.</summary>
     Html,
 }
+
+/// <summary>The sealed head: the last entry's number and hash, written with every append, so that cutting off the end of the log is found.</summary>
+internal sealed record AuditHead(long Seq, string Hash, string Seal);
 
 /// <summary>The sealed mark a prune leaves: the last removed entry's seq and hash, so the chain still verifies from there.</summary>
 internal sealed record AuditAnchor(long Seq, string Hash, DateTimeOffset PrunedAt, string Seal);
@@ -229,6 +238,8 @@ public static class AuditChain
     public static readonly string Zeros = new('0', 64);
 
     internal const string AnchorVersion = "fadenstack.audit.anchor.v1";
+
+    internal const string HeadVersion = "fadenstack.audit.head.v1";
 
     /// <summary>The profile's feature that lets the SDK send <c>arguments_sha256</c> in its events and answers (an older server refuses the batch).</summary>
     public const string ArgumentsFeature = "client_events.arguments_sha256";
@@ -273,6 +284,13 @@ public static class AuditChain
     {
         using var mac = new HMACSHA256(key);
         return Convert.ToBase64String(mac.ComputeHash(Encoding.UTF8.GetBytes(AnchorVersion + "\n" + seq.ToString(CultureInfo.InvariantCulture) + "\n" + hash)));
+    }
+
+    /// <summary>The head's seal: the same shape as the anchor's, under the head version.</summary>
+    internal static string HeadSeal(byte[] key, long seq, string hash)
+    {
+        using var mac = new HMACSHA256(key);
+        return Convert.ToBase64String(mac.ComputeHash(Encoding.UTF8.GetBytes(HeadVersion + "\n" + seq.ToString(CultureInfo.InvariantCulture) + "\n" + hash)));
     }
 
     /// <summary>Makes the entry after <paramref name="prev"/> (seq and hash of the one before; null: the first).</summary>
@@ -366,7 +384,7 @@ public static class AuditChain
     /// Checks entries in order (null: a line that could not be read). <paramref name="key"/> null: no seal can be checked. The first
     /// entry links to <paramref name="anchor"/> when the log starts after seq 1.
     /// </summary>
-    internal static AuditVerification Verify(IEnumerable<AuditEntry?> entries, byte[]? key, AuditAnchor? anchor)
+    internal static AuditVerification Verify(IEnumerable<AuditEntry?> entries, byte[]? key, AuditAnchor? anchor, AuditHead? head = null)
     {
         var count = 0;
         AuditEntry? first = null, last = null;
@@ -427,6 +445,24 @@ public static class AuditChain
             first ??= entry;
             last = entry;
             count++;
+        }
+        // The sealed head: the log must end where it says. Entries gone from the end, a head that names another entry, a forged head or a deleted one are found.
+        if (last is not null || anchor is not null || head is not null)
+        {
+            var endSeq = last?.Seq ?? anchor?.Seq ?? 0;
+            var endHash = last?.Hash ?? anchor?.Hash ?? "";
+            if (head is null)
+            {
+                return Broken(endSeq, AuditProblems.HeadMissing);
+            }
+            if (key is null || !FixedEquals(head.Seal, HeadSeal(key, head.Seq, head.Hash)))
+            {
+                return Broken(head.Seq, AuditProblems.HeadMismatch);
+            }
+            if (head.Seq != endSeq || !FixedEquals(head.Hash, endHash))
+            {
+                return Broken(head.Seq > endSeq ? endSeq + 1 : head.Seq, AuditProblems.HeadMismatch);
+            }
         }
         return new AuditVerification(true, count, first?.Seq, first?.Time, last?.Time);
     }

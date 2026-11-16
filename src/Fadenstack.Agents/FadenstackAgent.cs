@@ -508,11 +508,9 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             }
         }
         _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals"), logger: Logger) : null;
-        // The record of tool calls is on by default; like the thinking level, it stays in memory for a host that keeps both stores itself
-        // (it has taken over the device's storage) unless the host gives a log of its own (UseAuditLog).
-        _auditLog ??= _settings.AuditLog is not null ? null
-            : _settings.Sessions is not null && _settings.ApprovalStore is not null ? new MemoryAuditLog()
-            : new FileAuditLog(Folder("audit"), logger: Logger);
+        // The record of tool calls is durable by default, for every agent: in the person's folder, whatever stores the host passed. An app
+        // that wants none (its server keeps the record) passes a MemoryAuditLog on purpose (UseAuditLog).
+        _auditLog ??= _settings.AuditLog is null ? new FileAuditLog(Folder("audit"), logger: Logger) : null;
         if (_reasoningStore is null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
             // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.

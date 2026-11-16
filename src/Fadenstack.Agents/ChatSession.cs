@@ -1419,7 +1419,10 @@ public sealed class ChatSession
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
             var audit = _audit = new ToolAudit();
-            var sha = ChatWire.Str(value, "arguments") is { } text ? AuditChain.ArgumentsSha256(text) : null; // the gateway keeps them: only if its word carries them
+            // From core 0.7.1 rc22 the event of a call the gateway holds carries `arguments` (the text, cut at 8000 characters), `argumentsTruncated`
+            // (only when it was cut) and `argumentsSha256` (of the whole text). The entry takes the gateway's hash; else the hash of the text when it
+            // was not cut; else none (a cut text without a hash, or an older gateway). The answer carries no hash: the server records its own.
+            var sha = GatewayArgumentsHash(value);
             request = request with { ArgumentsSha256 = sha };
             var settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
             // The gateway runs the tool: an approved call is recorded as released to it, a refused or unanswered one as it stands.
@@ -1431,11 +1434,22 @@ public sealed class ChatSession
             }
             // The gateway's own wait takes once, chat or always: an answer that also made a grant approves this call once.
             var scope = settled.Scope == ApprovalScopes.Grant ? ApprovalScopes.Once : settled.Scope;
-            await AnswerGatewayAsync(approvalId, settled.Approved, scope, Agent.SendsArgumentsHash ? sha : null, cancellationToken).ConfigureAwait(false);
+            await AnswerGatewayAsync(approvalId, settled.Approved, scope, null, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
             }
+        }
+
+        /// <summary>The hash of a held call's arguments, from what the gateway's event says (see the comment at the call).</summary>
+        private static string? GatewayArgumentsHash(JsonElement value)
+        {
+            if (ChatWire.Str(value, "argumentsSha256") is { Length: 64 } given && given.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f'))
+            {
+                return given;
+            }
+            var cut = value.ValueKind == JsonValueKind.Object && value.TryGetProperty("argumentsTruncated", out var t) && t.ValueKind == JsonValueKind.True;
+            return !cut && ChatWire.Str(value, "arguments") is { } text ? AuditChain.ArgumentsSha256(text) : null;
         }
 
         /// <summary>
