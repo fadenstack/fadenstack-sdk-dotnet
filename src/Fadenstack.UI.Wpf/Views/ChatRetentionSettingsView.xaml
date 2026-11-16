@@ -1,0 +1,71 @@
+<UserControl x:Class="Fadenstack.UI.Wpf.Views.ChatRetentionSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:st="clr-namespace:Fadenstack.UI.Settings;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Wpf.Behaviors"
+             xmlns:local="clr-namespace:Fadenstack.UI.Wpf.Views"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance Type=st:ChatRetentionSettingsViewModel}"
+             d:DesignWidth="420" d:DesignHeight="360"
+             Background="{DynamicResource Fadenstack.Background}" Foreground="{DynamicResource Fadenstack.Foreground}"
+             FontFamily="{DynamicResource Fadenstack.Font}" FontSize="13" UseLayoutRounding="True"
+             TextOptions.TextFormattingMode="Display" Focusable="True">
+    <!--
+        The setting for old chats: a ChatRetentionSettingsViewModel. In standalone the person switches automatic deletion on or off, types the
+        two limits (days, chats) and presses Save; where the organisation decides (governed) or the machine policy fixes it, the values are
+        shown (or one sentence) and cannot be changed. Every text is a UiStrings text; the view holds no logic.
+    -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Colors.Light.xaml" />
+                <ResourceDictionary Source="/Fadenstack.UI.Wpf;component/Themes/Skills.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel x:Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="{StaticResource Fadenstack.Space.Page}">
+            <TextBlock Style="{StaticResource Skill.Title}" Text="{local:Text ChatRetentionTitle}" />
+
+            <!-- Who decides, when it is not the person. -->
+            <Border x:Name="NoteBanner" Style="{StaticResource Skill.Banner}" Margin="{StaticResource Fadenstack.Space.Block}"
+                    Visibility="{Binding ShowNote, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <TextBlock x:Name="NoteText" Text="{Binding Note}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </Border>
+
+            <StackPanel x:Name="Controls" Visibility="{Binding ShowControls, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <CheckBox x:Name="AutoDeleteBox" b:WizardFocus.IsFirst="True" Margin="{StaticResource Fadenstack.Space.Block}"
+                          IsChecked="{Binding AutoDelete, Mode=TwoWay}" IsEnabled="{Binding CanEdit, Mode=OneWay}"
+                          AutomationProperties.Name="{local:Text ChatRetentionAutoDelete}">
+                    <TextBlock Text="{local:Text ChatRetentionAutoDelete}" TextWrapping="Wrap" />
+                </CheckBox>
+                <TextBlock Style="{StaticResource Skill.Caption}" Text="{local:Text ChatRetentionAutoDeleteHint}" Margin="{StaticResource Fadenstack.Space.Block}" />
+
+                <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text ChatRetentionMaxAge}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <TextBox x:Name="DaysBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Tight}"
+                         Text="{Binding MaxAgeDaysText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding LimitsEnabled, Mode=OneWay}"
+                         AutomationProperties.Name="{local:Text ChatRetentionMaxAgeName}" />
+                <TextBlock x:Name="DaysErrorText" Style="{StaticResource Skill.Caption}" Text="{Binding DaysError}" Margin="{StaticResource Fadenstack.Space.Block}" TextWrapping="Wrap"
+                           Visibility="{Binding HasDaysError, Converter={StaticResource Fadenstack.BoolToVisibility}}" AutomationProperties.LiveSetting="Assertive" />
+
+                <TextBlock Style="{StaticResource Skill.Strong}" Text="{local:Text ChatRetentionMaxSessions}" Margin="{StaticResource Fadenstack.Space.Tight}" />
+                <TextBox x:Name="ChatsBox" Style="{StaticResource Form.TextBox}" Margin="{StaticResource Fadenstack.Space.Tight}"
+                         Text="{Binding MaxSessionsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding LimitsEnabled, Mode=OneWay}"
+                         AutomationProperties.Name="{local:Text ChatRetentionMaxSessionsName}" />
+                <TextBlock x:Name="ChatsErrorText" Style="{StaticResource Skill.Caption}" Text="{Binding ChatsError}" Margin="{StaticResource Fadenstack.Space.Block}" TextWrapping="Wrap"
+                           Visibility="{Binding HasChatsError, Converter={StaticResource Fadenstack.BoolToVisibility}}" AutomationProperties.LiveSetting="Assertive" />
+
+                <StackPanel Orientation="Horizontal" Margin="{StaticResource Fadenstack.Space.Block}"
+                            Visibility="{Binding CanEdit, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                    <Button x:Name="SaveButton" Style="{StaticResource Form.Primary}" b:WizardFocus.IsPrimary="True" Command="{Binding SaveCommand}"
+                            Content="{local:Text ChatRetentionSave}" AutomationProperties.Name="{local:Text ChatRetentionSaveName}" />
+                    <Button x:Name="CancelButton" Style="{StaticResource Form.Secondary}" Margin="8,0,0,0" Command="{Binding CancelCommand}"
+                            Content="{local:Text ChatRetentionCancel}" AutomationProperties.Name="{local:Text ChatRetentionCancelName}" />
+                </StackPanel>
+                <TextBlock x:Name="StatusLine" Style="{StaticResource Skill.Caption}" Text="{Binding StatusText}" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

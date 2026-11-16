@@ -23,6 +23,7 @@ var agent = FadenstackAgent.CreateBuilder()
 | `mcp` | `allowed`, `forbidden`, or a list of allowed local MCP sources | like `standalone` |
 | `skills` | `allowed`, `forbidden`, or a list of allowed skill folders | like `standalone` |
 | `webSearch` | `allowed`, `forbidden` | like `standalone` |
+| `chatRetention` | An object that fixes how long a standalone agent keeps old chats: `{ "autoDelete": true, "maxAgeDays": 30, "maxSessions": 100 }`. `autoDelete` is true or false (default true), `maxAgeDays` a whole number from 1 to 3650 (default 90), `maxSessions` from 1 to 10000 (default 50). The person sees the values in their settings and cannot change them. A governed agent ignores it: the server decides. | the person chooses |
 | `timestamping` | `on` (DigiCert), `off`, or the address of the organisation's own time-stamp server: RFC 3161 time-stamps for records signed on the device (only a hash leaves); anything else is `off` | `on` |
 
 ## Rules
@@ -35,6 +36,7 @@ var agent = FadenstackAgent.CreateBuilder()
 - **Enforced in the SDK:** `Build()` throws `MachinePolicyException` (with its `Key`) for an agent on an endpoint the
   policy forbids or does not list; with only listed endpoints, a host's own chat client is refused, since it names none.
   Plain http forbidden takes the endpoint's LAN opt-in away (`EndpointPlainHttpRefusedException`, `ForbiddenByPolicy`).
+- **`chatRetention` is read as a whole:** a value that is not understood (not an object, `autoDelete` not true or false, a limit that is not a whole number within its bounds, an unknown member) is reported in `policy.Warnings` and the default for it applies (on, 90 days, 50 chats), so chats are never kept longer than the default because of a typo. It is `policy.ChatRetention` (a `ChatRetentionChoice`; null when the key is absent) and shows in `agent.ChatRetention` with `Control` = `MachinePolicy`. See [Sessions: Retention](sessions.md#retention).
 - **Lists are the modules' to apply:** `agent.MachinePolicy` gives a module the listed MCP sources and skill folders.
 - **Locked values:** `policy.Locked` names the keys the policy set; the app locks them in its UI and never writes them into
   the person's settings file.

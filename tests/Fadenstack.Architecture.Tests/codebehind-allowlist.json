@@ -4,6 +4,12 @@
     "Method Boolean Contains(System.Collections.Generic.IEnumerable`1[Avalonia.Styling.IStyle])",
     "Method Void EnsureLoaded()"
   ],
+  "src/Fadenstack.UI.Avalonia/Views/ChatRetentionSettingsView.axaml.cs": [
+    "Constructor Void .ctor()",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
+    "Method Void OnAttachedToVisualTree(Avalonia.VisualTreeAttachmentEventArgs)",
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
+  ],
   "src/Fadenstack.UI.Avalonia/Views/ChatView.axaml.cs": [
     "Constructor Void .cctor()",
     "Constructor Void .ctor()",
@@ -84,6 +90,25 @@
     "Property System.Action`1[System.Uri] LinkOpener",
     "Property System.String AppName",
     "Property System.Uri FullTermsLink"
+  ],
+  "src/Fadenstack.UI.Wpf/Views/ChatRetentionSettingsView.xaml.cs": [
+    "Constructor Void .cctor()",
+    "Constructor Void .ctor()",
+    "Field Boolean _contentLoaded",
+    "Field System.Windows.Controls.Border NoteBanner",
+    "Field System.Windows.Controls.Button CancelButton",
+    "Field System.Windows.Controls.Button SaveButton",
+    "Field System.Windows.Controls.CheckBox AutoDeleteBox",
+    "Field System.Windows.Controls.StackPanel Column",
+    "Field System.Windows.Controls.StackPanel Controls",
+    "Field System.Windows.Controls.TextBlock ChatsErrorText",
+    "Field System.Windows.Controls.TextBlock DaysErrorText",
+    "Field System.Windows.Controls.TextBlock NoteText",
+    "Field System.Windows.Controls.TextBlock StatusLine",
+    "Field System.Windows.Controls.TextBox ChatsBox",
+    "Field System.Windows.Controls.TextBox DaysBox",
+    "Field System.Windows.DependencyProperty ThemeProperty",
+    "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/ChatView.xaml.cs": [
     "Constructor Void .cctor()",

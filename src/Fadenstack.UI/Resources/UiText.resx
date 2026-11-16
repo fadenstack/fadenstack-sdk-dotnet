@@ -2614,4 +2614,72 @@
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Plain http is not allowed here.</value>
   </data>
+  <data name="ChatRetentionTitle" xml:space="preserve">
+    <value>Old chats</value>
+    <comment>The heading of the old-chats setting</comment>
+  </data>
+  <data name="ChatRetentionAutoDelete" xml:space="preserve">
+    <value>Delete old chats automatically</value>
+    <comment>The switch: delete old chats automatically</comment>
+  </data>
+  <data name="ChatRetentionAutoDeleteHint" xml:space="preserve">
+    <value>When this is off, chats stay on this device until you delete them.</value>
+    <comment>Under the switch</comment>
+  </data>
+  <data name="ChatRetentionMaxAge" xml:space="preserve">
+    <value>Delete chats older than (days)</value>
+    <comment>The label of the days field</comment>
+  </data>
+  <data name="ChatRetentionMaxSessions" xml:space="preserve">
+    <value>Keep at most (chats)</value>
+    <comment>The label of the chats field</comment>
+  </data>
+  <data name="ChatRetentionMaxAgeName" xml:space="preserve">
+    <value>Days after which old chats are deleted</value>
+    <comment>The accessible name of the days field</comment>
+  </data>
+  <data name="ChatRetentionMaxSessionsName" xml:space="preserve">
+    <value>Number of chats to keep</value>
+    <comment>The accessible name of the chats field</comment>
+  </data>
+  <data name="ChatRetentionDaysError" xml:space="preserve">
+    <value>Enter a whole number of days from {0} to {1}.</value>
+    <comment>Under the days field when it is not valid: {0} the fewest days, {1} the most</comment>
+  </data>
+  <data name="ChatRetentionChatsError" xml:space="preserve">
+    <value>Enter a whole number of chats from {0} to {1}.</value>
+    <comment>Under the chats field when it is not valid: {0} the fewest chats, {1} the most</comment>
+  </data>
+  <data name="ChatRetentionSave" xml:space="preserve">
+    <value>Save</value>
+    <comment>The Save button of the old-chats setting</comment>
+  </data>
+  <data name="ChatRetentionCancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>The Cancel button of the old-chats setting</comment>
+  </data>
+  <data name="ChatRetentionSaveName" xml:space="preserve">
+    <value>Save the setting for old chats</value>
+    <comment>The accessible name of the Save button</comment>
+  </data>
+  <data name="ChatRetentionCancelName" xml:space="preserve">
+    <value>Cancel changes to the setting for old chats</value>
+    <comment>The accessible name of the Cancel button</comment>
+  </data>
+  <data name="ChatRetentionSaved" xml:space="preserve">
+    <value>Saved.</value>
+    <comment>After a save</comment>
+  </data>
+  <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
+    <value>Your organisation keeps at most {0} chats for {1} days on this device.</value>
+    <comment>Governed mode, read only: {0} chats, {1} days</comment>
+  </data>
+  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
+    <value>Your organisation sets no limit.</value>
+    <comment>Governed mode, read only, when the server sets no limit</comment>
+  </data>
+  <data name="ChatRetentionPolicyFixed" xml:space="preserve">
+    <value>Set by your organisation's policy on this computer.</value>
+    <comment>When the machine policy fixes it, read only</comment>
+  </data>
 </root>

@@ -35,6 +35,9 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     private ReasoningChoiceStore? _reasoningStore;
     private ReasoningChoices _reasoningChoices = ReasoningChoices.Everything;
     private ReasoningLevel? _reasoningPick;
+    private ChatRetentionStore? _retentionStore;
+    private ChatRetentionChoice? _retentionPick;
+    private readonly List<WeakReference<ChatSession>> _handedOut = new(); // the chats this agent gave out: never pruned while they live
     private volatile bool _hostPolicySeen;
 
     internal FadenstackAgent(AgentSettings settings)
@@ -243,11 +246,13 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
                 _sourceTools.AddRange(fromSources);
             }
             tools = Compose();
-            UseDefaultStores(profile.Principal, _settings.Retention.Within(profile.LocalRetention));
+            UseDefaultStores(profile.Principal, () => Limits(ComputeChatRetention()));
             _tools = tools;
             _profile = profile;
             _reasoningChoices = ReasoningChoices.FromUi(profile.Ui);
             _reasoningPick = _reasoningStore?.Get(Slug);
+            _retentionPick = _retentionStore?.Get();
+            await PruneChatsAsync(cancellationToken).ConfigureAwait(false); // an idle profile ages out too (F08), when pruning is on
             Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
             Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped.Count);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && !BypassOffered)
@@ -423,7 +428,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     /// The stores the host did not pass: in the signed-in user's own folder, or -- from a gateway that names no user -- in
     /// the shared one an older SDK used.
     /// </summary>
-    private void UseDefaultStores(AgentPrincipal? principal, SessionRetention retention)
+    private void UseDefaultStores(AgentPrincipal? principal, Func<SessionRetention?> retention)
     {
         if (principal is not null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
@@ -435,7 +440,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             // A transcript is personal data: it goes to disk only encrypted.
             if (SecretProtection.Default.Encrypts)
             {
-                _sessions = new FileSessionStore(Folder("sessions"), retention: retention, logger: Logger);
+                _sessions = new FileSessionStore(Folder("sessions"), null, retention, Logger);
             }
             else
             {
@@ -448,7 +453,94 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         {
             // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.
             _reasoningStore = new ReasoningChoiceStore(Folder("preferences"));
+            _retentionStore = new ChatRetentionStore(Folder("preferences"));
         }
+    }
+
+    /// <summary>
+    /// How long old chats are kept on this device, and who decides (<see cref="ChatRetentionState.Control"/>). In a standalone
+    /// agent the person chooses (<see cref="SetChatRetentionAsync"/>; on, 90 days, 50 chats unless the app's
+    /// <see cref="AgentBuilder.UseSessionRetention"/> says otherwise) unless the machine policy fixes it (<c>chatRetention</c>). In a
+    /// governed agent the server decides, as the stricter of its <c>local_retention</c> and the app's limits, and the person's stored
+    /// choice is ignored. Call <see cref="StartAsync"/> first for the person's own choice and the server's limits.
+    /// </summary>
+    public ChatRetentionState ChatRetention => ComputeChatRetention();
+
+    private ChatRetentionState ComputeChatRetention()
+    {
+        if (Connection == AgentConnection.Governed)
+        {
+            var server = _profile?.LocalRetention;
+            var limits = _settings.Retention.Within(server);
+            return new ChatRetentionState(ChatRetentionControl.Organisation, true, limits.MaxAgeDays, limits.MaxSessions, server is not null);
+        }
+        if (_settings.MachinePolicy.ChatRetention is { } fixedBy)
+        {
+            return new ChatRetentionState(ChatRetentionControl.MachinePolicy, fixedBy.AutoDelete, fixedBy.MaxAgeDays, fixedBy.MaxSessions);
+        }
+        var choice = _retentionPick ?? ChatRetentionChoice.From(_settings.Retention);
+        return new ChatRetentionState(ChatRetentionControl.Person, choice.AutoDelete, choice.MaxAgeDays, choice.MaxSessions);
+    }
+
+    private static SessionRetention? Limits(ChatRetentionState state) =>
+        state.AutoDelete ? new SessionRetention(state.MaxSessions, state.MaxAgeDays) : null;
+
+    /// <summary>
+    /// Keeps the person's choice for old chats (a standalone agent only), on this device and for this person, and applies it at
+    /// once: when automatic deletion is on, chats beyond the limits go now, except the ones open. Returns the state in force.
+    /// In governed mode, or when the machine policy fixes it, the choice is ignored (nothing is kept) and the state is returned as it is.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="choice"/> is null.</exception>
+    public async Task<ChatRetentionState> SetChatRetentionAsync(ChatRetentionChoice choice, CancellationToken cancellationToken = default)
+    {
+        if (choice is null)
+        {
+            throw new ArgumentNullException(nameof(choice));
+        }
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        if (!ComputeChatRetention().CanChange)
+        {
+            return ComputeChatRetention();
+        }
+        _retentionPick = choice;
+        _retentionStore?.Set(choice);
+        await PruneChatsAsync(cancellationToken).ConfigureAwait(false);
+        return ComputeChatRetention();
+    }
+
+    /// <summary>Deletes this agent's chats beyond the limits in force (nothing when automatic deletion is off), but never one that is open.</summary>
+    private async Task PruneChatsAsync(CancellationToken cancellationToken)
+    {
+        if (SessionStore is not IPrunesSessions store || Limits(ComputeChatRetention()) is null)
+        {
+            return;
+        }
+        try
+        {
+            await store.PruneAsync(Slug, OpenChatIds(), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // a chat another process holds stays for now; the next start tries again
+        }
+    }
+
+    private List<string> OpenChatIds()
+    {
+        lock (_handedOut)
+        {
+            _handedOut.RemoveAll(r => !r.TryGetTarget(out _));
+            return _handedOut.Select(r => r.TryGetTarget(out var s) ? s.Id : "").Where(id => id.Length > 0).ToList();
+        }
+    }
+
+    private ChatSession Handed(ChatSession session)
+    {
+        lock (_handedOut)
+        {
+            _handedOut.Add(new WeakReference<ChatSession>(session));
+        }
+        return session;
     }
 
     /// <summary>
@@ -585,7 +677,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         await RefreshProfileAsync(cancellationToken).ConfigureAwait(false);
-        var session = new ChatSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode);
+        var session = Handed(new ChatSession(this, Guid.NewGuid().ToString("N"), new List<TranscriptEntry>(), toolMode ?? DefaultToolMode));
         await session.WriteStartAsync(cancellationToken).ConfigureAwait(false);
         return session;
     }
@@ -616,7 +708,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         // The grant decides, not the transcript: Bypass switched on before the chat's first message left no turn in it.
         var lives = Grants.Live.Any(g => g.Kind == GrantKinds.Bypass && g.ConversationId == sessionId);
         var before = ChatSession.LastMode(entries) ?? DefaultToolMode;
-        var session = new ChatSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before);
+        var session = Handed(new ChatSession(this, sessionId, entries.ToList(), lives ? ToolMode.Bypass : before));
         session.Reopened(before);
         return session;
     }

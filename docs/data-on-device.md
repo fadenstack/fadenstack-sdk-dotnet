@@ -24,6 +24,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
       approvals/<agent>.json
       approvals/approvals-seal.key
       preferences/reasoning.json
+      preferences/retention.json
       language
       skills/<skill>/SKILL.md
       preferences/skills.json
@@ -66,10 +67,11 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 
 | In the folder | What it holds | How it is protected | How long it is kept | Export and delete |
 |---|---|---|---|---|
-| `sessions/<agent>/<session id>.jsonl` | The chats: one append-only file per session, one transcript entry per line, with the messages, attachments, tool calls and results, approval decisions and notices ([What a session holds](sessions.md#what-a-session-holds)). | Every line encrypted: DPAPI for the current user on Windows; AES-256-GCM on macOS and Linux with `Fadenstack.Secrets`, the data key in the Keychain or the Secret Service. Without either, nothing is written: the chat stays in memory (event 2040). | The newest 50 sessions per agent, none older than 90 days; the others go when a new session starts. `UseSessionRetention` and the server's `local_retention` lower the limits ([Retention](sessions.md#retention)). | Exported, decrypted; deleted. |
+| `sessions/<agent>/<session id>.jsonl` | The chats: one append-only file per session, one transcript entry per line, with the messages, attachments, tool calls and results, approval decisions and notices ([What a session holds](sessions.md#what-a-session-holds)). | Every line encrypted: DPAPI for the current user on Windows; AES-256-GCM on macOS and Linux with `Fadenstack.Secrets`, the data key in the Keychain or the Secret Service. Without either, nothing is written: the chat stays in memory (event 2040). | By default the newest 50 sessions per agent, none older than 90 days; the others go when the agent starts, when a new session starts, and when the person turns deletion on or lowers a limit. In standalone the person can change the limits or turn deletion off (`preferences/retention.json`, below), and the machine policy can fix them; in governed mode the server's `local_retention` and `UseSessionRetention` decide ([Retention](sessions.md#retention)). | Exported, decrypted; deleted. |
 | `approvals/<agent>.json` | "Allow always": each tool, its class, its source and server, when it was allowed, and its seal ([Host tools](tools.md#allow-always)). | Encrypted as above; without a key store, a file only its owner may read. | Until the person resets them (`ResetApprovalsAsync`). | Exported; deleted. |
 | `approvals/approvals-seal.key` | The key that seals the approvals beside it: 32 random bytes. | Encrypted as the approvals. | As long as the approvals. | Never exported; deleted. |
 | `preferences/reasoning.json` | How long the person lets each agent think. | Plain JSON. | Until the person changes it. | Exported; deleted. |
+| `preferences/retention.json` | The person's choice for old chats in standalone mode: `autoDelete` (true or false), `maxAgeDays` (1 to 3650) and `maxSessions` (1 to 10000), for example `{"autoDelete":true,"maxAgeDays":90,"maxSessions":50}`. Not read in governed mode, where the server decides, nor where the machine policy fixes the setting. No chat text. | Plain JSON. A damaged or out-of-range file counts as no choice (the defaults). | Until the person changes it. | Exported; deleted. |
 | `skills/<skill>/` | The person's own skills (`SKILL.md` and its files), as the skill editor writes them (`SkillWorkshop`); the skills module reads them for the person the profile names ([Skills](skills.md)). | Plain files. | Until the person deletes the skill in the editor. | Exported as the files (the editor also exports one skill as a zip); deleted. |
 | `preferences/skills.json` | The names of the skills the person turned off. | Plain JSON. | Until the person changes it. | Exported; deleted. |
 | `preferences/web-search.json` | The person's web search provider (Brave or SearXNG) and the SearXNG address; no key ([Pictures and web search](web-search.md)). | Plain JSON, owner-only. | Until the person changes it. | Exported; deleted. |

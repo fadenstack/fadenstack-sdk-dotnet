@@ -62,9 +62,28 @@ Entries are only ever appended. A turn that was stopped is still recorded, as st
 
 ## Retention
 
-`FileSessionStore` keeps the newest 50 sessions per agent, and none older than 90 days. Older sessions are deleted when a new session is created.
+By default the SDK keeps the newest 50 chats per agent on the device, and none older than 90 days. Who decides depends on how the agent is connected:
 
-To keep more or fewer in the store the agent creates, use `UseSessionRetention`:
+| Connection | Who decides | What the person sees |
+|---|---|---|
+| Standalone | The person, in the app's settings: automatic deletion on or off, and the limits. Defaults: on, 90 days, 50 chats (or the app's `UseSessionRetention` limits). The machine policy may fix it (`chatRetention`, see [Machine policy](machine-policy.md)). | A switch and two limits; read only, with "Set by your organisation's policy on this computer", when the policy fixes it. |
+| Governed | The server: the stricter of the app's limits and the profile's `local_retention`. The person's stored choice is ignored. | No setting: "Your organisation keeps at most N chats for D days on this device", or "Your organisation sets no limit". |
+
+**When it runs.** Pruning runs when the agent starts (after the profile is known, for this agent's chats, so an idle profile ages out too), when a new chat is created, and at once when the person turns automatic deletion on or lowers a limit. A chat that is open (one the agent gave out with `StartSessionAsync` or `OpenSessionAsync` and your app still holds) is never deleted, and counts among the chats kept. With automatic deletion off, nothing is deleted: chats stay until the person deletes them (`DeleteSessionAsync`). Only the store the agent creates is pruned, not one you pass.
+
+**The person's choice** is kept per person on the device, in `users/<user>/preferences/retention.json` (see [Data on the device](data-on-device.md)), beside the thinking level. It belongs to the person, not to one agent. Read and change it with:
+
+```csharp
+ChatRetentionState state = agent.ChatRetention;   // Control: Person, Organisation or MachinePolicy; AutoDelete, MaxAgeDays, MaxSessions, CanChange
+// A settings page, standalone only; the limits are whole numbers: days 1 to 3650, chats 1 to 10000 (ArgumentOutOfRangeException otherwise).
+state = await agent.SetChatRetentionAsync(new ChatRetentionChoice(autoDelete: true, maxAgeDays: 30, maxSessions: 100));
+```
+
+`SetChatRetentionAsync` returns the state in force. In governed mode, or when the machine policy fixes the setting, it keeps nothing and returns the state as it is. Before `StartAsync`, `ChatRetention` shows the app's defaults (and, governed, no server limit yet).
+
+**The settings control.** `Fadenstack.UI` has `ChatRetentionSettingsViewModel` (the switch, the two limits, Save and Cancel, the read-only states and their sentences, `Retext()` for a new language) and the four skins have a view for it: `ChatRetentionSettingsView` in `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia`, and the React and Vue components of the TypeScript SDK. Put the view where your app keeps its settings, set its `DataContext` to `new ChatRetentionSettingsViewModel(agent)` and call `LoadAsync()` once. The texts are in the five languages the package ships.
+
+To keep more or fewer chats by default in the store the agent creates (the standalone person's starting point, and the app's limit in governed mode), use `UseSessionRetention`:
 
 ```csharp
 using Fadenstack.Agents.Sessions;
@@ -72,7 +91,7 @@ using Fadenstack.Agents.Sessions;
 builder.UseSessionRetention(new SessionRetention(MaxSessions: 20, MaxAgeDays: 30));
 ```
 
-**The server's limits.** The agent's profile can carry `local_retention` (`AgentProfile.LocalRetention`, with `MaxSessions` and `MaxAgeDays`). Only positive whole numbers count. The agent takes the stricter of your limits and the server's for each; a limit the server leaves out stays yours, and the server cannot raise a limit above yours. This applies to the store the agent creates, not to one you pass.
+**The server's limits** (governed mode). The agent's profile can carry `local_retention` (`AgentProfile.LocalRetention`, with `MaxSessions` and `MaxAgeDays`). Only positive whole numbers count. The agent takes the stricter of your limits and the server's for each; a limit the server leaves out stays yours, and the server cannot raise a limit above yours. This applies to the store the agent creates, not to one you pass.
 
 To set the limits of a store you create yourself, pass them to it:
 

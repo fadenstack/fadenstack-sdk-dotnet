@@ -1948,6 +1948,59 @@ public sealed class UiStrings
     /// <summary>"Plain http is not allowed here."</summary>
     public string McpPlainHttpNotAllowed => Text();
 
+    // -- the old-chats setting ----------------------------------------------------------------------
+
+    /// <summary>"Old chats"</summary>
+    public string ChatRetentionTitle => Text();
+
+    /// <summary>"Delete old chats automatically"</summary>
+    public string ChatRetentionAutoDelete => Text();
+
+    /// <summary>"When this is off, chats stay on this device until you delete them."</summary>
+    public string ChatRetentionAutoDeleteHint => Text();
+
+    /// <summary>"Delete chats older than (days)"</summary>
+    public string ChatRetentionMaxAge => Text();
+
+    /// <summary>"Keep at most (chats)"</summary>
+    public string ChatRetentionMaxSessions => Text();
+
+    /// <summary>"Days after which old chats are deleted"</summary>
+    public string ChatRetentionMaxAgeName => Text();
+
+    /// <summary>"Number of chats to keep"</summary>
+    public string ChatRetentionMaxSessionsName => Text();
+
+    /// <summary>"Enter a whole number of days from {0} to {1}."</summary>
+    public string ChatRetentionDaysError(int first, int second) => Fill2(first, second);
+
+    /// <summary>"Enter a whole number of chats from {0} to {1}."</summary>
+    public string ChatRetentionChatsError(int first, int second) => Fill2(first, second);
+
+    /// <summary>"Save"</summary>
+    public string ChatRetentionSave => Text();
+
+    /// <summary>"Cancel"</summary>
+    public string ChatRetentionCancel => Text();
+
+    /// <summary>"Save the setting for old chats"</summary>
+    public string ChatRetentionSaveName => Text();
+
+    /// <summary>"Cancel changes to the setting for old chats"</summary>
+    public string ChatRetentionCancelName => Text();
+
+    /// <summary>"Saved."</summary>
+    public string ChatRetentionSaved => Text();
+
+    /// <summary>"Your organisation keeps at most {0} chats for {1} days on this device."</summary>
+    public string ChatRetentionOrganisationLimit(int first, int second) => Fill2(first, second);
+
+    /// <summary>"Your organisation sets no limit."</summary>
+    public string ChatRetentionOrganisationNoLimit => Text();
+
+    /// <summary>"Set by your organisation's policy on this computer."</summary>
+    public string ChatRetentionPolicyFixed => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));

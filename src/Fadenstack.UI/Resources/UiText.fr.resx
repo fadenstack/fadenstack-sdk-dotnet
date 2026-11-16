@@ -2350,4 +2350,55 @@
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Le http en clair n’est pas autorisé ici.</value>
   </data>
+  <data name="ChatRetentionTitle" xml:space="preserve">
+    <value>Anciennes conversations</value>
+  </data>
+  <data name="ChatRetentionAutoDelete" xml:space="preserve">
+    <value>Supprimer automatiquement les anciennes conversations</value>
+  </data>
+  <data name="ChatRetentionAutoDeleteHint" xml:space="preserve">
+    <value>Si cette option est désactivée, les conversations restent sur cet appareil jusqu'à ce que vous les supprimiez.</value>
+  </data>
+  <data name="ChatRetentionMaxAge" xml:space="preserve">
+    <value>Supprimer les conversations de plus de (jours)</value>
+  </data>
+  <data name="ChatRetentionMaxSessions" xml:space="preserve">
+    <value>Conserver au plus (conversations)</value>
+  </data>
+  <data name="ChatRetentionMaxAgeName" xml:space="preserve">
+    <value>Nombre de jours après lequel les anciennes conversations sont supprimées</value>
+  </data>
+  <data name="ChatRetentionMaxSessionsName" xml:space="preserve">
+    <value>Nombre de conversations à conserver</value>
+  </data>
+  <data name="ChatRetentionDaysError" xml:space="preserve">
+    <value>Saisissez un nombre entier de jours compris entre {0} et {1}.</value>
+  </data>
+  <data name="ChatRetentionChatsError" xml:space="preserve">
+    <value>Saisissez un nombre entier de conversations compris entre {0} et {1}.</value>
+  </data>
+  <data name="ChatRetentionSave" xml:space="preserve">
+    <value>Enregistrer</value>
+  </data>
+  <data name="ChatRetentionCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="ChatRetentionSaveName" xml:space="preserve">
+    <value>Enregistrer le réglage des anciennes conversations</value>
+  </data>
+  <data name="ChatRetentionCancelName" xml:space="preserve">
+    <value>Annuler les modifications du réglage des anciennes conversations</value>
+  </data>
+  <data name="ChatRetentionSaved" xml:space="preserve">
+    <value>Enregistré.</value>
+  </data>
+  <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
+    <value>Votre organisation conserve au plus {0} conversations pendant {1} jours sur cet appareil.</value>
+  </data>
+  <data name="ChatRetentionOrganisationNoLimit" xml:space="preserve">
+    <value>Votre organisation ne fixe aucune limite.</value>
+  </data>
+  <data name="ChatRetentionPolicyFixed" xml:space="preserve">
+    <value>Défini par la politique de votre organisation sur cet ordinateur.</value>
+  </data>
 </root>
