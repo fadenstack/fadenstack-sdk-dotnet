@@ -63,7 +63,7 @@ public sealed record MachinePolicy
 {
     /// <summary>The known keys, as a policy file names them (declared first: the policies below read it).</summary>
     public static IReadOnlyList<string> Keys { get; } =
-        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping"];
+        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention"];
 
     /// <summary>No policy at all: everything the person may choose stays theirs.</summary>
     public static MachinePolicy None { get; } = new();
@@ -102,6 +102,12 @@ public sealed record MachinePolicy
     /// default), <c>off</c>, or the address of the organisation's own time-stamp server.
     /// </summary>
     public TimestampingPolicy Timestamping { get; init; } = TimestampingPolicy.On;
+
+    /// <summary>
+    /// How long a standalone agent keeps old chats, fixed by IT (<c>chatRetention</c>: <c>autoDelete</c>, <c>maxAgeDays</c>,
+    /// <c>maxSessions</c>); null when the policy leaves it to the person. A governed agent follows its server instead.
+    /// </summary>
+    public ChatRetentionChoice? ChatRetention { get; init; }
 
     /// <summary>The keys the policy set itself (the app locks them in its UI and never writes them into the person's settings).</summary>
     public IReadOnlyCollection<string> Locked { get; init; } = Array.Empty<string>();
@@ -163,6 +169,7 @@ public sealed record MachinePolicy
     {
         Standalone = PolicyAccess.Forbidden, PlainHttp = PolicyAccess.Forbidden, Mcp = PolicyRule.Forbidden,
         Skills = PolicyRule.Forbidden, WebSearch = PolicyAccess.Forbidden, Timestamping = TimestampingPolicy.Off,
+        ChatRetention = ChatRetentionChoice.Default, // old chats are deleted as by default; the person cannot turn it off
         Locked = Keys.Where(k => k != "server").ToList(),
         Warnings = [why + ": standalone, local MCP, local skills, web search and plain http are forbidden; time-stamps are off."],
     };
@@ -214,6 +221,7 @@ public sealed record MachinePolicy
             Skills = Rule(values, "skills", byDefaultRule, warnings),
             WebSearch = Access(values, "webSearch", byDefault, warnings),
             Timestamping = Timestamps(values, warnings),
+            ChatRetention = values.TryGetValue("chatRetention", out var retention) ? Retention(retention, warnings) : null,
             Locked = locked,
             Warnings = warnings,
         };
@@ -259,6 +267,57 @@ public sealed record MachinePolicy
         }
         warnings.Add("'timestamping' is neither on, off nor an http(s) address: off.");
         return TimestampingPolicy.Off;
+    }
+
+    /// <summary>
+    /// <c>{ "autoDelete": true, "maxAgeDays": 30, "maxSessions": 100 }</c>. What it leaves out is the default (on, 90 days, 50 chats); a
+    /// value that is not understood or out of bounds is reported and also becomes the default, so chats are not kept longer than that.
+    /// </summary>
+    private static ChatRetentionChoice Retention(JsonElement value, List<string> warnings)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+        {
+            warnings.Add("'chatRetention' is not an object: the defaults (on, 90 days, 50 chats) apply.");
+            return ChatRetentionChoice.Default;
+        }
+        var autoDelete = true;
+        int days = 90, chats = 50;
+        foreach (var property in value.EnumerateObject())
+        {
+            switch (property.Name)
+            {
+                case "autoDelete":
+                    if (property.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                    {
+                        autoDelete = property.Value.GetBoolean();
+                    }
+                    else
+                    {
+                        warnings.Add("'chatRetention.autoDelete' is not true or false: on.");
+                    }
+                    break;
+                case "maxAgeDays":
+                    days = Limit(property.Value, "maxAgeDays", ChatRetentionChoice.IsValidDays, days, warnings);
+                    break;
+                case "maxSessions":
+                    chats = Limit(property.Value, "maxSessions", ChatRetentionChoice.IsValidChats, chats, warnings);
+                    break;
+                default:
+                    warnings.Add($"Unknown key 'chatRetention.{property.Name}' ignored.");
+                    break;
+            }
+        }
+        return new ChatRetentionChoice(autoDelete, days, chats);
+    }
+
+    private static int Limit(JsonElement value, string name, Func<int, bool> valid, int fallback, List<string> warnings)
+    {
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) && valid(number))
+        {
+            return number;
+        }
+        warnings.Add($"'chatRetention.{name}' is not a whole number within its bounds: the default ({fallback}).");
+        return fallback;
     }
 
     private static PolicyRule Rule(Dictionary<string, JsonElement> values, string key, PolicyRule fallback, List<string> warnings)

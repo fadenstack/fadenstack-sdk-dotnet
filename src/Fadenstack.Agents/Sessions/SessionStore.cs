@@ -32,6 +32,13 @@ public sealed record SessionRetention(int MaxSessions = 50, int MaxAgeDays = 90)
         : new SessionRetention(Math.Min(MaxSessions, server.MaxSessions ?? MaxSessions), Math.Min(MaxAgeDays, server.MaxAgeDays ?? MaxAgeDays));
 }
 
+/// <summary>A store that can delete a person's old chats by the rules in force (the SDK's own <see cref="FileSessionStore"/>).</summary>
+internal interface IPrunesSessions
+{
+    /// <summary>Deletes the agent's chats that are too old or too many; <paramref name="keep"/> (the open ones) are never deleted. Returns how many went.</summary>
+    Task<int> PruneAsync(string agent, IReadOnlyCollection<string> keep, CancellationToken cancellationToken = default);
+}
+
 /// <summary>Sessions in memory only: gone with the process.</summary>
 public sealed class MemorySessionStore : ISessionStore
 {
@@ -100,11 +107,11 @@ public sealed class MemorySessionStore : ISessionStore
 /// when the server names no user). Each line is encrypted for the current user (DPAPI on Windows); elsewhere the files
 /// are readable by their owner only.
 /// </summary>
-public sealed class FileSessionStore : ISessionStore, IListsAgents
+public sealed class FileSessionStore : ISessionStore, IListsAgents, IPrunesSessions
 {
     private readonly string _root;
     private readonly ISecretProtector _protector;
-    private readonly SessionRetention _retention;
+    private readonly Func<SessionRetention?> _retention;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly ILogger _log;
 
@@ -114,11 +121,19 @@ public sealed class FileSessionStore : ISessionStore, IListsAgents
     /// <param name="logger">Where lines and files that cannot be read are logged (counts and kinds only); nowhere if not given.</param>
     public FileSessionStore(string? directory = null, ISecretProtector? protector = null, SessionRetention? retention = null,
         ILogger? logger = null)
+        : this(directory, protector, Fixed(retention ?? SessionRetention.Default), logger)
+    {
+    }
+
+    private static Func<SessionRetention?> Fixed(SessionRetention retention) => () => retention;
+
+    /// <summary>A store whose limits are read each time they are needed: null means no automatic deletion (the person turned it off).</summary>
+    internal FileSessionStore(string? directory, ISecretProtector? protector, Func<SessionRetention?> retention, ILogger? logger)
     {
         _root = directory ?? FadenstackPaths.Data("sessions");
         Directory.CreateDirectory(_root);
         _protector = protector ?? SecretProtection.Default;
-        _retention = retention ?? SessionRetention.Default;
+        _retention = retention ?? throw new ArgumentNullException(nameof(retention));
         _log = logger ?? NullLogger.Instance;
     }
 
@@ -135,7 +150,7 @@ public sealed class FileSessionStore : ISessionStore, IListsAgents
             if (created)
             {
                 SecretProtection.OwnerOnly(path, directory: false);
-                Prune(agent, keep: sessionId);
+                Prune(agent, new[] { sessionId });
             }
         }
         finally
@@ -224,21 +239,47 @@ public sealed class FileSessionStore : ISessionStore, IListsAgents
         ? Directory.GetDirectories(_root).Select(d => Path.GetFileName(d)).ToList()
         : new List<string>();
 
-    /// <summary>Keeps the newest <see cref="SessionRetention.MaxSessions"/> not older than the age limit.</summary>
-    private void Prune(string agent, string keep)
+    /// <summary>
+    /// Deletes the chats that are too old or beyond the newest <see cref="SessionRetention.MaxSessions"/>, when automatic deletion is on
+    /// (at the agent's start, when the person turns it on or lowers a limit). The chats in <paramref name="keep"/> are open: they are
+    /// never deleted, and they count among the chats kept.
+    /// </summary>
+    public async Task<int> PruneAsync(string agent, IReadOnlyCollection<string> keep, CancellationToken cancellationToken = default)
     {
-        var cutoff = DateTime.UtcNow.AddDays(-_retention.MaxAgeDays);
-        var others = Directory.GetFiles(AgentDirectory(agent), "*.jsonl")
-            .Select(f => new FileInfo(f))
-            .Where(f => Path.GetFileNameWithoutExtension(f.Name) != FadenstackPaths.SafeName(keep))
+        await _lock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return Prune(agent, keep);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
+    /// <summary>Keeps the newest <see cref="SessionRetention.MaxSessions"/> not older than the age limit; the <paramref name="keep"/> chats always stay.</summary>
+    private int Prune(string agent, IReadOnlyCollection<string> keep)
+    {
+        if (_retention() is not { } retention)
+        {
+            return 0; // off: every chat stays until the person deletes it
+        }
+        var cutoff = DateTime.UtcNow.AddDays(-retention.MaxAgeDays);
+        var open = new HashSet<string>(keep.Select(FadenstackPaths.SafeName), StringComparer.Ordinal);
+        var files = Directory.GetFiles(AgentDirectory(agent), "*.jsonl").Select(f => new FileInfo(f)).ToList();
+        var others = files.Where(f => !open.Contains(Path.GetFileNameWithoutExtension(f.Name)))
             .OrderByDescending(f => f.LastWriteTimeUtc).ToList();
+        var room = Math.Max(0, retention.MaxSessions - (files.Count - others.Count)); // the open ones are among the kept
+        var removed = 0;
         for (var i = 0; i < others.Count; i++)
         {
-            if (i >= _retention.MaxSessions - 1 || others[i].LastWriteTimeUtc < cutoff) // the new session is one of them
+            if (i >= room || others[i].LastWriteTimeUtc < cutoff)
             {
                 others[i].Delete();
+                removed++;
             }
         }
+        return removed;
     }
 
     private string AgentDirectory(string agent)

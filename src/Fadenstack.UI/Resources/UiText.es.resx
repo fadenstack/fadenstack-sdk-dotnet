@@ -2451,5 +2451,55 @@
   </data>
   <data name="WebSearchSaveFailed" xml:space="preserve">
     <value>No se pudo guardar la configuración en este dispositivo. Inténtelo de nuevo.</value>
+  <data name="ChatRetentionTitle" xml:space="preserve">
+    <value>Chats antiguos</value>
+  </data>
+  <data name="ChatRetentionAutoDelete" xml:space="preserve">
+    <value>Eliminar automáticamente los chats antiguos</value>
+  </data>
+  <data name="ChatRetentionAutoDeleteHint" xml:space="preserve">
+    <value>Si está desactivado, los chats permanecen en este dispositivo hasta que usted los elimine.</value>
+  </data>
+  <data name="ChatRetentionMaxAge" xml:space="preserve">
+    <value>Eliminar chats con más de (días)</value>
+  </data>
+  <data name="ChatRetentionMaxSessions" xml:space="preserve">
+    <value>Conservar como máximo (chats)</value>
+  </data>
+  <data name="ChatRetentionMaxAgeName" xml:space="preserve">
+    <value>Días tras los cuales se eliminan los chats antiguos</value>
+  </data>
+  <data name="ChatRetentionMaxSessionsName" xml:space="preserve">
+    <value>Número de chats que se conservan</value>
+  </data>
+  <data name="ChatRetentionDaysError" xml:space="preserve">
+    <value>Introduzca un número entero de días entre {0} y {1}.</value>
+  </data>
+  <data name="ChatRetentionChatsError" xml:space="preserve">
+    <value>Introduzca un número entero de chats entre {0} y {1}.</value>
+  </data>
+  <data name="ChatRetentionSave" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="ChatRetentionCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="ChatRetentionSaveName" xml:space="preserve">
+    <value>Guardar el ajuste de los chats antiguos</value>
+  </data>
+  <data name="ChatRetentionCancelName" xml:space="preserve">
+    <value>Cancelar los cambios del ajuste de los chats antiguos</value>
+  </data>
+  <data name="ChatRetentionSaved" xml:space="preserve">
+    <value>Guardado.</value>
+  </data>
+  <data name="ChatRetentionOrganisationLimit" xml:space="preserve">
+    <value>Su organización conserva como máximo {0} chats durante {1} días en este dispositivo.</value>
+  </data>
+  <data name="ChatRetentionDeviceLimit" xml:space="preserve">
+    <value>Este dispositivo conserva como máximo {0} chats durante {1} días.</value>
+  </data>
+  <data name="ChatRetentionPolicyFixed" xml:space="preserve">
+    <value>Lo establece la directiva de su organización en este equipo.</value>
   </data>
 </root>

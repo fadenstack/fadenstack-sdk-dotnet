@@ -8,6 +8,17 @@ this file says where it does.
 
 ### Added
 
+- **Old chats are a setting** ([Sessions: Retention](docs/sessions.md#retention)). In standalone mode the person chooses whether old
+  chats are deleted automatically, and the limits (days 1 to 3650, chats 1 to 10000; defaults on, 90 days, 50 chats, or the app's
+  `UseSessionRetention`); off keeps every chat until the person deletes it. In governed mode the server decides as before (the
+  stricter of the app's limits and `local_retention`) and the person has no setting.
+  - `FadenstackAgent.ChatRetention` (`ChatRetentionState`: `Control`, `AutoDelete`, `MaxAgeDays`, `MaxSessions`, `CanChange`),
+    `SetChatRetentionAsync(ChatRetentionChoice)`; the choice is kept per person in `preferences/retention.json`.
+  - The machine policy may fix it: `chatRetention` (`MachinePolicy.ChatRetention`); see [Machine policy](docs/machine-policy.md).
+  - Pruning also runs when the agent starts and when the person turns it on or lowers a limit, never on a chat that is open.
+  - `ChatRetentionSettingsViewModel` in `Fadenstack.UI`, with `ChatRetentionSettingsView` in `Fadenstack.UI.Wpf` and `.Avalonia`;
+    texts in five languages.
+
 - **Standalone mode** ([Standalone mode](docs/standalone.md)): an agent on the person's own OpenAI-compatible model
   endpoint, with no Fadenstack server. `AgentBuilder.UseEndpoint(ModelEndpoint)` or `UseChatClient(IChatClient)`, with
   `UseLocalProfile(AgentDefinition, ownInstructions)`; `Build()` refuses a server and a model together.

@@ -24,7 +24,8 @@ public class MachinePolicyTests
     {
         var policy = MachinePolicy.FromJson("""
             {"server":"https://ai.example.test","standalone":"allowed","endpoints":["http://localhost:11434","https://llm.example.test/v1"],
-             "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"off"}
+             "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"off",
+             "chatRetention":{"autoDelete":false,"maxAgeDays":30,"maxSessions":100}}
             """);
 
         Assert.Equal(new Uri("https://ai.example.test"), policy.Server);
@@ -37,6 +38,7 @@ public class MachinePolicyTests
         Assert.Equal(PolicyRule.Allowed, policy.Skills);
         Assert.Equal(PolicyAccess.Forbidden, policy.WebSearch);
         Assert.Equal(TimestampingPolicy.Off, policy.Timestamping);
+        Assert.Equal(new ChatRetentionChoice(false, 30, 100), policy.ChatRetention);
         Assert.Equal(MachinePolicy.Keys.OrderBy(k => k), policy.Locked.OrderBy(k => k));
         Assert.Empty(policy.Warnings);
     }
@@ -170,6 +172,7 @@ public class MachinePolicyTests
         Assert.Equal((PolicyAccess.Forbidden, PolicyAccess.Forbidden, PolicyAccess.Forbidden), (policy.Standalone, policy.PlainHttp, policy.WebSearch));
         Assert.Equal((PolicyRule.Forbidden, PolicyRule.Forbidden), (policy.Mcp, policy.Skills));
         Assert.Equal(TimestampingPolicy.Off, policy.Timestamping);
+        Assert.Equal(ChatRetentionChoice.Default, policy.ChatRetention); // old chats go as by default; the person cannot turn it off
         Assert.False(policy.AllowsEndpoint(new Uri("http://localhost:11434/v1")));
         Assert.Null(policy.Server);
         Assert.Equal(MachinePolicy.Keys.Where(k => k != "server").OrderBy(k => k, StringComparer.Ordinal), policy.Locked.OrderBy(k => k, StringComparer.Ordinal));
