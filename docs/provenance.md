@@ -127,6 +127,28 @@ backend, `LocalProvenanceBackend`, unless the app set one with `UseBackend`:
 - **Placements:** appended to `placements.jsonl` in the standalone user's `provenance` folder, which rotates (1 MiB, three
   kept). Nothing leaves the device.
 
+## Copying an answer
+
+What the person copies out of the chat leaves it, so it is marked like content a tool places. The chat's Copy button, and an app's own copy, go through the same pipeline, with the same policy, records and reports as a tool's placement: one placement per copy, outside a tool call, for the tool `copy`.
+
+```csharp
+// The chat view does this for its own Copy. An app that shows answers in its own view does it itself:
+var copied = await agent.MarkCopyAsync(new AnswerCopy(markdown, html, chatId, turnId));
+if (copied.Refused) { /* the policy requires the mark and it could not be made: copy nothing, say so */ }
+else clipboard.SetContent(copied.Text, copied.Html ?? copied.Text); // text as it was, HTML with its mark
+```
+
+- **What lands on the clipboard.** The answer's Markdown as plain text, exactly as it was, and the same answer as HTML. The HTML carries the mark (`<span data-ai-generated="<record id>" title="AI-generated <record id>">`, see [Built-in markers](#built-in-markers)). The plain text carries nothing: only the opt-in invisible-text marker could put a mark in it, and it is left off.
+- **Which targets keep the mark.** The HTML is kept by Word, Outlook, a browser's rich-text editor and most mail clients; a program that takes no formatting gets the plain text and so no mark. Gmail drops the `data-` attribute and keeps the `title`, which the record's report says (`html-title`). On Windows the HTML goes as the clipboard's `HTML Format` (CF_HTML, with its header and offsets); in an Avalonia app on macOS and Linux as `public.html` and `text/html`, and where the platform's clipboard does not take HTML there, the text goes alone.
+- **The record.** The sink is `clipboard`, which carries `html-attribute` only; the media type is `text/html` (`text/markdown` when only text is given); the edit kind is `Generated`; the record is linked to the receipt of the turn the answer came from. It is signed by the server (governed) or by the device (standalone), as a tool's records are. The report and the transcript's `provenance.placed` entry name the tool `copy` and never hold the copied text.
+- **Exempt content.** Code (a code block's Copy), and whatever the policy exempts, is copied as it is and recorded as exempt. The reason is `MarkedCopy.ExemptBecause`.
+- **The policy `refuse`.** A copy that cannot get a layer it needs (the HTML's mark, or the receipt's watermark) is not copied: `MarkedCopy.Refused`, and the chat says "Not copied: this answer could not be marked as AI-generated, and your organisation requires it." Standalone, the device signs, so a copy works offline; governed with the server unreachable, the policy decides as it does for a tool. A marking that fails on its own (not the policy) lets the copy go on as it was.
+- **Without the module** the copy is unchanged (`Marked` false), and `MarkCopyAsync` is a pass-through.
+- **A saved chat.** The TypeScript SDK's chat can save itself as a Markdown file; that file goes through the same pipeline with the sink `file` (front matter). The .NET chat has no export, so there is nothing to mark here (`AnswerCopy.IsFile` is there for an app that writes such a file itself).
+- **Tables.** The .NET chat has no table copy button; the TypeScript chat's table copy (tab-separated text and an HTML table) is marked like an answer. `MarkdownSerializer.TableToTsv` and `MarkdownSerializer.MarkdownToHtml` give an app the same text and HTML the chat uses.
+
+An app that shows answers in its own view, not the SDK's chat view, calls `MarkCopyAsync` itself, as above, before it puts anything on the clipboard.
+
 ## Receipts
 
 Every answer ends with the server's receipt. The session keeps them: `AgentResult.Receipts`, and on each answer's transcript entry `receipts` (`{ receipt_id, status: signed | reference | unsigned, reason }`, never the receipt). A tool call gets the receipt of the answer it came from (`IProvenance.Receipt`); a call from an answer without one gets none.
@@ -196,7 +218,7 @@ Marks never nest. When an agent writes into HTML that already holds a mark -- a 
 
 ## The same in both SDKs
 
-The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there), and read the same files: `reader-text-vectors.json` for the text a reader sees, `edit-kind-vectors.json` for the edit kind and its reason, `mark-split-vectors.json` for marks split by a later write and a record's text read back, `office-anchor-vectors.json` for Office anchors and their parts, split by a later write, and a record's text read back from them, `office-shape-vectors.json` for PowerPoint's shape tags.
+The .NET and the TypeScript SDK follow one order, one rule for what content needs, and write the same marks, so what one writes the other reads, and so does the server's detector. Both test suites hold the same vectors (`SharedVectorTests` here, `vectors.test.ts` there), and read the same files: `reader-text-vectors.json` for the text a reader sees, `edit-kind-vectors.json` for the edit kind and its reason, `mark-split-vectors.json` for marks split by a later write and a record's text read back, `office-anchor-vectors.json` for Office anchors and their parts, split by a later write, and a record's text read back from them, `office-shape-vectors.json` for PowerPoint's shape tags. The chat's Markdown-to-HTML export has its own shared file, `markdown-html.json` (`MarkdownSerializerTests` here, `serialize.test.ts` there).
 
 | Step | What happens |
 |---|---|
