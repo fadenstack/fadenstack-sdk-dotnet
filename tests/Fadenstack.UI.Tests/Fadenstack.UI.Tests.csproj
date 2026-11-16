@@ -22,6 +22,13 @@
     <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The injection suite's corpus (sdk/51 7.1): the same file the agent tests run, for the image gate (G4). -->
+    <None Include="..\Fadenstack.Agents.Tests\Injection\corpus.json" Link="Injection\corpus.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The skins' Markdown drawing code, read as text: no bitmap, no download (G4). -->
+    <None Include="..\..\src\Fadenstack.UI.Wpf\Behaviors\MarkdownText.cs" Link="Skins\Behaviors\MarkdownText.cs" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Fadenstack.UI.Avalonia\Views\MarkdownView.cs" Link="Skins\Views\MarkdownView.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->
     <None Include="..\..\src\Fadenstack.UI.Wpf\Themes\Colors.*.xaml" Link="Themes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- The card templates and the panel's key bindings, for BypassTemplateTests (read as XML). -->

@@ -84,6 +84,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: dotnet test Fadenstack.slnx -c Release
 
+      # The injection suite runs inside the test step above too; this step names it, so a failure says what broke. It never
+      # needs a network or a model: injected content runs through every untrusted channel against the fake gateway.
+      - name: Injection suite (sdk/51 7.1)
+        run: dotnet test Fadenstack.slnx -c Release --no-build --filter "Category=Injection"
+
       - name: Pack
         run: dotnet pack Fadenstack.slnx -c Release --no-build -o artifacts
 
