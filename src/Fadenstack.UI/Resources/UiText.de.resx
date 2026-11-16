@@ -2503,4 +2503,88 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Von der Richtlinie Ihrer Organisation auf diesem Computer festgelegt.</value>
   </data>
+  <data name="MyDataTitle" xml:space="preserve">
+    <value>Ihre Daten auf diesem Gerät</value>
+  </data>
+  <data name="MyDataIntro" xml:space="preserve">
+    <value>Fadenstack-Apps speichern Ihre Chats, Freigaben und Einstellungen auf diesem Gerät. Hier können Sie eine Kopie sichern oder sie entfernen.</value>
+  </data>
+  <data name="MyDataExport" xml:space="preserve">
+    <value>Meine Daten exportieren…</value>
+  </data>
+  <data name="MyDataExportName" xml:space="preserve">
+    <value>Meine Daten exportieren… (nur diese App)</value>
+  </data>
+  <data name="MyDataExportAll" xml:space="preserve">
+    <value>Alles exportieren…</value>
+  </data>
+  <data name="MyDataExportAllName" xml:space="preserve">
+    <value>Alles exportieren… (alle Fadenstack-Apps auf diesem Gerät)</value>
+  </data>
+  <data name="MyDataRemove" xml:space="preserve">
+    <value>Meine Daten entfernen…</value>
+  </data>
+  <data name="MyDataRemoveName" xml:space="preserve">
+    <value>Meine Daten entfernen… (nur diese App)</value>
+  </data>
+  <data name="MyDataRemoveAll" xml:space="preserve">
+    <value>Alle meine Fadenstack-Daten auf diesem Gerät entfernen…</value>
+  </data>
+  <data name="MyDataConfirmThisAppShared" xml:space="preserve">
+    <value>Damit werden die Chats, Freigaben und Einstellungen dieser App auf diesem Gerät entfernt. Ihre gemeinsamen Daten (Skills, MCP-Liste, Schlüssel und Herkunftsnachweise) bleiben erhalten, weil andere Fadenstack-Apps sie nutzen: {0}.</value>
+  </data>
+  <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
+    <value>Keine andere Fadenstack-App nutzt Ihre Daten auf diesem Gerät. Deshalb wird alles von Ihnen hier entfernt: Chats, Freigaben, Einstellungen, Skills, MCP-Liste, Schlüssel und Herkunftsnachweise.</value>
+  </data>
+  <data name="MyDataConfirmAll" xml:space="preserve">
+    <value>Damit werden alle Ihre Fadenstack-Daten auf diesem Gerät entfernt, auch die gemeinsamen Daten. Diese Apps sind betroffen:</value>
+  </data>
+  <data name="MyDataConfirmUndo" xml:space="preserve">
+    <value>Das lässt sich nicht rückgängig machen.</value>
+  </data>
+  <data name="MyDataThisApp" xml:space="preserve">
+    <value>{0} (diese App)</value>
+  </data>
+  <data name="MyDataConfirmRemove" xml:space="preserve">
+    <value>Meine Daten entfernen</value>
+  </data>
+  <data name="MyDataConfirmRemoveAll" xml:space="preserve">
+    <value>Alles entfernen</value>
+  </data>
+  <data name="MyDataCancel" xml:space="preserve">
+    <value>Abbrechen</value>
+  </data>
+  <data name="MyDataDismiss" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MyDataBusy" xml:space="preserve">
+    <value>Bitte warten…</value>
+  </data>
+  <data name="MyDataRemovedEverything" xml:space="preserve">
+    <value>Alles wurde entfernt.</value>
+  </data>
+  <data name="MyDataRemovedKept" xml:space="preserve">
+    <value>Entfernt. Gemeinsame Daten bleiben erhalten für: {0}.</value>
+  </data>
+  <data name="MyDataAgentsKept" xml:space="preserve">
+    <value>Die Daten dieser Agenten bleiben erhalten, weil eine andere App sie ebenfalls nutzt: {0}.</value>
+  </data>
+  <data name="MyDataHostStores" xml:space="preserve">
+    <value>Chats oder Freigaben, die diese App in einem eigenen Speicher ablegt, wurden hier nicht entfernt.</value>
+  </data>
+  <data name="MyDataExported" xml:space="preserve">
+    <value>Ihre Daten wurden in der gewählten Datei gespeichert.</value>
+  </data>
+  <data name="MyDataErrorRead" xml:space="preserve">
+    <value>Die Apps, die Ihre Daten nutzen, konnten nicht aufgelistet werden. Es wurde nichts entfernt. Versuchen Sie es erneut.</value>
+  </data>
+  <data name="MyDataErrorRemove" xml:space="preserve">
+    <value>Ihre Daten konnten nicht vollständig entfernt werden. Versuchen Sie es erneut.</value>
+  </data>
+  <data name="MyDataErrorExport" xml:space="preserve">
+    <value>Der Export hat nicht funktioniert. Versuchen Sie es erneut.</value>
+  </data>
+  <data name="MyDataListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
 </root>

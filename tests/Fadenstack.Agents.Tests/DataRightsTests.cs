@@ -80,12 +80,12 @@ public class DataRightsTests : IDisposable
         KeepAToken();
 
         var zip = new MemoryStream();
-        await agent.ExportMyDataAsync(zip);
+        await agent.ExportMyDataAsync(zip, DataScope.AllApps); // every app's: another agent's too
         var files = Unzip(zip);
 
         Assert.Equal(new[]
         {
-            "README.txt", "approvals/docs-assistant.json", "approvals/other-agent.json",
+            "README.txt", "approvals/docs-assistant.json", "approvals/other-agent.json", "apps/docs-assistant.json",
             $"sessions/docs-assistant/{mine.Id}.json", "sessions/other-agent/s9.json",
         }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
         Assert.Contains("hello from another agent", files["sessions/other-agent/s9.json"]);
@@ -162,7 +162,7 @@ public class DataRightsTests : IDisposable
 
         Assert.Equal(new[]
         {
-            "README.txt", "language", "mcp/audit.jsonl", "mcp/audit.jsonl.1", "mcp/servers.json",
+            "README.txt", "apps/docs-assistant.json", "language", "mcp/audit.jsonl", "mcp/audit.jsonl.1", "mcp/servers.json",
             "preferences/reasoning.json", "preferences/skills.json", "provenance/placements.jsonl", "provenance/records/r1.json",
             "skills/notes/SKILL.md", "skills/notes/template.txt",
         }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
@@ -232,7 +232,7 @@ public class DataRightsTests : IDisposable
         await Seed("u-2", Gateway.Slug, "s1", "somebody else's");
         KeepAToken();
 
-        var deletion = await agent.DeleteMyDataAsync();
+        var deletion = await agent.DeleteMyDataAsync(DataScope.AllApps); // every app's: the whole folder
 
         Assert.False(deletion.HostStoresLeft); // the SDK's own stores: nothing left anywhere
         Assert.False(Directory.Exists(Data("users", "u-1")));
@@ -275,7 +275,7 @@ public class DataRightsTests : IDisposable
         await Seed("u-2", Gateway.Slug, "s1", "somebody else's");
         KeepAToken();
 
-        await agent.DeleteMyDataAsync();
+        await agent.DeleteMyDataAsync(DataScope.AllApps);
 
         Assert.False(Directory.Exists(Data("sessions")));
         Assert.False(Directory.Exists(Data("approvals")));

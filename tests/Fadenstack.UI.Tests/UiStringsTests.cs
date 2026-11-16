@@ -34,6 +34,8 @@ public class UiStringsTests
         "ToolsMoreTools", "ToolsRowName", "ToolsFieldLabel", "ToolsMinutesOne",
         // The web search settings: product names (Brave, SearXNG) and a state line of a name and a host.
         "WebSearchStateBrave", "WebSearchStateSearxng", "WebSearchChoiceBrave", "WebSearchChoiceSearxng",
+        // "Your data on this device": "OK" and the comma between names read the same in several languages.
+        "MyDataDismiss", "MyDataListSeparator",
     };
 
     public static TheoryData<string> Translations() => new() { "de", "fr", "es", "zh-Hans" };

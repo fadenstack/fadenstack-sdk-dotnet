@@ -17,13 +17,28 @@ internal interface IListsAgents
 }
 
 /// <summary>
-/// What <see cref="FadenstackAgent.DeleteMyDataAsync"/> did: the folders it removed, and whether a store the host passed was
+/// What <see cref="FadenstackAgent.DeleteMyDataAsync(DataScope, CancellationToken)"/> did: the folders it removed, and whether a store the host passed was
 /// left to the host (it may hold other people's data, so the SDK does not empty it; the host deletes this person's part).
 /// </summary>
 public sealed record DataDeletion(int FoldersRemoved, bool HostSessionStoreLeft, bool HostApprovalStoreLeft)
 {
     /// <summary>Whether the person's data may still be in a store the host passed.</summary>
     public bool HostStoresLeft => HostSessionStoreLeft || HostApprovalStoreLeft;
+
+    /// <summary>What was removed: this app's data, or all of the person's.</summary>
+    public DataScope Scope { get; init; } = DataScope.AllApps;
+
+    /// <summary>
+    /// For <see cref="DataScope.ThisApp"/>: the other apps that use the person's data on this device, for which the shared data
+    /// (skills, the MCP list, keys, provenance records, the person's other preferences) stayed. Empty: it went too.
+    /// </summary>
+    public IReadOnlyList<string> OtherApps { get; init; } = Array.Empty<string>();
+
+    /// <summary>Whether the shared data stayed because other apps use it.</summary>
+    public bool SharedDataKept => OtherApps.Count > 0;
+
+    /// <summary>This app's agents whose data stayed because another app uses the same agent.</summary>
+    public IReadOnlyList<string> AgentsKept { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>What an export wrote.</summary>
@@ -55,11 +70,13 @@ internal static class DataExport
     /// list its agents (the host's own) is read for <paramref name="slug"/> only.
     /// </summary>
     internal static async Task<ExportCounts> WriteAsync(Stream destination, ISessionStore sessions, IApprovalStore approvals, string slug,
-        CancellationToken cancellationToken, string? personFolder = null, string? sharedPreferences = null)
+        CancellationToken cancellationToken, string? personFolder = null, string? sharedPreferences = null, AppScope? scope = null)
     {
         using var zip = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
-        var sessionAgents = Agents(sessions, slug);
-        var approvalAgents = Agents(approvals, slug);
+        // This app only, while other apps use the person's data: exactly what its removal takes (owner, 16 Nov).
+        var only = scope is { Plan.SharedGoes: false } ? new HashSet<string>(scope.Plan.OwnAgents.Select(FadenstackPaths.SafeName), StringComparer.Ordinal) : null;
+        var sessionAgents = Agents(sessions, slug).Where(a => only is null || only.Contains(a)).ToList();
+        var approvalAgents = Agents(approvals, slug).Where(a => only is null || only.Contains(a)).ToList();
         int sessionCount = 0, approvalCount = 0, unreadable = 0;
         foreach (var agent in sessionAgents)
         {
@@ -87,7 +104,11 @@ internal static class DataExport
             }
         }
         var files = new PersonsFiles();
-        if (personFolder is not null)
+        if (personFolder is not null && only is not null)
+        {
+            files.AddAppsOwn(zip, personFolder, scope!);
+        }
+        else if (personFolder is not null)
         {
             files.AddFolder(zip, personFolder);
         }
@@ -96,9 +117,12 @@ internal static class DataExport
             files.AddPreferences(zip, sharedPreferences);
         }
         var counts = new ExportCounts(sessionAgents.Union(approvalAgents).Count(), sessionCount, approvalCount, unreadable) { Files = files.Count };
-        Add(zip, "README.txt", Readme(counts, files));
+        Add(zip, "README.txt", Readme(counts, files, scope));
         return counts;
     }
+
+    /// <summary>The calling app and what its removal takes, for an export of <see cref="DataScope.ThisApp"/>.</summary>
+    internal sealed record AppScope(string App, MyDataPlan Plan);
 
     /// <summary>What a file of the person's folder is to the export.</summary>
     private enum Kind
@@ -130,6 +154,7 @@ internal static class DataExport
             "sessions" or "approvals" => Kind.Store,
             "keys" => Kind.Secret,
             "language" when parts.Length == 1 => Kind.Copy,
+            "apps" when parts.Length == 2 && name.EndsWith(".json", StringComparison.Ordinal) => Kind.Copy,
             "preferences" when parts.Length == 2 && name.EndsWith(".json", StringComparison.Ordinal) => Kind.Copy,
             "skills" when parts.Length > 1 => Kind.Copy,
             "mcp" when relative == "mcp/servers.dat" => Kind.ServerList,
@@ -184,6 +209,38 @@ internal static class DataExport
                         Left.Add(relative);
                         break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// This app only: its record and its agents' thinking levels (the rest of the person's files stays, other apps use it).
+        /// </summary>
+        public void AddAppsOwn(ZipArchive zip, string folder, AppScope scope)
+        {
+            var record = MyDataApps.PathOf(folder, scope.App);
+            if (File.Exists(record))
+            {
+                Copy(zip, record, "apps/" + Path.GetFileName(record));
+            }
+            var reasoning = Path.Combine(folder, "preferences", "reasoning.json");
+            try
+            {
+                if (File.Exists(reasoning)
+                    && JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(reasoning)) is { } all)
+                {
+                    var own = all.Where(p => scope.Plan.OwnAgents.Any(a => FadenstackPaths.SafeName(a) == FadenstackPaths.SafeName(p.Key)))
+                        .ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+                    if (own.Count > 0)
+                    {
+                        Add(zip, "preferences/reasoning.json", JsonSerializer.Serialize(own, Readable));
+                        Count++;
+                        Kinds.Add("preferences");
+                    }
+                }
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+            {
+                Left.Add("preferences/reasoning.json");
             }
         }
 
@@ -307,11 +364,14 @@ internal static class DataExport
         writer.Write(text);
     }
 
-    private static string Readme(ExportCounts counts, PersonsFiles files)
+    private static string Readme(ExportCounts counts, PersonsFiles files, AppScope? scope)
     {
         var text = new StringBuilder()
             .AppendLine("Your Fadenstack data on this device")
             .AppendLine($"Exported {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC.")
+            .AppendLine(scope is null ? "Scope: all of your Fadenstack data on this device, every app's."
+                : scope.Plan.SharedGoes ? $"Scope: the data of {scope.App}, the only Fadenstack app that uses your data on this device: all of it."
+                : $"Scope: the data of {scope.App} only: its chats, its \"Allow always\" and its settings.")
             .AppendLine()
             .AppendLine("Included")
             .AppendLine($"- sessions/<agent>/<session>.json: {counts.Sessions} chat session(s) of {counts.Agents} agent(s), as this device stores them")
@@ -341,6 +401,15 @@ internal static class DataExport
         }
         text.AppendLine("Not included")
             .AppendLine("- Sign-in tokens and other secrets: they give access to your account and are never exported.");
+        if (scope is { Plan.SharedGoes: false } plan)
+        {
+            text.AppendLine($"- What other Fadenstack apps on this device use ({string.Join(", ", plan.Plan.OtherApps.Select(a => a.Name))}): your skills,")
+                .AppendLine("  your MCP servers, your provenance records and your other settings. Export all of your Fadenstack data to get them.");
+            if (plan.Plan.KeptAgents.Count > 0)
+            {
+                text.AppendLine($"- The chats of {string.Join(", ", plan.Plan.KeptAgents)}, which another app uses too.");
+            }
+        }
         if (files.KeyLeft)
         {
             text.AppendLine("- The key this device signs your provenance records with: a secret, kept on the device.");

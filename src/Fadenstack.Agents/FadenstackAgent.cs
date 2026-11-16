@@ -247,6 +247,11 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             }
             tools = Compose();
             UseDefaultStores(profile.Principal, () => Limits(ComputeChatRetention()));
+            if (profile.Principal is { } person && (_settings.Sessions is null || _settings.ApprovalStore is null))
+            {
+                // Which apps use the person's data on this device, for "Remove my data" (owner, 16 Nov); names and times only.
+                MyDataApps.TryRecord(FadenstackPaths.UserFolder(person.UserId), AppName, Slug, Clock());
+            }
             _tools = tools;
             _profile = profile;
             _reasoningChoices = ReasoningChoices.FromUi(profile.Ui);
@@ -747,36 +752,80 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     }
 
     /// <summary>
-    /// Writes a ZIP of the signed-in user's data on this device to <paramref name="destination"/> (left open), all that
-    /// <see cref="DeleteMyDataAsync"/> removes (an access request, GDPR Art. 15 and 20): every session of every agent, one JSON
-    /// file each, the "Allow always" approvals, the preferences, the standalone language, skills, the MCP servers without what
-    /// can hold a secret and their audit log, the provenance records and their log, and a README. Without a user from the
-    /// gateway these are the shared folders of an older SDK. Sign-in tokens, keys and secret values are never included, nor
-    /// is what the server keeps. A store the host passed is read for this agent only.
+    /// Writes a ZIP of this app's part of the signed-in user's data on this device to <paramref name="destination"/> (left
+    /// open), what <see cref="DeleteMyDataAsync(CancellationToken)"/> removes (an access request, GDPR Art. 15 and 20; since
+    /// standalone.9 this app's scope, <see cref="DataScope.ThisApp"/>, owner 16 Nov). All of it, with
+    /// <see cref="DataScope.AllApps"/>: every session of every agent, one JSON file each, the "Allow always" approvals, the
+    /// preferences, the standalone language, skills, the MCP servers without what can hold a secret and their audit log, the
+    /// provenance records and their log, the apps' records, and a README. Without a user from the gateway these are the shared
+    /// folders of an older SDK. Sign-in tokens, keys and secret values are never included, nor is what the server keeps. A
+    /// store the host passed is read for this agent only.
     /// </summary>
-    public async Task ExportMyDataAsync(Stream destination, CancellationToken cancellationToken = default)
+    public Task ExportMyDataAsync(Stream destination, CancellationToken cancellationToken = default) =>
+        ExportMyDataAsync(destination, DataScope.ThisApp, cancellationToken);
+
+    /// <summary>
+    /// Writes a ZIP of the person's data in <paramref name="scope"/> (see <see cref="ExportMyDataAsync(Stream, CancellationToken)"/>):
+    /// <see cref="DataScope.ThisApp"/> holds exactly what <see cref="DeleteMyDataAsync(DataScope, CancellationToken)"/> of this
+    /// app would remove, and its README names what stayed because other apps use it; <see cref="DataScope.AllApps"/> holds all of it.
+    /// </summary>
+    public async Task ExportMyDataAsync(Stream destination, DataScope scope, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
-        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken,
-            principal is null ? null : FadenstackPaths.UserFolder(principal.UserId),
-            principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null).ConfigureAwait(false);
+        var folder = principal is null ? null : FadenstackPaths.UserFolder(principal.UserId);
+        var app = scope == DataScope.ThisApp && folder is not null
+            ? new DataExport.AppScope(AppName, MyDataApps.Plan(folder, AppName, Slug)) : null;
+        var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken, folder,
+            principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null, app).ConfigureAwait(false);
         Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
     }
 
     /// <summary>
-    /// Deletes the signed-in user's data on this device (an erasure request, GDPR Art. 17): the whole folder of the user --
-    /// the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no user, the
-    /// shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
+    /// The apps that use the signed-in person's data on this device, this app first: what a removal of all of it affects, and
+    /// why a removal of this app's data leaves the shared data. An app on an older SDK shows as its agent (<see cref="MyDataApp.Recorded"/> false).
+    /// </summary>
+    public async Task<IReadOnlyList<MyDataApp>> MyDataAppsAsync(CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return Profile.Principal is { } principal
+            ? MyDataApps.List(FadenstackPaths.UserFolder(principal.UserId), AppName, Slug)
+            : new[] { new MyDataApp(AppName, new[] { Slug }, null, IsThisApp: true, Recorded: false) };
+    }
+
+    /// <summary>The app's name for the person's data: what the host described (<see cref="AgentBuilder.DescribeApp"/>), else the slug.</summary>
+    internal string AppName => MyDataApps.NameOf(App, Slug);
+
+    /// <summary>
+    /// Deletes this app's part of the signed-in user's data on this device (an erasure request, GDPR Art. 17; since
+    /// standalone.9 this app's scope, <see cref="DataScope.ThisApp"/>, owner 16 Nov; see
+    /// <see cref="DeleteMyDataAsync(DataScope, CancellationToken)"/>). With <see cref="DataScope.AllApps"/>: the whole folder of
+    /// the user -- the sessions and approvals of all agents, and anything else kept there -- or, from a gateway that names no
+    /// user, the shared <c>sessions</c> and <c>approvals</c> folders of an older SDK. Afterwards the stores start empty. It does not
     /// sign out (the sign-in tokens stay; that is the host's call: <see cref="Auth.AgentTokenProvider.SignOutAsync"/>), and it
     /// leaves stores the host passed to their owner -- they may hold other people's data -- but says so: in its result and
     /// as a warning in the log, so a host never believes a person's data gone that its own store still keeps
     /// (fadenstack-dev sdk/46 D-1). What the server keeps is for its operator to erase.
     /// </summary>
-    public async Task<DataDeletion> DeleteMyDataAsync(CancellationToken cancellationToken = default)
+    public Task<DataDeletion> DeleteMyDataAsync(CancellationToken cancellationToken = default) =>
+        DeleteMyDataAsync(DataScope.ThisApp, cancellationToken);
+
+    /// <summary>
+    /// Deletes the person's data in <paramref name="scope"/> (an erasure request, GDPR Art. 17; owner, 16 Nov).
+    /// <see cref="DataScope.ThisApp"/>: this app's agents' sessions, "Allow always" and thinking levels, and its record; an agent
+    /// another app also uses stays (<see cref="DataDeletion.AgentsKept"/>); the shared data (skills, the MCP list, keys, provenance
+    /// records, the person's other preferences) and the folder go only when no other app uses the person's data
+    /// (<see cref="DataDeletion.OtherApps"/> names those that do). <see cref="DataScope.AllApps"/>: the person's whole folder, as
+    /// <see cref="MyDataAppsAsync"/> lists the apps it affects. Neither signs out, and stores the host passed stay the host's.
+    /// </summary>
+    public async Task<DataDeletion> DeleteMyDataAsync(DataScope scope, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var principal = Profile.Principal;
+        if (scope == DataScope.ThisApp)
+        {
+            return DeleteThisAppsData(principal);
+        }
         var folders = principal is null
             ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences") }
             : new[] { FadenstackPaths.UserFolder(principal.UserId) };
@@ -784,7 +833,64 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         {
             var removed = folders.Count(FadenstackPaths.DeleteUnderData);
             Log.DataDeleted(Logger, removed);
-            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null);
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null) { Scope = DataScope.AllApps };
+            _reasoningPick = null;
+            _retentionPick = null;
+            if (deletion.HostStoresLeft)
+            {
+                Log.DataLeftInHostStores(Logger, deletion.HostSessionStoreLeft, deletion.HostApprovalStoreLeft);
+            }
+            return deletion;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Log.DataDeletionFailed(Logger, e.GetType().Name);
+            throw;
+        }
+    }
+
+    // This app's part (DataScope.ThisApp). From a gateway that names no user, the shared folders of an older SDK: this agent's
+    // sessions and "Allow always" only; the shared preferences stay.
+    private DataDeletion DeleteThisAppsData(AgentPrincipal? principal)
+    {
+        try
+        {
+            int removed;
+            MyDataPlan plan;
+            if (principal is null)
+            {
+                var safe = FadenstackPaths.SafeName(Slug);
+                var sessions = Path.Combine(FadenstackPaths.DataRoot, "sessions", safe);
+                var approvals = Path.Combine(FadenstackPaths.DataRoot, "approvals", safe + ".json");
+                removed = (Directory.Exists(sessions) && FadenstackPaths.DeleteUnderData(sessions) ? 1 : 0)
+                    + (File.Exists(approvals) ? 1 : 0);
+                if (File.Exists(approvals))
+                {
+                    File.Delete(approvals);
+                }
+                plan = new MyDataPlan(new[] { Slug }, Array.Empty<string>(), Array.Empty<MyDataApp>());
+            }
+            else
+            {
+                var folder = FadenstackPaths.UserFolder(principal.UserId);
+                plan = MyDataApps.Plan(folder, AppName, Slug);
+                removed = MyDataApps.Remove(folder, AppName, plan);
+            }
+            Log.DataDeleted(Logger, removed);
+            if (plan.OwnAgents.Contains(Slug, StringComparer.Ordinal))
+            {
+                _reasoningPick = null;
+            }
+            if (plan.SharedGoes)
+            {
+                _retentionPick = null;
+            }
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null)
+            {
+                Scope = DataScope.ThisApp,
+                OtherApps = plan.OtherApps.Select(a => a.Name).ToList(),
+                AgentsKept = plan.KeptAgents,
+            };
             if (deletion.HostStoresLeft)
             {
                 Log.DataLeftInHostStores(Logger, deletion.HostSessionStoreLeft, deletion.HostApprovalStoreLeft);

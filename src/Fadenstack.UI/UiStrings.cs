@@ -2100,6 +2100,92 @@ public sealed class UiStrings
     /// <summary>"Set by your organisation's policy on this computer."</summary>
     public string ChatRetentionPolicyFixed => Text();
 
+    // -- "Your data on this device" ---------------------------------------------------------------
+
+    /// <summary>"Your data on this device"</summary>
+    public string MyDataTitle => Text();
+
+    /// <summary>"Fadenstack apps keep your chats, approvals and settings on this device. You can save a copy or remove them here."</summary>
+    public string MyDataIntro => Text();
+
+    /// <summary>"Export my data…"</summary>
+    public string MyDataExport => Text();
+
+    /// <summary>"Export my data… (this app only)"</summary>
+    public string MyDataExportName => Text();
+
+    /// <summary>"Export all…"</summary>
+    public string MyDataExportAll => Text();
+
+    /// <summary>"Export all… (every Fadenstack app on this device)"</summary>
+    public string MyDataExportAllName => Text();
+
+    /// <summary>"Remove my data…"</summary>
+    public string MyDataRemove => Text();
+
+    /// <summary>"Remove my data… (this app only)"</summary>
+    public string MyDataRemoveName => Text();
+
+    /// <summary>"Remove all my Fadenstack data on this device…"</summary>
+    public string MyDataRemoveAll => Text();
+
+    /// <summary>"This removes this app's chats, approvals and preferences on this device. Your shared data (skills, the MCP list, keys and provenance records) stays, because other Fadenstack apps use it: {0}."</summary>
+    public string MyDataConfirmThisAppShared(string value) => Fill(value);
+
+    /// <summary>"No other Fadenstack app uses your data on this device, so everything of yours here is removed: chats, approvals, preferences, skills, the MCP list, keys and provenance records."</summary>
+    public string MyDataConfirmThisAppEverything => Text();
+
+    /// <summary>"This removes all your Fadenstack data on this device, shared data included. These apps are affected:"</summary>
+    public string MyDataConfirmAll => Text();
+
+    /// <summary>"This cannot be undone."</summary>
+    public string MyDataConfirmUndo => Text();
+
+    /// <summary>"{0} (this app)"</summary>
+    public string MyDataThisApp(string value) => Fill(value);
+
+    /// <summary>"Remove my data"</summary>
+    public string MyDataConfirmRemove => Text();
+
+    /// <summary>"Remove everything"</summary>
+    public string MyDataConfirmRemoveAll => Text();
+
+    /// <summary>"Cancel"</summary>
+    public string MyDataCancel => Text();
+
+    /// <summary>"OK"</summary>
+    public string MyDataDismiss => Text();
+
+    /// <summary>"Please wait…"</summary>
+    public string MyDataBusy => Text();
+
+    /// <summary>"Removed everything."</summary>
+    public string MyDataRemovedEverything => Text();
+
+    /// <summary>"Removed. Shared data kept for: {0}."</summary>
+    public string MyDataRemovedKept(string value) => Fill(value);
+
+    /// <summary>"Data of these agents stays, because another app uses them too: {0}."</summary>
+    public string MyDataAgentsKept(string value) => Fill(value);
+
+    /// <summary>"Chats or approvals that this app keeps in a store of its own were not removed here."</summary>
+    public string MyDataHostStores => Text();
+
+    /// <summary>"Your data was saved to the file you chose."</summary>
+    public string MyDataExported => Text();
+
+    /// <summary>"The apps that use your data could not be listed. Nothing was removed. Try again."</summary>
+    public string MyDataErrorRead => Text();
+
+    /// <summary>"Your data could not be removed completely. Try again."</summary>
+    public string MyDataErrorRemove => Text();
+
+    /// <summary>"The export did not work. Try again."</summary>
+    public string MyDataErrorExport => Text();
+
+    /// <summary>", "</summary>
+    public string MyDataListSeparator => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));
