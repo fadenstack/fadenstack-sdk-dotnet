@@ -1549,7 +1549,9 @@ public sealed class ChatSession
             else if (planned.Denied)
             {
                 // The gateway refused the call: the hooks are told, and cannot change it.
-                audit.Decision = planned.Hidden ? AuditDecisions.Hidden : AuditDecisions.RuleDenied;
+                // The mode hides it (the gateway says so, or the mode does): hidden; any other refusal of the gateway is a rule's.
+                audit.Decision = planned.Hidden || ToolModes.Decide(_mode, toolClass, tool.OpenWorld == true) == ToolModeDecision.Hidden
+                    ? AuditDecisions.Hidden : AuditDecisions.RuleDenied;
                 await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                 if (planned.Hidden)
                 {
@@ -1580,7 +1582,7 @@ public sealed class ChatSession
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    await AuditAsync(tool.Name, toolClass, source, tool.Server, AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call)), "error", audit, cancelled: true)
+                    await AuditAsync(tool.Name, toolClass, source, tool.Server, ArgumentsHash(call), "error", audit, cancelled: true)
                         .ConfigureAwait(false);
                     await AfterToolHooksAsync(hookState, tool, call, HookOutcome.Cancelled, watch.Elapsed, null, cancellationToken).ConfigureAwait(false);
                     throw;
@@ -1615,7 +1617,7 @@ public sealed class ChatSession
             }).ConfigureAwait(false);
             Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
             RecordToolCall(activity, loggedName, toolClass.ToWire(), source, outcome, approval ?? "none", ran, waited);
-            var argumentsSha256 = AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call));
+            var argumentsSha256 = ArgumentsHash(call);
             await AuditAsync(loggedName, toolClass, source, tool?.Server, argumentsSha256, outcome, audit).ConfigureAwait(false);
             if (tool is not null)
             {
@@ -1776,7 +1778,7 @@ public sealed class ChatSession
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = openWorld,
-                    ArgumentsSha256 = AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call)),
+                    ArgumentsSha256 = ArgumentsHash(call),
                 };
                 var settled = await ApproveAsync(asked, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
@@ -1924,6 +1926,13 @@ public sealed class ChatSession
                 Log.AuditNotWritten(Agent.Logger, e.GetType().Name);
             }
         }
+
+        /// <summary>
+        /// The hash of a call's arguments text for the audit log and the events: for a call of the model, its <c>function.arguments</c>
+        /// string as the stream carried it (or, from a provider that hands over parsed arguments only, the JSON this SDK writes back); for
+        /// a person's own command, the canonical command JSON the server's check also sees.
+        /// </summary>
+        private string ArgumentsHash(FunctionCallContent call) => AuditChain.ArgumentsSha256(_commandJson ?? ChatWire.ArgumentsText(call));
 
         /// <summary>The audit scope of an approval's scope: <c>grant</c> is a grant for a time; a work or Bypass grant has none.</summary>
         private string? AuditScopeOf(string? scope, string? grantId) => scope switch

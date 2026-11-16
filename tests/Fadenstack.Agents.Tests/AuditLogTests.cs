@@ -63,7 +63,7 @@ public class AuditLogTests : IDisposable
     {
         Seq = 2, Time = new DateTimeOffset(2026, 11, 16, 9, 30, 5, 7, TimeSpan.Zero), Kind = "tool", App = "Excel", Agent = "writer",
         Chat = "chat-1", Turn = "turn-2", Tool = "delete_page", Class = "destructive", Source = "mcp", Server = "files",
-        Decision = "asked_approved", Scope = "once", Outcome = "ran", ArgumentsSha256 = AuditChain.ArgumentsSha256("{\"name\":\"café\"}"),
+        Decision = "asked_approved", Scope = "once", Outcome = "ran", ArgumentsSha256 = AuditChain.ArgumentsSha256("{\"name\":\"caf\u00e9\"}"),
         Prev = "bd9a85855ec1225e80f87aca01e2df62576b870b10dde8646a8f753e38fafea9",
     };
 

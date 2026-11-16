@@ -71,9 +71,9 @@ public sealed class AuditWiringTests : IDisposable
     [Fact]
     public async Task Where_only_parsed_arguments_exist_the_hash_is_of_the_json_the_sdk_writes_back()
     {
-        var call = new Microsoft.Extensions.AI.FunctionCallContent("c", "read_page", new Dictionary<string, object?> { ["page"] = 1, ["note"] = "café" });
+        var call = new Microsoft.Extensions.AI.FunctionCallContent("c", "read_page", new Dictionary<string, object?> { ["page"] = 1, ["note"] = "caf\u00e9" });
 
-        Assert.Equal("""{"page":1,"note":"café"}""", Fadenstack.Chat.ChatWire.ArgumentsText(call));
+        Assert.Equal("{\"page\":1,\"note\":\"caf\u00e9\"}", Fadenstack.Chat.ChatWire.ArgumentsText(call));
     }
 
     [Fact]
