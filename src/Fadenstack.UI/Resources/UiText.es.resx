@@ -2443,4 +2443,7 @@
   <data name="WebSearchSaved" xml:space="preserve">
     <value>Guardado.</value>
   </data>
+  <data name="WebSearchSaveFailed" xml:space="preserve">
+    <value>No se pudo guardar la configuración en este dispositivo. Inténtelo de nuevo.</value>
+  </data>
 </root>

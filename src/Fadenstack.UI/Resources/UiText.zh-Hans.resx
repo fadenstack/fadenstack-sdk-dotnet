@@ -2443,4 +2443,7 @@
   <data name="WebSearchSaved" xml:space="preserve">
     <value>已保存。</value>
   </data>
+  <data name="WebSearchSaveFailed" xml:space="preserve">
+    <value>无法在此设备上保存设置。请重试。</value>
+  </data>
 </root>

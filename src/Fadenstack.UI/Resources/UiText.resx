@@ -2707,4 +2707,7 @@
   <data name="WebSearchSaved" xml:space="preserve">
     <value>Saved.</value>
   </data>
+  <data name="WebSearchSaveFailed" xml:space="preserve">
+    <value>The settings could not be saved on this device. Try again.</value>
+  </data>
 </root>

@@ -290,6 +290,85 @@ public class WebSearchSettingsTests
     }
 
     [Fact]
+    public void A_key_store_that_fails_leaves_the_sheet_open_with_what_was_typed_and_nothing_half_written()
+    {
+        using var fixture = new WebSearchFixture();
+        using var sheet = Sheet(fixture);
+        var closed = 0;
+        sheet.Closed += (_, _) => closed++;
+        sheet.IsBrave = true;
+        sheet.Key = "BSA-typed-key";
+        fixture.Protector.Fails = true;
+
+        sheet.SaveCommand.Execute(null);
+
+        Assert.True(sheet.HasError);
+        Assert.Equal("The settings could not be saved on this device. Try again.", sheet.ErrorText);
+        Assert.DoesNotContain("secret", sheet.ErrorText);
+        Assert.DoesNotContain("BSA-typed-key", sheet.ErrorText);
+        Assert.Equal(0, closed);
+        Assert.False(sheet.HasSaved);
+        Assert.Equal("", sheet.SavedText);
+        Assert.Equal("BSA-typed-key", sheet.Key); // what the person typed stays
+        Assert.True(sheet.IsBrave);
+        Assert.Equal(WebSearchProvider.None, fixture.Store.Settings.Provider); // the choice went back
+        Assert.False(fixture.Store.HasBraveKey);
+
+        fixture.Protector.Fails = false; // a second Save that works clears the error
+        sheet.SaveCommand.Execute(null);
+        Assert.False(sheet.HasError);
+        Assert.Equal(1, closed);
+        Assert.True(sheet.HasSaved);
+        Assert.Equal(WebSearchProvider.Brave, fixture.Store.Settings.Provider);
+        Assert.True(fixture.Store.HasBraveKey);
+        Assert.Equal("", sheet.Key);
+    }
+
+    [Fact]
+    public void A_settings_file_that_cannot_be_written_leaves_the_sheet_open_and_a_later_Save_clears_the_error()
+    {
+        using var fixture = new WebSearchFixture();
+        var file = Path.Combine(fixture.Folder, "preferences", "web-search.json");
+        Directory.CreateDirectory(file); // a folder where the file goes: the write fails
+        using var sheet = Sheet(fixture);
+        var closed = 0;
+        sheet.Closed += (_, _) => closed++;
+        sheet.IsSearXng = true;
+        sheet.Address = "https://search.example.org";
+
+        sheet.SaveCommand.Execute(null);
+
+        Assert.Equal("The settings could not be saved on this device. Try again.", sheet.ErrorText);
+        Assert.Equal(0, closed);
+        Assert.False(sheet.HasSaved);
+        Assert.Equal("https://search.example.org", sheet.Address);
+        Assert.True(sheet.IsSearXng);
+
+        Directory.Delete(file);
+        sheet.SaveCommand.Execute(null);
+        Assert.False(sheet.HasError);
+        Assert.Equal(1, closed);
+        Assert.Equal(WebSearchProvider.SearXng, fixture.Store.Settings.Provider);
+    }
+
+    [Fact]
+    public void The_save_failed_line_is_said_again_in_the_new_language()
+    {
+        var language = "en";
+        using var fixture = new WebSearchFixture();
+        using var sheet = Sheet(fixture, () => UiStrings.For(CultureInfo.GetCultureInfo(language)));
+        sheet.IsBrave = true;
+        sheet.Key = "k";
+        fixture.Protector.Fails = true;
+        sheet.SaveCommand.Execute(null);
+        Assert.StartsWith("The settings could not", sheet.ErrorText);
+
+        language = "fr";
+        sheet.Retext();
+        Assert.StartsWith("Les param", sheet.ErrorText);
+    }
+
+    [Fact]
     public void A_line_says_where_the_key_is_kept_and_that_the_query_leaves_the_organisation()
     {
         using var disk = new WebSearchFixture(encrypts: true);

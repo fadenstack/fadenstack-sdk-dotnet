@@ -2443,4 +2443,7 @@
   <data name="WebSearchSaved" xml:space="preserve">
     <value>Enregistré.</value>
   </data>
+  <data name="WebSearchSaveFailed" xml:space="preserve">
+    <value>Les paramètres n’ont pas pu être enregistrés sur cet appareil. Réessayez.</value>
+  </data>
 </root>

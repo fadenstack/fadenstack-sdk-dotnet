@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.UI.Services;
@@ -37,6 +38,7 @@ public sealed partial class WebSearchSettingsViewModel : ObservableObject, ITool
         KeyMissing,
         AddressMissing,
         AddressRefused,
+        SaveFailed,
     }
 
     private readonly WebSearchStore _store;
@@ -218,6 +220,7 @@ public sealed partial class WebSearchSettingsViewModel : ObservableObject, ITool
         Problem.KeyMissing => Strings.WebSearchKeyMissing,
         Problem.AddressMissing => Strings.WebSearchUrlMissing,
         Problem.AddressRefused => Strings.WebSearchUrlRefused,
+        Problem.SaveFailed => Strings.WebSearchSaveFailed,
         _ => "",
     };
 
@@ -271,14 +274,33 @@ public sealed partial class WebSearchSettingsViewModel : ObservableObject, ITool
                 break;
         }
 
-        _store.Save(settings);
-        if (Choice == WebSearchChoice.Brave && typed.Length > 0)
+        // A failed write (the disk, the key store) keeps the sheet open with what the person typed and says so, never why: the exception's
+        // text could carry a path, and nothing here may carry the key.
+        var before = _store.Settings;
+        try
         {
-            _store.SetBraveKey(typed);
+            _store.Save(settings);
+            if (Choice == WebSearchChoice.Brave && typed.Length > 0)
+            {
+                _store.SetBraveKey(typed);
+            }
+            else if (_removeRequested)
+            {
+                _store.SetBraveKey(null);
+            }
         }
-        else if (_removeRequested)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or CryptographicException)
         {
-            _store.SetBraveKey(null);
+            try
+            {
+                _store.Save(before); // nothing half-written: the choice goes back to what it was
+            }
+            catch (Exception back) when (back is IOException or UnauthorizedAccessException or CryptographicException or ArgumentException)
+            {
+                // the disk is what failed: there is nothing more to do here
+            }
+            Fail(Problem.SaveFailed);
+            return;
         }
         Key = ""; // the typed key goes
         _hasKept = _store.HasBraveKey;

@@ -2041,6 +2041,9 @@ public sealed class UiStrings
     /// <summary>"Saved."</summary>
     public string WebSearchSaved => Text();
 
+    /// <summary>"The settings could not be saved on this device. Try again."</summary>
+    public string WebSearchSaveFailed => Text();
+
     private static string MinutesAndSeconds(TimeSpan left)
     {
         var seconds = Math.Max(0, (int)Math.Ceiling(left.TotalSeconds));

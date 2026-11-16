@@ -18,8 +18,15 @@ internal sealed class RecordingProtector : ISecretProtector
 
     public bool Encrypts => _encrypts;
 
+    /// <summary>The key store fails (a full disk, a locked store) when it is asked to keep a key.</summary>
+    public bool Fails { get; set; }
+
     public byte[] Protect(byte[] data)
     {
+        if (Fails)
+        {
+            throw new IOException("the key store is full: C:/secret/path");
+        }
         Protected.Add(System.Text.Encoding.UTF8.GetString(data));
         var copy = (byte[])data.Clone();
         Array.Reverse(copy);
