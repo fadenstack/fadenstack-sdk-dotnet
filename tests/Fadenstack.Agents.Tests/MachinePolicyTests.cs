@@ -130,12 +130,51 @@ public class MachinePolicyTests
             Assert.Equal(PolicyAccess.Forbidden, policy.Standalone);
             Assert.Equal(PolicyRule.Forbidden, policy.Mcp);
             Assert.Equal(PolicyAccess.Forbidden, policy.PlainHttp);
+            Assert.Equal(TimestampingPolicy.Off, policy.Timestamping);
             Assert.NotEmpty(policy.Warnings);
         }
         finally
         {
             File.Delete(file);
         }
+    }
+
+    [Fact]
+    public void A_policy_file_that_is_there_but_cannot_be_opened_forbids_rather_than_throws()
+    {
+        var file = Path.Combine(Path.GetTempPath(), "faden-policy-" + Guid.NewGuid() + ".json");
+        File.WriteAllText(file, """{"standalone":"allowed"}""");
+        try
+        {
+            MachinePolicy policy;
+            using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None)) // another process holds it
+            {
+                policy = MachinePolicy.Load(file);
+            }
+
+            Assert.Equal(PolicyAccess.Forbidden, policy.Standalone);
+            Assert.Contains(policy.Warnings, w => w.StartsWith("The policy file could not be read", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public void Unreadable_for_a_host_whose_policy_source_failed_forbids_what_none_allows_and_leaves_the_server_open()
+    {
+        var policy = MachinePolicy.Unreadable;
+
+        Assert.NotSame(MachinePolicy.None, policy);
+        Assert.Equal((PolicyAccess.Forbidden, PolicyAccess.Forbidden, PolicyAccess.Forbidden), (policy.Standalone, policy.PlainHttp, policy.WebSearch));
+        Assert.Equal((PolicyRule.Forbidden, PolicyRule.Forbidden), (policy.Mcp, policy.Skills));
+        Assert.Equal(TimestampingPolicy.Off, policy.Timestamping);
+        Assert.False(policy.AllowsEndpoint(new Uri("http://localhost:11434/v1")));
+        Assert.Null(policy.Server);
+        Assert.Equal(MachinePolicy.Keys.Where(k => k != "server").OrderBy(k => k, StringComparer.Ordinal), policy.Locked.OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(new[] { "The machine policy could not be read: standalone, local MCP, local skills, web search and plain http are forbidden; time-stamps are off." },
+            policy.Warnings);
     }
 
     [Fact]
@@ -158,6 +197,14 @@ public class MachinePolicyTests
     }
 
     // ---- enforced in the SDK ----
+
+    [Fact]
+    public void An_unreadable_policy_refuses_a_standalone_agent_at_build()
+    {
+        var e = Assert.Throws<MachinePolicyException>(() => Standalone(MachinePolicy.Unreadable).Build());
+
+        Assert.Equal("standalone", e.Key);
+    }
 
     [Fact]
     public void A_forbidden_standalone_is_refused_at_build()

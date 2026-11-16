@@ -411,7 +411,11 @@ public sealed class DelegationHost : IDisposable
             // write; the tool mode is ask.") is not for people, as on the local card; the caller then names the tool.
             var summary = request.Target ?? (request.RequiredByRule || request.Source == "gateway" ? request.Reason : null);
             var ask = new ApprovalAsk(Guid.NewGuid().ToString("N"), request.ToolName, request.ToolClass.ToString().ToLowerInvariant(),
-                Cut(summary, SummaryLimit), Cut(Preview(request.Arguments), PreviewLimit));
+                Cut(summary, SummaryLimit), Cut(Preview(request.Arguments), PreviewLimit))
+            {
+                // the loop's floor asks for this call every time: the caller must not answer it from "for this task"
+                AsksEveryTime = request.RequiredByRule || !request.CanAllowForSession,
+            };
             _task.State = TaskState.InputRequired.ToWire();
             _task.StatusText = "Waiting for approval: " + request.ToolName;
             _host.Raise(DelegatedTaskChange.ApprovalAsked, _task);

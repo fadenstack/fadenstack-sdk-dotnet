@@ -29,7 +29,8 @@ public class OpenTelemetryTests
         var spans = new List<Seen>();
         using var listener = new ActivityListener
         {
-            ShouldListenTo = source => source.Name.StartsWith("Fadenstack.Agents", StringComparison.Ordinal),
+            // Every source of the SDK: the run, model and tool spans, and the client's HTTP spans.
+            ShouldListenTo = source => source.Name.StartsWith("Fadenstack.", StringComparison.Ordinal),
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = a =>
             {
@@ -49,14 +50,15 @@ public class OpenTelemetryTests
         using var agent = builder.Build();
         var session = await agent.StartSessionAsync(ToolMode.Auto);
         var result = await session.SendAsync($"Please read {Prompt}");
-        // Only this turn's spans: other tests may run an agent at the same time.
+        // Only this turn's spans: other tests may run an agent at the same time. The HTTP spans carry no conversation, so all
+        // of them count: none may carry content, whoever made it.
         Seen[] all;
         lock (spans)
         {
             all = spans.ToArray();
         }
         var mine = all.Where(s => s.Tags.TryGetValue("gen_ai.conversation.id", out var c) && c == session.Id
-            || s.Source.StartsWith("Fadenstack.Agents.", StringComparison.Ordinal)).ToList();
+            || s.Source.StartsWith("Fadenstack.Agents.", StringComparison.Ordinal) || s.Source == FadenstackTelemetry.ClientSource).ToList();
         return (mine, result);
     }
 
@@ -70,6 +72,7 @@ public class OpenTelemetryTests
         Assert.DoesNotContain(spans, s => s.Tags.ContainsKey("fadenstack.tool.policy_decision") || s.Tags.ContainsKey("gen_ai.tool.type"));
         Assert.DoesNotContain(spans, s => s.All.Contains("MARBLE"));
         Assert.Contains(spans, s => s.Name.StartsWith("invoke_agent")); // the SDK's own spans, as before
+        Assert.Contains(spans, s => s.Source == FadenstackTelemetry.ClientSource && s.Tags["http.route"] == Gateway.Chat); // the route, never a query or an id
     }
 
     [Fact]
@@ -85,8 +88,9 @@ public class OpenTelemetryTests
             (tool.Tags["gen_ai.operation.name"], tool.Tags["gen_ai.tool.name"], tool.Tags["gen_ai.tool.call.id"], tool.Tags["gen_ai.tool.type"],
             tool.Tags["fadenstack.tool.policy_decision"]));
         Assert.Equal(2, spans.Count(s => s.Source == AgentOpenTelemetryOptions.DefaultModelSourceName && s.Tags.TryGetValue("gen_ai.operation.name", out var op) && op == "chat"));
-        Assert.DoesNotContain(spans, s => s.All.Contains("MARBLE"));
+        Assert.DoesNotContain(spans, s => s.All.Contains("MARBLE")); // run, model, tool and HTTP spans (F07, owner 16 Nov)
         Assert.DoesNotContain(spans, s => s.Tags.ContainsKey("gen_ai.tool.call.arguments") || s.Tags.ContainsKey("gen_ai.tool.call.result"));
+        Assert.Contains(spans, s => s.Source == FadenstackTelemetry.ClientSource);
     }
 
     [Fact]

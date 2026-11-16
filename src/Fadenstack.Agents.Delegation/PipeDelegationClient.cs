@@ -376,8 +376,7 @@ internal sealed class PipeDelegationClient : IDelegationClient
             {
                 case A2A.TaskState.InputRequired:
                     var data = status.Message?.Parts.Select(p => p.Data).FirstOrDefault(d => d is not null) ?? default;
-                    var ask = new ApprovalAsk(A2AParts.String(data, "approvalId"), A2AParts.String(data, "tool"), A2AParts.String(data, "toolClass"),
-                        A2AParts.String(data, "summary"), A2AParts.String(data, "argumentsPreview"));
+                    var ask = A2AParts.Ask(data);
                     _observer.Status(TaskState.InputRequired, text);
                     return new Step(null, ask);
                 case A2A.TaskState.Completed:

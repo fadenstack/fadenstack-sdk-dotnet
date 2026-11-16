@@ -690,7 +690,9 @@ public sealed class ChatSession
     /// How a call that needed approval was settled; the user's reason when they declined, and what let an approved
     /// call through (<see cref="ApprovalScopes"/>).
     /// </summary>
-    private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null, string? GrantId = null);
+    // CoveredBy: the server's grant that settled the call without asking; it is read again as the call goes out.
+    private sealed record Settled(bool Approved, bool TimedOut, string? Reason, string? Scope = null, string? GrantId = null,
+        string? CoveredBy = null);
 
     /// <summary>The server's answer to a host call's first check, what the person reviewed, and the limits they were reviewed under.</summary>
     private sealed record PreparedHostPolicy(HostToolDecision Decision, string InputJson, string Controls);
@@ -1693,6 +1695,7 @@ public sealed class ChatSession
             // mode ran, and what the turn's own Bypass grant settled. A call the person answered is recorded as an answer
             // (L-60); one a time or work grant settled belongs to that grant.
             var unanswered = true;
+            (string GrantId, ApprovalRequest Request)? coveredBy = null;
             var centralAsks = policy?.Decision.Decision == HostToolVerdict.Ask;
             // The hooks speak last, after the policy: a hook can make the call stricter (ask, deny) and nothing else. Its answer is never
             // read as an approval: `rule` only ever goes from false to true here, and a deny returns before the call can run (ASVS 5.0 V8).
@@ -1716,7 +1719,7 @@ public sealed class ChatSession
             // A command asks inside its own check (InvokeCommandAsync), once the server has said whether it must.
             if (_command is null && (rule || decided == ToolModeDecision.Ask || centralAsks))
             {
-                var settled = await ApproveAsync(new ApprovalRequest
+                var asked = new ApprovalRequest
                 {
                     SessionId = _session.Id,
                     TurnId = _id,
@@ -1738,7 +1741,8 @@ public sealed class ChatSession
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = openWorld,
-                }, rule, gatewayWait: false, null, cancellationToken,
+                };
+                var settled = await ApproveAsync(asked, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
                 if (!settled.Approved)
                 {
@@ -1749,6 +1753,7 @@ public sealed class ChatSession
                 }
                 approval = KindOf(settled.Scope, rule);
                 unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
+                coveredBy = settled.CoveredBy is { } grant ? (grant, asked) : null;
             }
             var askedFor = asking.Elapsed;
             using var services = new ToolServices(Agent.Settings.ToolServices);
@@ -1761,7 +1766,7 @@ public sealed class ChatSession
                 {
                     _bypassRan.Add(call.CallId); // it runs: the device reports it, whatever it returns
                 }
-                var value = await Invoker(policy)(invocation, cancellationToken).ConfigureAwait(false);
+                var value = await Invoker(policy, coveredBy)(invocation, cancellationToken).ConfigureAwait(false);
                 var (text, pictures) = ToolResults.Split(call.CallId, value);
                 return (text, "ok", askedFor + _commandWaited, pictures, approval);
             }
@@ -1902,13 +1907,23 @@ public sealed class ChatSession
             return line.Length > MaxTargetChars ? line.Substring(0, MaxTargetChars - 1) + "…" : line;
         }
 
-        private ToolInvoker Invoker(PreparedHostPolicy? policy = null)
+        private ToolInvoker Invoker(PreparedHostPolicy? policy = null, (string GrantId, ApprovalRequest Request)? coveredBy = null)
         {
             ToolInvoker invoker = async (i, ct) =>
             {
                 if (_command is not null)
                 {
                     return await InvokeCommandAsync(i, ct).ConfigureAwait(false);
+                }
+                // The grant that settled the call is read from the server again as the call goes out, with the arguments the
+                // tool gets (F04 R4): one ended, paused or run out meanwhile -- the marker's Stop, an admin, the kill switch --
+                // runs nothing (ASVS 5.0 8.3.2: a change to what authorisation rests on applies at once).
+                if (coveredBy is { } covered && (await HeldAsync(covered.GrantId, covered.Request with
+                    {
+                        Arguments = i.Arguments.ToDictionary(a => a.Key, a => a.Value, StringComparer.Ordinal),
+                    }, ct).ConfigureAwait(false)).GrantId is null)
+                {
+                    throw new InvalidOperationException("The server-held grant changed or no longer covers this call. Review a new call.");
                 }
                 if (policy is not null)
                 {
@@ -1928,8 +1943,9 @@ public sealed class ChatSession
 
         /// <summary>
         /// Settles a call that needs approval, first that applies: an admin's rule or a tool that asks every time asks (once
-        /// only, even in Bypass); a grant the gateway said covers the call (<c>faden.grant_used</c>) and the device's copy
-        /// holds approves (38 §6, the second line) -- in Bypass a destructive or unclassified call too, under the
+        /// only, even in Bypass); a grant the gateway said covers the call (<c>faden.grant_used</c>) and the server, asked
+        /// again, still holds approves (38 §6, the second line; read once more as the call goes out) -- in Bypass a
+        /// destructive or unclassified call too, under the
         /// conversation's Bypass grant while the turn runs in Bypass; a destructive or unclassified tool asks (once only);
         /// what the user allowed always, then what they allowed for this chat, approves; else the user is asked, and
         /// may allow once, for this chat, always, or for a time (a grant the server holds) -- as far as the agent allows those
@@ -1955,7 +1971,7 @@ public sealed class ChatSession
             if (standing is not null)
             {
                 await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null, granted).ConfigureAwait(false);
-                return new Settled(true, false, null, standing, granted);
+                return new Settled(true, false, null, standing, granted, CoveredBy: granted);
             }
             var described = target is null ? null : await target().ConfigureAwait(false);
             var grants = Agent.Grants;
@@ -2023,10 +2039,9 @@ public sealed class ChatSession
 
         /// <summary>
         /// The grant that covers a call of the agent's own tool, or null (38 §6): the gateway said so (the first line), and
-        /// the device's copy holds that grant, active and unexpired, for this tool or class, and for a stretch of work the
-        /// place the call names, where it really leads (the second). A grant the copy does not know is read from the server
-        /// once; a copy that still lacks it covers nothing, and the user is asked. <c>LeadsOutside</c>: the real place, when a
-        /// link took the call out of the grant.
+        /// the server's grant, read again now, is this device's and running, for this tool or class, and for a stretch of
+        /// work the place the call names, where it really leads (the second). A server that cannot say covers nothing, and
+        /// the user is asked. <c>LeadsOutside</c>: the real place, when a link took the call out of the grant.
         /// </summary>
         private async Task<(string? GrantId, string? LeadsOutside)> CoveredByGrantAsync(ApprovalRequest request, CancellationToken cancellationToken)
         {
@@ -2036,19 +2051,18 @@ public sealed class ChatSession
             {
                 return (null, null);
             }
-            var grantId = mark.GrantId;
-            if (!Agent.Grants.Knows(grantId))
-            {
-                try
-                {
-                    await Agent.Grants.RefreshAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception e) when (e is not OperationCanceledException)
-                {
-                    return (null, null); // no copy to check against: ask
-                }
-            }
-            var covered = Agent.Grants.Covers(grantId, request.ToolName, request.ToolClass, PlaceOf(request), out var leadsOutside);
+            return await HeldAsync(mark.GrantId, request, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Whether the server's grant <paramref name="grantId"/>, read now, covers <paramref name="request"/> in this
+        /// conversation (<see cref="AgentGrants.CheckAsync"/>); a Bypass grant only the conversation's own, while the turn
+        /// runs in Bypass.
+        /// </summary>
+        private async Task<(string? GrantId, string? LeadsOutside)> HeldAsync(string grantId, ApprovalRequest request, CancellationToken cancellationToken)
+        {
+            var (covered, leadsOutside) = await Agent.Grants.CheckAsync(grantId, _session.Id, request.ToolName, request.ToolClass,
+                PlaceOf(request), cancellationToken).ConfigureAwait(false);
             if (covered && Agent.Grants.Find(grantId) is { Kind: GrantKinds.Bypass } bypass
                 && (bypass.ConversationId != _session.Id || _mode != ToolMode.Bypass))
             {

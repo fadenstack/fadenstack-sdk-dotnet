@@ -28,8 +28,11 @@ var agent = FadenstackAgent.CreateBuilder()
 ## Rules
 
 - **Fail closed.** An unknown key is ignored and reported in `policy.Warnings`; an unknown value narrows to `forbidden`; a
-  file the SDK cannot read forbids standalone, local MCP, local skills, web search and plain http. A warning names the key,
-  never the value.
+  file the SDK cannot parse or open (not JSON, not an object, no access, held by another process) forbids standalone, local
+  MCP, local skills, web search and plain http, and turns time-stamps off. A warning names the key, never the value.
+- **A source that fails:** a host that reads its policy from somewhere else (the registry, a managed store) and cannot
+  read it uses `MachinePolicy.Unreadable`, not `MachinePolicy.None`. It forbids the same, locks those keys, and leaves
+  `server` open, so the person can still sign in to their organisation's server.
 - **The policy wins over the person's settings**, and with a server it narrows what the server allows (a server's
   `local_mcp` allow is off when the policy forbids local MCP); it never turns on what they left off.
 - **Enforced in the SDK:** `Build()` throws `MachinePolicyException` (with its `Key`) for an agent on an endpoint the

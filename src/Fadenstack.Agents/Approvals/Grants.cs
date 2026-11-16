@@ -8,8 +8,9 @@ namespace Fadenstack.Agents;
 
 /// <summary>
 /// The device's copy of its grants for the agent (sdk/38 §6): what the person let it run for a while without asking.
-/// The server holds them, decides each call and counts it; this copy is the second line -- a call runs under a grant
-/// only when the gateway said it is covered (<c>faden.grant_used</c>) and the copy holds that grant, live. The copy is
+/// The server holds them, decides each call and counts it; the second line -- a call runs under a grant only when the
+/// gateway said it is covered (<c>faden.grant_used</c>) and the server's grant, read again for the call and once more as
+/// it goes out, is this device's and running -- keeps each answer in this copy. The copy is
 /// replaced by what the server answers: each grant made, extended or ended here, and the list a stream starts with
 /// (<c>faden.grants</c>). Times are the server's (<see cref="ServerNow"/>).
 /// </summary>
@@ -373,17 +374,46 @@ public sealed class AgentGrants
     }
 
     /// <summary>
-    /// The second line (38 §6): whether the copy holds <paramref name="grantId"/>, active and unexpired, for this call --
-    /// a grant for a time for this very tool, a stretch of work for its class and the <paramref name="place"/> its tool
-    /// names, which must lie in one of the grant's places where it really leads on this device (<see cref="GrantPaths"/>).
-    /// Never a destructive or unclassified call -- but for a Bypass grant, which covers every class (the caller checks
-    /// that it is the conversation's and the turn runs in Bypass). <paramref name="leadsOutside"/> is the real place when
-    /// a link, a junction or a mount point took it out of the grant.
+    /// The second line (38 §6), read from the server each time, never from the copy alone (09-handoffs 2.3, F04 R4; the
+    /// TypeScript SDK does the same): whether the server's grant <paramref name="grantId"/>, as it holds it now, is this
+    /// device's, running and unexpired, for the conversation <paramref name="conversationId"/> where it is bound to one, and
+    /// for this call -- a grant for a time for this very tool, a stretch of work for its class and the
+    /// <paramref name="place"/> its tool names, which must lie in one of the grant's places where it really leads on this
+    /// device (<see cref="GrantPaths"/>). Never a destructive or unclassified call -- but for a Bypass grant, which covers
+    /// every class (the caller checks that it is the conversation's and the turn runs in Bypass). The answer replaces the
+    /// copy's entry, so a grant ended elsewhere shows as ended here at once. A server that cannot say (offline, an older
+    /// server, a grant of another device) covers nothing: the person is asked. <c>LeadsOutside</c> is the real place when
+    /// a link, a junction or a mount point took the call out of the grant.
     /// </summary>
-    internal bool Covers(string grantId, string tool, ToolClass toolClass, GrantPlace? place, out string? leadsOutside)
+    internal async Task<(bool Covered, string? LeadsOutside)> CheckAsync(string grantId, string conversationId, string tool,
+        ToolClass toolClass, GrantPlace? place, CancellationToken cancellationToken)
+    {
+        AgentGrant grant;
+        try
+        {
+            grant = Keep(await _agent.Backend.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
+        }
+        catch (Exception e) when (e is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            return (false, null);
+        }
+        var bypass = grant.Kind == GrantKinds.Bypass;
+        // Spent may be this very call: the server counts it when it says the grant covers it (faden.grant_used).
+        var running = bypass ? grant.Status == "active" : grant.Status is "active" or "spent";
+        if (!running || grant.ExpiresAt <= (grant.ServerNow ?? ServerNow) || grant.RemainingS <= 0
+            || grant.MaxCalls is { } max && grant.CallsUsed > max
+            || !bypass && grant.ConversationId is { } bound && bound != conversationId)
+        {
+            return (false, null);
+        }
+        var covered = InScope(grant, tool, toolClass, place, out var leadsOutside);
+        return (covered, leadsOutside);
+    }
+
+    // What the grant's scope covers; the caller has checked that it runs.
+    private static bool InScope(AgentGrant? grant, string tool, ToolClass toolClass, GrantPlace? place, out string? leadsOutside)
     {
         leadsOutside = null;
-        var grant = Live.FirstOrDefault(g => g.Id == grantId && g.Status == "active");
         if (grant?.Kind == GrantKinds.Bypass)
         {
             return true;

@@ -156,6 +156,62 @@ public sealed class DelegationTests : IDisposable
         Assert.Contains(events, e => e.Change == DelegatedTaskChange.ApprovalAsked);
     }
 
+    [Theory]
+    // The author's approval "always" on a write tool: the embedded agent's floor asks every time, so the caller's
+    // "for this task" must not answer the second call (09-handoffs 2.1, F05).
+    [InlineData("""[{"name":"add_comment","risk":"write","approval":"always"},{"name":"delegate","risk":"write"}]""", true, 2)]
+    // A plain write tool: "for this task" covers the second call, which nobody is asked about again.
+    [InlineData("""[{"name":"add_comment","risk":"write"},{"name":"delegate","risk":"write"}]""", false, 1)]
+    public async Task For_this_task_answers_a_later_call_only_when_the_embedded_agent_does_not_ask_every_time(
+        string contract, bool asksEveryTime, int asked)
+    {
+        var gateway = new Gateway(contract)
+            .Calls(("call-1", "add_comment", """{"page":1,"text":"One"}"""))
+            .Calls(("call-2", "add_comment", """{"page":2,"text":"Two"}"""))
+            .Says("Commented twice.");
+        var (_, tools, _) = await Embedded(gateway);
+        var requests = new List<DelegationApprovalRequest>();
+
+        var result = await Caller().RunAsync(Ask("Comment on pages 1 and 2."), new DelegationCallbacks
+        {
+            Approve = (r, _) =>
+            {
+                requests.Add(r);
+                return Task.FromResult(ApprovalDecision.ApproveForSession());
+            },
+        });
+
+        Assert.True(DelegationOutcome.Completed == result.Outcome, result.Outcome + ": " + result.Text);
+        Assert.Equal(asked, requests.Count);
+        Assert.All(requests, r => Assert.Equal(("add_comment", asksEveryTime), (r.Tool, r.AsksEveryTime)));
+        Assert.Equal(new[] { "add_comment 1 One", "add_comment 2 Two" }, tools.Ran);
+    }
+
+    [Fact]
+    public async Task A_destructive_call_is_asked_every_time_a_delegated_task_makes_it()
+    {
+        const string contract = """[{"name":"delete_page","risk":"destructive"},{"name":"delegate","risk":"write"}]""";
+        var gateway = new Gateway(contract)
+            .Calls(("call-1", "delete_page", """{"page":1}"""))
+            .Calls(("call-2", "delete_page", """{"page":2}"""))
+            .Says("Deleted.");
+        var (_, tools, _) = await Embedded(gateway);
+        var requests = new List<DelegationApprovalRequest>();
+
+        var result = await Caller().RunAsync(Ask("Delete pages 1 and 2."), new DelegationCallbacks
+        {
+            Approve = (r, _) =>
+            {
+                requests.Add(r);
+                return Task.FromResult(ApprovalDecision.ApproveForSession());
+            },
+        });
+
+        Assert.True(DelegationOutcome.Completed == result.Outcome, result.Outcome + ": " + result.Text);
+        Assert.Equal(2, requests.Count);
+        Assert.All(requests, r => Assert.Equal((ToolClass.Destructive, true), (r.ToolClass, r.AsksEveryTime)));
+    }
+
     [Fact]
     public async Task A_forwarded_approval_shows_the_arguments_as_the_local_card_does_without_the_loops_reason()
     {

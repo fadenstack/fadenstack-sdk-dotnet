@@ -237,20 +237,25 @@ public sealed class LocalAgentDelegate : IAgentDelegate
             {
                 return ApprovalChoice.Deny;
             }
-            lock (_approvedTools)
+            // A call the other agent asks for every time (a rule, a destructive or unclassified tool, an older peer that does
+            // not say) never comes from the cache and never goes into it: the person sees each one.
+            if (!ask.AsksEveryTime)
             {
-                if (_approvedTools.Contains(ask.Tool))
+                lock (_approvedTools)
                 {
-                    return ApprovalChoice.Once; // the person allowed this tool for the rest of the task
+                    if (_approvedTools.Contains(ask.Tool))
+                    {
+                        return ApprovalChoice.Once; // the person allowed this tool for the rest of the task
+                    }
                 }
             }
             var decision = await approve(new DelegationApprovalRequest(_taskId, ask.ApprovalId, _agent, _agentName, ask.Tool,
-                ParseClass(ask.ToolClass), ask.Summary, ask.ArgumentsPreview), cancellationToken).ConfigureAwait(false);
+                ParseClass(ask.ToolClass), ask.Summary, ask.ArgumentsPreview) { AsksEveryTime = ask.AsksEveryTime }, cancellationToken).ConfigureAwait(false);
             if (decision is not { Approved: true })
             {
                 return ApprovalChoice.Deny;
             }
-            if (decision.ForSession)
+            if (decision.ForSession && !ask.AsksEveryTime)
             {
                 lock (_approvedTools)
                 {

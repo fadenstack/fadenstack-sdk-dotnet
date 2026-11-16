@@ -61,7 +61,15 @@ internal sealed record TaskRequest(string TaskId, string Text, IReadOnlyList<str
 }
 
 /// <summary>An approval the embedded agent's loop needs, for the caller's person to decide.</summary>
-internal sealed record ApprovalAsk(string ApprovalId, string Tool, string ToolClass, string Summary, string ArgumentsPreview);
+internal sealed record ApprovalAsk(string ApprovalId, string Tool, string ToolClass, string Summary, string ArgumentsPreview)
+{
+    /// <summary>
+    /// The call may not be answered for the rest of the task: the embedded agent asks for it every time (an admin rule, or a
+    /// call no standing approval covers). True unless the embedded agent says otherwise, so the ask of an older peer that sends
+    /// no flag is never answered from the caller's cache.
+    /// </summary>
+    public bool AsksEveryTime { get; init; } = true;
+}
 
 /// <summary>The caller's answer to an <see cref="ApprovalAsk"/>.</summary>
 internal enum ApprovalChoice

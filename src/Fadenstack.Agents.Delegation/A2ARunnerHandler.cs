@@ -9,7 +9,8 @@ namespace Fadenstack.Agents.Delegation;
 //   new task      SendStreamingMessage: message {role user, parts [text], metadata {"fadenstack": {"from": {slug, name}, "references": [...], "document": "..."}}}
 //   progress      TaskStatusUpdateEvent state TASK_STATE_WORKING, status.message with a text part
 //   approval      TaskStatusUpdateEvent state TASK_STATE_INPUT_REQUIRED, status.message {role agent, parts [text, data
-//                 {approvalId, tool, toolClass, summary, argumentsPreview}]}; the stream ends there
+//                 {approvalId, tool, toolClass, summary, argumentsPreview, asksEveryTime}]}; the stream ends there. Only
+//                 asksEveryTime false lets the caller answer later calls of the tool for the task; missing counts as true
 //   the answer    SendStreamingMessage on the same task: message {taskId, contextId, parts [data {approvalId, decision: once|chat|deny}]};
 //                 a new stream follows the task on
 //   the result    TaskArtifactUpdateEvent with one text part (the final answer), then TASK_STATE_COMPLETED; failed, rejected and
@@ -40,6 +41,20 @@ internal static class A2AParts
     public static string String(JsonElement data, string name) =>
         data.ValueKind == JsonValueKind.Object && data.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString() ?? "" : "";
+
+    /// <summary>
+    /// The approval in an input-required message's data part. An older peer sends no <c>asksEveryTime</c>: its ask counts as
+    /// one the caller must not answer for the rest of the task.
+    /// </summary>
+    public static ApprovalAsk Ask(JsonElement data) =>
+        new(String(data, "approvalId"), String(data, "tool"), String(data, "toolClass"), String(data, "summary"), String(data, "argumentsPreview"))
+        {
+            AsksEveryTime = TrueUnlessFalse(data, "asksEveryTime"),
+        };
+
+    /// <summary>A flag that only an explicit <c>false</c> turns off: missing, null or any other value counts as true.</summary>
+    public static bool TrueUnlessFalse(JsonElement data, string name) =>
+        !(data.ValueKind == JsonValueKind.Object && data.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.False);
 }
 
 /// <summary>
@@ -128,8 +143,8 @@ internal sealed class A2ARunnerHandler : A2A.IAgentHandler, A2A.IAgentCancellati
                         A2AParts.Data(new
                         {
                             approvalId = ask.ApprovalId, tool = ask.Tool, toolClass = ask.ToolClass, summary = ask.Summary,
-                            argumentsPreview = ask.ArgumentsPreview,
-                        })), cancellationToken: cancellationToken).ConfigureAwait(false);
+                            argumentsPreview = ask.ArgumentsPreview, asksEveryTime = ask.AsksEveryTime,
+                        })),cancellationToken: cancellationToken).ConfigureAwait(false);
                     return;
                 case Run.Finished finished:
                     await FinishAsync(updater, finished.Outcome, cancellationToken).ConfigureAwait(false);
