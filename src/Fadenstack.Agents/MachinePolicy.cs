@@ -61,8 +61,20 @@ public sealed record PolicyRule(PolicyAccess Access, IReadOnlyList<string> Items
 /// </remarks>
 public sealed record MachinePolicy
 {
+    /// <summary>The known keys, as a policy file names them (declared first: the policies below read it).</summary>
+    public static IReadOnlyList<string> Keys { get; } =
+        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping"];
+
     /// <summary>No policy at all: everything the person may choose stays theirs.</summary>
     public static MachinePolicy None { get; } = new();
+
+    /// <summary>
+    /// For a host whose policy source failed (a policy file or registry key it could not open, a managed store that threw):
+    /// use it instead of <see cref="None"/>, which allows everything. It forbids what the person could add or turn on
+    /// (standalone, local MCP, local skills, web search, plain http), turns time-stamps off (less leaves the device) and locks
+    /// those keys; <c>server</c> stays open, so the person can still sign in to their organisation's server by hand.
+    /// </summary>
+    public static MachinePolicy Unreadable { get; } = Closed("The machine policy could not be read");
 
     /// <summary>The organisation's server: the app enrols, and the person signs in at the next start.</summary>
     public Uri? Server { get; init; }
@@ -115,10 +127,6 @@ public sealed record MachinePolicy
             || (allowed.AbsolutePath == "/" && string.Equals(allowed.GetLeftPart(UriPartial.Authority), origin, StringComparison.OrdinalIgnoreCase))));
     }
 
-    /// <summary>The known keys, as a policy file names them.</summary>
-    public static IReadOnlyList<string> Keys { get; } =
-        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping"];
-
     /// <summary>Reads a policy file's JSON. Never throws on a value: what it does not understand narrows and is reported.</summary>
     public static MachinePolicy FromJson(string json)
     {
@@ -126,7 +134,10 @@ public sealed record MachinePolicy
         return From(doc.RootElement);
     }
 
-    /// <summary>Reads a policy file; none there gives <see cref="None"/>. A file that is not JSON forbids what it could have allowed.</summary>
+    /// <summary>
+    /// Reads a policy file; none there gives <see cref="None"/>. A file that is not JSON, or that exists but cannot be read
+    /// (no access, locked), forbids what it could have allowed.
+    /// </summary>
     public static MachinePolicy Load(string path)
     {
         if (!File.Exists(path))
@@ -139,23 +150,28 @@ public sealed record MachinePolicy
         }
         catch (JsonException)
         {
-            return Unreadable("The policy file is not valid JSON");
+            return Closed("The policy file is not valid JSON");
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return Closed("The policy file could not be read");
         }
     }
 
     /// <summary>An administrator's policy the SDK cannot read: fail closed, as for an unknown value.</summary>
-    private static MachinePolicy Unreadable(string why) => new()
+    private static MachinePolicy Closed(string why) => new()
     {
         Standalone = PolicyAccess.Forbidden, PlainHttp = PolicyAccess.Forbidden, Mcp = PolicyRule.Forbidden,
-        Skills = PolicyRule.Forbidden, WebSearch = PolicyAccess.Forbidden,
-        Warnings = [why + ": standalone, local MCP, local skills, web search and plain http are forbidden."],
+        Skills = PolicyRule.Forbidden, WebSearch = PolicyAccess.Forbidden, Timestamping = TimestampingPolicy.Off,
+        Locked = Keys.Where(k => k != "server").ToList(),
+        Warnings = [why + ": standalone, local MCP, local skills, web search and plain http are forbidden; time-stamps are off."],
     };
 
     public static MachinePolicy From(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
-            return Unreadable("The policy is not a JSON object");
+            return Closed("The policy is not a JSON object");
         }
         var warnings = new List<string>();
         var locked = new List<string>();
