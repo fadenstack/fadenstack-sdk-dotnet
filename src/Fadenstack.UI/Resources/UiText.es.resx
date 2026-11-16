@@ -2507,7 +2507,7 @@
     <value>Sus datos en este dispositivo</value>
   </data>
   <data name="MyDataIntro" xml:space="preserve">
-    <value>Las aplicaciones de Fadenstack guardan sus chats, autorizaciones y ajustes en este dispositivo. Aquí puede guardar una copia o eliminarlos.</value>
+    <value>Las aplicaciones de Fadenstack guardan sus chats, aprobaciones y ajustes en este dispositivo. Aquí puede guardar una copia o eliminarlos.</value>
   </data>
   <data name="MyDataExport" xml:space="preserve">
     <value>Exportar mis datos…</value>
@@ -2531,10 +2531,10 @@
     <value>Eliminar todos mis datos de Fadenstack en este dispositivo…</value>
   </data>
   <data name="MyDataConfirmThisAppShared" xml:space="preserve">
-    <value>Esto elimina los chats, las autorizaciones y las preferencias de esta aplicación en este dispositivo. Sus datos compartidos (habilidades, lista de MCP, claves y registros de procedencia) se conservan, porque otras aplicaciones de Fadenstack los usan: {0}.</value>
+    <value>Esto elimina los chats, las aprobaciones y las preferencias de esta aplicación en este dispositivo. Sus datos compartidos (habilidades, lista de MCP, claves y registros de procedencia) se conservan, porque otras aplicaciones de Fadenstack los usan: {0}.</value>
   </data>
   <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
-    <value>Ninguna otra aplicación de Fadenstack usa sus datos en este dispositivo, así que se elimina todo lo suyo que hay aquí: chats, autorizaciones, preferencias, habilidades, lista de MCP, claves y registros de procedencia.</value>
+    <value>Ninguna otra aplicación de Fadenstack usa sus datos en este dispositivo, así que se elimina todo lo suyo que hay aquí: chats, aprobaciones, preferencias, habilidades, lista de MCP, claves y registros de procedencia.</value>
   </data>
   <data name="MyDataConfirmAll" xml:space="preserve">
     <value>Esto elimina todos sus datos de Fadenstack en este dispositivo, incluidos los datos compartidos. Aplicaciones afectadas:</value>
@@ -2570,7 +2570,7 @@
     <value>Los datos de estos agentes se conservan, porque otra aplicación también los usa: {0}.</value>
   </data>
   <data name="MyDataHostStores" xml:space="preserve">
-    <value>Los chats o autorizaciones que esta aplicación guarda en un almacén propio no se eliminaron aquí.</value>
+    <value>Los chats o aprobaciones que esta aplicación guarda en un almacén propio no se eliminaron aquí.</value>
   </data>
   <data name="MyDataExported" xml:space="preserve">
     <value>Sus datos se guardaron en el archivo elegido.</value>

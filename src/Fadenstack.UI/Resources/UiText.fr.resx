@@ -2507,7 +2507,7 @@
     <value>Vos données sur cet appareil</value>
   </data>
   <data name="MyDataIntro" xml:space="preserve">
-    <value>Les applications Fadenstack conservent vos conversations, vos autorisations et vos réglages sur cet appareil. Vous pouvez en enregistrer une copie ou les supprimer ici.</value>
+    <value>Les applications Fadenstack conservent vos conversations, vos approbations et vos réglages sur cet appareil. Vous pouvez en enregistrer une copie ou les supprimer ici.</value>
   </data>
   <data name="MyDataExport" xml:space="preserve">
     <value>Exporter mes données…</value>
@@ -2531,10 +2531,10 @@
     <value>Supprimer toutes mes données Fadenstack sur cet appareil…</value>
   </data>
   <data name="MyDataConfirmThisAppShared" xml:space="preserve">
-    <value>Cela supprime les conversations, les autorisations et les préférences de cette application sur cet appareil. Vos données partagées (compétences, liste MCP, clés et enregistrements de provenance) sont conservées, car d'autres applications Fadenstack les utilisent : {0}.</value>
+    <value>Cela supprime les conversations, les approbations et les préférences de cette application sur cet appareil. Vos données partagées (compétences, liste MCP, clés et enregistrements de provenance) sont conservées, car d'autres applications Fadenstack les utilisent : {0}.</value>
   </data>
   <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
-    <value>Aucune autre application Fadenstack n'utilise vos données sur cet appareil. Tout ce qui vous concerne ici est donc supprimé : conversations, autorisations, préférences, compétences, liste MCP, clés et enregistrements de provenance.</value>
+    <value>Aucune autre application Fadenstack n'utilise vos données sur cet appareil. Tout ce qui vous concerne ici est donc supprimé : conversations, approbations, préférences, compétences, liste MCP, clés et enregistrements de provenance.</value>
   </data>
   <data name="MyDataConfirmAll" xml:space="preserve">
     <value>Cela supprime toutes vos données Fadenstack sur cet appareil, y compris les données partagées. Applications concernées :</value>
@@ -2570,7 +2570,7 @@
     <value>Les données de ces agents sont conservées, car une autre application les utilise aussi : {0}.</value>
   </data>
   <data name="MyDataHostStores" xml:space="preserve">
-    <value>Les conversations ou autorisations que cette application conserve dans son propre stockage n'ont pas été supprimées ici.</value>
+    <value>Les conversations ou approbations que cette application conserve dans son propre stockage n'ont pas été supprimées ici.</value>
   </data>
   <data name="MyDataExported" xml:space="preserve">
     <value>Vos données ont été enregistrées dans le fichier choisi.</value>
