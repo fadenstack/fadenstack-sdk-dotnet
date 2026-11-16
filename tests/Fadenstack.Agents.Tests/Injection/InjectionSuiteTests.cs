@@ -50,7 +50,7 @@ public sealed class InjectionSuiteTests
     [Fact]
     public void The_corpus_is_the_file_both_SDKs_agreed_on()
     {
-        // The same constant sits in packages/agents/test/injection/injection.test.ts. A change to the corpus changes both.
+        // The same constant sits in packages/agents/test/injection/rig.ts. A change to the corpus changes both.
         Assert.Equal(InjectionCorpus.Sha256, InjectionCorpus.FileSha256());
     }
 
