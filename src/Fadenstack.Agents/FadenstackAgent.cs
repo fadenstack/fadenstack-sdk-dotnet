@@ -46,8 +46,27 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         Reporter = new EventReporter(settings.Backend, settings.Report);
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
-        Hooks = new HookRunner(settings.Hooks, settings.HookContent, () => Logger);
+        Hooks = new HookRunner(settings.Hooks, () => settings.ContentLogging.IsOn, () => Logger);
     }
+
+    /// <summary>
+    /// Whether the agent writes content (prompts, answers, tool arguments and results) into hooks and spans now, and until when
+    /// (<see cref="ContentLoggingState.IsOn"/>, <see cref="ContentLoggingState.Until"/>). Off by default, even where the app offered it
+    /// at build time. TS: <c>agent.contentLogging</c>.
+    /// </summary>
+    public ContentLoggingState ContentLogging => _settings.ContentLogging;
+
+    /// <summary>
+    /// Switches content logging on for <paramref name="duration"/> (15 minutes to 24 hours); it ends by itself, and a new start after a
+    /// restart is needed. The start and its end time are logged without any content. An app's settings call this when the person
+    /// chooses it (<c>ContentLoggingSettingsViewModel</c>); a development setup calls it itself. TS: <c>startContentLogging(ms)</c>.
+    /// </summary>
+    /// <exception cref="ContentLoggingException">The app did not offer content logging, or the machine policy forbids it.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The time is outside 15 minutes to 24 hours.</exception>
+    public void StartContentLogging(TimeSpan duration) => _settings.ContentLogging.Start(duration);
+
+    /// <summary>Switches content logging off now. Nothing happens when it is off. TS: <c>stopContentLogging()</c>.</summary>
+    public void StopContentLogging() => _settings.ContentLogging.Stop();
 
     /// <summary>The app's hooks (<see cref="AgentBuilder.AddHooks"/>), in order.</summary>
     internal HookRunner Hooks { get; }
@@ -923,6 +942,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         {
             source.Dispose();
         }
+        _settings.ContentLogging.Dispose();
         _settings.Backend.Dispose(); // the client, when the builder made it
         _starting.Dispose();
         _refreshing.Dispose();

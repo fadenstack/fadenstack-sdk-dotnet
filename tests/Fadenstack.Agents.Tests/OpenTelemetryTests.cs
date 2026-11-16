@@ -8,6 +8,7 @@ namespace Fadenstack.Agents.Tests;
 /// Opt-in OpenTelemetry (sdk/51 F07): the run, model and tool spans are seen by a listener; no content unless it is switched on; the
 /// opt-in adds nothing when it is off. No exporter is involved: an <see cref="ActivityListener"/> stands in for the app's wiring.
 /// </summary>
+[Collection("ActivityListeners")]
 public class OpenTelemetryTests
 {
     private const string Prompt = "MARBLE-PROMPT-71";
@@ -24,7 +25,7 @@ public class OpenTelemetryTests
     /// <summary>What a listener saw: the source and name of each finished span, and every tag value and event as text.</summary>
     private sealed record Seen(string Source, string Name, IReadOnlyDictionary<string, string> Tags, string All);
 
-    private static async Task<(List<Seen> Spans, AgentResult Result)> RunAsync(Action<AgentBuilder>? configure)
+    private static async Task<(List<Seen> Spans, AgentResult Result)> RunAsync(Action<AgentBuilder>? configure, bool contentLoggingOn = false)
     {
         var spans = new List<Seen>();
         using var listener = new ActivityListener
@@ -48,6 +49,10 @@ public class OpenTelemetryTests
         var builder = gateway.Builder().AddTools(new Tools());
         configure?.Invoke(builder);
         using var agent = builder.Build();
+        if (contentLoggingOn)
+        {
+            agent.StartContentLogging(TimeSpan.FromHours(1)); // the build-time flag only offers it (8.1)
+        }
         var session = await agent.StartSessionAsync(ToolMode.Auto);
         var result = await session.SendAsync($"Please read {Prompt}");
         // Only this turn's spans: other tests may run an agent at the same time. The HTTP spans carry no conversation, so all
@@ -94,9 +99,18 @@ public class OpenTelemetryTests
     }
 
     [Fact]
-    public async Task The_sensitive_data_option_puts_the_prompt_the_arguments_and_the_host_tools_result_on_the_spans()
+    public async Task The_sensitive_data_option_alone_only_offers_content_and_no_span_carries_it()
     {
         var (spans, _) = await RunAsync(b => b.UseOpenTelemetry(o => o.EnableSensitiveData = true));
+
+        Assert.DoesNotContain(spans, s => s.All.Contains("MARBLE"));
+        Assert.DoesNotContain(spans, s => s.Tags.ContainsKey("gen_ai.tool.call.arguments") || s.Tags.ContainsKey("gen_ai.tool.call.result"));
+    }
+
+    [Fact]
+    public async Task With_content_logging_on_the_prompt_the_arguments_and_the_host_tools_result_are_on_the_spans()
+    {
+        var (spans, _) = await RunAsync(b => b.UseOpenTelemetry(o => o.EnableSensitiveData = true), contentLoggingOn: true);
 
         var tool = Assert.Single(spans, s => s.Name.StartsWith("execute_tool"));
         Assert.Contains(Arguments, tool.Tags["gen_ai.tool.call.arguments"]);

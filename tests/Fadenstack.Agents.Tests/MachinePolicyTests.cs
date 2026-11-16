@@ -25,9 +25,10 @@ public class MachinePolicyTests
         var policy = MachinePolicy.FromJson("""
             {"server":"https://ai.example.test","standalone":"allowed","endpoints":["http://localhost:11434","https://llm.example.test/v1"],
              "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"off",
-             "chatRetention":{"autoDelete":false,"maxAgeDays":30,"maxSessions":100}}
+             "chatRetention":{"autoDelete":false,"maxAgeDays":30,"maxSessions":100},"contentLogging":"forbidden"}
             """);
 
+        Assert.Equal(PolicyAccess.Forbidden, policy.ContentLogging);
         Assert.Equal(new Uri("https://ai.example.test"), policy.Server);
         Assert.Equal(PolicyAccess.Allowed, policy.Standalone);
         Assert.Equal(new[] { "http://localhost:11434", "https://llm.example.test/v1" }, policy.Endpoints);
@@ -41,6 +42,18 @@ public class MachinePolicyTests
         Assert.Equal(new ChatRetentionChoice(false, 30, 100), policy.ChatRetention);
         Assert.Equal(MachinePolicy.Keys.OrderBy(k => k), policy.Locked.OrderBy(k => k));
         Assert.Empty(policy.Warnings);
+    }
+
+    [Fact]
+    public void Content_logging_is_allowed_when_the_policy_says_nothing_and_a_value_it_does_not_know_narrows()
+    {
+        Assert.Equal(PolicyAccess.Allowed, MachinePolicy.None.ContentLogging);
+        Assert.Equal(PolicyAccess.Allowed, MachinePolicy.FromJson("""{"timestamping":"off"}""").ContentLogging);
+        Assert.Equal(PolicyAccess.Allowed, MachinePolicy.FromJson("""{"contentLogging":"allowed"}""").ContentLogging);
+        var odd = MachinePolicy.FromJson("""{"contentLogging":"maybe"}""");
+        Assert.Equal(PolicyAccess.Forbidden, odd.ContentLogging);
+        Assert.Contains(odd.Warnings, w => w.Contains("contentLogging"));
+        Assert.Equal(PolicyAccess.Forbidden, MachinePolicy.Unreadable.ContentLogging);
     }
 
     [Fact]
