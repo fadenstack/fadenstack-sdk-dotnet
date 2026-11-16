@@ -137,6 +137,15 @@ internal static partial class Log
         Message = "Web search is not offered ({Reason})")]
     internal static partial void WebSearchOff(ILogger logger, string reason);
 
+    // The off-switch and "Stop everything" (core 0.7.1, release plan 8.3 and 8.11): the agent's slug and counts, never content (ASVS 5.0 V16).
+    [LoggerMessage(EventId = 2090, Level = LogLevel.Warning,
+        Message = "Agent {Agent} was turned off by the organisation: its turns stopped and its grants ended")]
+    internal static partial void AgentTurnedOff(ILogger logger, string agent);
+
+    [LoggerMessage(EventId = 2091, Level = LogLevel.Information,
+        Message = "Agent {Agent} stopped everything: {Turns} turns stopped, {Grants} grants ended, {NotTold} the server was not told about")]
+    internal static partial void StoppedEverything(ILogger logger, string agent, int turns, int grants, int notTold);
+
     [LoggerMessage(EventId = 2030,Level = LogLevel.Information,
         Message = "Governance notice {Outcome} at stage {Stage}, category {Category}, code {Code}, decision {DecisionId}")]
     internal static partial void Notice(ILogger logger, string outcome, string? stage, string? category, string? code, string? decisionId);

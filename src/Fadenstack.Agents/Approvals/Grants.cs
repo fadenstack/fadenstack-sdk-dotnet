@@ -33,6 +33,9 @@ public sealed class AgentGrants
     // Every grant the copy saw, as it last saw it, kept when a new list replaces the copy: why one ended (WhyEndedAsync).
     private readonly Dictionary<string, AgentGrant> _seen = new(StringComparer.Ordinal);
     private TimeSpan _offset;
+    // The grants "Stop everything" or the off-switch ended on this device. Whatever the server says later, none of them covers a call
+    // again (a stop the server could not be told about must still hold).
+    private readonly HashSet<string> _endedHere = new(StringComparer.Ordinal);
 
     internal AgentGrants(FadenstackAgent agent) => _agent = agent;
 
@@ -79,7 +82,7 @@ public sealed class AgentGrants
             var now = ServerNow;
             lock (_gate)
             {
-                return _grants.Where(g => g.IsLive && g.ExpiresAt > now && !Spent(g)).OrderBy(g => g.ExpiresAt).ToList();
+                return _grants.Where(g => g.IsLive && g.ExpiresAt > now && !Spent(g) && !_endedHere.Contains(g.Id)).OrderBy(g => g.ExpiresAt).ToList();
             }
         }
     }
@@ -282,6 +285,38 @@ public sealed class AgentGrants
     public async Task RevokeAsync(string grantId, CancellationToken cancellationToken = default) =>
         Keep(await _agent.Backend.RevokeGrantAsync(grantId, cancellationToken).ConfigureAwait(false));
 
+    /// <summary>Whether this device ended the grant itself ("Stop everything", the off-switch), whatever the server says.</summary>
+    internal bool EndedHere(string grantId)
+    {
+        lock (_gate)
+        {
+            return _endedHere.Contains(grantId);
+        }
+    }
+
+    /// <summary>
+    /// Ends every grant of the copy on this device, without the server: from now on none of them covers a call, and
+    /// <see cref="Live"/> is empty of them. Returns those that were live. The server is told apart
+    /// (<see cref="RevokeAsync"/>); offline, or with the agent turned off, this is all that can be done and it holds.
+    /// </summary>
+    internal IReadOnlyList<AgentGrant> EndAllHere()
+    {
+        var ended = Live;
+        if (ended.Count > 0)
+        {
+            lock (_gate)
+            {
+                foreach (var grant in ended)
+                {
+                    _endedHere.Add(grant.Id);
+                }
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+        return ended;
+    }
+
+
     /// <summary>Ends every grant this device holds for the agent: the marker's Stop.</summary>
     public async Task RevokeAllAsync(CancellationToken cancellationToken = default)
     {
@@ -388,6 +423,10 @@ public sealed class AgentGrants
     internal async Task<(bool Covered, string? LeadsOutside)> CheckAsync(string grantId, string conversationId, string tool,
         ToolClass toolClass, GrantPlace? place, CancellationToken cancellationToken)
     {
+        if (EndedHere(grantId))
+        {
+            return (false, null); // this device ended it itself: nothing the server says brings it back
+        }
         AgentGrant grant;
         try
         {

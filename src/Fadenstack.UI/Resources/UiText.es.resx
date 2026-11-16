@@ -2587,4 +2587,52 @@
   <data name="MyDataListSeparator" xml:space="preserve">
     <value>, </value>
   </data>
+  <data name="Notice_agent_disabled" xml:space="preserve">
+    <value>Agente apagado</value>
+  </data>
+  <data name="AgentTurnedOff" xml:space="preserve">
+    <value>Su organización apagó este agente.</value>
+  </data>
+  <data name="AgentTurnedOffCheckAgain" xml:space="preserve">
+    <value>Comprobar de nuevo</value>
+  </data>
+  <data name="StopEverything" xml:space="preserve">
+    <value>Detenerlo todo</value>
+  </data>
+  <data name="StopEverythingTip" xml:space="preserve">
+    <value>Detiene todos los chats en curso y termina todos los permisos. Lo que permitió siempre se mantiene.</value>
+  </data>
+  <data name="StopEverythingBusy" xml:space="preserve">
+    <value>Deteniendo...</value>
+  </data>
+  <data name="StopEverythingNothing" xml:space="preserve">
+    <value>No había nada en marcha.</value>
+  </data>
+  <data name="StopEverythingChatsOne" xml:space="preserve">
+    <value>1 chat</value>
+  </data>
+  <data name="StopEverythingChatsMany" xml:space="preserve">
+    <value>{0} chats</value>
+  </data>
+  <data name="StopEverythingGrantsOne" xml:space="preserve">
+    <value>1 permiso</value>
+  </data>
+  <data name="StopEverythingGrantsMany" xml:space="preserve">
+    <value>{0} permisos</value>
+  </data>
+  <data name="StopEverythingBoth" xml:space="preserve">
+    <value>Detenido: {0}. Terminado: {1}.</value>
+  </data>
+  <data name="StopEverythingChatsOnly" xml:space="preserve">
+    <value>Detenido: {0}.</value>
+  </data>
+  <data name="StopEverythingGrantsOnly" xml:space="preserve">
+    <value>Terminado: {0}.</value>
+  </data>
+  <data name="StopEverythingNotTold" xml:space="preserve">
+    <value>Detenido. No se pudo avisar al servidor de {0}; el fin llega a su hora.</value>
+  </data>
+  <data name="GrantsEndedByOff" xml:space="preserve">
+    <value>Su organización apagó este agente; sus permisos han terminado.</value>
+  </data>
 </root>

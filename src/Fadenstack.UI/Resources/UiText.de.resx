@@ -2587,4 +2587,52 @@
   <data name="MyDataListSeparator" xml:space="preserve">
     <value>, </value>
   </data>
+  <data name="Notice_agent_disabled" xml:space="preserve">
+    <value>Agent ausgeschaltet</value>
+  </data>
+  <data name="AgentTurnedOff" xml:space="preserve">
+    <value>Ihre Organisation hat diesen Agenten ausgeschaltet.</value>
+  </data>
+  <data name="AgentTurnedOffCheckAgain" xml:space="preserve">
+    <value>Erneut prüfen</value>
+  </data>
+  <data name="StopEverything" xml:space="preserve">
+    <value>Alles stoppen</value>
+  </data>
+  <data name="StopEverythingTip" xml:space="preserve">
+    <value>Stoppt alle laufenden Chats und beendet alle Freigaben. Was Sie immer erlaubt haben, bleibt bestehen.</value>
+  </data>
+  <data name="StopEverythingBusy" xml:space="preserve">
+    <value>Wird gestoppt ...</value>
+  </data>
+  <data name="StopEverythingNothing" xml:space="preserve">
+    <value>Es lief nichts.</value>
+  </data>
+  <data name="StopEverythingChatsOne" xml:space="preserve">
+    <value>1 Chat</value>
+  </data>
+  <data name="StopEverythingChatsMany" xml:space="preserve">
+    <value>{0} Chats</value>
+  </data>
+  <data name="StopEverythingGrantsOne" xml:space="preserve">
+    <value>1 Freigabe</value>
+  </data>
+  <data name="StopEverythingGrantsMany" xml:space="preserve">
+    <value>{0} Freigaben</value>
+  </data>
+  <data name="StopEverythingBoth" xml:space="preserve">
+    <value>{0} gestoppt und {1} beendet.</value>
+  </data>
+  <data name="StopEverythingChatsOnly" xml:space="preserve">
+    <value>{0} gestoppt.</value>
+  </data>
+  <data name="StopEverythingGrantsOnly" xml:space="preserve">
+    <value>{0} beendet.</value>
+  </data>
+  <data name="StopEverythingNotTold" xml:space="preserve">
+    <value>Gestoppt. Der Server konnte über {0} nicht benachrichtigt werden; das Ende kommt zur vorgesehenen Zeit.</value>
+  </data>
+  <data name="GrantsEndedByOff" xml:space="preserve">
+    <value>Ihre Organisation hat diesen Agenten ausgeschaltet; seine Freigaben sind beendet.</value>
+  </data>
 </root>

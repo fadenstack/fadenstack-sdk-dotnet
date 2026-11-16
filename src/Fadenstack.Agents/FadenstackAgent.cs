@@ -14,7 +14,7 @@ namespace Fadenstack.Agents;
 /// An agent served by a Fadenstack server and run on this device: its profile, its tools, and its sessions.
 /// The loop runs here; every model call goes through the gateway.
 /// </summary>
-public sealed partial class FadenstackAgent : AIAgent, IDisposable
+public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
 {
     private readonly AgentSettings _settings;
     private readonly SemaphoreSlim _starting = new(1, 1);
@@ -47,6 +47,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         Grants = new AgentGrants(this);
         StepUps = new StepUpProofs(this);
         Hooks = new HookRunner(settings.Hooks, settings.HookContent, () => Logger);
+        (settings.Backend as ServerAgentBackend)?.Attach(this);
     }
 
     /// <summary>The app's hooks (<see cref="AgentBuilder.AddHooks"/>), in order.</summary>
@@ -220,6 +221,10 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             }
             var profile = await ReadProfileAsync(cancellationToken).ConfigureAwait(false);
             AssertHostPolicySupport(profile);
+            if (!profile.Enabled)
+            {
+                MarkTurnedOff(); // the organisation has the agent off: it starts, and every turn says so
+            }
             var dropped = new List<string>();
             var tools = HostTools(profile, dropped);
             foreach (var name in dropped)
@@ -381,12 +386,17 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     /// restart. The tools of the agent's sources (local MCP) stay as they were. When the server cannot be reached the
     /// profile held stays: every model call goes through the server anyway, and a session on this device still opens.
     /// </summary>
-    private async Task RefreshProfileAsync(CancellationToken cancellationToken)
+    private async Task RefreshProfileAsync(CancellationToken cancellationToken, bool force = false)
     {
+        // An agent that is off reads its profile again only when the person tries again (CheckAgainAsync): no background refresh.
+        if (TurnedOff && !force)
+        {
+            return;
+        }
         await _starting.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_profile is null || Clock() - _profileRead < ProfileMaxAge)
+            if (_profile is null || (!force && Clock() - _profileRead < ProfileMaxAge))
             {
                 return;
             }
@@ -401,6 +411,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
                 return;
             }
             AssertHostPolicySupport(profile); // not swallowed above: a server that dropped the checks is not trusted with the old ones
+            SetOff(!profile.Enabled);
             var hosts = HostTools(profile);
             // Settled as a changed tool source is (RefreshToolsAsync): one at a time, and a host tool that went away is refused by name.
             await _refreshing.WaitAsync(cancellationToken).ConfigureAwait(false);

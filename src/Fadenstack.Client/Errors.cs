@@ -43,6 +43,13 @@ public class FadenstackApiException : FadenstackException
     /// <see cref="ErrorCodes.ImagesDisabled"/>. Other 403s are not.
     /// </summary>
     public bool IsImagesDisabled => (int)Status == 403 && string.Equals(Code, ErrorCodes.ImagesDisabled, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The organisation turned this agent off (core 0.7.1, the off-switch): a 403 whose code is <see cref="ErrorCodes.AgentDisabled"/>.
+    /// It is not temporary and not worth a retry: the agent stays off until an administrator turns it on. Other 403s are not.
+    /// TypeScript: <c>isAgentDisabled(error)</c>.
+    /// </summary>
+    public bool IsAgentDisabled => (int)Status == 403 && string.Equals(Code, ErrorCodes.AgentDisabled, StringComparison.Ordinal);
 }
 
 /// <summary>Error codes the server sends that an app may act on (<see cref="FadenstackApiException.Code"/>).</summary>
@@ -53,6 +60,13 @@ public static class ErrorCodes
     /// is turned off in this version, and <see cref="Models.AgentProfile.Images"/> is false. It is not temporary: do not retry.
     /// </summary>
     public const string ImagesDisabled = "images_disabled";
+
+    /// <summary>
+    /// 403, error type <c>permission_error</c>: the organisation turned this agent off (core 0.7.1). Every agent route but the profile, the
+    /// events and the manifest answers it until the agent is turned on again; do not retry (<see cref="FadenstackApiException.IsAgentDisabled"/>).
+    /// TypeScript: <c>errorCodes.agentDisabled</c>.
+    /// </summary>
+    public const string AgentDisabled = "agent_disabled";
 }
 
 /// <summary>401: no or a bad token. For an agent: sign in again.</summary>

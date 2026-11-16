@@ -2898,4 +2898,68 @@
     <value>, </value>
     <comment>Between names in a list of apps</comment>
   </data>
+  <data name="Notice_agent_disabled" xml:space="preserve">
+    <value>Agent turned off</value>
+    <comment>A notice's title: the organisation turned the agent off (agent_disabled, core 0.7.1)</comment>
+  </data>
+  <data name="AgentTurnedOff" xml:space="preserve">
+    <value>Your organisation turned this agent off.</value>
+    <comment>The notice, the turn that hit it and a refused new turn say this (the server console's own words)</comment>
+  </data>
+  <data name="AgentTurnedOffCheckAgain" xml:space="preserve">
+    <value>Check again</value>
+    <comment>The button under the turned-off notice: reads the agent's profile again</comment>
+  </data>
+  <data name="StopEverything" xml:space="preserve">
+    <value>Stop everything</value>
+    <comment>The emergency stop: its accessible name and tooltip title</comment>
+  </data>
+  <data name="StopEverythingTip" xml:space="preserve">
+    <value>Stops every running chat and ends every grant. What you allowed always stays.</value>
+    <comment>Tooltip of the emergency stop</comment>
+  </data>
+  <data name="StopEverythingBusy" xml:space="preserve">
+    <value>Stopping...</value>
+    <comment>While the emergency stop works</comment>
+  </data>
+  <data name="StopEverythingNothing" xml:space="preserve">
+    <value>Nothing was running.</value>
+    <comment>The emergency stop found nothing to stop</comment>
+  </data>
+  <data name="StopEverythingChatsOne" xml:space="preserve">
+    <value>1 chat</value>
+    <comment>Part of the result line</comment>
+  </data>
+  <data name="StopEverythingChatsMany" xml:space="preserve">
+    <value>{0} chats</value>
+    <comment>Part of the result line</comment>
+  </data>
+  <data name="StopEverythingGrantsOne" xml:space="preserve">
+    <value>1 grant</value>
+    <comment>Part of the result line</comment>
+  </data>
+  <data name="StopEverythingGrantsMany" xml:space="preserve">
+    <value>{0} grants</value>
+    <comment>Part of the result line</comment>
+  </data>
+  <data name="StopEverythingBoth" xml:space="preserve">
+    <value>Stopped {0} and ended {1}.</value>
+    <comment>Result line: {0} chats part, {1} grants part</comment>
+  </data>
+  <data name="StopEverythingChatsOnly" xml:space="preserve">
+    <value>Stopped {0}.</value>
+    <comment>Result line: only chats</comment>
+  </data>
+  <data name="StopEverythingGrantsOnly" xml:space="preserve">
+    <value>Ended {0}.</value>
+    <comment>Result line: only grants</comment>
+  </data>
+  <data name="StopEverythingNotTold" xml:space="preserve">
+    <value>Stopped. The server could not be told about {0}; it ends at its time.</value>
+    <comment>Result line when the server could not be told: {0} is the grants part</comment>
+  </data>
+  <data name="GrantsEndedByOff" xml:space="preserve">
+    <value>Your organisation turned this agent off; its grants have ended.</value>
+    <comment>The grants view while the agent is off</comment>
+  </data>
 </root>

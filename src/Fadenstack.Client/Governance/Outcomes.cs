@@ -22,6 +22,12 @@ public enum ChatOutcome
 
     /// <summary>A limit applied (429). The notice carries the server's message.</summary>
     RateLimited,
+
+    /// <summary>
+    /// The organisation turned the agent off (<c>agent_disabled</c>): the turn ended at once, or was refused without a request. The notice
+    /// says "Your organisation turned this agent off." TypeScript: <c>"agent_disabled"</c>.
+    /// </summary>
+    AgentDisabled,
 }
 
 /// <summary>What the user is told about a refusal, and what an auditor finds it by.</summary>

@@ -85,8 +85,21 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         _broker.GrantRequested += OnGrantRequested;
         _broker.StepUpChanged += OnStepUp;
         _agent.Grants.Changed += OnGrantsChanged;
+        _agent.TurnedOffChanged += OnTurnedOffChanged;
         _tick = new Timer(_ => _dispatcher.Post(OnTimer), null, TickEvery, TickEvery);
     }
+
+    /// <summary>The organisation turned the agent off: every grant ended with it (<see cref="AgentOffGrantsText"/> says so). TypeScript: <c>isAgentOff</c>.</summary>
+    public bool IsAgentOff => _agent.TurnedOff;
+
+    /// <summary>"Your organisation turned this agent off; its grants have ended." for the grants view while the agent is off; empty otherwise.</summary>
+    public string AgentOffGrantsText => IsAgentOff ? _strings.GrantsEndedByOff : "";
+
+    private void OnTurnedOffChanged(object? sender, EventArgs e) => _dispatcher.Post(() =>
+    {
+        OnPropertyChanged(nameof(IsAgentOff));
+        OnPropertyChanged(nameof(AgentOffGrantsText));
+    });
 
     /// <summary>The grant cards waiting for the user, and those answered (with their state).</summary>
     public ObservableCollection<GrantPart> Cards { get; } = new();
@@ -293,6 +306,7 @@ public sealed class GrantsViewModel : ObservableObject, IDisposable
         _broker.GrantRequested -= OnGrantRequested;
         _broker.StepUpChanged -= OnStepUp;
         _agent.Grants.Changed -= OnGrantsChanged;
+        _agent.TurnedOffChanged -= OnTurnedOffChanged;
     }
 
     private void TickBypass()

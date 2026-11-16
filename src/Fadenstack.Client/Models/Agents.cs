@@ -23,6 +23,13 @@ public sealed record AgentProfile
     public bool Images { get; init; }
 
     /// <summary>
+    /// Whether the organisation has the agent turned on (the profile's <c>enabled</c>, core 0.7.1). True when the key is missing, as from an
+    /// older server. False: every other agent route is refused (<see cref="ErrorCodes.AgentDisabled"/>);
+    /// <c>FadenstackAgent.TurnedOff</c> says it for the app. TypeScript: <c>AgentProfile.enabled</c>.
+    /// </summary>
+    public bool Enabled { get; init; } = true;
+
+    /// <summary>
     /// Whether the user can pick skills for a message (<see cref="Resources.AgentResource.ListSkillsAsync"/>): the server
     /// runs the skills module.
     /// </summary>

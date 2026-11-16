@@ -125,11 +125,23 @@ internal interface IAgentBackend : IProfileSource, IEventSink, IUserSettings, IS
     IChatClient ChatClient { get; }
 }
 
+/// <summary>
+/// What the governed backend asks of its agent for the off-switch (core 0.7.1): whether the organisation turned the agent off, and
+/// the place to say a route just answered <c>agent_disabled</c>.
+/// </summary>
+internal interface IAgentSwitch
+{
+    bool TurnedOff { get; }
+
+    void MarkTurnedOff();
+}
+
 /// <summary>The governed backend: every call goes to the agent's routes on the Fadenstack server, as it always did.</summary>
 internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
 {
     private readonly FadenstackClient _client;
     private readonly bool _ownsClient;
+    private volatile IAgentSwitch? _switch;
 
     /// <param name="client">The agent's client.</param>
     /// <param name="ownsClient">The builder made it, so the agent disposes it; a host's own client stays the host's.</param>
@@ -137,6 +149,47 @@ internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _ownsClient = ownsClient;
+    }
+
+    /// <summary>The agent this backend serves, for the off-switch: while it is off no agent route is asked (but the profile, events and manifest).</summary>
+    internal void Attach(IAgentSwitch agent) => _switch = agent;
+
+    /// <summary>
+    /// A route of the agent: refused here, without a request, while the organisation has the agent off; and an <c>agent_disabled</c>
+    /// answer turns the agent off for everything else (no retry anywhere). <paramref name="whileOff"/>: the profile, the events and the
+    /// manifest, which the server still answers.
+    /// </summary>
+    private async Task<T> Route<T>(Func<Task<T>> call, bool whileOff = false)
+    {
+        if (!whileOff)
+        {
+            RefuseWhileOff();
+        }
+        try
+        {
+            return await call().ConfigureAwait(false);
+        }
+        catch (FadenstackApiException e) when (e.IsAgentDisabled && !whileOff)
+        {
+            _switch?.MarkTurnedOff();
+            throw;
+        }
+    }
+
+    private async Task Route(Func<Task> call, bool whileOff = false) =>
+        await Route<bool>(async () =>
+        {
+            await call().ConfigureAwait(false);
+            return true;
+        }, whileOff).ConfigureAwait(false);
+
+    private void RefuseWhileOff()
+    {
+        if (_switch is { TurnedOff: true })
+        {
+            throw new FadenstackPermissionException(System.Net.HttpStatusCode.Forbidden, FadenstackAgent.TurnedOffText, ErrorCodes.AgentDisabled,
+                "permission_error");
+        }
     }
 
     private AgentResource Agent => _client.Agent!;
@@ -149,47 +202,52 @@ internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
 
     public bool AcceptsEvents => _client.Agent is not null;
 
-    public Task<AgentProfile> GetProfileAsync(CancellationToken cancellationToken) => Agent.GetProfileAsync(cancellationToken);
+    public Task<AgentProfile> GetProfileAsync(CancellationToken cancellationToken) => Route(() => Agent.GetProfileAsync(cancellationToken), whileOff: true);
 
     public Task ReportAsync(IReadOnlyList<AgentClientEvent> events, CancellationToken cancellationToken) =>
-        Agent.ReportAsync(events, cancellationToken);
+        Route(() => Agent.ReportAsync(events, cancellationToken), whileOff: true);
 
     public Task<ManifestReceipt> ReportManifestAsync(AppManifest manifest, CancellationToken cancellationToken) =>
-        Agent.ReportManifestAsync(manifest, cancellationToken);
+        Route(() => Agent.ReportManifestAsync(manifest, cancellationToken), whileOff: true);
 
     public Task<string?> SetUserLanguageAsync(string? language, CancellationToken cancellationToken) =>
-        Agent.SetUserLanguageAsync(language, cancellationToken);
+        Route(() => Agent.SetUserLanguageAsync(language, cancellationToken));
 
     public Task<SkillList> ListSkillsAsync(string? query, int? limit, CancellationToken cancellationToken) =>
-        Agent.ListSkillsAsync(query, limit, cancellationToken);
+        Route(() => Agent.ListSkillsAsync(query, limit, cancellationToken));
 
-    public Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken) => Agent.ListToolsAsync(cancellationToken);
+    public Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken) =>
+        Route(() => Agent.ListToolsAsync(cancellationToken));
 
     public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken) =>
-        Agent.AnswerApprovalAsync(approvalId, approved, scope, cancellationToken);
+        Route(() => Agent.AnswerApprovalAsync(approvalId, approved, scope, cancellationToken));
 
     public Task<HostToolDecision> CheckHostToolAsync(HostToolCheck check, CancellationToken cancellationToken) =>
-        Agent.CheckHostToolAsync(check, cancellationToken);
+        Route(() => Agent.CheckHostToolAsync(check, cancellationToken));
 
     public Task<AgentGrant> CreateGrantAsync(GrantRequest request, string? conversationId, string? stepUpProof,
         CancellationToken cancellationToken) =>
-        Agent.CreateGrantAsync(request, conversationId, stepUpProof, cancellationToken);
+        Route(() => Agent.CreateGrantAsync(request, conversationId, stepUpProof, cancellationToken));
 
     public Task<GrantReport> ReportGrantAsync(string grantId, IReadOnlyList<string> calls, CancellationToken cancellationToken) =>
-        Agent.ReportGrantAsync(grantId, calls, cancellationToken);
+        Route(() => Agent.ReportGrantAsync(grantId, calls, cancellationToken));
 
-    public Task<AgentGrant> GetGrantAsync(string grantId, CancellationToken cancellationToken) => Agent.GetGrantAsync(grantId, cancellationToken);
+    public Task<AgentGrant> GetGrantAsync(string grantId, CancellationToken cancellationToken) =>
+        Route(() => Agent.GetGrantAsync(grantId, cancellationToken));
 
     public Task<AgentGrant> ExtendGrantAsync(string grantId, GrantExtension extension, CancellationToken cancellationToken) =>
-        Agent.ExtendGrantAsync(grantId, extension, cancellationToken);
+        Route(() => Agent.ExtendGrantAsync(grantId, extension, cancellationToken));
 
-    public Task<AgentGrant> RevokeGrantAsync(string grantId, CancellationToken cancellationToken) => Agent.RevokeGrantAsync(grantId, cancellationToken);
+    public Task<AgentGrant> RevokeGrantAsync(string grantId, CancellationToken cancellationToken) =>
+        Route(() => Agent.RevokeGrantAsync(grantId, cancellationToken));
 
-    public Task<AgentGrant> PauseGrantAsync(string grantId, CancellationToken cancellationToken) => Agent.PauseGrantAsync(grantId, cancellationToken);
+    public Task<AgentGrant> PauseGrantAsync(string grantId, CancellationToken cancellationToken) =>
+        Route(() => Agent.PauseGrantAsync(grantId, cancellationToken));
 
-    public Task<AgentGrant> ResumeGrantAsync(string grantId, CancellationToken cancellationToken) => Agent.ResumeGrantAsync(grantId, cancellationToken);
+    public Task<AgentGrant> ResumeGrantAsync(string grantId, CancellationToken cancellationToken) =>
+        Route(() => Agent.ResumeGrantAsync(grantId, cancellationToken));
 
-    public Task<GrantList> ListGrantsAsync(CancellationToken cancellationToken) => Agent.ListGrantsAsync(cancellationToken);
+    public Task<GrantList> ListGrantsAsync(CancellationToken cancellationToken) => Route(() => Agent.ListGrantsAsync(cancellationToken));
 
     public Task<StepUpStarted> StartStepUpAsync(int? longestMinutes, string? clientVersion, CancellationToken cancellationToken) =>
         Agent.StartStepUpAsync(longestMinutes, clientVersion, cancellationToken);
@@ -200,13 +258,13 @@ internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
     private AgentProvenanceResource Provenance =>
         _client.Agent?.Provenance ?? throw new InvalidOperationException("The agent's client has no agent.");
 
-    public Task<ProvenancePolicy> GetPolicyAsync(CancellationToken cancellationToken) => Provenance.GetPolicyAsync(cancellationToken);
+    public Task<ProvenancePolicy> GetPolicyAsync(CancellationToken cancellationToken) => Route(() => Provenance.GetPolicyAsync(cancellationToken));
 
     public Task<SignedRecord> SignRecordAsync(RecordRequest request, CancellationToken cancellationToken) =>
-        Provenance.SignRecordAsync(request, cancellationToken);
+        Route(() => Provenance.SignRecordAsync(request, cancellationToken));
 
     public Task ReportPlacementAsync(PlacementReport report, CancellationToken cancellationToken) =>
-        Provenance.ReportPlacementAsync(report, cancellationToken);
+        Route(() => Provenance.ReportPlacementAsync(report, cancellationToken));
 
     public void Dispose()
     {
