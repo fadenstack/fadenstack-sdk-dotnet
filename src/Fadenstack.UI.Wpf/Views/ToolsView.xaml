@@ -423,15 +423,16 @@
                 <StackPanel Visibility="{Binding ShowsLists, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                     <!-- The bar: where tools run, the policy, the filter. -->
                     <WrapPanel Margin="{StaticResource Fadenstack.Space.WrapBlock}">
-                        <StackPanel x:Name="ToolsTabs" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,8" AutomationProperties.Name="{local:Text ToolsTitle}">
-                            <RadioButton x:Name="AppTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsApp}" Content="{Binding AppTabText}"
+                        <!-- The tabs wrap: three do not fit beside each other in a narrow pane (Office's), and none may be cut. -->
+                        <WrapPanel x:Name="ToolsTabs" Orientation="Horizontal" VerticalAlignment="Center" AutomationProperties.Name="{local:Text ToolsTitle}">
+                            <RadioButton x:Name="AppTab" Style="{StaticResource Tools.Segment}" Margin="0,0,8,8" IsChecked="{Binding ShowsApp}" Content="{Binding AppTabText}"
                                          AutomationProperties.Name="{Binding AppTabText}" />
-                            <RadioButton x:Name="LocalTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
+                            <RadioButton x:Name="LocalTab" Style="{StaticResource Tools.Segment}" Margin="0,0,8,8" IsChecked="{Binding ShowsLocal}" Content="{Binding LocalTabText}"
                                          AutomationProperties.Name="{Binding LocalTabText}" />
-                            <RadioButton x:Name="ServerTab" Style="{StaticResource Tools.Segment}" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
+                            <RadioButton x:Name="ServerTab" Style="{StaticResource Tools.Segment}" Margin="0,0,8,8" IsChecked="{Binding ShowsServer}" Content="{Binding ServerTabText}"
                                          AutomationProperties.Name="{Binding ServerTabText}"
                                          Visibility="{Binding ShowsServerTab, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
-                        </StackPanel>
+                        </WrapPanel>
                         <Border x:Name="PolicyChip" Style="{StaticResource Tools.Policy}" ToolTip="{Binding PolicyTip}" AutomationProperties.Name="{Binding PolicyTip}"
                                 Visibility="{Binding ShowsLocalChip, Converter={StaticResource Fadenstack.BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
