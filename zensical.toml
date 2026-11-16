@@ -10,6 +10,7 @@ nav = [
   { "Connecting an agent" = "connecting.md" },
   { "Machine policy" = "machine-policy.md" },
   { "Host tools" = "tools.md" },
+  { "Approvals" = "approvals.md" },
   { "Server-held grants and Bypass" = "server-grants.md" },
   { "Host commands and policy" = "host-commands.md" },
   { "Outcomes and errors" = "outcomes.md" },

@@ -164,6 +164,7 @@ The moved types are `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence` 
 
 - [Build an agent](agent.md): the client, sign-in, the builder, sessions and streaming.
 - [Host tools](tools.md): tools, tool modes and approvals.
+- [Approvals](approvals.md): the levels, standing approvals, the never-skip list, restarts and reasons.
 - [Host commands and policy](host-commands.md): host tools the person starts, and the server's fresh check of every host call.
 - [Outcomes and errors](outcomes.md): how a turn ends, and what is thrown.
 - [Sessions on the device](sessions.md): storage, retention and your own store.
