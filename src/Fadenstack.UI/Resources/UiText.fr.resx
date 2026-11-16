@@ -2503,4 +2503,88 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Défini par la politique de votre organisation sur cet ordinateur.</value>
   </data>
+  <data name="MyDataTitle" xml:space="preserve">
+    <value>Vos données sur cet appareil</value>
+  </data>
+  <data name="MyDataIntro" xml:space="preserve">
+    <value>Les applications Fadenstack conservent vos conversations, vos autorisations et vos réglages sur cet appareil. Vous pouvez en enregistrer une copie ou les supprimer ici.</value>
+  </data>
+  <data name="MyDataExport" xml:space="preserve">
+    <value>Exporter mes données…</value>
+  </data>
+  <data name="MyDataExportName" xml:space="preserve">
+    <value>Exporter mes données… (cette application seulement)</value>
+  </data>
+  <data name="MyDataExportAll" xml:space="preserve">
+    <value>Tout exporter…</value>
+  </data>
+  <data name="MyDataExportAllName" xml:space="preserve">
+    <value>Tout exporter… (toutes les applications Fadenstack de cet appareil)</value>
+  </data>
+  <data name="MyDataRemove" xml:space="preserve">
+    <value>Supprimer mes données…</value>
+  </data>
+  <data name="MyDataRemoveName" xml:space="preserve">
+    <value>Supprimer mes données… (cette application seulement)</value>
+  </data>
+  <data name="MyDataRemoveAll" xml:space="preserve">
+    <value>Supprimer toutes mes données Fadenstack sur cet appareil…</value>
+  </data>
+  <data name="MyDataConfirmThisAppShared" xml:space="preserve">
+    <value>Cela supprime les conversations, les autorisations et les préférences de cette application sur cet appareil. Vos données partagées (compétences, liste MCP, clés et enregistrements de provenance) sont conservées, car d'autres applications Fadenstack les utilisent : {0}.</value>
+  </data>
+  <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
+    <value>Aucune autre application Fadenstack n'utilise vos données sur cet appareil. Tout ce qui vous concerne ici est donc supprimé : conversations, autorisations, préférences, compétences, liste MCP, clés et enregistrements de provenance.</value>
+  </data>
+  <data name="MyDataConfirmAll" xml:space="preserve">
+    <value>Cela supprime toutes vos données Fadenstack sur cet appareil, y compris les données partagées. Applications concernées :</value>
+  </data>
+  <data name="MyDataConfirmUndo" xml:space="preserve">
+    <value>Cette action est irréversible.</value>
+  </data>
+  <data name="MyDataThisApp" xml:space="preserve">
+    <value>{0} (cette application)</value>
+  </data>
+  <data name="MyDataConfirmRemove" xml:space="preserve">
+    <value>Supprimer mes données</value>
+  </data>
+  <data name="MyDataConfirmRemoveAll" xml:space="preserve">
+    <value>Tout supprimer</value>
+  </data>
+  <data name="MyDataCancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="MyDataDismiss" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MyDataBusy" xml:space="preserve">
+    <value>Veuillez patienter…</value>
+  </data>
+  <data name="MyDataRemovedEverything" xml:space="preserve">
+    <value>Tout a été supprimé.</value>
+  </data>
+  <data name="MyDataRemovedKept" xml:space="preserve">
+    <value>Supprimé. Données partagées conservées pour : {0}.</value>
+  </data>
+  <data name="MyDataAgentsKept" xml:space="preserve">
+    <value>Les données de ces agents sont conservées, car une autre application les utilise aussi : {0}.</value>
+  </data>
+  <data name="MyDataHostStores" xml:space="preserve">
+    <value>Les conversations ou autorisations que cette application conserve dans son propre stockage n'ont pas été supprimées ici.</value>
+  </data>
+  <data name="MyDataExported" xml:space="preserve">
+    <value>Vos données ont été enregistrées dans le fichier choisi.</value>
+  </data>
+  <data name="MyDataErrorRead" xml:space="preserve">
+    <value>Les applications qui utilisent vos données n'ont pas pu être listées. Rien n'a été supprimé. Réessayez.</value>
+  </data>
+  <data name="MyDataErrorRemove" xml:space="preserve">
+    <value>Vos données n'ont pas pu être supprimées complètement. Réessayez.</value>
+  </data>
+  <data name="MyDataErrorExport" xml:space="preserve">
+    <value>L'export n'a pas fonctionné. Réessayez.</value>
+  </data>
+  <data name="MyDataListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
 </root>

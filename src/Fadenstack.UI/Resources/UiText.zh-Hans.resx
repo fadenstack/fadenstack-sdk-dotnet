@@ -2503,4 +2503,88 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>由您的组织在此电脑上的策略设定。</value>
   </data>
+  <data name="MyDataTitle" xml:space="preserve">
+    <value>您在此设备上的数据</value>
+  </data>
+  <data name="MyDataIntro" xml:space="preserve">
+    <value>Fadenstack 应用会在此设备上保存您的聊天记录、批准和设置。您可以在此保存副本或将其删除。</value>
+  </data>
+  <data name="MyDataExport" xml:space="preserve">
+    <value>导出我的数据…</value>
+  </data>
+  <data name="MyDataExportName" xml:space="preserve">
+    <value>导出我的数据…（仅此应用）</value>
+  </data>
+  <data name="MyDataExportAll" xml:space="preserve">
+    <value>全部导出…</value>
+  </data>
+  <data name="MyDataExportAllName" xml:space="preserve">
+    <value>全部导出…（此设备上的所有 Fadenstack 应用）</value>
+  </data>
+  <data name="MyDataRemove" xml:space="preserve">
+    <value>删除我的数据…</value>
+  </data>
+  <data name="MyDataRemoveName" xml:space="preserve">
+    <value>删除我的数据…（仅此应用）</value>
+  </data>
+  <data name="MyDataRemoveAll" xml:space="preserve">
+    <value>删除我在此设备上的所有 Fadenstack 数据…</value>
+  </data>
+  <data name="MyDataConfirmThisAppShared" xml:space="preserve">
+    <value>这将删除此应用在此设备上的聊天记录、批准和偏好设置。您的共享数据（技能、MCP 列表、密钥和来源记录）会保留，因为其他 Fadenstack 应用正在使用它们：{0}。</value>
+  </data>
+  <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
+    <value>此设备上没有其他 Fadenstack 应用使用您的数据，因此您在这里的所有内容都会被删除：聊天记录、批准、偏好设置、技能、MCP 列表、密钥和来源记录。</value>
+  </data>
+  <data name="MyDataConfirmAll" xml:space="preserve">
+    <value>这将删除您在此设备上的所有 Fadenstack 数据，包括共享数据。受影响的应用：</value>
+  </data>
+  <data name="MyDataConfirmUndo" xml:space="preserve">
+    <value>此操作无法撤销。</value>
+  </data>
+  <data name="MyDataThisApp" xml:space="preserve">
+    <value>{0}（此应用）</value>
+  </data>
+  <data name="MyDataConfirmRemove" xml:space="preserve">
+    <value>删除我的数据</value>
+  </data>
+  <data name="MyDataConfirmRemoveAll" xml:space="preserve">
+    <value>全部删除</value>
+  </data>
+  <data name="MyDataCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="MyDataDismiss" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="MyDataBusy" xml:space="preserve">
+    <value>请稍候…</value>
+  </data>
+  <data name="MyDataRemovedEverything" xml:space="preserve">
+    <value>已全部删除。</value>
+  </data>
+  <data name="MyDataRemovedKept" xml:space="preserve">
+    <value>已删除。共享数据已为以下应用保留：{0}。</value>
+  </data>
+  <data name="MyDataAgentsKept" xml:space="preserve">
+    <value>这些智能体的数据已保留，因为另一个应用也在使用它们：{0}。</value>
+  </data>
+  <data name="MyDataHostStores" xml:space="preserve">
+    <value>此应用自行存储的聊天记录或批准未在此处删除。</value>
+  </data>
+  <data name="MyDataExported" xml:space="preserve">
+    <value>您的数据已保存到所选文件。</value>
+  </data>
+  <data name="MyDataErrorRead" xml:space="preserve">
+    <value>无法列出使用您数据的应用。未删除任何内容。请重试。</value>
+  </data>
+  <data name="MyDataErrorRemove" xml:space="preserve">
+    <value>无法完全删除您的数据。请重试。</value>
+  </data>
+  <data name="MyDataErrorExport" xml:space="preserve">
+    <value>导出失败。请重试。</value>
+  </data>
+  <data name="MyDataListSeparator" xml:space="preserve">
+    <value>、</value>
+  </data>
 </root>

@@ -38,6 +38,7 @@
     <Compile Include="..\Fadenstack.UI.Tests\SkillEditorFakes.cs" Link="Harness\SkillEditorFakes.cs" />
     <!-- The Tools view's fakes (the catalog, the UI thread, the file dialogs) and its states: the tests drive the same real view models as the UI tests do. -->
     <Compile Include="..\Fadenstack.UI.Tests\Settings\ChatRetentionFakes.cs" Link="Harness\ChatRetentionFakes.cs" />
+    <Compile Include="..\Fadenstack.UI.Tests\Settings\MyDataFakes.cs" Link="Harness\MyDataFakes.cs" />
     <Compile Include="..\Fadenstack.UI.Tests\Tools\ToolsFakes.cs" Link="Harness\ToolsFakes.cs" />
     <Compile Include="..\Fadenstack.UI.Tests\Tools\ToolsScenes.cs" Link="Harness\ToolsScenes.cs" />
     <Compile Include="..\Fadenstack.UI.Tests\Tools\WebSearchFakes.cs" Link="Harness\WebSearchFakes.cs" />

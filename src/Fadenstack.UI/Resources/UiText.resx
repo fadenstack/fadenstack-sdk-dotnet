@@ -2786,4 +2786,116 @@
     <value>Set by your organisation's policy on this computer.</value>
     <comment>When the machine policy fixes it, read only</comment>
   </data>
+  <data name="MyDataTitle" xml:space="preserve">
+    <value>Your data on this device</value>
+    <comment>The heading of "Your data on this device"</comment>
+  </data>
+  <data name="MyDataIntro" xml:space="preserve">
+    <value>Fadenstack apps keep your chats, approvals and settings on this device. You can save a copy or remove them here.</value>
+    <comment>Under the heading</comment>
+  </data>
+  <data name="MyDataExport" xml:space="preserve">
+    <value>Export my data…</value>
+    <comment>Button: export this app's data</comment>
+  </data>
+  <data name="MyDataExportName" xml:space="preserve">
+    <value>Export my data… (this app only)</value>
+    <comment>Accessible name of the export button; it contains the button's text</comment>
+  </data>
+  <data name="MyDataExportAll" xml:space="preserve">
+    <value>Export all…</value>
+    <comment>Button: export the data of all Fadenstack apps on this device</comment>
+  </data>
+  <data name="MyDataExportAllName" xml:space="preserve">
+    <value>Export all… (every Fadenstack app on this device)</value>
+    <comment>Accessible name of the export-all button; it contains the button's text</comment>
+  </data>
+  <data name="MyDataRemove" xml:space="preserve">
+    <value>Remove my data…</value>
+    <comment>Button: remove this app's data (asks first)</comment>
+  </data>
+  <data name="MyDataRemoveName" xml:space="preserve">
+    <value>Remove my data… (this app only)</value>
+    <comment>Accessible name of the remove button; it contains the button's text</comment>
+  </data>
+  <data name="MyDataRemoveAll" xml:space="preserve">
+    <value>Remove all my Fadenstack data on this device…</value>
+    <comment>Button, visually secondary: remove all of the person's Fadenstack data on this device (asks first)</comment>
+  </data>
+  <data name="MyDataConfirmThisAppShared" xml:space="preserve">
+    <value>This removes this app's chats, approvals and preferences on this device. Your shared data (skills, the MCP list, keys and provenance records) stays, because other Fadenstack apps use it: {0}.</value>
+    <comment>Confirmation when other apps use the person's data: {0} the other apps, separated</comment>
+  </data>
+  <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
+    <value>No other Fadenstack app uses your data on this device, so everything of yours here is removed: chats, approvals, preferences, skills, the MCP list, keys and provenance records.</value>
+    <comment>Confirmation when no other app uses the person's data</comment>
+  </data>
+  <data name="MyDataConfirmAll" xml:space="preserve">
+    <value>This removes all your Fadenstack data on this device, shared data included. These apps are affected:</value>
+    <comment>Confirmation of removing everything; the apps it affects are listed under it</comment>
+  </data>
+  <data name="MyDataConfirmUndo" xml:space="preserve">
+    <value>This cannot be undone.</value>
+    <comment>Under either confirmation</comment>
+  </data>
+  <data name="MyDataThisApp" xml:space="preserve">
+    <value>{0} (this app)</value>
+    <comment>An app in the list of apps: {0} its name, marked as the app the person is in</comment>
+  </data>
+  <data name="MyDataConfirmRemove" xml:space="preserve">
+    <value>Remove my data</value>
+    <comment>Confirm button of "Remove my data…"</comment>
+  </data>
+  <data name="MyDataConfirmRemoveAll" xml:space="preserve">
+    <value>Remove everything</value>
+    <comment>Confirm button of removing everything</comment>
+  </data>
+  <data name="MyDataCancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Cancel button of the confirmation</comment>
+  </data>
+  <data name="MyDataDismiss" xml:space="preserve">
+    <value>OK</value>
+    <comment>Button that closes the result or the error</comment>
+  </data>
+  <data name="MyDataBusy" xml:space="preserve">
+    <value>Please wait…</value>
+    <comment>While the apps are read, or the data is exported or removed</comment>
+  </data>
+  <data name="MyDataRemovedEverything" xml:space="preserve">
+    <value>Removed everything.</value>
+    <comment>Result: everything of the person's that was in scope is removed</comment>
+  </data>
+  <data name="MyDataRemovedKept" xml:space="preserve">
+    <value>Removed. Shared data kept for: {0}.</value>
+    <comment>Result: this app's data is removed, the shared data stayed: {0} the other apps, separated</comment>
+  </data>
+  <data name="MyDataAgentsKept" xml:space="preserve">
+    <value>Data of these agents stays, because another app uses them too: {0}.</value>
+    <comment>Result: agents of this app whose data stayed because another app uses them too: {0} their names, separated</comment>
+  </data>
+  <data name="MyDataHostStores" xml:space="preserve">
+    <value>Chats or approvals that this app keeps in a store of its own were not removed here.</value>
+    <comment>Result: the app keeps chats or approvals in a store of its own, which the removal does not touch</comment>
+  </data>
+  <data name="MyDataExported" xml:space="preserve">
+    <value>Your data was saved to the file you chose.</value>
+    <comment>After an export</comment>
+  </data>
+  <data name="MyDataErrorRead" xml:space="preserve">
+    <value>The apps that use your data could not be listed. Nothing was removed. Try again.</value>
+    <comment>Error: the apps could not be read; nothing was removed</comment>
+  </data>
+  <data name="MyDataErrorRemove" xml:space="preserve">
+    <value>Your data could not be removed completely. Try again.</value>
+    <comment>Error: the removal did not work</comment>
+  </data>
+  <data name="MyDataErrorExport" xml:space="preserve">
+    <value>The export did not work. Try again.</value>
+    <comment>Error: the export did not work</comment>
+  </data>
+  <data name="MyDataListSeparator" xml:space="preserve">
+    <value>, </value>
+    <comment>Between names in a list of apps</comment>
+  </data>
 </root>

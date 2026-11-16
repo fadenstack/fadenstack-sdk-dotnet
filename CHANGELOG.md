@@ -15,6 +15,12 @@ this file says where it does.
   person's data; each agent start records its app in `apps/<app>.json` (names and times, no content). **Behaviour change:**
   `DeleteMyDataAsync()` and `ExportMyDataAsync(stream)` without a scope used to cover every app; pass `DataScope.AllApps` for
   that.
+  - **"Your data on this device"**: `MyDataSettingsViewModel` in `Fadenstack.UI` (`MyDataState`: idle, confirm this app, confirm
+    all, busy, done, error) with `MyDataSettingsView` in `Fadenstack.UI.Wpf` and `.Avalonia`, and texts in five languages. "Remove
+    my data…" asks first and says what goes and what stays, naming the other apps that keep the shared data; "Remove all my
+    Fadenstack data on this device…" lists every app it affects; "Export my data…" and "Export all…" follow the same scopes. The
+    host picks where an export goes through `IMyDataSaveTarget` (`WpfMyDataSaveTarget`, `AvaloniaMyDataSaveTarget`); the view model
+    opens no dialog.
 - **Old chats are a setting** ([Sessions: Retention](docs/sessions.md#retention)). In standalone mode the person chooses whether old
   chats are deleted automatically, and the limits (days 1 to 3650, chats 1 to 10000; defaults on, 90 days, 50 chats, or the app's
   `UseSessionRetention`); off keeps every chat until the person deletes it. In governed mode the server decides as before (the

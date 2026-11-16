@@ -2503,4 +2503,88 @@
   <data name="ChatRetentionPolicyFixed" xml:space="preserve">
     <value>Lo establece la directiva de su organización en este equipo.</value>
   </data>
+  <data name="MyDataTitle" xml:space="preserve">
+    <value>Sus datos en este dispositivo</value>
+  </data>
+  <data name="MyDataIntro" xml:space="preserve">
+    <value>Las aplicaciones de Fadenstack guardan sus chats, autorizaciones y ajustes en este dispositivo. Aquí puede guardar una copia o eliminarlos.</value>
+  </data>
+  <data name="MyDataExport" xml:space="preserve">
+    <value>Exportar mis datos…</value>
+  </data>
+  <data name="MyDataExportName" xml:space="preserve">
+    <value>Exportar mis datos… (solo esta aplicación)</value>
+  </data>
+  <data name="MyDataExportAll" xml:space="preserve">
+    <value>Exportar todo…</value>
+  </data>
+  <data name="MyDataExportAllName" xml:space="preserve">
+    <value>Exportar todo… (todas las aplicaciones de Fadenstack de este dispositivo)</value>
+  </data>
+  <data name="MyDataRemove" xml:space="preserve">
+    <value>Eliminar mis datos…</value>
+  </data>
+  <data name="MyDataRemoveName" xml:space="preserve">
+    <value>Eliminar mis datos… (solo esta aplicación)</value>
+  </data>
+  <data name="MyDataRemoveAll" xml:space="preserve">
+    <value>Eliminar todos mis datos de Fadenstack en este dispositivo…</value>
+  </data>
+  <data name="MyDataConfirmThisAppShared" xml:space="preserve">
+    <value>Esto elimina los chats, las autorizaciones y las preferencias de esta aplicación en este dispositivo. Sus datos compartidos (habilidades, lista de MCP, claves y registros de procedencia) se conservan, porque otras aplicaciones de Fadenstack los usan: {0}.</value>
+  </data>
+  <data name="MyDataConfirmThisAppEverything" xml:space="preserve">
+    <value>Ninguna otra aplicación de Fadenstack usa sus datos en este dispositivo, así que se elimina todo lo suyo que hay aquí: chats, autorizaciones, preferencias, habilidades, lista de MCP, claves y registros de procedencia.</value>
+  </data>
+  <data name="MyDataConfirmAll" xml:space="preserve">
+    <value>Esto elimina todos sus datos de Fadenstack en este dispositivo, incluidos los datos compartidos. Aplicaciones afectadas:</value>
+  </data>
+  <data name="MyDataConfirmUndo" xml:space="preserve">
+    <value>Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="MyDataThisApp" xml:space="preserve">
+    <value>{0} (esta aplicación)</value>
+  </data>
+  <data name="MyDataConfirmRemove" xml:space="preserve">
+    <value>Eliminar mis datos</value>
+  </data>
+  <data name="MyDataConfirmRemoveAll" xml:space="preserve">
+    <value>Eliminarlo todo</value>
+  </data>
+  <data name="MyDataCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="MyDataDismiss" xml:space="preserve">
+    <value>Aceptar</value>
+  </data>
+  <data name="MyDataBusy" xml:space="preserve">
+    <value>Espere un momento…</value>
+  </data>
+  <data name="MyDataRemovedEverything" xml:space="preserve">
+    <value>Se eliminó todo.</value>
+  </data>
+  <data name="MyDataRemovedKept" xml:space="preserve">
+    <value>Eliminado. Los datos compartidos se conservan para: {0}.</value>
+  </data>
+  <data name="MyDataAgentsKept" xml:space="preserve">
+    <value>Los datos de estos agentes se conservan, porque otra aplicación también los usa: {0}.</value>
+  </data>
+  <data name="MyDataHostStores" xml:space="preserve">
+    <value>Los chats o autorizaciones que esta aplicación guarda en un almacén propio no se eliminaron aquí.</value>
+  </data>
+  <data name="MyDataExported" xml:space="preserve">
+    <value>Sus datos se guardaron en el archivo elegido.</value>
+  </data>
+  <data name="MyDataErrorRead" xml:space="preserve">
+    <value>No se pudieron enumerar las aplicaciones que usan sus datos. No se eliminó nada. Inténtelo de nuevo.</value>
+  </data>
+  <data name="MyDataErrorRemove" xml:space="preserve">
+    <value>No se pudieron eliminar todos sus datos. Inténtelo de nuevo.</value>
+  </data>
+  <data name="MyDataErrorExport" xml:space="preserve">
+    <value>La exportación no funcionó. Inténtelo de nuevo.</value>
+  </data>
+  <data name="MyDataListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
 </root>

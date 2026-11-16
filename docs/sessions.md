@@ -126,6 +126,8 @@ await tokens.SignOutAsync();
 
 [Data on the device](data-on-device.md#export-and-delete) lists what the export and the deletion leave, such as the shared folders.
 
+**The settings control.** `Fadenstack.UI` has `MyDataSettingsViewModel`, "Your data on this device", and the WPF and Avalonia skins have `MyDataSettingsView` for it: export, "Remove my data…" (this app only, after a confirmation that names the apps that keep the shared data) and "Remove all my Fadenstack data on this device…". It sits beside `ChatRetentionSettingsView` on an app's settings page; see [Data on the device: Export and delete](data-on-device.md#export-and-delete).
+
 It does not empty a store you passed with `UseSessionStore` or `UseApprovalStore`, because that store may hold other people's data. The result says so, and the agent writes a warning to its log:
 
 | `DataDeletion` | Meaning |

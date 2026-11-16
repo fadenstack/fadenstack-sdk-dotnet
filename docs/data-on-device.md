@@ -118,6 +118,18 @@ Several Fadenstack apps may use one person's folder: the Word add-in, the deskto
 - **The shared data**, which no single app owns: skills and the skills turned off, the MCP list and its audit log, keys, provenance records and log, the web search and old-chats settings, the standalone language, the approvals' seal key. It goes with this app's data only when no other app uses the person's data: no other app's record, and no data of an agent that no record names (an app on an SDK before standalone.9 writes no record, so its data stands for it, which keeps the shared data). Otherwise it stays, and `DataDeletion.OtherApps` names the apps it stays for. When nothing is left, the person's folder goes as a whole. The seal key goes with the last "Allow always".
 - **All apps** (`DataScope.AllApps`): the person's whole folder, every app's data and the shared data. `agent.MyDataAppsAsync()` lists the apps it affects first, this app first (`MyDataApp.Recorded` false for an app known only by its data, named by its agent).
 
+**The control.** `Fadenstack.UI` has `MyDataSettingsViewModel` ("Your data on this device"), with a view in `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia`, in the five languages the package ships. It offers "Export my data…" and "Export all…" (the same scopes as the export calls), "Remove my data…" and, visually quieter, "Remove all my Fadenstack data on this device…". Neither removal runs at once. The person first reads what goes and what stays:
+
+- "Remove my data…" reads `agent.MyDataAppsAsync()`. When other apps use the person's data, it says that this app's chats, approvals and preferences go and that the shared data (skills, the MCP list, keys, provenance records) stays for those apps, and names them (an app on an older SDK by its agent's name). When no other app does, it says that everything of the person's on this device goes.
+- "Remove all my Fadenstack data on this device…" lists every app it affects, this app marked.
+
+The result then says what was removed and what stayed (`DataDeletion.OtherApps`, `AgentsKept`, `HostStoresLeft`), or that everything went. A failure is one sentence with no reason and no content: no exception text and nothing from the data reaches the screen or the log. Where an export is saved is the host's choice: the app passes an `IMyDataSaveTarget` (`WpfMyDataSaveTarget`: the system's save dialog; `AvaloniaMyDataSaveTarget`: the storage provider's save picker), because a view model opens no dialog. This follows OWASP ASVS 5.0 V14 (data protection): the person can see what a removal covers before it runs, a removal never reaches data another app still uses unless the person asks for all of it, and the export covers what the removal covers.
+
+```csharp
+var data = new MyDataSettingsViewModel(agent, new WpfMyDataSaveTarget(() => window), new WpfDispatcher());
+settingsPage.Content = new MyDataSettingsView { DataContext = data };   // beside the old-chats setting
+```
+
 | Call | What it covers | What it leaves |
 |---|---|---|
 | `agent.ExportMyDataAsync(stream)`, `(stream, DataScope.ThisApp)` | A ZIP with exactly what this app's removal takes: its agents' sessions, decrypted, their "Allow always" approvals, their thinking levels and its record; with the shared data when no other app uses the person's data. The README names the scope and, when other apps use the data, what stayed and for which apps. | What other apps use; tokens, keys and secret values; what the server keeps. |

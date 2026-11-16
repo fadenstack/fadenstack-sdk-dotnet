@@ -1,0 +1,78 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:st="clr-namespace:Fadenstack.UI.Settings;assembly=Fadenstack.UI"
+             xmlns:b="clr-namespace:Fadenstack.UI.Avalonia.Behaviors"
+             xmlns:v="clr-namespace:Fadenstack.UI.Avalonia.Views"
+             mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="360"
+             x:Class="Fadenstack.UI.Avalonia.Views.MyDataSettingsView"
+             x:DataType="st:MyDataSettingsViewModel"
+             Focusable="True"
+             FontSize="{DynamicResource Fadenstack.FontSize.Body}"
+             Foreground="{DynamicResource Fadenstack.Foreground}">
+    <!--
+        "Your data on this device": a MyDataSettingsViewModel. The buttons export the person's data, remove this app's data or remove
+        everything; a removal asks first, in a banner under the heading that says what goes and what stays (and names the apps), and the
+        focus moves to its first button (Cancel: the safe one). Every text is a UiStrings text; every look is a style class of the skin's.
+    -->
+    <UserControl.Styles>
+        <StyleInclude Source="avares://Fadenstack.UI.Avalonia/Themes/Forms.axaml" />
+    </UserControl.Styles>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Name="Column" MaxWidth="480" HorizontalAlignment="Stretch" Margin="12" Spacing="8"
+                    b:WizardFocus.Step="{Binding State}">
+            <TextBlock Classes="title" Text="{v:Text MyDataTitle}" TextWrapping="Wrap" />
+            <TextBlock Classes="caption muted" Text="{v:Text MyDataIntro}" TextWrapping="Wrap" />
+
+            <!-- The confirmation: what goes and what stays, the apps it affects, Remove and Cancel. -->
+            <Border Name="ConfirmBanner" Classes="banner warning" IsVisible="{Binding IsConfirming}">
+                <StackPanel Spacing="8">
+                    <TextBlock Name="ConfirmLabel" Text="{Binding ConfirmText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                    <ItemsControl Name="AppList" ItemsSource="{Binding AppLines}" Margin="12,0,0,0" Focusable="False" IsVisible="{Binding HasAppLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,0,0,2" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Name="UndoLabel" Classes="strong" Text="{Binding UndoText}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Name="CancelButton" Classes="secondary" b:WizardFocus.IsFirst="True" Command="{Binding CancelCommand}"
+                                Content="{v:Text MyDataCancel}" AutomationProperties.Name="{v:Text MyDataCancel}" />
+                        <Button Name="ConfirmButton" Classes="primary" Command="{Binding ConfirmCommand}"
+                                Content="{Binding ConfirmButtonText}" AutomationProperties.Name="{Binding ConfirmButtonText}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- A finished removal, or what went wrong. -->
+            <Border Name="DoneBanner" Classes="banner success" IsVisible="{Binding IsDone}">
+                <TextBlock Name="DoneText" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </Border>
+            <Border Name="ErrorBanner" Classes="banner error" IsVisible="{Binding IsError}">
+                <TextBlock Name="ErrorLabel" Text="{Binding ErrorText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+            </Border>
+            <Button Name="DismissButton" Classes="secondary" b:WizardFocus.IsFirst="True" HorizontalAlignment="Left" IsVisible="{Binding HasResult}"
+                    Command="{Binding CancelCommand}" Content="{v:Text MyDataDismiss}" AutomationProperties.Name="{v:Text MyDataDismiss}" />
+
+            <!-- The buttons. -->
+            <StackPanel Name="Actions" Spacing="8" IsVisible="{Binding IsIdle}">
+                <WrapPanel>
+                    <Button Name="ExportButton" Classes="secondary" Margin="0,0,8,8" Command="{Binding ExportCommand}"
+                            Content="{v:Text MyDataExport}" AutomationProperties.Name="{v:Text MyDataExportName}" />
+                    <Button Name="ExportAllButton" Classes="secondary" Margin="0,0,8,8" Command="{Binding ExportAllCommand}"
+                            Content="{v:Text MyDataExportAll}" AutomationProperties.Name="{v:Text MyDataExportAllName}" />
+                </WrapPanel>
+                <Button Name="RemoveButton" Classes="secondary" HorizontalAlignment="Left" Command="{Binding RemoveCommand}"
+                        Content="{v:Text MyDataRemove}" AutomationProperties.Name="{v:Text MyDataRemoveName}" />
+                <!-- Visually the quieter of the two removals. -->
+                <Button Name="RemoveAllButton" Classes="quiet" HorizontalAlignment="Left" Command="{Binding RemoveAllCommand}"
+                        Content="{v:Text MyDataRemoveAll}" AutomationProperties.Name="{v:Text MyDataRemoveAll}" />
+            </StackPanel>
+            <TextBlock Name="StatusLine" Classes="caption muted" Text="{Binding StatusText}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"
+                       IsVisible="{Binding HasStatusLine}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
