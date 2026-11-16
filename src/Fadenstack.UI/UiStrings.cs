@@ -1399,6 +1399,39 @@ public sealed class UiStrings
     /// <summary>"Add the value"</summary>
     public string ToolsFixAddValue => Text();
 
+    /// <summary>"The program of {0} changed since you added it."</summary>
+    public string ToolsStateProgramChanged(string label) => Fill(label);
+
+    /// <summary>"Review the change"</summary>
+    public string ToolsFixReviewProgram => Text();
+
+    /// <summary>"Use the new program"</summary>
+    public string ToolsUseNewProgram => Text();
+
+    /// <summary>"Use the new program of {0}"</summary>
+    public string ToolsUseNewProgramName(string label) => Fill(label);
+
+    /// <summary>"The program changed"</summary>
+    public string ToolsProgramChangedTitle => Text();
+
+    /// <summary>"This server does not run. Its program file is not the one you added: it changed, moved or is gone. Use the new program only if you expect the change, or remove the server."</summary>
+    public string ToolsProgramChangedHelp => Text();
+
+    /// <summary>"Program check"</summary>
+    public string ToolsFactProgramCheck => Text();
+
+    /// <summary>"The program file is checked before every start."</summary>
+    public string ToolsProgramChecked => Text();
+
+    /// <summary>"Only the runner is checked: the package it fetches can change."</summary>
+    public string ToolsProgramOnlyRunner => Text();
+
+    /// <summary>"The program is pinned at its next start."</summary>
+    public string ToolsProgramNotPinned => Text();
+
+    /// <summary>"Not started: the program changed since you added it. Use the new program first."</summary>
+    public string ToolsTestProgramChanged => Text();
+
     /// <summary>"Added by you"</summary>
     public string ToolsOriginTyped => Text();
 

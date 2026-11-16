@@ -1804,6 +1804,39 @@
   <data name="ToolsFixAddValue" xml:space="preserve">
     <value>Wert eintragen</value>
   </data>
+  <data name="ToolsStateProgramChanged" xml:space="preserve">
+    <value>Das Programm von {0} hat sich seit dem Hinzufügen geändert.</value>
+  </data>
+  <data name="ToolsFixReviewProgram" xml:space="preserve">
+    <value>Änderung prüfen</value>
+  </data>
+  <data name="ToolsUseNewProgram" xml:space="preserve">
+    <value>Neues Programm verwenden</value>
+  </data>
+  <data name="ToolsUseNewProgramName" xml:space="preserve">
+    <value>Neues Programm von {0} verwenden</value>
+  </data>
+  <data name="ToolsProgramChangedTitle" xml:space="preserve">
+    <value>Das Programm hat sich geändert</value>
+  </data>
+  <data name="ToolsProgramChangedHelp" xml:space="preserve">
+    <value>Dieser Server läuft nicht. Seine Programmdatei ist nicht die, die Sie hinzugefügt haben: Sie wurde geändert, verschoben oder ist weg. Verwenden Sie das neue Programm nur, wenn Sie die Änderung erwarten, oder entfernen Sie den Server.</value>
+  </data>
+  <data name="ToolsFactProgramCheck" xml:space="preserve">
+    <value>Programmprüfung</value>
+  </data>
+  <data name="ToolsProgramChecked" xml:space="preserve">
+    <value>Die Programmdatei wird vor jedem Start geprüft.</value>
+  </data>
+  <data name="ToolsProgramOnlyRunner" xml:space="preserve">
+    <value>Nur das Startprogramm wird geprüft: Das Paket, das es lädt, kann sich ändern.</value>
+  </data>
+  <data name="ToolsProgramNotPinned" xml:space="preserve">
+    <value>Das Programm wird bei seinem nächsten Start festgehalten.</value>
+  </data>
+  <data name="ToolsTestProgramChanged" xml:space="preserve">
+    <value>Nicht gestartet: Das Programm hat sich seit dem Hinzufügen geändert. Verwenden Sie zuerst das neue Programm.</value>
+  </data>
   <data name="ToolsOriginTyped" xml:space="preserve">
     <value>Von Ihnen hinzugefügt</value>
   </data>

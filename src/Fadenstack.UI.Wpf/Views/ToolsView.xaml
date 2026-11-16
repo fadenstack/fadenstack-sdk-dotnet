@@ -867,6 +867,27 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
+                                        <!-- A program that changed since it was added: the server does not run; "Use the new program" or Remove (footer). -->
+                                        <Border x:Name="ProgramChangedBanner" Style="{StaticResource Form.Banner.Warning}" Margin="{StaticResource Fadenstack.Space.Block}"
+                                                AutomationProperties.Name="{Binding ProgramChangedTitle}"
+                                                Visibility="{Binding HasProgramChange, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                            <DockPanel>
+                                                <Path DockPanel.Dock="Left" Style="{StaticResource Tools.Icon.Large}" Data="{StaticResource Icon.WarningAmber}" VerticalAlignment="Top" Margin="0,0,12,0" />
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource Form.Strong}" Text="{Binding ProgramChangedTitle}" Margin="{StaticResource Fadenstack.Space.Tight}"
+                                                               AutomationProperties.LiveSetting="Assertive" />
+                                                    <TextBlock Text="{Binding ProgramChangedText}" TextWrapping="Wrap" Margin="{StaticResource Fadenstack.Space.Item}" />
+                                                    <WrapPanel Margin="{StaticResource Fadenstack.Space.WrapEnd}">
+                                                        <Button x:Name="UseNewProgramButton" Style="{StaticResource Form.Secondary}" Command="{Binding UseNewProgramCommand}"
+                                                                Margin="{StaticResource Fadenstack.Space.BesideItem}" Content="{local:Text ToolsUseNewProgram}"
+                                                                AutomationProperties.Name="{Binding UseNewProgramName}" />
+                                                    </WrapPanel>
+                                                    <TextBlock x:Name="ProgramError" Style="{StaticResource Tools.Error}" Text="{Binding ProgramError}"
+                                                               Visibility="{Binding HasProgramError, Converter={StaticResource Fadenstack.BoolToVisibility}}" AutomationProperties.LiveSetting="Assertive" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+
                                         <!-- Trusted: only a trusted server's "reads only" hints count. -->
                                         <DockPanel Margin="{StaticResource Fadenstack.Space.Block}" LastChildFill="True">
                                             <ToggleButton x:Name="TrustedSwitch" DockPanel.Dock="Right" Style="{StaticResource Tools.Switch}" VerticalAlignment="Top" Margin="12,0,0,0"

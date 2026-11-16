@@ -44,7 +44,7 @@ internal static class ToolsScenes
     public static readonly string[] States =
     {
         "empty", "sign-in", "list", "refusals", "banner", "filtered",
-        "drawer", "drawer-tools", "drawer-advanced", "drawer-warning", "drawer-governed", "drawer-remove",
+        "drawer", "drawer-tools", "drawer-advanced", "drawer-warning", "drawer-governed", "drawer-remove", "drawer-program",
         "add-program", "add-address", "edit-kept", "edit-address", "import", "scan-running", "scan-done",
         "cloud", "cloud-unavailable", "app", "app-standalone", "standalone",
         "app-websearch", "websearch", "websearch-kept", "websearch-refused",
@@ -98,6 +98,9 @@ internal static class ToolsScenes
             case "drawer-tools" or "drawer-governed":
                 catalog.Servers.Insert(0, Files());
                 catalog.MarksAreYours = state != "drawer-governed";
+                break;
+            case "drawer-program":
+                catalog.Servers.Insert(0, FakeLocalToolsCatalog.ChangedProgram());
                 break;
             case "drawer-advanced" or "drawer-warning":
                 catalog.Servers.Insert(0, Nas("nas", null, on: false));
@@ -179,7 +182,7 @@ internal static class ToolsScenes
             case "drawer-tools" or "drawer-governed":
                 page.Servers[0].OpenCommand.Execute(null);
                 break;
-            case "drawer-advanced":
+            case "drawer-advanced" or "drawer-program":
                 page.Servers[0].OpenCommand.Execute(null);
                 break;
             case "drawer-warning":

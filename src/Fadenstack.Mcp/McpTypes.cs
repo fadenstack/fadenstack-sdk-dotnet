@@ -17,6 +17,13 @@ public enum McpServerState
 
     /// <summary>The agent's policy does not allow it; <see cref="McpServerStatus.Detail"/> is the policy's reason. Never started.</summary>
     NotAllowed,
+
+    /// <summary>
+    /// The program (or its script) is not the one the person added (sdk/51 5.5): another file, other content, or gone. Never
+    /// started. <see cref="McpServerStatus.ProgramChange"/> says which; it stays so until the person confirms the new program or
+    /// removes the server.
+    /// </summary>
+    ProgramChanged,
 }
 
 /// <summary>
@@ -53,6 +60,9 @@ public sealed record McpServerStatus(string Label, McpServerState State)
     /// it, such as "Plain http is not allowed here" for <see cref="McpPlainHttpRefusal.NotAllowed"/>. Null otherwise.
     /// </summary>
     public McpPlainHttpRefusal? PlainHttp { get; init; }
+
+    /// <summary>What differs about the program, with <see cref="McpServerState.ProgramChanged"/>; null otherwise.</summary>
+    public McpProgramChange? ProgramChange { get; init; }
 }
 
 /// <summary>Raised when a server's status changed, or it was added or removed.</summary>
@@ -68,6 +78,27 @@ public sealed class McpServerStatusEventArgs : EventArgs
 
     /// <summary>The new status; null when the server was removed.</summary>
     public McpServerStatus? Status { get; }
+}
+
+/// <summary>
+/// What the module found when it checked a program before a start (sdk/51 5.5): <see cref="Change"/> other than
+/// <see cref="McpProgramChange.None"/> when the server was not started; <see cref="Pinned"/> when a server that had no pin has
+/// started and was pinned as that start saw it (then <see cref="Change"/> is <see cref="McpProgramChange.None"/>).
+/// </summary>
+public sealed class McpProgramEventArgs : EventArgs
+{
+    public McpProgramEventArgs(string label, McpProgramChange change, McpProgramPin? pinned)
+    {
+        Label = label;
+        Change = change;
+        Pinned = pinned;
+    }
+
+    public string Label { get; }
+
+    public McpProgramChange Change { get; }
+
+    public McpProgramPin? Pinned { get; }
 }
 
 /// <summary>A folder (or other root) the host tells servers they may work in. A coordination hint, not a fence.</summary>

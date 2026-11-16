@@ -2070,6 +2070,39 @@
   <data name="ToolsFixAddValue" xml:space="preserve">
     <value>Add the value</value>
   </data>
+  <data name="ToolsStateProgramChanged" xml:space="preserve">
+    <value>The program of {0} changed since you added it.</value>
+  </data>
+  <data name="ToolsFixReviewProgram" xml:space="preserve">
+    <value>Review the change</value>
+  </data>
+  <data name="ToolsUseNewProgram" xml:space="preserve">
+    <value>Use the new program</value>
+  </data>
+  <data name="ToolsUseNewProgramName" xml:space="preserve">
+    <value>Use the new program of {0}</value>
+  </data>
+  <data name="ToolsProgramChangedTitle" xml:space="preserve">
+    <value>The program changed</value>
+  </data>
+  <data name="ToolsProgramChangedHelp" xml:space="preserve">
+    <value>This server does not run. Its program file is not the one you added: it changed, moved or is gone. Use the new program only if you expect the change, or remove the server.</value>
+  </data>
+  <data name="ToolsFactProgramCheck" xml:space="preserve">
+    <value>Program check</value>
+  </data>
+  <data name="ToolsProgramChecked" xml:space="preserve">
+    <value>The program file is checked before every start.</value>
+  </data>
+  <data name="ToolsProgramOnlyRunner" xml:space="preserve">
+    <value>Only the runner is checked: the package it fetches can change.</value>
+  </data>
+  <data name="ToolsProgramNotPinned" xml:space="preserve">
+    <value>The program is pinned at its next start.</value>
+  </data>
+  <data name="ToolsTestProgramChanged" xml:space="preserve">
+    <value>Not started: the program changed since you added it. Use the new program first.</value>
+  </data>
   <data name="ToolsOriginTyped" xml:space="preserve">
     <value>Added by you</value>
   </data>

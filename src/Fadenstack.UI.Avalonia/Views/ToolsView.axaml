@@ -1067,6 +1067,24 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
 
+                                        <!-- A program that changed since it was added: the server does not run; "Use the new program" or Remove (footer). -->
+                                        <Border x:Name="ProgramChangedBanner" Classes="banner warning" IsVisible="{Binding HasProgramChange}"
+                                                AutomationProperties.Name="{Binding ProgramChangedTitle}">
+                                            <DockPanel>
+                                                <c:FsIcon DockPanel.Dock="Left" Classes="status" Data="{DynamicResource Icon.WarningAmber}" Margin="0,0,12,0" />
+                                                <StackPanel Spacing="8">
+                                                    <TextBlock Classes="strong" Text="{Binding ProgramChangedTitle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Assertive" />
+                                                    <TextBlock Text="{Binding ProgramChangedText}" TextWrapping="Wrap" />
+                                                    <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                                        <Button x:Name="UseNewProgramButton" Classes="secondary" Command="{Binding UseNewProgramCommand}"
+                                                                Content="{v:Text ToolsUseNewProgram}" AutomationProperties.Name="{Binding UseNewProgramName}" />
+                                                    </WrapPanel>
+                                                    <TextBlock x:Name="ProgramError" Classes="error" Text="{Binding ProgramError}" IsVisible="{Binding HasProgramError}"
+                                                               AutomationProperties.LiveSetting="Assertive" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+
                                         <!-- Trusted: only a trusted server's "reads only" hints count. -->
                                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                             <StackPanel Spacing="2">

@@ -51,6 +51,25 @@ public enum LocalServerState
     Running,
     Failed,
     NotAllowed,
+
+    /// <summary>
+    /// The program (or its script) is not the one the person added: another file, other content, or gone. It does not run until the
+    /// person says "Use the new program" or removes it (<see cref="LocalServerInfo.ProgramChange"/> says what differs).
+    /// </summary>
+    ProgramChanged,
+}
+
+/// <summary>What differs about a local server's program since the person added it (the MCP module's reason, in the view's terms).</summary>
+public enum LocalProgramChange
+{
+    /// <summary>A file has other content than when it was pinned.</summary>
+    Hash,
+
+    /// <summary>The command now names another file.</summary>
+    Path,
+
+    /// <summary>The program or its script is not there.</summary>
+    Missing,
 }
 
 /// <summary>The class a tool has now (what decides whether a call asks): a server's word alone never makes it Read.</summary>
@@ -184,6 +203,18 @@ public sealed class LocalServerInfo
 
     /// <summary>Why a connection over plain http was refused; null when it was not.</summary>
     public LocalPlainHttpRefusal? PlainHttpRefusal { get; set; }
+
+    /// <summary>What differs about the program (<see cref="LocalServerState.ProgramChanged"/>); null otherwise.</summary>
+    public LocalProgramChange? ProgramChange { get; set; }
+
+    /// <summary>
+    /// The program is a runner (<c>npx</c>, <c>uvx</c>, <c>docker</c>, ...) and no script among its arguments is pinned: only the runner
+    /// is checked, and the package it fetches can change. The drawer says so.
+    /// </summary>
+    public bool OnlyRunnerChecked { get; set; }
+
+    /// <summary>The program has a pin: it is checked before every start. False for an entry kept before pins, until its next start.</summary>
+    public bool ProgramPinned { get; set; }
 }
 
 /// <summary>A name and a value of a program's environment or an address's headers while the person edits them.</summary>
@@ -270,6 +301,9 @@ public enum TestOutcome
     Started,
 
     Failed,
+
+    /// <summary>The saved program is not the one the person added: nothing was started (<see cref="LocalServerState.ProgramChanged"/>).</summary>
+    ProgramChanged,
 }
 
 /// <summary>The result of a test. <see cref="Error"/> is a short cleaned line, never a secret.</summary>
@@ -609,6 +643,12 @@ public interface ILocalToolsCatalog
 
     /// <summary>Stops the server and starts it again (it holds from the next message).</summary>
     Task RestartAsync(string label, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// "Use the new program": the person confirms the program a changed server names now. It is pinned again and the server starts
+    /// with it. The problem when the command names no file that can be read now (nothing is changed).
+    /// </summary>
+    Task<ServerProblem> ConfirmNewProgramAsync(string label, CancellationToken cancellationToken = default);
 
     /// <summary>The host has a scanner: otherwise the page hides its Scan buttons.</summary>
     bool CanScan { get; }

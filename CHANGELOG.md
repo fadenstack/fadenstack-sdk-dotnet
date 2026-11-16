@@ -8,6 +8,9 @@ this file says where it does.
 
 ### Added
 
+- **A local MCP server's program is pinned** ([Local MCP servers: The program is pinned](docs/local-mcp.md#the-program-is-pinned)). When a program server is added, imported or its command saved, the store keeps the resolved path of the program and its SHA-256 (and of a script among the arguments: `McpServerEntry.ProgramPin`). Before every start the module hashes them again; a changed, moved or missing file does not start (`McpServerState.ProgramChanged`, "The program of {label} changed since you added it.") until the person chooses "Use the new program" in the Tools view (`McpHost.ConfirmNewProgramAsync`, `ILocalToolsCatalog.ConfirmNewProgramAsync`) or removes the server. The audit log records `local_mcp.program_changed`, `local_mcp.program_confirmed` and `local_mcp.program_pinned`. Entries kept before pins are pinned at their next successful start. A package a runner fetches (`npx @scope/server`) cannot be pinned: the Tools view says only the runner is checked. New texts in five languages.
+- **What the app reports about the device** ([The agent: What your app reports about the device](docs/agent.md#what-your-app-reports-about-the-device)). The manifest carries a `device` block (`AppManifest.Device`): a short `os`, the app's `app_version`, the plugins the app declares with the new `AgentBuilder.DescribePlugins(...)` and the local MCP programs (label, file name only, pinned hash), cut to the server's limits (`DeviceLimits`); an entry that does not fit is left out and logged (event 2018).
+
 - **Your data per app** ([Data on the device: Export and delete](docs/data-on-device.md#export-and-delete)). `DeleteMyDataAsync`
   and `ExportMyDataAsync` take a `DataScope`: `ThisApp` (the default) covers the calling app's chats, "Allow always" and
   thinking levels, and the person's shared data (skills, the MCP list, keys, provenance records, other settings) only when no

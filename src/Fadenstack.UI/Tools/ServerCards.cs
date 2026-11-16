@@ -48,7 +48,8 @@ public enum ServerStatusKind
 /// One of the person's local servers as a card on the page: an icon tile (terminal for a program, plug for an address), the label,
 /// where it came from and what it runs, the On switch, a status line with its dot, up to three tool chips and "+n", and for a server
 /// that cannot start for want of a value the fix as an inline action. The whole card opens the details drawer. A server that plain
-/// http was refused for says why in its status, in its own words for each reason.
+/// http was refused for says why in its status, in its own words for each reason; a program that changed since it was added says
+/// so, with "Review the change" opening the drawer, where "Use the new program" is (sdk/51 5.5).
 /// </summary>
 public sealed partial class LocalServerViewModel : ObservableObject, IToolsTexts
 {
@@ -60,7 +61,18 @@ public sealed partial class LocalServerViewModel : ObservableObject, IToolsTexts
         _page = page;
         Label = info.Label;
         OpenCommand = new RelayCommand(() => _page.OpenDetails(this));
-        FixCommand = new RelayCommand(() => _page.Edit(Label));
+        // A program that changed is reviewed in the drawer, where "Use the new program" is; any other fix is the edit sheet.
+        FixCommand = new RelayCommand(() =>
+        {
+            if (Info?.State == LocalServerState.ProgramChanged)
+            {
+                _page.OpenDetails(this);
+            }
+            else
+            {
+                _page.Edit(Label);
+            }
+        });
         Update(info, rootCount);
     }
 
@@ -202,6 +214,9 @@ public sealed partial class LocalServerViewModel : ObservableObject, IToolsTexts
                     case LocalServerState.Failed:
                         (StatusText, StatusKind) = (s.ToolsStateFailed(string.IsNullOrWhiteSpace(info.Detail) ? s.ToolsReasonUnknown : info.Detail!), ServerStatusKind.Problem);
                         break;
+                    case LocalServerState.ProgramChanged:
+                        (StatusText, StatusKind) = (s.ToolsStateProgramChanged(Label), ServerStatusKind.Warning);
+                        break;
                     case LocalServerState.NotAllowed:
                         (StatusText, StatusKind) = (s.ToolsStateNotAllowed, ServerStatusKind.Warning);
                         StatusTip = s.ToolsStateNotAllowedBecause(s.ToolsReasonPolicy);
@@ -224,8 +239,9 @@ public sealed partial class LocalServerViewModel : ObservableObject, IToolsTexts
             OnPropertyChanged(nameof(HasChips));
 
             // A server that cannot start for want of a value offers the fix on its card; the person fills it in on the edit sheet.
-            HasFix = info.State == LocalServerState.Failed && info.MissingValues.Count > 0 && PlainHttpRefusal is null;
-            FixText = HasFix ? s.ToolsFixAddValue : "";
+            var hasValueFix = info.State == LocalServerState.Failed && info.MissingValues.Count > 0 && PlainHttpRefusal is null;
+            HasFix = hasValueFix || info.State == LocalServerState.ProgramChanged;
+            FixText = hasValueFix ? s.ToolsFixAddValue : HasFix ? s.ToolsFixReviewProgram : "";
             OnPropertyChanged(nameof(Strings));
             OnPropertyChanged(nameof(SwitchName));
             OnPropertyChanged(nameof(OpenName));

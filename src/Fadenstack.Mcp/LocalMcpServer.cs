@@ -23,6 +23,19 @@ public sealed class LocalMcpServer
 
     public IReadOnlyList<string> Arguments { get; private set; } = Array.Empty<string>();
 
+    /// <summary>The folder a stdio program starts in; null: the app's.</summary>
+    internal string? WorkingDirectory { get; private set; }
+
+    /// <summary>The <c>PATH</c> the program is started with, when its environment sets one; null: the app's.</summary>
+    internal string? PathVariable { get; private set; }
+
+    /// <summary>
+    /// The program as the person added it or last confirmed it (sdk/51 5.5). Before every start the module hashes the program again
+    /// and does not start it when it differs (<see cref="McpServerState.ProgramChanged"/>). Null: nothing is checked, and the module
+    /// pins the program at its first successful start (an entry kept before pins). TS: none, the browser starts no program.
+    /// </summary>
+    public McpProgramPin? ProgramPin { get; set; }
+
     public Uri? Url { get; private set; }
 
     /// <summary>Opens the transport; the connection says what this host allows (plain http on the local network) and learns what was used.</summary>
@@ -89,6 +102,8 @@ public sealed class LocalMcpServer
         {
             Command = command,
             Arguments = args,
+            WorkingDirectory = workingDirectory,
+            PathVariable = McpProgramPinner.PathOf(environment),
         };
     }
 
@@ -155,6 +170,16 @@ public sealed class LocalMcpServer
         }
         return System.Net.IPAddress.IsLoopback(address);
     }
+
+    /// <summary>A program server whose transport is the caller's (tests: the check and the pin of a program, without a child process).</summary>
+    internal static LocalMcpServer ProgramWith(string label, string command, IEnumerable<string>? arguments, string? workingDirectory,
+        Func<CancellationToken, Task<IClientTransport>> transport) =>
+        new(label, (_, cancellationToken) => transport(cancellationToken))
+        {
+            Command = command,
+            Arguments = arguments?.ToList() ?? new List<string>(),
+            WorkingDirectory = workingDirectory,
+        };
 
     /// <summary>A transport that sees the host's connection rules (tests: a server that says it used the local network).</summary>
     internal static LocalMcpServer FromConnection(string label, Func<McpConnection, CancellationToken, Task<IClientTransport>> connect) =>

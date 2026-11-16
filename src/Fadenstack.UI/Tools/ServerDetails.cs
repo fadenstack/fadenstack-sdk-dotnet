@@ -212,6 +212,7 @@ public sealed partial class ServerDetailsViewModel : ObservableObject, IToolsTex
             _page.Refresh();
         });
         KeepCommand = new RelayCommand(() => IsConfirmingRemove = false);
+        UseNewProgramCommand = new AsyncRelayCommand(UseNewProgramAsync);
         ConfirmPlainHttpCommand = new AsyncRelayCommand(ConfirmPlainHttpAsync, () => IsPlainHttpWarningOpen);
         CancelPlainHttpCommand = new RelayCommand(() => IsPlainHttpWarningOpen = false, () => IsPlainHttpWarningOpen);
         Refresh(server);
@@ -294,6 +295,35 @@ public sealed partial class ServerDetailsViewModel : ObservableObject, IToolsTex
     public string TrustedNote => CanChangeMarks ? Strings.ToolsTrustedHelp : Strings.ToolsTrustedByAdmin;
 
     public string TrustedName => Strings.ToolsTrustedName(Label);
+
+    // ---- a program that changed since it was added (sdk/51 5.5) ------------------------------------------------------------
+
+    /// <summary>The server does not run because its program is not the one the person added: the drawer shows the reason and the two ways out.</summary>
+    [ObservableProperty]
+    private bool _hasProgramChange;
+
+    /// <summary>"Use the new program": pins the program the command names now and starts the server with it. The other way out is Remove.</summary>
+    public IAsyncRelayCommand UseNewProgramCommand { get; }
+
+    public string ProgramChangedTitle => Strings.ToolsProgramChangedTitle;
+
+    public string ProgramChangedText => Strings.ToolsProgramChangedHelp;
+
+    public string UseNewProgramName => Strings.ToolsUseNewProgramName(Label);
+
+    /// <summary>Why the new program could not be used; empty when nothing is wrong.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasProgramError))]
+    private string _programError = "";
+
+    public bool HasProgramError => ProgramError.Length > 0;
+
+    private async Task UseNewProgramAsync()
+    {
+        var problem = await _page.Catalog.ConfirmNewProgramAsync(Label);
+        ProgramError = problem == ServerProblem.None ? "" : ServerSheetViewModel.ProblemText(Strings, problem);
+        _page.Refresh();
+    }
 
     // ---- Advanced: plain http on the local network -----------------------------------------------------------------------
 
@@ -416,6 +446,14 @@ public sealed partial class ServerDetailsViewModel : ObservableObject, IToolsTex
             OnPropertyChanged(nameof(IsTrusted));
             OnPropertyChanged(nameof(TrustedNote));
             OnPropertyChanged(nameof(TrustedName));
+            HasProgramChange = info.State == LocalServerState.ProgramChanged;
+            if (!HasProgramChange)
+            {
+                ProgramError = "";
+            }
+            OnPropertyChanged(nameof(ProgramChangedTitle));
+            OnPropertyChanged(nameof(ProgramChangedText));
+            OnPropertyChanged(nameof(UseNewProgramName));
             ShowsAdvanced = info.PlainHttpApplies && _page.PlainHttpPermitted;
             _plainHttpOn = info.PlainHttpInLan;
             OnPropertyChanged(nameof(PlainHttpOn));
@@ -431,6 +469,9 @@ public sealed partial class ServerDetailsViewModel : ObservableObject, IToolsTex
             };
             if (info.IsProgram)
             {
+                facts.Add(info.OnlyRunnerChecked ? new FactRowViewModel(s.ToolsFactProgramCheck, s.ToolsProgramOnlyRunner)
+                    : info.ProgramPinned ? new FactRowViewModel(s.ToolsFactProgramCheck, s.ToolsProgramChecked)
+                    : new FactRowViewModel(s.ToolsFactProgramCheck, s.ToolsProgramNotPinned, isMuted: true));
                 var roots = _page.Catalog.RootNames;
                 facts.Add(roots.Count == 0 ? new FactRowViewModel(s.ToolsFactFolders, s.ToolsNoFoldersTold, isMuted: true) : new FactRowViewModel(s.ToolsFactFolders, string.Join(", ", roots)));
             }

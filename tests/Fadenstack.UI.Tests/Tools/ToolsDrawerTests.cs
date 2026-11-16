@@ -26,7 +26,7 @@ public class ToolsDrawerTests
 
         Assert.Equal("notes-db, MCP server", details.DrawerName);
         Assert.Equal(
-            [("Added", "From Claude Desktop"), ("Runs", "npx @acme/notes-mcp"), ("Told folders", "Fadenstack tests"), ("Secrets", "NOTES_DIR"), ("Longest call", "45 seconds")],
+            [("Added", "From Claude Desktop"), ("Runs", "npx @acme/notes-mcp"), ("Program check", "Only the runner is checked: the package it fetches can change."), ("Told folders", "Fadenstack tests"), ("Secrets", "NOTES_DIR"), ("Longest call", "45 seconds")],
             details.Facts.Select(f => (f.Label, f.Value)));
         Assert.Equal("Tools · 2", details.ToolsTitle);
     }
@@ -38,7 +38,7 @@ public class ToolsDrawerTests
 
         var details = Open(page, "demo");
         Assert.Equal(("Longest call", "2 minutes"), (details.Facts.Last().Label, details.Facts.Last().Value));
-        Assert.Equal(("Secrets", "None", true), (details.Facts[3].Label, details.Facts[3].Value, details.Facts[3].IsMuted));
+        Assert.Equal(("Secrets", "None", true), (details.Facts[4].Label, details.Facts[4].Value, details.Facts[4].IsMuted));
         Assert.StartsWith("Running since", details.StatusText);
 
         var calendar = Open(page, "calendar");

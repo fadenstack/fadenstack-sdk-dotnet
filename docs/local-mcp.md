@@ -163,6 +163,22 @@ An MCP server describes its own tools, and the agent does not take that descript
 
 [Host tools](tools.md#approvals) describes approvals.
 
+## The program is pinned
+
+A server that starts a program is pinned to the file the person added (`McpServerEntry.ProgramPin`, `McpProgramPin`: the full path, the SHA-256, and, when the first argument is a file such as `server.py` or `index.js`, that script's path and SHA-256 too, with the time it was pinned). The command is resolved the way the host starts it: through the entry's `PATH` (or the app's) and, on Windows, `PATHEXT`; a command with a folder in it is that file.
+
+- **When it is pinned.** When the person adds a program, imports one or saves a changed command, first argument or working folder (`McpServerStore.Add` and `Update`, so import and scan too); never from a pin that came with the entry. An edit that leaves the program alone keeps its pin.
+- **Before every start,** the module hashes the files again (this includes the start after a crash). A different hash, another resolved path or a missing file means the server does not start. Its status is `McpServerState.ProgramChanged` (`McpServerStatus.ProgramChange`: `Hash`, `Path` or `Missing`) with the reason "The program of {label} changed since you added it.", it stays that way, and the Tools view says so. The person's switch is not touched.
+- **The way out is the person's.** In the Tools view, "Use the new program" (`McpHost.ConfirmNewProgramAsync`, `ILocalToolsCatalog.ConfirmNewProgramAsync`) pins the file as it is now and starts the server; or they remove the server. A test of a changed server from the Tools view starts nothing either.
+- **The audit log** (`audit.jsonl` beside the list, as the plain-http switch) records `local_mcp.program_changed` (`hash`, `path` or `missing`), `local_mcp.program_confirmed` and `local_mcp.program_pinned`. The line names the server by its label and the kind of change; never a path, an argument or an environment value. The log line (event 3010) is as content-free.
+- **Entries from before pins** have no pin: they are pinned at their next successful start, once (`local_mcp.program_pinned`, `first_start`), and not switched off.
+- **A runner can only be checked as a runner.** `npx`, `uvx`, `node`, `python`, `docker` and the like are pinned (the runner, and a script among the arguments), but a package name (`npx @scope/server`) or an image is fetched by the runner and cannot be pinned: the SDK does not hash package caches. The details drawer says "Only the runner is checked: the package it fetches can change." A server whose command is a local file (`server.exe`, or `node` with `index.js`) is checked in full.
+- **The machine policy** still names a program by its path or file name ([Machine policy](machine-policy.md)); it cannot name a SHA-256 for one. The pin is the person's own guard.
+- **What the check cannot do.** It hashes the files just before the start; it cannot close the moment between that and the operating system starting the program, and it does not watch a program that already runs. It stops a program that changed on disk, not one that was built to change after it started.
+- A server over http has no program and no pin. The TypeScript SDK starts no program (the browser reaches MCP servers over http only), so it has nothing to pin.
+
+ASVS 5.0 V15 (the integrity of what is run), V16 (security logging, the audit entry).
+
 ## The person's own list
 
 `McpHost` keeps the person's servers per user (`users/<id>/mcp/servers.dat`, encrypted; standalone: `users/standalone/mcp`; see [Data on the device](data-on-device.md)). It gives them to the agent through `NewModule()`. Its other members:
@@ -195,7 +211,7 @@ The contract `ILocalToolsCatalog` is in `Fadenstack.Agents` (namespace `Fadensta
 **What "On this computer" shows:**
 - the policy;
 - the person's servers as cards, with status and on/off;
-- the details: the trust mark, each tool's class with the person's raise, and under *Advanced* the plain-http switch;
+- the details: the trust mark, each tool's class with the person's raise, the program check (and, for a program that changed, the reason with "Use the new program"), and under *Advanced* the plain-http switch;
 - the add and edit sheet, with secret values in password boxes: a saved value is never shown back, only dots and *Replace*;
 - import and scan;
 
@@ -208,5 +224,7 @@ The texts are in English, German, French, Spanish and Simplified Chinese. The ap
 ## What the server learns
 
 Each attached server is reported to the server (`local_mcp.attached`) with its label, its program or its address without a user, password, query or fragment, and the names of its tools. The switch's changes go as `local_mcp.plain_http`, as above. A stdio server's arguments are never reported, because they can hold secrets, and a header or environment value is never reported or logged.
+
+The manifest the agent sends at start carries, per enabled program server, its label, the program's file name (never its folder) and the pinned SHA-256, in the `device` block ([What your app reports about the device](agent.md#what-your-app-reports-about-the-device)). A pin that changed is sent with the next start.
 
 OWASP ASVS 5.0: V12 (secure communication), V13 (configuration and secrets), V15 (secure coding).
