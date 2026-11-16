@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text.Json;
 using Fadenstack.Auth;
 using Fadenstack.Endpoints;
 using Xunit;
@@ -268,9 +270,131 @@ public class EndpointCheckTests
         Assert.DoesNotContain(fake.Requests, r => r.Body.Contains("image_url"));
 
         var (asked, fake2) = Make();
+        fake2.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake2.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        fake2.Answers.Enqueue(OpenAiFake.Text("Green."));
         var with = await asked.RunAsync(new EndpointCheckOptions { ProbeVision = true });
         Assert.True(with.Vision);
         Assert.Contains(fake2.Requests, r => r.Body.Contains("image_url"));
+    }
+
+    private static async Task<(EndpointReport Report, OpenAiFake Fake)> SeeingAsync(string answer, string? reasoning = null)
+    {
+        var (check, fake) = Make();
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        fake.Answers.Enqueue(OpenAiFake.Text(answer, reasoning));
+        return (await check.RunAsync(new EndpointCheckOptions { ProbeVision = true }), fake);
+    }
+
+    [Theory]
+    [InlineData("Green.", true)]
+    [InlineData("green", true)]
+    [InlineData("It is GREEN", true)]
+    [InlineData("Blue", false)]
+    [InlineData("I cannot see images.", false)]
+    [InlineData("", false)]
+    [InlineData("greenish", false)]
+    public async Task The_vision_probe_says_true_only_for_an_answer_naming_green(string answer, bool expected)
+    {
+        var (report, _) = await SeeingAsync(answer);
+        Assert.Equal(expected, report.Vision);
+    }
+
+    [Fact]
+    public async Task The_vision_probe_reads_the_answer_not_the_reasoning()
+    {
+        Assert.False((await SeeingAsync("", "The picture is green, I think.")).Report.Vision);
+        Assert.True((await SeeingAsync("Green", "Hmm, blue?")).Report.Vision);
+    }
+
+    [Fact]
+    public async Task The_vision_probe_sends_a_64x64_green_png_as_an_image_part_and_leaves_room_for_a_reasoning_model()
+    {
+        var (_, fake) = await SeeingAsync("Green");
+        var request = fake.Requests.Single(r => r.Body.Contains("image_url"));
+        using var json = JsonDocument.Parse(request.Body);
+        Assert.Equal(256, json.RootElement.GetProperty("max_tokens").GetInt32());
+        var parts = json.RootElement.GetProperty("messages")[0].GetProperty("content").EnumerateArray().ToList();
+        Assert.Equal("What colour is this picture? One word.", parts.Single(p => p.GetProperty("type").GetString() == "text").GetProperty("text").GetString());
+        var url = parts.Single(p => p.GetProperty("type").GetString() == "image_url").GetProperty("image_url").GetProperty("url").GetString()!;
+        const string prefix = "data:image/png;base64,";
+        Assert.StartsWith(prefix, url, StringComparison.Ordinal);
+        var bytes = Convert.FromBase64String(url.Substring(prefix.Length));
+        Assert.Equal(64, (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19]); // width
+        Assert.Equal(64, (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23]); // height
+        // The same literal as in the TypeScript tests: the two SDKs send the same picture.
+        using var sha = SHA256.Create();
+        Assert.Equal("931d03be1da351bf941b2244ee433b9e69215f8294432340c1c64ab818d2a119",
+            BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
+    }
+
+    [Fact]
+    public async Task The_vision_probe_is_false_on_an_api_error()
+    {
+        var (check, fake) = Make();
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        fake.Intercept = r => r.Body.Contains("image_url") ? OpenAiFake.Error(400, "images are not supported") : null;
+        Assert.False((await check.RunAsync(new EndpointCheckOptions { ProbeVision = true })).Vision);
+    }
+
+    private static object Loaded(string name, int length) => new { models = new[] { new { name, model = name, context_length = length } } };
+
+    [Fact]
+    public async Task Ollamas_num_ctx_wins_over_api_ps()
+    {
+        var (check, fake) = Make();
+        fake.OllamaShow = new { model_info = new Dictionary<string, object> { ["qwen3.context_length"] = 40960 }, parameters = "num_ctx 16384" };
+        fake.OllamaPs = Loaded("qwen3:14b", 4096);
+        var report = await check.RunAsync();
+        Assert.Equal(16384, report.ContextLength);
+        Assert.DoesNotContain(EndpointProblem.OllamaDefaultContext, report.Problems);
+    }
+
+    [Fact]
+    public async Task Without_num_ctx_the_loaded_models_length_in_api_ps_is_the_running_one()
+    {
+        var (check, fake) = Make();
+        fake.OllamaShow = new { model_info = new Dictionary<string, object> { ["qwen3.context_length"] = 40960 }, parameters = "temperature 0.6" };
+        fake.OllamaPs = new { models = new object[] { new { name = "other:1b", context_length = 2048 }, new { name = "x", model = "qwen3:14b", context_length = 8192 } } };
+        var report = await check.RunAsync();
+        Assert.Equal(8192, report.ContextLength);
+        Assert.Equal(40960, report.ModelContextLength);
+        Assert.DoesNotContain(EndpointProblem.OllamaDefaultContext, report.Problems);
+        var paths = fake.Requests.Select(r => r.Url.AbsolutePath).ToList(); // after the chat probe loaded the model
+        Assert.True(paths.IndexOf("/api/ps") > paths.FindLastIndex(p => p.EndsWith("/chat/completions", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task The_persons_context_setting_wins_over_api_ps()
+    {
+        var (check, fake) = Make();
+        fake.OllamaShow = new { parameters = "temperature 0.6" };
+        fake.OllamaPs = Loaded("qwen3:14b", 8192);
+        Assert.Equal(32000, (await check.RunAsync(new EndpointCheckOptions { ContextLength = 32000 })).ContextLength);
+    }
+
+    [Fact]
+    public async Task Api_ps_without_the_model_leaves_the_length_unknown_and_the_problem()
+    {
+        var (check, fake) = Make();
+        fake.OllamaShow = new { model_info = new Dictionary<string, object> { ["qwen3.context_length"] = 40960 }, parameters = "temperature 0.6" };
+        fake.OllamaPs = Loaded("other:1b", 8192);
+        var report = await check.RunAsync();
+        Assert.Null(report.ContextLength);
+        Assert.Contains(EndpointProblem.OllamaDefaultContext, report.Problems);
+    }
+
+    [Fact]
+    public async Task A_failing_api_ps_leaves_the_length_unknown_and_the_problem()
+    {
+        var (check, fake) = Make();
+        fake.OllamaShow = new { model_info = new Dictionary<string, object> { ["qwen3.context_length"] = 40960 }, parameters = "temperature 0.6" };
+        var report = await check.RunAsync(); // the fake answers 404
+        Assert.Null(report.ContextLength);
+        Assert.Equal(40960, report.ModelContextLength);
+        Assert.Contains(EndpointProblem.OllamaDefaultContext, report.Problems);
     }
 
     [Fact]

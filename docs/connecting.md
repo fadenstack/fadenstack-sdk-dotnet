@@ -102,4 +102,8 @@ Chinese. The view model adds the texts that follow its state:
 - `ResultLines`;
 - `ConnectedText`.
 
+When the app's language changes, `wizard.Retext(culture)` (or `Retext(UiStrings)`) reads every one of these texts again in
+the new language and raises the change notifications, so a skin follows at once. The step, the typed values and the check
+result stay as they are.
+
 The standalone notice and the liability sentence are legal texts: their German version is the binding one.

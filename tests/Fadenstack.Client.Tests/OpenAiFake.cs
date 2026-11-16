@@ -54,6 +54,9 @@ public sealed class OpenAiFake : HttpMessageHandler
     /// <summary>Ollama's <c>/api/show</c> answer, or null for none (404).</summary>
     public object? OllamaShow { get; set; }
 
+    /// <summary>Ollama's <c>/api/ps</c> answer (the loaded models), or null for none (404).</summary>
+    public object? OllamaPs { get; set; }
+
     /// <summary>vLLM's <c>/version</c> answer, or null for none (404).</summary>
     public string? VllmVersion { get; set; }
 
@@ -114,6 +117,10 @@ public sealed class OpenAiFake : HttpMessageHandler
         if (recorded.Method == "POST" && path.EndsWith("/api/show", StringComparison.Ordinal) && OllamaShow is not null)
         {
             return Json(OllamaShow);
+        }
+        if (recorded.Method == "GET" && path.EndsWith("/api/ps", StringComparison.Ordinal) && OllamaPs is not null)
+        {
+            return Json(OllamaPs);
         }
         if (recorded.Method == "GET" && path.EndsWith("/version", StringComparison.Ordinal) && VllmVersion is not null)
         {

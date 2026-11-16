@@ -57,7 +57,10 @@ public enum EndpointPlace
 /// <summary>What the check is to do.</summary>
 public sealed record EndpointCheckOptions
 {
-    /// <summary>Also send a small picture and see whether the model takes it (optional; the person may set it instead).</summary>
+    /// <summary>
+    /// Also send a small green picture and ask for its colour; the model sees pictures only if the answer says "green"
+    /// (optional; the person may set it instead).
+    /// </summary>
     public bool ProbeVision { get; init; }
 
     /// <summary>The context length the person set, which wins over what the server says.</summary>
@@ -96,10 +99,16 @@ public sealed record EndpointReport
     /// <summary>Whether the model calls tools; false means the agent can only talk.</summary>
     public bool? ToolCalls { get; init; }
 
-    /// <summary>Whether the model took a picture; null when not probed.</summary>
+    /// <summary>
+    /// Whether the model saw a picture: its answer to a solid green one named "green". False for any other answer, an empty
+    /// one, a refusal ("I can't see images") or an API error; null when not probed.
+    /// </summary>
     public bool? Vision { get; init; }
 
-    /// <summary>The context length that applies: the person's, else the server's running setting, else null (unknown).</summary>
+    /// <summary>
+    /// The context length that applies: the person's, else the server's running setting (Ollama: the model's <c>num_ctx</c>,
+    /// else the length of the loaded model in <c>/api/ps</c>), else null (unknown).
+    /// </summary>
     public int? ContextLength { get; init; }
 
     /// <summary>The model's own maximum, where the server says (Ollama's model_info, vLLM's max_model_len).</summary>
@@ -139,7 +148,7 @@ public sealed record LocalEndpoint
 /// <summary>
 /// Checks an endpoint step by step (sdk/51 F03): <c>/models</c> (reachable, the key, the models), a one-token streamed chat
 /// (usage figures), the tool-call probe (a dummy function with <c>tool_choice: "required"</c>), optionally a picture, the
-/// context length (Ollama's <c>/api/show</c>, vLLM's <c>/models</c>, LM Studio's own API, or the person's setting), and the
+/// context length (Ollama's <c>/api/show</c> for the maximum and <c>/api/ps</c> for the length the loaded model runs with, vLLM's <c>/models</c>, LM Studio's own API, or the person's setting), and the
 /// text watermark status from the sourced table. Every request goes to the endpoint's own origin and nowhere else.
 /// </summary>
 public sealed class EndpointCheck
@@ -307,15 +316,15 @@ public sealed class EndpointCheck
             problems.Add(EndpointProblem.NoToolCalls);
         }
 
-        // 4. A picture, when asked for.
+        // 4. A picture, when asked for: only an answer that names the colour (green) counts; a model that cannot see answers anyway.
         if (options.ProbeVision)
         {
             try
             {
-                await client.GetResponseAsync([new ChatMessage(ChatRole.User,
-                    [new TextContent("What colour is this picture? One word."), new DataContent(OnePixel, "image/png")])],
-                    new ChatOptions { MaxOutputTokens = 8 }, cancellationToken).ConfigureAwait(false);
-                report = report with { Vision = true };
+                var answer = await client.GetResponseAsync([new ChatMessage(ChatRole.User,
+                    [new TextContent("What colour is this picture? One word."), new DataContent(GreenPicture, "image/png")])],
+                    new ChatOptions { MaxOutputTokens = VisionMaxTokens }, cancellationToken).ConfigureAwait(false);
+                report = report with { Vision = NamesGreen(answer.Text) }; // the answer text only, not the reasoning
             }
             catch (FadenstackApiException)
             {
@@ -501,6 +510,36 @@ public sealed class EndpointCheck
         }
     }
 
+    /// <summary>The length Ollama runs the loaded model with (<c>/api/ps</c>); null when it does not say.</summary>
+    private static async Task<int?> OllamaRunningAsync(EndpointTransport transport, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ps = await GetJsonAsync(transport, EndpointUrl.Root(transport.Base, "api/ps"), cancellationToken).ConfigureAwait(false);
+            if (ps is not { ValueKind: JsonValueKind.Object } p || !p.TryGetProperty("models", out var models)
+                || models.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+            var wanted = transport.Endpoint.Model;
+            bool Same(JsonElement entry, string name) => entry.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
+                && (v.GetString() == wanted || v.GetString() == wanted + ":latest");
+            foreach (var entry in models.EnumerateArray())
+            {
+                if (entry.ValueKind == JsonValueKind.Object && (Same(entry, "name") || Same(entry, "model"))
+                    && entry.TryGetProperty("context_length", out var length) && length.TryGetInt32(out var n))
+                {
+                    return n;
+                }
+            }
+            return null;
+        }
+        catch (FadenstackException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>The running context length and the model's maximum, where the server says.</summary>
     private async Task<(int? Running, int? Maximum)> ContextAsync(EndpointTransport transport, EndpointServer server, JsonElement? listing,
         CancellationToken cancellationToken)
@@ -515,7 +554,7 @@ public sealed class EndpointCheck
                         new { model = transport.Endpoint.Model }).ConfigureAwait(false);
                     if (show is not { ValueKind: JsonValueKind.Object } s)
                     {
-                        return (null, null);
+                        return (await OllamaRunningAsync(transport, cancellationToken).ConfigureAwait(false), null);
                     }
                     int? maximum = null;
                     if (s.TryGetProperty("model_info", out var info) && info.ValueKind == JsonValueKind.Object)
@@ -540,6 +579,9 @@ public sealed class EndpointCheck
                             }
                         }
                     }
+                    // No num_ctx in the model: the server's own default (OLLAMA_CONTEXT_LENGTH) applies, which only /api/ps of the
+                    // loaded model shows (the chat probe loaded it).
+                    running ??= await OllamaRunningAsync(transport, cancellationToken).ConfigureAwait(false);
                     return (running, maximum);
                 }
                 case EndpointServer.Vllm or EndpointServer.Sglang when listing is { } l:
@@ -650,7 +692,19 @@ public sealed class EndpointCheck
         _ => fallback,
     };
 
-    /// <summary>A one-pixel PNG for the vision probe.</summary>
-    private static readonly byte[] OnePixel = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+    /// <summary>
+    /// A 64x64 PNG of one solid green (#00A000) for the vision probe (SHA-256 of the bytes:
+    /// 931d03be1da351bf941b2244ee433b9e69215f8294432340c1c64ab818d2a119; the TypeScript SDK carries the same bytes). A model
+    /// that cannot see the picture has nothing to name, and the probe asks it for the colour.
+    /// </summary>
+    internal static readonly byte[] GreenPicture = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAATElEQVR42u3PQQkAAAgAseufwqhG8C0MVmA1/SYgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgcFlT0gCXrcLQywAAAABJRU5ErkJggg==");
+
+    /// <summary>Enough for a reasoning model to think and then answer; only the answer text is read.</summary>
+    private const int VisionMaxTokens = 256;
+
+    /// <summary>The model saw the picture when its answer names the colour: the word "green", whole, in any case.</summary>
+    internal static bool NamesGreen(string? answer) => !string.IsNullOrEmpty(answer)
+        && System.Text.RegularExpressions.Regex.IsMatch(answer, @"\bgreen\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 }

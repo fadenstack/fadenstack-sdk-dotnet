@@ -498,7 +498,8 @@ internal sealed class WizardRig : IDisposable
 
     public FakeClipboard Clipboard { get; } = new();
 
-    public UiStrings Strings { get; } = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+    /// <summary>The texts the wizard is given (German; a test may set another before it starts).</summary>
+    public UiStrings Strings { get; set; } = UiStrings.For(CultureInfo.GetCultureInfo("de"));
 
     public ConnectionWizardViewModel Wizard { get; }
 
