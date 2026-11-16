@@ -270,6 +270,16 @@
                 <TextBlock Text="{Binding Grants.BypassEndedText}" TextWrapping="Wrap" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
+        <!-- The organisation turned the agent off: the notice, and Check again (reads the profile again). The composer is disabled meanwhile. -->
+        <Border x:Name="AgentOffNotice" Padding="12,6" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,0,0,1"
+                Background="{DynamicResource Fadenstack.InfoBackground}"
+                Visibility="{Binding IsAgentOff, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+            <DockPanel>
+                <Button x:Name="CheckAgainButton" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.SecondaryButton}" Content="{Binding CheckAgainText}"
+                        AutomationProperties.Name="{Binding CheckAgainText}" Command="{Binding CheckAgainCommand}" Margin="8,0,0,0" Padding="8,2" />
+                <TextBlock Text="{Binding AgentOffText}" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.LiveSetting="Assertive" />
+            </DockPanel>
+        </Border>
         </StackPanel>
 
         <!-- Conversation -->
@@ -583,7 +593,7 @@
                 <TextBox x:Name="Composer" Grid.Row="1" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
                          TextWrapping="Wrap" MaxHeight="200" MinHeight="40" VerticalScrollBarVisibility="Auto"
                          BorderThickness="0" Background="Transparent" Foreground="{DynamicResource Fadenstack.Foreground}"
-                         CaretBrush="{DynamicResource Fadenstack.Foreground}" Padding="0,2" IsEnabled="{Binding IsReady}"
+                         CaretBrush="{DynamicResource Fadenstack.Foreground}" Padding="0,2" IsEnabled="{Binding IsInputEnabled}"
                          b:ComposerFocus.Chat="{Binding}" b:SkillKeys.Picker="{Binding SkillPicker}" AutomationProperties.Name="{local:Text Message}">
                     <TextBox.InputBindings>
                         <!-- Enter sends; Shift+Enter is a new line (AcceptsReturn) -->

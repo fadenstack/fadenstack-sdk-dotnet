@@ -187,6 +187,19 @@ public sealed class FakeGrants
         grant["revoked_by"] = by;
     }
 
+    /// <summary>The server ends every running grant (the off-switch: <c>agent_turned_off</c>).</summary>
+    public void EndAll(string by)
+    {
+        lock (_grants)
+        {
+            foreach (var grant in _grants.Where(g => (string)g["status"]! is "active" or "paused"))
+            {
+                grant["status"] = "revoked";
+                grant["revoked_by"] = by;
+            }
+        }
+    }
+
     /// <summary>What the next <c>.../grants/{id}</c> reads answer: 404 as from an older server, when false.</summary>
     public bool CanSayWhy { get; set; } = true;
 

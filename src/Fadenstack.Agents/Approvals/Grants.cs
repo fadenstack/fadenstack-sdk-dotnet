@@ -223,6 +223,11 @@ public sealed class AgentGrants
         {
             return known;
         }
+        if (EndedHere(grantId))
+        {
+            // Ended on this device: by the person ("Stop everything", at once) or with the off-switch, which needs no server to say so.
+            return _agent.TurnedOff ? "agent_turned_off" : "person";
+        }
         try
         {
             var found = await _agent.Backend.GetGrantAsync(grantId, cancellationToken).ConfigureAwait(false);

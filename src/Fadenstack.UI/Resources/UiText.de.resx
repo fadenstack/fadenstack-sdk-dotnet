@@ -2635,4 +2635,7 @@
   <data name="GrantsEndedByOff" xml:space="preserve">
     <value>Ihre Organisation hat diesen Agenten ausgeschaltet; seine Freigaben sind beendet.</value>
   </data>
+  <data name="BypassEnded_agent_turned_off" xml:space="preserve">
+    <value>Bypass beendet: Ihre Organisation hat diesen Agenten ausgeschaltet. Freigaben fragen wieder.</value>
+  </data>
 </root>

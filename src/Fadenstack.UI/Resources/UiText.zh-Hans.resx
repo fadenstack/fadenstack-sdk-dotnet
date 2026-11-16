@@ -2635,4 +2635,7 @@
   <data name="GrantsEndedByOff" xml:space="preserve">
     <value>您的组织已关闭此智能体；其授权已结束。</value>
   </data>
+  <data name="BypassEnded_agent_turned_off" xml:space="preserve">
+    <value>绕过已结束：您的组织已关闭此智能体。审批将重新询问。</value>
+  </data>
 </root>

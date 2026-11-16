@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Agents;
 using Fadenstack.UI.Services;
+using Fadenstack.UI.Skills;
 
 namespace Fadenstack.UI.Settings;
 
@@ -12,7 +13,7 @@ namespace Fadenstack.UI.Settings;
 /// The agents come as a function because they come and go. A view binds to it and holds no logic: the texts come from
 /// <see cref="Strings"/>. TypeScript: <c>StopEverythingViewModel</c>.
 /// </summary>
-public sealed class StopEverythingViewModel : ObservableObject
+public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts
 {
     private readonly Func<IEnumerable<FadenstackAgent>> _agents;
     private readonly IUiDispatcher _dispatcher;
@@ -77,6 +78,7 @@ public sealed class StopEverythingViewModel : ObservableObject
     /// <summary>Says the last result again in a new language.</summary>
     public void Retext()
     {
+        OnPropertyChanged(nameof(Strings));
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(ToolTip));
         OnPropertyChanged(nameof(ResultText));

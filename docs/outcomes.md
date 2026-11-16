@@ -55,6 +55,7 @@ switch (result.Outcome)
 | `PromptBlocked` | An input check refused the prompt. Nothing of it reached a model, and it is never sent again. The user can rephrase and send a new message. |
 | `ResponseBlocked` | An output check stopped the answer. Tool calls in it are never run. Only the question stays in the session's history. |
 | `ToolDenied` | At least one tool call was refused: by the tool mode, by the user, because an approval expired, or by the server. The answer may still be complete. |
+| `AgentDisabled` | The organisation turned the agent off (403 `agent_disabled`). The turn ended at once, or was refused without a request; the notice says "Your organisation turned this agent off." See [stop everything and the off-switch](stop-everything.md). |
 | `RateLimited` | A limit of the server applied (429). The notice carries the server's message, and its `RetryAfter` says when to try again, if the server said. |
 | `ApprovalRequired` | A call waits for the user's decision. An agent turn does not end with it, because the agent waits for the decision inside the turn. |
 

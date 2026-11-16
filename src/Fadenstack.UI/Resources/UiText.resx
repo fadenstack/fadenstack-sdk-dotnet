@@ -2962,4 +2962,7 @@
     <value>Your organisation turned this agent off; its grants have ended.</value>
     <comment>The grants view while the agent is off</comment>
   </data>
+  <data name="BypassEnded_agent_turned_off" xml:space="preserve">
+    <value>Bypass ended: your organisation turned this agent off. Approvals ask again.</value>
+  </data>
 </root>

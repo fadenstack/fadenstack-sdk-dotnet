@@ -397,8 +397,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The label of the button under the notice.</summary>
     public string CheckAgainText => Strings.AgentTurnedOffCheckAgain;
 
-    /// <summary>The composer takes input: false while the agent is off.</summary>
-    public bool IsInputEnabled => !IsAgentOff;
+    /// <summary>The composer takes input: the chat is ready and the agent is not off.</summary>
+    public bool IsInputEnabled => _isReady && !IsAgentOff;
 
     /// <summary>"Check again": reads the agent's profile again (<see cref="FadenstackAgent.CheckAgainAsync"/>); <c>enabled: true</c> clears the notice.</summary>
     public IAsyncRelayCommand CheckAgainCommand { get; }
@@ -1825,6 +1825,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private void Refresh()
     {
         OnPropertyChanged(nameof(CanSend));
+        OnPropertyChanged(nameof(IsInputEnabled));
         SendCommand.NotifyCanExecuteChanged();
         SendSuggestionCommand.NotifyCanExecuteChanged();
         StopCommand.NotifyCanExecuteChanged();
