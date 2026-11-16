@@ -29,18 +29,18 @@
     </Style>
 
     <!-- The marker under the header while the agent works alongside the person under a grant: a band, the time left, Stop. -->
-    <Style Selector="Border.grant-marker">
+    <Style Selector="Border.grant-marker, Border.agent-off">
         <Setter Property="Background" Value="{DynamicResource Fadenstack.InfoBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Fadenstack.Border}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
         <Setter Property="Padding" Value="16,6,8,6" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Fadenstack.Foreground}" />
     </Style>
-    <Style Selector="Border.grant-marker Button">
+    <Style Selector="Border.grant-marker Button, Border.agent-off Button">
         <Setter Property="Margin" Value="8,0,0,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
-    <Style Selector="Border.grant-marker c|FsIcon">
+    <Style Selector="Border.grant-marker c|FsIcon, Border.agent-off c|FsIcon">
         <Setter Property="Foreground" Value="{DynamicResource Fadenstack.AccentText}" />
         <Setter Property="Margin" Value="0,0,8,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
@@ -322,7 +322,7 @@
     <Style Selector="Grid.chat.compact ItemsControl.grant-cards">
         <Setter Property="Margin" Value="8,4,8,0" />
     </Style>
-    <Style Selector="Grid.chat.compact Border.grant-marker">
+    <Style Selector="Grid.chat.compact Border.grant-marker, Grid.chat.compact Border.agent-off">
         <Setter Property="Padding" Value="8,4" />
     </Style>
     <Style Selector="Grid.chat.compact ContentControl.bypass-card">

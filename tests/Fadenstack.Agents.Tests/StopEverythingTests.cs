@@ -360,6 +360,27 @@ public class StopEverythingTests
     }
 
     [Fact]
+    public async Task The_switch_ends_the_running_turns_of_every_chat_with_the_sentence_not_as_stopped()
+    {
+        var (agent, gateway, grants, a, b, turnA, turnB, _) = await TwoBusyChatsAsync();
+        using var _ = agent;
+        await agent.Grants.GrantForTimeAsync("read_page", TimeSpan.FromMinutes(30));
+        gateway.TurnOff();
+
+        await Assert.ThrowsAsync<FadenstackPermissionException>(() => agent.Grants.RefreshAsync()); // a route finds it out
+
+        Assert.False(await turnA || await turnB); // not stopped: the turns ended with the notice
+        Assert.All(new[] { a, b }, chat =>
+        {
+            var end = chat.Transcript.Last(e => e.Type == EntryTypes.TurnEnd).Data;
+            Assert.Equal((TurnStatus.Error, "AgentDisabled"), (end.GetProperty("status").GetString(), end.GetProperty("outcome").GetString()));
+            Assert.Equal("agent_disabled", chat.Transcript.Last(e => e.Type == EntryTypes.GovernanceNotice).Data.GetProperty("outcome").GetString());
+        });
+        Assert.Equal("revoked", grants.Status("g-1"));
+        Assert.Empty(agent.Grants.Live);
+    }
+
+    [Fact]
     public async Task Check_again_reads_the_profile_only_and_turns_the_agent_back_on_when_it_says_enabled()
     {
         var gateway = new Gateway().TurnOff().Says("Back.");

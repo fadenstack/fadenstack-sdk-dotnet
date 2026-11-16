@@ -630,7 +630,7 @@
             </DockPanel>
         </Border>
         <!-- The organisation turned the agent off: the notice, and Check again (reads the profile again). The composer is disabled meanwhile. -->
-        <Border Name="AgentOffNotice" Classes="grant-marker ended" IsVisible="{Binding IsAgentOff}">
+        <Border Name="AgentOffNotice" Classes="agent-off" IsVisible="{Binding IsAgentOff}">
             <DockPanel>
                 <Button Name="CheckAgainButton" DockPanel.Dock="Right" Classes="secondary small" Content="{Binding CheckAgainText}"
                         AutomationProperties.Name="{Binding CheckAgainText}" Command="{Binding CheckAgainCommand}" Margin="8,0,0,0" />

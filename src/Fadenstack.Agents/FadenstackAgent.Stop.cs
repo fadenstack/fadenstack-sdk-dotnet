@@ -77,7 +77,7 @@ public sealed partial class FadenstackAgent
         if (off)
         {
             Log.AgentTurnedOff(Logger, Slug);
-            StopLocal(); // the local part of "Stop everything": the grants end here, whether or not the server is asked
+            StopLocal(forOff: true); // the local part of "Stop everything": the grants end here, whether or not the server is asked
         }
         TurnedOffChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -113,13 +113,13 @@ public sealed partial class FadenstackAgent
     /// chat" approvals end, and every grant of this device's copy ends (it covers no call from now on). Returns what the server may
     /// still be told.
     /// </summary>
-    private StopPlan StopLocal()
+    private StopPlan StopLocal(bool forOff = false)
     {
         var turns = 0;
         var chatApprovals = 0;
         foreach (var chat in OpenChats())
         {
-            if (chat.Stop())
+            if (forOff ? chat.StopForOff() : chat.Stop())
             {
                 turns++;
             }

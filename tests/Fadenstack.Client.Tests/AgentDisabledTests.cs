@@ -31,6 +31,21 @@ public class AgentDisabledTests
         Assert.Equal("agent_disabled", ErrorCodes.AgentDisabled);
     }
 
+    [Theory]
+    [InlineData(300)]
+    [InlineData(120)]
+    [InlineData(600)]
+    public void An_access_tokens_lifetime_is_what_expires_in_says_whatever_it_is(int expiresIn)
+    {
+        // Core cuts the agent access token to 300 s at most (rc21); the SDK assumes no lifetime of its own.
+        var now = new DateTimeOffset(2026, 11, 16, 9, 0, 0, TimeSpan.Zero);
+        var json = $$"""{"access_token":"a","expires_in":{{expiresIn}},"refresh_token":"r","refresh_expires_in":2592000,"device_id":"d","agent_id":"x","agent":"docs-assistant"}""";
+
+        var tokens = AgentTokenProvider.FromWire(json, now);
+
+        Assert.Equal(now.AddSeconds(expiresIn), tokens.AccessExpiresAt);
+    }
+
     [Fact]
     public async Task The_profile_says_enabled_and_a_profile_without_the_key_is_on()
     {

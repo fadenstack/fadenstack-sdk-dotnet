@@ -72,6 +72,11 @@
     "Method Void OnKeyDown(Avalonia.Input.KeyEventArgs)",
     "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
   ],
+  "src/Fadenstack.UI.Avalonia/Views/StopEverythingButton.axaml.cs": [
+    "Constructor Void .ctor()",
+    "Field Fadenstack.UI.Avalonia.Views.SkillTextsFollower _texts",
+    "Method Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs)"
+  ],
   "src/Fadenstack.UI.Avalonia/Views/ToolsView.axaml.cs": [
     "Constructor Void .ctor()",
     "Field Fadenstack.UI.Tools.IToolsTexts _texts",
@@ -137,11 +142,13 @@
     "Field System.Collections.Generic.List`1[System.Windows.FrameworkElement] _sharedWith",
     "Field System.Windows.Controls.Border AboutCard",
     "Field System.Windows.Controls.Border AboutSeparator",
+    "Field System.Windows.Controls.Border AgentOffNotice",
     "Field System.Windows.Controls.Border BypassMarker",
     "Field System.Windows.Controls.Border Header",
     "Field System.Windows.Controls.Border SettingsSeparator",
     "Field System.Windows.Controls.Border SkillPicker",
     "Field System.Windows.Controls.Button AboutClose",
+    "Field System.Windows.Controls.Button CheckAgainButton",
     "Field System.Windows.Controls.ContentPresenter SettingsHost",
     "Field System.Windows.Controls.Primitives.Popup HistoryMenu",
     "Field System.Windows.Controls.Primitives.Popup ModeMenu",
@@ -279,6 +286,15 @@
     "Field System.Windows.Controls.StackPanel Column",
     "Field System.Windows.DependencyProperty ThemeProperty",
     "Method Void OnKeyDown(System.Windows.Input.KeyEventArgs)",
+    "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
+  ],
+  "src/Fadenstack.UI.Wpf/Views/StopEverythingButton.xaml.cs": [
+    "Constructor Void .cctor()",
+    "Constructor Void .ctor()",
+    "Field Boolean _contentLoaded",
+    "Field System.Windows.Controls.Button StopButton",
+    "Field System.Windows.Controls.TextBlock ResultLabel",
+    "Field System.Windows.DependencyProperty ThemeProperty",
     "Property Fadenstack.UI.Wpf.Views.ChatTheme Theme"
   ],
   "src/Fadenstack.UI.Wpf/Views/ToolsView.xaml.cs": [

@@ -168,6 +168,18 @@ public sealed class ChatSession
     /// <summary>Whether the running turn was stopped by <see cref="Stop"/> (not by the app's own token): its pending approval is answered no.</summary>
     internal bool StopRequested => _stopRequested;
 
+    private volatile bool _stoppedForOff;
+
+    /// <summary>Whether the running turn was stopped because the organisation turned the agent off: it ends with that sentence, not as stopped.</summary>
+    internal bool StoppedForOff => _stoppedForOff;
+
+    /// <summary>The off-switch stops the running turn: <see cref="Stop"/>, and the turn ends as <see cref="Governance.ChatOutcome.AgentDisabled"/>.</summary>
+    internal bool StopForOff()
+    {
+        _stoppedForOff = true;
+        return Stop();
+    }
+
     /// <summary>
     /// Stops the running turn the way the chat's own Stop button does: the turn ends as stopped (its stream throws
     /// <see cref="OperationCanceledException"/>, the transcript says <c>cancelled</c>), a tool call waiting for the person's answer is
@@ -199,6 +211,7 @@ public sealed class ChatSession
         lock (_stopGate)
         {
             _stopRequested = false;
+            _stoppedForOff = false;
             _running = stop;
         }
     }
@@ -1092,12 +1105,7 @@ public sealed class ChatSession
                     }
                 }
             }
-            catch (OperationCanceledException)
-            {
-                await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
-                throw;
-            }
-            catch (Exception e) when (IsAgentOff(e))
+            catch (Exception e) when (IsAgentOff(e) || (e is OperationCanceledException && _session.StoppedForOff))
             {
                 // The organisation turned the agent off (agent_disabled, in force at the next request): the turn ends at once, with the
                 // fixed sentence and no more requests. A grant the person had is already ended (MarkTurnedOff).
@@ -1108,6 +1116,11 @@ public sealed class ChatSession
                 }).ConfigureAwait(false);
                 await EndAsync(TurnStatus.Error, ChatOutcome.AgentDisabled).ConfigureAwait(false);
                 return;
+            }
+            catch (OperationCanceledException)
+            {
+                await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
+                throw;
             }
             catch (FadenstackRateLimitedException e)
             {
