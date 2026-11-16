@@ -1,0 +1,87 @@
+[
+  {
+    "name": "blocks a mail keeps",
+    "markdown": "## Seal check\n\nHello **Jane**, see *the manual* and `ISO VG 68`.\n\n1. Lock out\n2. Open the casing\n\n- [x] done\n\n> Install by a qualified electrician.\n\n```\na < b\n```\n\n---",
+    "html": "<h2>Seal check</h2><p>Hello <strong>Jane</strong>, see <em>the manual</em> and <code>ISO VG 68</code>.</p><ol><li>Lock out</li><li>Open the casing</li></ol><ul><li>☑ done</li></ul><blockquote><p>Install by a qualified electrician.</p></blockquote><pre><code>a &lt; b</code></pre><hr>"
+  },
+  {
+    "name": "escapes text, keeps safe links, never loads an image",
+    "markdown": "<script>alert(1)</script>\n\nSee [ok](https://example.com/?q=a&b=c) [bad](javascript:alert(1)) ![cat](https://x/cat.png) <b onclick=x>b</b>",
+    "html": "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p><p>See <a href=\"https://example.com/?q=a&amp;b=c\">ok</a> bad [cat] &lt;b onclick=x&gt;b&lt;/b&gt;</p>"
+  },
+  {
+    "name": "table with alignment",
+    "markdown": "| Task | h |\n|:--|--:|\n| Seal | 2 000 |",
+    "html": "<table><thead><tr><th style=\"text-align:left\">Task</th><th style=\"text-align:right\">h</th></tr></thead><tbody><tr><td style=\"text-align:left\">Seal</td><td style=\"text-align:right\">2 000</td></tr></tbody></table>"
+  },
+  {
+    "name": "table without alignment and centred",
+    "markdown": "| A | B | C |\n|---|:-:|---|\n| 1 | 2 | 3 |",
+    "html": "<table><thead><tr><th>A</th><th style=\"text-align:center\">B</th><th>C</th></tr></thead><tbody><tr><td>1</td><td style=\"text-align:center\">2</td><td>3</td></tr></tbody></table>"
+  },
+  {
+    "name": "nested list",
+    "markdown": "- one\n  - two\n  - three\n- four",
+    "html": "<ul><li><p>one</p><ul><li>two</li><li>three</li></ul></li><li>four</li></ul>"
+  },
+  {
+    "name": "ordered list that starts at 3",
+    "markdown": "3. a\n4. b",
+    "html": "<ol start=\"3\"><li>a</li><li>b</li></ol>"
+  },
+  {
+    "name": "emphasis inside strong",
+    "markdown": "This is **bold with *italic* inside** and ~~gone~~.",
+    "html": "<p>This is <strong>bold with <em>italic</em> inside</strong> and <del>gone</del>.</p>"
+  },
+  {
+    "name": "code span and angle brackets",
+    "markdown": "Use `a < b && c` or <div>no</div>.",
+    "html": "<p>Use <code>a &lt; b &amp;&amp; c</code> or &lt;div&gt;no&lt;/div&gt;.</p>"
+  },
+  {
+    "name": "quote with a list",
+    "markdown": "> Steps:\n>\n> - first\n> - second",
+    "html": "<blockquote><p>Steps:</p><ul><li>first</li><li>second</li></ul></blockquote>"
+  },
+  {
+    "name": "task list",
+    "markdown": "- [ ] open\n- [x] done",
+    "html": "<ul><li>☐ open</li><li>☑ done</li></ul>"
+  },
+  {
+    "name": "fenced code with a language",
+    "markdown": "```csharp\nvar x = \"1\" & 2;\n```",
+    "html": "<pre><code>var x = &quot;1&quot; &amp; 2;</code></pre>"
+  },
+  {
+    "name": "bare address and trailing full stop",
+    "markdown": "See https://example.com/a?b=1&c=2.",
+    "html": "<p>See <a href=\"https://example.com/a?b=1&amp;c=2\">https://example.com/a?b=1&amp;c=2</a>.</p>"
+  },
+  {
+    "name": "underscores in words",
+    "markdown": "The snake_case_name stays, _this_ does not.",
+    "html": "<p>The snake_case_name stays, <em>this</em> does not.</p>"
+  },
+  {
+    "name": "one line break inside a paragraph",
+    "markdown": "line one\nline two",
+    "html": "<p>line one\nline two</p>"
+  },
+  {
+    "name": "heading levels",
+    "markdown": "# One\n\n###### Six",
+    "html": "<h1>One</h1><h6>Six</h6>"
+  },
+  {
+    "name": "table cell with a pipe and emphasis",
+    "markdown": "| A | B |\n|---|---|\n| x \\| y | **z** |",
+    "html": "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>x | y</td><td><strong>z</strong></td></tr></tbody></table>"
+  },
+  {
+    "name": "empty text",
+    "markdown": "",
+    "html": ""
+  }
+]

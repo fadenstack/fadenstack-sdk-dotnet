@@ -22,6 +22,10 @@
     <Compile Include="..\..\samples\Fadenstack.Samples.Console\DemoTools.cs" Link="DemoTools.cs" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The cases both SDKs test their Markdown-to-HTML against: the TypeScript SDK has the same file. -->
+    <None Include="vectors\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->
     <None Include="..\..\src\Fadenstack.UI.Wpf\Themes\Colors.*.xaml" Link="Themes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- The card templates and the panel's key bindings, for BypassTemplateTests (read as XML). -->
