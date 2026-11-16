@@ -9,6 +9,13 @@ using Fadenstack.UI.Services;
 
 namespace Fadenstack.UI.ViewModels;
 
+/// <summary>How a copy ended: on the clipboard, or refused by the agent's policy.</summary>
+internal enum CopyOutcome
+{
+    Copied,
+    Refused,
+}
+
 public enum TurnState
 {
     Running,
@@ -39,6 +46,8 @@ public sealed class TurnViewModel : ObservableObject
     private long? _tokens;
     private TimeSpan? _elapsed;
     private bool _waitingForSlot;
+    private string _copyStatus = "";
+    private int _copyCount;
 
     /// <summary>A model call of the turn ended with nothing (<c>empty_answer</c>): Try again is offered, as for a failed turn.</summary>
     private bool _unanswered;
@@ -53,7 +62,7 @@ public sealed class TurnViewModel : ObservableObject
         Timestamp = timestamp;
         _previewLength = previewLength;
         _state = state;
-        CopyCommand = new RelayCommand(Copy, () => AnswerText.Length > 0);
+        CopyCommand = new AsyncRelayCommand(CopyAsync, () => AnswerText.Length > 0);
         EditCommand = new RelayCommand(() => _chat?.Edit(UserText), () => _chat is not null && !IsCommand && !IsRunning);
         RetryCommand = new AsyncRelayCommand(() => _chat?.SendAsync(UserText) ?? Task.CompletedTask,
             () => _chat is not null && !IsCommand && !IsRunning && (_state is TurnState.Failed or TurnState.Stopped || (_state == TurnState.Completed && _unanswered)));
@@ -132,7 +141,26 @@ public sealed class TurnViewModel : ObservableObject
     /// <summary>The answer's Markdown, for copying.</summary>
     public string AnswerText => string.Join("\n\n", Parts.OfType<MarkdownPart>().Select(p => p.Text).Where(t => t.Length > 0));
 
+    /// <summary>Copies the answer: Markdown as text and as HTML, marked as AI-generated where the agent marks (<see cref="CopyStatus"/> says how it went).</summary>
     public IRelayCommand CopyCommand { get; }
+
+    /// <summary>
+    /// What the last copy said, for a few seconds: "Copied", or, when the agent's policy refused it, "Not copied: this answer could
+    /// not be marked as AI-generated, and your organisation requires it."; empty otherwise.
+    /// </summary>
+    public string CopyStatus
+    {
+        get => _copyStatus;
+        private set
+        {
+            if (SetProperty(ref _copyStatus, value))
+            {
+                OnPropertyChanged(nameof(HasCopyStatus));
+            }
+        }
+    }
+
+    public bool HasCopyStatus => _copyStatus.Length > 0;
 
     /// <summary>Puts the message back into the composer (e.g. to rephrase a refused prompt).</summary>
     public IRelayCommand EditCommand { get; }
@@ -178,7 +206,7 @@ public sealed class TurnViewModel : ObservableObject
         if (_text is null)
         {
             CloseReasoning(DateTimeOffset.UtcNow);
-            _text = new MarkdownPart(isStreaming: true, clipboard: _chat?.Clipboard);
+            _text = new MarkdownPart(isStreaming: true, clipboard: _chat?.Clipboard, copyCode: CopyCode);
             Parts.Add(_text);
             OnPropertyChanged(nameof(StatusText));
         }
@@ -330,7 +358,7 @@ public sealed class TurnViewModel : ObservableObject
         OnPropertyChanged(string.Empty);
     }
 
-    internal void AddRestoredText(string text) => Parts.Add(new MarkdownPart(text, clipboard: _chat?.Clipboard));
+    internal void AddRestoredText(string text) => Parts.Add(new MarkdownPart(text, clipboard: _chat?.Clipboard, copyCode: CopyCode));
 
     internal ToolCallPart AddRestoredTool(string callId, string name, string source, ToolClass toolClass)
     {
@@ -384,7 +412,38 @@ public sealed class TurnViewModel : ObservableObject
         _reasoning = null;
     }
 
-    private void Copy() => _chat?.Clipboard.SetText(AnswerText);
+    /// <summary>A code block's Copy: code is exempt from marking, but the copy is recorded as exempt like any other.</summary>
+    private void CopyCode(string code)
+    {
+        if (_chat is { } chat)
+        {
+            _ = chat.CopyAsync(code, null, true, Id);
+        }
+    }
+
+    private const int CopyStatusMilliseconds = 3000;
+
+    private async Task CopyAsync()
+    {
+        if (_chat is null)
+        {
+            return;
+        }
+        var text = AnswerText;
+        var outcome = await _chat.CopyAsync(text, Markdown.MarkdownSerializer.MarkdownToHtml(text), false, Id).ConfigureAwait(true);
+        CopyStatus = outcome == CopyOutcome.Copied ? _strings.Copied : _strings.CopyRefused;
+        _ = ClearCopyStatusAsync(++_copyCount);
+    }
+
+    /// <summary>Clears the line after a few seconds, unless another copy has said something since; the command is free again meanwhile.</summary>
+    private async Task ClearCopyStatusAsync(int count)
+    {
+        await Task.Delay(CopyStatusMilliseconds).ConfigureAwait(true);
+        if (count == _copyCount)
+        {
+            CopyStatus = "";
+        }
+    }
 
     private static string Key(string callId, string name) => callId + "\u0001" + name;
 }

@@ -382,6 +382,12 @@
   <data name="CopyCode" xml:space="preserve">
     <value>复制代码</value>
   </data>
+  <data name="Copied" xml:space="preserve">
+    <value>已复制</value>
+  </data>
+  <data name="CopyRefused" xml:space="preserve">
+    <value>未复制：无法将此回答标记为人工智能生成的内容，而贵组织要求这样做。</value>
+  </data>
   <data name="NotSent" xml:space="preserve">
     <value>未发送</value>
   </data>

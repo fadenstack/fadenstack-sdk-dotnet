@@ -28,14 +28,22 @@ public sealed class MarkdownPart : ResponsePart
 {
     private bool _isStreaming;
 
-    public MarkdownPart(string? text = null, bool isStreaming = false, IClipboard? clipboard = null)
+    public MarkdownPart(string? text = null, bool isStreaming = false, IClipboard? clipboard = null, Action<string>? copyCode = null)
     {
         Document = new MarkdownDocument(text);
         _isStreaming = isStreaming;
         var copyTo = clipboard ?? NoClipboard.Instance;
         CopyCodeCommand = new ItemCommand<CodeBlock>(block =>
         {
-            if (block is not null)
+            if (block is null)
+            {
+                return;
+            }
+            if (copyCode is not null)
+            {
+                copyCode(block.Code); // through the chat: recorded as exempt code
+            }
+            else
             {
                 copyTo.SetText(block.Code);
             }

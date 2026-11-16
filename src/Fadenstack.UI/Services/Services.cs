@@ -25,12 +25,36 @@ public interface IClipboard
     void SetText(string text);
 }
 
-/// <summary>No clipboard (headless).</summary>
-public sealed class NoClipboard : IClipboard
+/// <summary>
+/// A clipboard that also takes HTML: what a copy of an answer puts there, so it pastes formatted into mail and documents. A
+/// skin's clipboard implements it where the platform can (WPF, Avalonia); the chat gives any other <see cref="IClipboard"/>
+/// the text only. TS: <c>Clipboard.setHtml</c> (<c>writeClipboard</c>).
+/// </summary>
+public interface IHtmlClipboard : IClipboard
+{
+    /// <summary>Puts the text and the HTML on the clipboard together: a program that takes no formatting gets the text.</summary>
+    void SetContent(string text, string html);
+}
+
+/// <summary>No clipboard (headless): it keeps what was copied, for tests.</summary>
+public sealed class NoClipboard : IHtmlClipboard
 {
     public static NoClipboard Instance { get; } = new();
 
     public string? LastText { get; private set; }
 
-    public void SetText(string text) => LastText = text;
+    /// <summary>The HTML of the last <see cref="SetContent"/>; null after a plain <see cref="SetText"/>.</summary>
+    public string? LastHtml { get; private set; }
+
+    public void SetText(string text)
+    {
+        LastText = text;
+        LastHtml = null;
+    }
+
+    public void SetContent(string text, string html)
+    {
+        LastText = text;
+        LastHtml = html;
+    }
 }

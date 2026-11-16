@@ -548,6 +548,12 @@ public sealed class UiStrings
 
     public string CopyCode => Text();
 
+    /// <summary>"Copied": what the answer's Copy says for a moment once the text is on the clipboard.</summary>
+    public string Copied => Text();
+
+    /// <summary>"Not copied: this answer could not be marked as AI-generated, and your organisation requires it." (the policy refused the copy)</summary>
+    public string CopyRefused => Text();
+
     public string MarkdownPreview => Text();
 
     public string MarkdownSource => Text();

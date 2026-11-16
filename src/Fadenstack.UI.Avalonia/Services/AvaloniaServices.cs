@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
 using Fadenstack.UI.Services;
@@ -23,7 +24,7 @@ public sealed class AvaloniaUiDispatcher : IUiDispatcher
 }
 
 /// <summary>The clipboard of the window the chat is in (it is told which one when it is needed, as windows come and go).</summary>
-public sealed class AvaloniaClipboard : IClipboard
+public sealed class AvaloniaClipboard : IHtmlClipboard
 {
     private readonly Func<TopLevel?> _owner;
 
@@ -34,6 +35,38 @@ public sealed class AvaloniaClipboard : IClipboard
         if (_owner()?.Clipboard is { } clipboard)
         {
             _ = SetAsync(clipboard, text);
+        }
+    }
+
+    /// <summary>
+    /// The text and the HTML together. HTML goes where the platform keeps it: Windows <c>HTML Format</c> (CF_HTML, with its
+    /// header: <see cref="ClipboardHtml"/>), macOS <c>public.html</c>, X11 and Wayland <c>text/html</c>, as UTF-8. Where the
+    /// platform's clipboard does not take it, the text goes alone.
+    /// </summary>
+    public void SetContent(string text, string html)
+    {
+        if (_owner()?.Clipboard is { } clipboard)
+        {
+            _ = SetContentAsync(clipboard, text, html);
+        }
+    }
+
+    private static async Task SetContentAsync(IPlatformClipboard clipboard, string text, string html)
+    {
+        try
+        {
+            var item = new DataTransferItem();
+            item.SetText(text);
+            var windows = OperatingSystem.IsWindows();
+            var name = windows ? "HTML Format" : OperatingSystem.IsMacOS() ? "public.html" : "text/html";
+            item.Set(DataFormat.CreateBytesPlatformFormat(name), System.Text.Encoding.UTF8.GetBytes(windows ? ClipboardHtml.ToCfHtml(html) : html));
+            var transfer = new DataTransfer();
+            transfer.Add(item);
+            await clipboard.SetDataAsync(transfer);
+        }
+        catch (Exception)
+        {
+            await SetAsync(clipboard, text); // the platform took no HTML, or another process holds the clipboard: the text still goes
         }
     }
 
