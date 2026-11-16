@@ -85,7 +85,7 @@ public class DataRightsTests : IDisposable
 
         Assert.Equal(new[]
         {
-            "README.txt", "approvals/docs-assistant.json", "approvals/other-agent.json", "apps/docs-assistant.json",
+            "README.txt", "approvals/docs-assistant.json", "approvals/other-agent.json", "apps/docs-assistant.json", "audit/tool-calls.csv",
             $"sessions/docs-assistant/{mine.Id}.json", "sessions/other-agent/s9.json",
         }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
         Assert.Contains("hello from another agent", files["sessions/other-agent/s9.json"]);
@@ -162,7 +162,7 @@ public class DataRightsTests : IDisposable
 
         Assert.Equal(new[]
         {
-            "README.txt", "apps/docs-assistant.json", "language", "mcp/audit.jsonl", "mcp/audit.jsonl.1", "mcp/servers.json",
+            "README.txt", "apps/docs-assistant.json", "audit/tool-calls.csv", "language", "mcp/audit.jsonl", "mcp/audit.jsonl.1", "mcp/servers.json",
             "preferences/reasoning.json", "preferences/skills.json", "provenance/placements.jsonl", "provenance/records/r1.json",
             "skills/notes/SKILL.md", "skills/notes/template.txt",
         }, files.Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
@@ -217,7 +217,7 @@ public class DataRightsTests : IDisposable
         await agent.ExportMyDataAsync(zip);
 
         Assert.True(zip.CanWrite);
-        Assert.Equal(new[] { "README.txt", "sessions/docs-assistant/s1.json" }, Unzip(zip).Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
+        Assert.Equal(new[] { "README.txt", "audit/tool-calls.csv", "sessions/docs-assistant/s1.json" }, Unzip(zip).Keys.OrderBy(k => k, StringComparer.Ordinal).ToArray());
     }
 
     [Fact]

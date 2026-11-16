@@ -253,12 +253,29 @@ internal static class ChatWire
     {
         var parsed = Arguments(arguments, out var error);
         var call = new FunctionCallContent(id, name, parsed) { Exception = error };
-        if (index is { } i)
+        if (index is { } i || !string.IsNullOrWhiteSpace(arguments))
         {
-            call.AdditionalProperties = new AdditionalPropertiesDictionary { [FadenstackChatOptions.CallIndex] = i };
+            call.AdditionalProperties = new AdditionalPropertiesDictionary();
+            if (index is { } at)
+            {
+                call.AdditionalProperties[FadenstackChatOptions.CallIndex] = at;
+            }
+            if (!string.IsNullOrWhiteSpace(arguments))
+            {
+                call.AdditionalProperties[FadenstackChatOptions.ArgumentsText] = arguments!;
+            }
         }
         return call;
     }
+
+    /// <summary>
+    /// The text of a call's arguments the audit log hashes (<c>arguments_sha256</c>): the model's <c>function.arguments</c> string as the
+    /// stream carried it; for a call that only has parsed arguments, the JSON this SDK writes back as <c>function.arguments</c> in its next request.
+    /// </summary>
+    public static string ArgumentsText(FunctionCallContent call) =>
+        call.AdditionalProperties?.TryGetValue(FadenstackChatOptions.ArgumentsText, out var text) == true && text is string raw
+            ? raw
+            : JsonSerializer.Serialize(call.Arguments ?? new Dictionary<string, object?>(), Compact);
 
     /// <summary>Whether an outcome refuses the prompt or the answer; any other outcome informs, and the turn goes on.</summary>
     public static bool IsRefusal(string? outcome) => outcome is "prompt_blocked" or "response_blocked";

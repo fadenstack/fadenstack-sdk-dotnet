@@ -400,7 +400,7 @@ public class AuditLogTests : IDisposable
 
         var page = Encoding.UTF8.GetString(html.ToArray());
         Assert.StartsWith("<!DOCTYPE html>", page);
-        var tags = System.Text.RegularExpressions.Regex.Matches(page, "<(/?[a-zA-Z0-9]+)").Select(m => m.Groups[1].Value.TrimStart('/')).ToHashSet();
+        var tags = System.Text.RegularExpressions.Regex.Matches(page, "<(/?[a-zA-Z0-9]+)").Cast<System.Text.RegularExpressions.Match>().Select(m => m.Groups[1].Value.TrimStart('/')).ToHashSet();
         Assert.Subset(new HashSet<string> { "html", "head", "meta", "title", "style", "body", "h1", "p", "span", "table", "thead", "tbody", "tr", "th", "td" }, tags);
         Assert.DoesNotContain("@import", page);
         Assert.DoesNotContain("url(", page);

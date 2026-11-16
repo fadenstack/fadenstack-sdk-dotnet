@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Fadenstack.Agents.Audit;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Models;
@@ -20,6 +21,8 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
     private readonly SemaphoreSlim _starting = new(1, 1);
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
+    private IAuditLog? _auditLog;
+    private DateTimeOffset _auditPruned = DateTimeOffset.MinValue;
     private AgentProfile? _profile;
     private DateTimeOffset _profileRead;
     private volatile IReadOnlyList<AgentTool> _tools = Array.Empty<AgentTool>();
@@ -203,6 +206,56 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
 
     internal IApprovalStore ApprovalStore => _settings.ApprovalStore ?? _approvalStore ?? throw new InvalidOperationException("Call StartAsync first.");
 
+    /// <summary>The person's record of tool calls: the host's (<see cref="AgentBuilder.UseAuditLog"/>), or the default file log once <see cref="StartAsync"/> knows whose it is.</summary>
+    internal IAuditLog Audit => _settings.AuditLog ?? _auditLog ?? throw new InvalidOperationException("Call StartAsync first.");
+
+    /// <summary>Whether the server takes the arguments' hash in its events and answers (<c>client_events.arguments_sha256</c>): older ones refuse the whole batch.</summary>
+    internal bool SendsArgumentsHash => ProfileOrNull?.Features.Contains(AuditChain.ArgumentsFeature) == true;
+
+    /// <summary>How long entries of the record of tool calls are kept: the machine policy's <c>auditRetentionDays</c>, else 180 days.</summary>
+    public int AuditRetentionDays => _settings.MachinePolicy.AuditRetentionDays ?? AuditRetention.DefaultDays;
+
+    /// <summary>
+    /// Checks the person's record of tool calls on this device: whether every entry reads, links, hashes and seals as it should, how
+    /// many there are and since when. A damaged record names the first entry that does not hold, never its content. TS: <c>verifyAudit()</c>.
+    /// </summary>
+    public async Task<AuditVerification> VerifyAuditAsync(CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        return await Audit.VerifyAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Writes the record of tool calls (every app of the person writes into the same one) as a CSV, or a self-contained HTML page,
+    /// with the verification result at the top. TS: <c>exportAudit(format)</c>.
+    /// </summary>
+    public async Task ExportAuditAsync(AuditExportFormat format, Stream destination, CancellationToken cancellationToken = default)
+    {
+        await StartAsync(cancellationToken).ConfigureAwait(false);
+        await Audit.ExportAsync(format, destination, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Removes entries older than <see cref="AuditRetentionDays"/> at the start and then at most once a day; the last removed entry stays in
+    /// the sealed anchor. Never fails the caller.
+    /// </summary>
+    internal async Task PruneAuditIfDueAsync()
+    {
+        if (Clock() - _auditPruned < TimeSpan.FromDays(1))
+        {
+            return;
+        }
+        _auditPruned = Clock();
+        try
+        {
+            await Audit.PruneAsync(AuditRetentionDays).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            Log.AuditNotPruned(Logger, e.GetType().Name);
+        }
+    }
+
     /// <summary>
     /// Loads the profile, checks the modules the agent requires, and settles the tools: host tools outside the
     /// agent's contract are dropped, the others get the stricter of their own and the contract's class. Without a
@@ -258,6 +311,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             _reasoningPick = _reasoningStore?.Get(Slug);
             _retentionPick = _retentionStore?.Get();
             await PruneChatsAsync(cancellationToken).ConfigureAwait(false); // an idle profile ages out too (F08), when pruning is on
+            await PruneAuditIfDueAsync().ConfigureAwait(false);
             Log.ProfileLoaded(Logger, Slug, profile.Version, profile.Edition, profile.Features.Count, profile.Principal is not null);
             Log.ToolsSettled(Logger, Slug, hostTools, tools.Count - hostTools, dropped.Count);
             if (_settings.PermissionMode == PermissionMode.Bypass && !_warned && !BypassOffered)
@@ -454,6 +508,11 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             }
         }
         _approvalStore ??= _settings.ApprovalStore is null ? new FileApprovalStore(Folder("approvals"), logger: Logger) : null;
+        // The record of tool calls is on by default; like the thinking level, it stays in memory for a host that keeps both stores itself
+        // (it has taken over the device's storage) unless the host gives a log of its own (UseAuditLog).
+        _auditLog ??= _settings.AuditLog is not null ? null
+            : _settings.Sessions is not null && _settings.ApprovalStore is not null ? new MemoryAuditLog()
+            : new FileAuditLog(Folder("audit"), logger: Logger);
         if (_reasoningStore is null && (_settings.Sessions is null || _settings.ApprovalStore is null))
         {
             // A host that keeps both stores itself has taken over the device's storage: the pick then lasts for the run only.
@@ -777,7 +836,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
         var app = scope == DataScope.ThisApp
             ? new DataExport.AppScope(AppName, folder is null ? MyDataPlan.NoUser(Slug) : MyDataApps.Plan(folder, AppName, Slug)) : null;
         var counts = await DataExport.WriteAsync(destination, SessionStore, ApprovalStore, Slug, cancellationToken, folder,
-            principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null, app).ConfigureAwait(false);
+            principal is null ? Path.Combine(FadenstackPaths.DataRoot, "preferences") : null, app, Audit).ConfigureAwait(false);
         Log.DataExported(Logger, counts.Agents, counts.Sessions, counts.Approvals, counts.Unreadable);
     }
 
@@ -827,7 +886,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable
             return DeleteThisAppsData(principal);
         }
         var folders = principal is null
-            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences") }
+            ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences"), Path.Combine(FadenstackPaths.DataRoot, "audit") }
             : new[] { FadenstackPaths.UserFolder(principal.UserId) };
         try
         {

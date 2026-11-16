@@ -138,6 +138,13 @@ public static class FadenstackChatOptions
     public const string CallIndex = "faden.call_index";
 
     /// <summary>
+    /// Set on a <see cref="FunctionCallContent"/> the stream produced: the model's <c>function.arguments</c> text exactly as the stream
+    /// carried it (a string). The audit log hashes this text (<c>arguments_sha256</c>); a call without it (a provider that hands over
+    /// parsed arguments only) is hashed by the JSON the SDK itself writes back.
+    /// </summary>
+    public const string ArgumentsText = "faden.arguments_text";
+
+    /// <summary>
     /// Set by <see cref="Endpoints.DirectChatClient"/> on a whole answer, and on the last update of a stream: what the endpoint's
     /// answer says about its text watermark, an <see cref="Endpoints.EndpointMarking"/> (sdk/51 F03, F10).
     /// </summary>

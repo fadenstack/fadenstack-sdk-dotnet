@@ -56,7 +56,7 @@ internal interface IServerTools
 /// <summary>Answers a tool approval the gateway holds.</summary>
 internal interface IGatewayApprovals
 {
-    Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken);
+    Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, string? argumentsSha256, CancellationToken cancellationToken);
 }
 
 /// <summary>The central policy for a host tool call: prepare, then check again at dispatch.</summary>
@@ -165,8 +165,8 @@ internal sealed class ServerAgentBackend : IAgentBackend, IProvenanceRoutes
 
     public Task<IReadOnlyList<AgentToolInfo>?> ListToolsAsync(CancellationToken cancellationToken) => Agent.ListToolsAsync(cancellationToken);
 
-    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken) =>
-        Agent.AnswerApprovalAsync(approvalId, approved, scope, cancellationToken);
+    public Task AnswerApprovalAsync(string approvalId, bool approved, string? scope, string? argumentsSha256, CancellationToken cancellationToken) =>
+        Agent.AnswerApprovalAsync(approvalId, approved, scope, argumentsSha256, cancellationToken);
 
     public Task<HostToolDecision> CheckHostToolAsync(HostToolCheck check, CancellationToken cancellationToken) =>
         Agent.CheckHostToolAsync(check, cancellationToken);

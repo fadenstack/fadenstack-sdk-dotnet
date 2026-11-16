@@ -38,6 +38,9 @@ public sealed record ApprovalRequest
     /// <summary>The call's arguments, for the prompt (empty for gateway tools: the gateway keeps them).</summary>
     public IReadOnlyDictionary<string, object?> Arguments { get; init; } = new Dictionary<string, object?>();
 
+    /// <summary>SHA-256 of the arguments' JSON text for the audit log and the server's events; null where the SDK never had the text.</summary>
+    internal string? ArgumentsSha256 { get; init; }
+
     /// <summary>
     /// Whether "Allow for this chat" may be offered. Never for a destructive or unclassified tool, nor for a call an
     /// admin's "Ask first" rule covers: those ask every time.

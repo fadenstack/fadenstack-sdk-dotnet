@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
+using Fadenstack.Agents.Audit;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Chat;
 using Fadenstack.Governance;
@@ -713,6 +714,10 @@ public sealed class ChatSession
         private string? _commandJson;
         private TimeSpan _commandWaited;
 
+        // What the audit log will say about the call that is running now (calls run one after the other): who or what let it run, or
+        // stopped it. Set where the decision is made (ApproveAsync, DecideAndRunAsync), written once at the end of the call (AuditAsync).
+        private ToolAudit _audit = new();
+
         private readonly ChatSession _session;
         private readonly string _id;
         private readonly ChannelWriter<AgentEvent> _writer;
@@ -894,6 +899,7 @@ public sealed class ChatSession
             if (prepared.Decision == HostToolVerdict.Deny || local == ToolModeDecision.Hidden)
             {
                 _toolDenied = true;
+                _audit.Decision = local == ToolModeDecision.Hidden && prepared.Decision != HostToolVerdict.Deny ? AuditDecisions.Hidden : AuditDecisions.RuleDenied;
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Message = prepared.Message }).ConfigureAwait(false);
                 throw new CommandDenied(prepared.Message);
             }
@@ -914,6 +920,7 @@ public sealed class ChatSession
                     Reason = prepared.Message,
                     Arguments = copy,
                     OpenWorld = tool.OpenWorld == true,
+                    ArgumentsSha256 = AuditChain.ArgumentsSha256(serialized),
                 }, prepared.RequiredByRule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, copy, cancellationToken), individual: true).ConfigureAwait(false);
                 _commandWaited += asking.Elapsed;
@@ -926,6 +933,10 @@ public sealed class ChatSession
             if (CommandJson.Of(ArgumentsElement(invocation.Arguments)) != serialized)
             {
                 throw new InvalidOperationException("The command changed after review.");
+            }
+            if (_audit.Decision == AuditDecisions.None)
+            {
+                _audit.Decision = prepared.Decision == HostToolVerdict.Run ? AuditDecisions.RuleAllowed : AuditDecisions.Mode;
             }
             var dispatched = await checks.CheckHostToolAsync(
                 CheckOf(tool, serialized, origin, null, HostToolPhase.Dispatch, prepared), cancellationToken).ConfigureAwait(false);
@@ -1225,7 +1236,10 @@ public sealed class ChatSession
             {
                 var shared = c.ModelId.Length == 0 || model.Count(o => o.ModelId == c.ModelId) > 1;
                 var call = shared
-                    ? new FunctionCallContent($"fs-{_id}-{round}-{c.Index}", c.Call.Name, c.Call.Arguments) { Exception = c.Call.Exception }
+                    ? new FunctionCallContent($"fs-{_id}-{round}-{c.Index}", c.Call.Name, c.Call.Arguments)
+                    {
+                        Exception = c.Call.Exception, AdditionalProperties = c.Call.AdditionalProperties,
+                    }
                     : c.Call;
                 var hidden = _hidden.Contains(c.Call.Name);
                 return new PlannedCall(call, denied[i] || hidden, hidden, marks[i]);
@@ -1404,14 +1418,20 @@ public sealed class ChatSession
             };
             var timeout = value.TryGetProperty("timeoutS", out var t) && t.ValueKind == JsonValueKind.Number
                 ? TimeSpan.FromSeconds(t.GetDouble()) : TimeSpan.FromMinutes(5);
+            var audit = _audit = new ToolAudit();
+            var sha = ChatWire.Str(value, "arguments") is { } text ? AuditChain.ArgumentsSha256(text) : null; // the gateway keeps them: only if its word carries them
+            request = request with { ArgumentsSha256 = sha };
             var settled = await ApproveAsync(request, Rule(value), gatewayWait: true, timeout, cancellationToken).ConfigureAwait(false);
+            // The gateway runs the tool: an approved call is recorded as released to it, a refused or unanswered one as it stands.
+            audit.NotRun = settled.TimedOut;
+            await AuditAsync(request.ToolName, request.ToolClass, "gateway", null, sha, settled.Approved ? "ok" : "denied", audit).ConfigureAwait(false);
             if (settled.TimedOut)
             {
                 return; // the gateway expires it on its own
             }
             // The gateway's own wait takes once, chat or always: an answer that also made a grant approves this call once.
             var scope = settled.Scope == ApprovalScopes.Grant ? ApprovalScopes.Once : settled.Scope;
-            await AnswerGatewayAsync(approvalId, settled.Approved, scope, cancellationToken).ConfigureAwait(false);
+            await AnswerGatewayAsync(approvalId, settled.Approved, scope, Agent.SendsArgumentsHash ? sha : null, cancellationToken).ConfigureAwait(false);
             if (!settled.Approved)
             {
                 _toolDenied = true;
@@ -1425,7 +1445,7 @@ public sealed class ChatSession
         /// with <c>approvals.idempotent</c> takes a repeated answer once (core 0.7.1 rc17); an older one answers the repeat of a
         /// taken answer 404, which counts as taken: the stream says which. Any other refusal (409 and the rest) is not retried.
         /// </summary>
-        private async Task AnswerGatewayAsync(string approvalId, bool approved, string? scope, CancellationToken cancellationToken)
+        private async Task AnswerGatewayAsync(string approvalId, bool approved, string? scope, string? argumentsSha256, CancellationToken cancellationToken)
         {
             for (var attempt = 0; ; attempt++)
             {
@@ -1433,7 +1453,7 @@ public sealed class ChatSession
                 wait.CancelAfter(Agent.ApprovalAnswerTimeout);
                 try
                 {
-                    await Agent.Backend.AnswerApprovalAsync(approvalId, approved, scope, wait.Token).ConfigureAwait(false);
+                    await Agent.Backend.AnswerApprovalAsync(approvalId, approved, scope, argumentsSha256, wait.Token).ConfigureAwait(false);
                     return;
                 }
                 catch (Exception e) when (attempt == 0 && !cancellationToken.IsCancellationRequested && Unanswered(e))
@@ -1494,6 +1514,7 @@ public sealed class ChatSession
         private async Task RunToolAsync(PlannedCall planned, CancellationToken cancellationToken)
         {
             var (call, mark) = (planned.Call, planned.Mark);
+            var audit = _audit = new ToolAudit();
             var tool = Agent.Find(call.Name);
             var source = tool?.Source ?? "host";
             var toolClass = tool is null ? ToolClass.Unknown : Stricter(tool.Class, mark?.ToolClass);
@@ -1521,12 +1542,14 @@ public sealed class ChatSession
             var hookState = new ToolHookState();
             if (tool is null)
             {
+                audit.NotRun = true;
                 (result, outcome) = (Agent.IsRefusedPictureTool(call.Name) ? ImagesDisabledResult
                     : Agent.IsGone(call.Name) ? $"{call.Name} is no longer available." : $"Tool '{call.Name}' does not exist here.", "error");
             }
             else if (planned.Denied)
             {
                 // The gateway refused the call: the hooks are told, and cannot change it.
+                audit.Decision = planned.Hidden ? AuditDecisions.Hidden : AuditDecisions.RuleDenied;
                 await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                 if (planned.Hidden)
                 {
@@ -1540,10 +1563,12 @@ public sealed class ChatSession
             }
             else if (call.Exception is not null)
             {
+                audit.NotRun = true;
                 (result, outcome) = ($"Error: the arguments are not valid JSON ({call.Exception.Message}).", "error");
             }
             else if (tool.Scope?.BeforeCall(tool, _session) is { } answered)
             {
+                audit.NotRun = true;
                 (result, outcome) = (answered, "ok"); // a tool outside the conversation's scope, now switched on
             }
             else
@@ -1555,6 +1580,8 @@ public sealed class ChatSession
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
+                    await AuditAsync(tool.Name, toolClass, source, tool.Server, AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call)), "error", audit, cancelled: true)
+                        .ConfigureAwait(false);
                     await AfterToolHooksAsync(hookState, tool, call, HookOutcome.Cancelled, watch.Elapsed, null, cancellationToken).ConfigureAwait(false);
                     throw;
                 }
@@ -1588,12 +1615,15 @@ public sealed class ChatSession
             }).ConfigureAwait(false);
             Emit(new ToolCallCompleted(call.CallId, call.Name, source, outcome, result, ran) { Pictures = pictures });
             RecordToolCall(activity, loggedName, toolClass.ToWire(), source, outcome, approval ?? "none", ran, waited);
+            var argumentsSha256 = AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call));
+            await AuditAsync(loggedName, toolClass, source, tool?.Server, argumentsSha256, outcome, audit).ConfigureAwait(false);
             if (tool is not null)
             {
                 Agent.Reporter.Add(new ToolExecutedEvent
                 {
                     ConversationId = _session.Id, Tool = call.Name, Source = source, Server = tool.Server,
                     DurationMs = (long)ran.TotalMilliseconds, Outcome = outcome,
+                    ArgumentsSha256 = Agent.SendsArgumentsHash ? argumentsSha256 : null,
                 });
             }
         }
@@ -1649,6 +1679,7 @@ public sealed class ChatSession
                     if (prepared.Decision == HostToolVerdict.Deny)
                     {
                         _toolDenied = true;
+                        _audit.Decision = AuditDecisions.RuleDenied;
                         await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                         await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Message = prepared.Message }).ConfigureAwait(false);
                         return (prepared.Message, "denied", TimeSpan.Zero, Array.Empty<DataContent>(), null);
@@ -1663,6 +1694,7 @@ public sealed class ChatSession
                 }
                 catch (Exception e)
                 {
+                    _audit.NotRun = true; // the server's word could not be had: the call did not go on
                     return ($"Error: {e.Message}", "error", TimeSpan.Zero, Array.Empty<DataContent>(), null);
                 }
             }
@@ -1671,6 +1703,7 @@ public sealed class ChatSession
             if (decided == ToolModeDecision.Hidden)
             {
                 _toolDenied = true;
+                _audit.Decision = AuditDecisions.Hidden;
                 await BeforeToolHooksAsync(hookState, tool, toolClass, call, arguments, ToolPolicyDecision.Refused, cancellationToken).ConfigureAwait(false);
                 var why = $"the tool mode is {_mode.ToWire()}";
                 await NoticeAsync(new GovernanceNotice { Outcome = "tool_denied", Stage = "tool", Category = "mode", Message = $"'{tool.Name}' is not allowed: {why}." }).ConfigureAwait(false);
@@ -1709,6 +1742,7 @@ public sealed class ChatSession
                 if (hooked.Deny)
                 {
                     _toolDenied = true;
+                    _audit.Decision = AuditDecisions.RuleDenied;
                     return ($"'{tool.Name}' was declined by the app ({hooked.Reason ?? "declined by the app"}).", "denied", TimeSpan.Zero,
                         Array.Empty<DataContent>(), null);
                 }
@@ -1742,6 +1776,7 @@ public sealed class ChatSession
                         : $"'{tool.Name}' is {toolClass.ToWire()}; the tool mode is {_mode.ToWire()}.",
                     Arguments = arguments,
                     OpenWorld = openWorld,
+                    ArgumentsSha256 = AuditChain.ArgumentsSha256(ChatWire.ArgumentsText(call)),
                 };
                 var settled = await ApproveAsync(asked, rule, gatewayWait: false, null, cancellationToken,
                     tool.Describe is null ? null : () => DescribeTargetAsync(tool, arguments, cancellationToken)).ConfigureAwait(false);
@@ -1755,6 +1790,11 @@ public sealed class ChatSession
                 approval = KindOf(settled.Scope, rule);
                 unanswered = settled.Scope == ApprovalScopes.Grant && settled.GrantId == BypassGrant;
                 coveredBy = settled.CoveredBy is { } grant ? (grant, asked) : null;
+            }
+            if (_audit.Decision == AuditDecisions.None)
+            {
+                // Nothing asked and nothing stood in the way: the server's rule said run, or the tool mode did.
+                _audit.Decision = policy?.Decision.Decision == HostToolVerdict.Run ? AuditDecisions.RuleAllowed : AuditDecisions.Mode;
             }
             var askedFor = asking.Elapsed;
             using var services = new ToolServices(Agent.Settings.ToolServices);
@@ -1843,6 +1883,57 @@ public sealed class ChatSession
                 }
             }
         }
+
+        /// <summary>What the audit log says of the call being run: the decision, its scope, and whether the call never got as far as running.</summary>
+        private sealed class ToolAudit
+        {
+            internal string Decision { get; set; } = AuditDecisions.None;
+
+            internal string? Scope { get; set; }
+
+            internal bool NotRun { get; set; }
+        }
+
+        /// <summary>
+        /// Writes the call's entry in the person's audit log (sdk/51 8.10): the decision, the scope, the outcome, and the hash of the
+        /// arguments' text -- never the arguments, the result or any text. Never breaks the turn: a log that cannot be written is
+        /// logged by its kind, the call goes on, and the next verify reports the gap (ASVS 5.0 V16).
+        /// </summary>
+        private async Task AuditAsync(string tool, ToolClass toolClass, string source, string? server, string? argumentsSha256, string outcome,
+            ToolAudit audit, bool cancelled = false)
+        {
+            try
+            {
+                await Agent.PruneAuditIfDueAsync().ConfigureAwait(false);
+                await Agent.Audit.AppendAsync(new AuditRecord
+                {
+                    App = Agent.AppName, Agent = Agent.Slug, Chat = _session.Id, Turn = _id, Tool = tool, Class = toolClass.ToWire(),
+                    Source = source, Server = server, Decision = audit.Decision, Scope = audit.Scope, ArgumentsSha256 = argumentsSha256,
+                    Outcome = cancelled ? AuditOutcomes.Cancelled
+                        : audit.NotRun || (outcome == "error" && audit.Decision == AuditDecisions.None) ? AuditOutcomes.NotRun
+                        : outcome switch
+                        {
+                            "ok" => AuditOutcomes.Ran,
+                            "denied" => AuditOutcomes.Refused,
+                            _ => AuditOutcomes.Failed,
+                        },
+                }, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                Log.AuditNotWritten(Agent.Logger, e.GetType().Name);
+            }
+        }
+
+        /// <summary>The audit scope of an approval's scope: <c>grant</c> is a grant for a time; a work or Bypass grant has none.</summary>
+        private string? AuditScopeOf(string? scope, string? grantId) => scope switch
+        {
+            ApprovalScopes.Once => AuditScopes.Once,
+            ApprovalScopes.Chat => AuditScopes.Chat,
+            ApprovalScopes.Always => AuditScopes.Always,
+            ApprovalScopes.Grant => grantId is not null && Agent.Grants.Find(grantId) is { Kind: GrantKinds.Time } ? AuditScopes.Time : null,
+            _ => null,
+        };
 
         /// <summary>What the hooks saw of one tool call, so the after-hooks match the before-hooks.</summary>
         private sealed class ToolHookState
@@ -2007,6 +2098,8 @@ public sealed class ChatSession
                 : null;
             if (standing is not null)
             {
+                (_audit.Decision, _audit.Scope) = (standing == ApprovalScopes.Grant ? AuditDecisions.ServerGrant : AuditDecisions.SavedApproval,
+                    AuditScopeOf(standing, granted));
                 await RecordAsync(request, standing, asked: false, rule, timedOut: false, waitedMs: null, granted).ConfigureAwait(false);
                 return new Settled(true, false, null, standing, granted, CoveredBy: granted);
             }
@@ -2060,6 +2153,10 @@ public sealed class ChatSession
                 _session.ApproveForChat(name, request.Source, request.Server);
             }
             var minutes = scope == ApprovalScopes.Grant ? (int?)decision!.ForTime!.Value.TotalMinutes : null;
+            _audit.Decision = decision is null ? AuditDecisions.AskedTimeout
+                : scope is null ? ((_session.Approvals ?? Agent.Settings.Approvals) is DenyAllApprovals ? AuditDecisions.Floor : AuditDecisions.AskedDenied)
+                : AuditDecisions.AskedApproved;
+            _audit.Scope = AuditScopeOf(scope, grantId);
             await RecordAsync(request, scope, asked: true, rule, timedOut: decision is null, waited, grantId, minutes, confirmed,
                 scope is null ? ApprovalDecision.CleanReason(decision?.Reason) : null).ConfigureAwait(false);
             Emit(new ApprovalDecided(request, decision is null ? ApprovalDecision.Deny("No answer in time.")
@@ -2171,6 +2268,7 @@ public sealed class ChatSession
             {
                 ConversationId = _session.Id, Tool = request.ToolName, WaitMs = waitedMs, Scope = scope, GrantId = grantId,
                 Decision = timedOut ? "timeout" : scope is not null ? "approved" : "denied",
+                ArgumentsSha256 = Agent.SendsArgumentsHash ? request.ArgumentsSha256 : null,
             });
             var toolClass = request.ToolClass.ToWire();
             Log.Approval(Agent.Logger, request.ToolName, toolClass, KindOf(scope, rule) ?? (timedOut ? "timeout" : "declined"), asked, waitedMs ?? 0);

@@ -1,3 +1,4 @@
+using Fadenstack.Agents.Audit;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Endpoints;
@@ -37,6 +38,7 @@ public sealed class AgentBuilder
     private IApprovalHandler _approvals = DenyAllApprovals.Instance;
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
+    private IAuditLog? _auditLog;
     private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
     private bool _requireHostToolPolicyChecks;
@@ -209,6 +211,18 @@ public sealed class AgentBuilder
     public AgentBuilder UseApprovalStore(IApprovalStore store)
     {
         _approvalStore = store ?? throw new ArgumentNullException(nameof(store));
+        return this;
+    }
+
+    /// <summary>
+    /// Where the record of tool calls is kept (sdk/51 8.10). On by default for every agent, in governed and standalone mode: a
+    /// hash-chained, sealed, encrypted file in the person's data folder that every app of the person on the device writes to
+    /// (<see cref="FileAuditLog"/>). Pass another log for tests (<see cref="MemoryAuditLog"/>) or to keep it in the app's own place.
+    /// TS: <c>useAuditLog(log)</c>.
+    /// </summary>
+    public AgentBuilder UseAuditLog(IAuditLog log)
+    {
+        _auditLog = log ?? throw new ArgumentNullException(nameof(log));
         return this;
     }
 
@@ -547,6 +561,7 @@ public sealed class AgentBuilder
             Approvals = _approvals,
             Sessions = _sessions,
             ApprovalStore = _approvalStore,
+            AuditLog = _auditLog,
             Retention = _retention,
             PermissionMode = _permissionMode,
             RequireHostToolPolicyChecks = _requireHostToolPolicyChecks,
@@ -629,6 +644,7 @@ internal sealed class AgentSettings
     public IStepUpHandler? StepUp => StepUpHandler ?? Approvals as IStepUpHandler;
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
+    public IAuditLog? AuditLog { get; init; }
     public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
     public bool RequireHostToolPolicyChecks { get; init; }

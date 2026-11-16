@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Fadenstack.Agents.Audit;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Auth;
 using Fadenstack.Http;
@@ -46,6 +47,12 @@ internal sealed record ExportCounts(int Agents, int Sessions, int Approvals, int
 {
     /// <summary>The other files of the person's folder that went in (preferences, skills, the MCP list, provenance).</summary>
     public int Files { get; init; }
+
+    /// <summary>How many entries of the record of tool calls went in (<c>audit/tool-calls.csv</c>); null when the record was not part of this export.</summary>
+    public int? AuditEntries { get; init; }
+
+    /// <summary>Whether the record of tool calls was intact when it went in.</summary>
+    public bool AuditIntact { get; init; } = true;
 }
 
 /// <summary>
@@ -70,7 +77,8 @@ internal static class DataExport
     /// list its agents (the host's own) is read for <paramref name="slug"/> only.
     /// </summary>
     internal static async Task<ExportCounts> WriteAsync(Stream destination, ISessionStore sessions, IApprovalStore approvals, string slug,
-        CancellationToken cancellationToken, string? personFolder = null, string? sharedPreferences = null, AppScope? scope = null)
+        CancellationToken cancellationToken, string? personFolder = null, string? sharedPreferences = null, AppScope? scope = null,
+        IAuditLog? audit = null)
     {
         using var zip = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
         // This app only, while other apps use the person's data: exactly what its removal takes (owner, 16 Nov).
@@ -120,7 +128,25 @@ internal static class DataExport
         {
             files.AddPreferences(zip, sharedPreferences);
         }
-        var counts = new ExportCounts(sessionAgents.Union(approvalAgents).Count(), sessionCount, approvalCount, unreadable) { Files = files.Count };
+        // The record of tool calls is the person's shared data, like the provenance records: in this app's export only when no other
+        // Fadenstack app uses the device (the same rule as its removal). Read through the log, so decrypted, with its verification on top.
+        int? auditEntries = null;
+        var auditIntact = true;
+        if (audit is not null && only is null)
+        {
+            using var csv = new MemoryStream();
+            await audit.ExportAsync(AuditExportFormat.Csv, csv, cancellationToken).ConfigureAwait(false);
+            var verification = await audit.VerifyAsync(cancellationToken).ConfigureAwait(false);
+            (auditEntries, auditIntact) = (verification.Entries, verification.Intact);
+            using (var entry = zip.CreateEntry("audit/tool-calls.csv").Open())
+            {
+                entry.Write(csv.GetBuffer(), 0, (int)csv.Length);
+            }
+        }
+        var counts = new ExportCounts(sessionAgents.Union(approvalAgents).Count(), sessionCount, approvalCount, unreadable)
+        {
+            Files = files.Count, AuditEntries = auditEntries, AuditIntact = auditIntact,
+        };
         Add(zip, "README.txt", Readme(counts, files, scope));
         return counts;
     }
@@ -155,7 +181,7 @@ internal static class DataExport
         }
         return parts[0] switch
         {
-            "sessions" or "approvals" => Kind.Store,
+            "sessions" or "approvals" or "audit" => Kind.Store, // the audit log's lines are encrypted: it goes in through the log (audit/tool-calls.csv)
             "keys" => Kind.Secret,
             "language" when parts.Length == 1 => Kind.Copy,
             "apps" when parts.Length == 2 && name.EndsWith(".json", StringComparison.Ordinal) => Kind.Copy,
@@ -386,6 +412,12 @@ internal static class DataExport
             .AppendLine($"- sessions/<agent>/<session>.json: {counts.Sessions} chat session(s) of {counts.Agents} agent(s), as this device stores them")
             .AppendLine("  (every entry of the transcript, decrypted).")
             .AppendLine($"- approvals/<agent>.json: {counts.Approvals} tool(s) you allowed always on this device.");
+        if (counts.AuditEntries is { } entries)
+        {
+            text.AppendLine($"- audit/tool-calls.csv: the record of tool calls this device keeps for you, {entries} entr{(entries == 1 ? "y" : "ies")}: what was run,")
+                .AppendLine("  who or what let it run or stopped it, and what became of it. No prompt, answer, argument or result text is in it: only")
+                .AppendLine("  a hash of each call's arguments. The first two lines say whether the record is " + (counts.AuditIntact ? "intact (it is)." : "intact (it is NOT: it is damaged)."));
+        }
         foreach (var kind in files.Kinds)
         {
             text.AppendLine(kind switch
@@ -419,7 +451,7 @@ internal static class DataExport
         else if (scope is { Plan.SharedGoes: false } plan)
         {
             text.AppendLine($"- What other Fadenstack apps on this device use ({string.Join(", ", plan.Plan.OtherApps.Select(a => a.Name))}): your skills,")
-                .AppendLine("  your MCP servers, your provenance records and your other settings. Export all of your Fadenstack data to get them.");
+                .AppendLine("  your MCP servers, your provenance records, your record of tool calls and your other settings. Export all of your Fadenstack data to get them.");
             if (plan.Plan.KeptAgents.Count > 0)
             {
                 text.AppendLine($"- The chats of {string.Join(", ", plan.Plan.KeptAgents)}, which another app uses too.");
