@@ -622,7 +622,7 @@
             </DockPanel>
         </Border>
         <!-- While content logging is on (8.1): until when, what is written to the logs, one click ends it. In the compact chat too. -->
-        <Border Name="ContentLoggingBand" Classes="grant-marker content-logging" IsVisible="{Binding ContentLogging.IsShown}"
+        <Border Name="ContentLoggingBand" Classes="content-logging" IsVisible="{Binding ContentLogging.IsShown}"
                 AutomationProperties.Name="{Binding ContentLogging.Text}" AutomationProperties.LiveSetting="Polite">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Classes="secondary" Content="{Binding ContentLogging.StopText}" Command="{Binding ContentLogging.StopCommand}"
