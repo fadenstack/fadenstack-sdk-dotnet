@@ -266,6 +266,8 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
 - "Your data" reads the record of tool calls each time it is shown, so its line is never stale (F5).
 - "Stop everything"'s result line clears itself, so it no longer squeezes a narrow header's title for good.
 - A mid-stream error's numeric `code` (OpenRouter sends `502`) is kept as its text (F8).
+- The AI notice is also the message field's accessible description, so a screen reader says it when the field gets focus,
+  at the first interaction (AI Act Art. 50(5)); before, Narrator reached it only six or seven items after the field.
 - The `Fadenstack.UI.Avalonia` package carries `THIRD-PARTY-NOTICES` and the fonts' OFL texts at its root, so an app that
   ships it can pass them on.
 - **A local MCP server on 2026-07-28 only attaches when it is slow to start.** The MCP SDK's 5-second probe for that revision
@@ -291,6 +293,11 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
 
 ### Security
 
+- **A machine policy file counts only when it is IT's** (Windows). Every user may create files in `%ProgramData%`, so on a
+  shared computer another user could write an app's `policy.json` and redirect or narrow everybody's agent. `MachinePolicy.Load`
+  reads the file only when it and its folders up to `%ProgramData%` are owned by SYSTEM, the Administrators or TrustedInstaller
+  and nobody else may change them (`PolicyFileTrust`); any other file is ignored as if absent (`Load(path, untrusted, out
+  ignored)` says why). OWASP ASVS 5.0 V13.1.
 - A local MCP server's parameter schema reaches the model cleaned like its tool description: every `description`,
   `title` and `$comment` text, at any depth, without the characters that hide text, cut at 1,024 characters (OWASP ASVS
   5.0 V1).
