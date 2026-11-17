@@ -976,12 +976,22 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
     public async Task<DataDeletion> DeleteMyDataAsync(DataScope scope, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        var deletion = DeleteSdkData(scope);
+        // The host's own data (AgentBuilder.UseHostData) goes after the SDK's, whichever the scope, so a host's removal that fails
+        // never keeps the SDK's data; it is counted with the SDK's own.
+        if (_settings.HostData is { } host)
+        {
+            deletion = deletion with { FoldersRemoved = deletion.FoldersRemoved + await host(scope, cancellationToken).ConfigureAwait(false) };
+        }
+        return deletion;
+    }
+
+    private DataDeletion DeleteSdkData(DataScope scope)
+    {
         var principal = Profile.Principal;
-        // The host's own data (AgentBuilder.UseHostData) goes first, whichever the scope, and is counted with the SDK's own.
-        var hostRemoved = _settings.HostData is { } host ? await host(scope, cancellationToken).ConfigureAwait(false) : 0;
         if (scope == DataScope.ThisApp)
         {
-            return DeleteThisAppsData(principal, hostRemoved);
+            return DeleteThisAppsData(principal);
         }
         var folders = principal is null
             ? new[] { Path.Combine(FadenstackPaths.DataRoot, "sessions"), Path.Combine(FadenstackPaths.DataRoot, "approvals"), Path.Combine(FadenstackPaths.DataRoot, "preferences"), Path.Combine(FadenstackPaths.DataRoot, "audit") }
@@ -990,7 +1000,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
         {
             var removed = folders.Count(FadenstackPaths.DeleteUnderData);
             Log.DataDeleted(Logger, removed);
-            var deletion = new DataDeletion(removed + hostRemoved, _settings.Sessions is not null, _settings.ApprovalStore is not null) { Scope = DataScope.AllApps };
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null) { Scope = DataScope.AllApps };
             _reasoningPick = null;
             _retentionPick = null;
             if (deletion.HostStoresLeft)
@@ -1008,7 +1018,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
 
     // This app's part (DataScope.ThisApp). From a gateway that names no user, the shared folders of an older SDK: this agent's
     // sessions, "Allow always" and thinking level only (MyDataPlan.NoUser); the other agents' data and the shared preferences stay.
-    private DataDeletion DeleteThisAppsData(AgentPrincipal? principal, int hostRemoved)
+    private DataDeletion DeleteThisAppsData(AgentPrincipal? principal)
     {
         try
         {
@@ -1043,7 +1053,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
             {
                 _retentionPick = null;
             }
-            var deletion = new DataDeletion(removed + hostRemoved, _settings.Sessions is not null, _settings.ApprovalStore is not null)
+            var deletion = new DataDeletion(removed, _settings.Sessions is not null, _settings.ApprovalStore is not null)
             {
                 Scope = DataScope.ThisApp,
                 OtherApps = plan.OtherApps.Select(a => a.Name).ToList(),

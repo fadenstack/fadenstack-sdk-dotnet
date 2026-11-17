@@ -289,6 +289,20 @@ public class DataRightsTests : IDisposable
     }
 
     [Fact]
+    public async Task A_host_removal_that_fails_never_keeps_the_sdks_data()
+    {
+        // The SDK's removal runs first (GDPR Art. 17): a host callback that throws comes after it, and its error reaches the caller.
+        await Seed("u-1", "other-agent", "s9", "also mine");
+        using var agent = Plain(new Gateway { Principal = Principal })
+            .UseHostData((_, _) => throw new InvalidOperationException("the host's store is locked")).Build();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => agent.DeleteMyDataAsync(DataScope.AllApps));
+
+        Assert.Equal("the host's store is locked", error.Message);
+        Assert.False(Directory.Exists(Data("users", "u-1")));
+    }
+
+    [Fact]
     public async Task Without_a_principal_deleting_removes_the_shared_folders_only()
     {
         using var agent = Plain(new Gateway()).Build();
