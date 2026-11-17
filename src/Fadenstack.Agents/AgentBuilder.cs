@@ -235,7 +235,10 @@ public sealed class AgentBuilder
     /// The host's own data that <see cref="FadenstackAgent.DeleteMyDataAsync(DataScope, CancellationToken)"/> removes with the SDK's:
     /// what the app keeps itself (for example the endpoint key store behind <c>IEndpointKeyStore</c>). <paramref name="remove"/> gets
     /// the scope and returns how many things it removed; the count goes into <see cref="DataDeletion.FoldersRemoved"/>. Without
-    /// this, what the app keeps itself stays. TS: <c>useHostData({ indexedDb, localStoragePrefixes, remove })</c>.
+    /// this, what the app keeps itself stays. It runs on every call of <see cref="FadenstackAgent.DeleteMyDataAsync(DataScope, CancellationToken)"/>,
+    /// whoever makes it: an app that also calls it for something narrower (deleting the chats when the person signs out)
+    /// removes its own data there too, so it runs that removal from its own "Remove my data" instead (the desktop does).
+    /// TS: <c>useHostData({ indexedDb, localStoragePrefixes, remove })</c>.
     /// </summary>
     public AgentBuilder UseHostData(Func<DataScope, CancellationToken, Task<int>> remove)
     {
