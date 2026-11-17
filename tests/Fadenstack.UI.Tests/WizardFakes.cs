@@ -224,6 +224,12 @@ public sealed class FakeEndpointChecker : IEndpointChecker
 
     public List<ModelEndpoint> Checked { get; } = new();
 
+    /// <summary>The options each check was asked with (the wizard asks for the picture probe).</summary>
+    public List<EndpointCheckOptions?> CheckOptions { get; } = new();
+
+    /// <summary>When set, answers the checks instead of the script (a test that runs the real check against a fake endpoint).</summary>
+    public Func<ModelEndpoint, CancellationToken, EndpointCheckOptions?, Task<EndpointReport>>? Override { get; set; }
+
     public Task<IReadOnlyList<LocalEndpoint>> FindLocalAsync(CancellationToken cancellationToken) => Find.Next(cancellationToken);
 
     public Task<EndpointPlace> PlaceOfAsync(Uri baseUrl, CancellationToken cancellationToken)
@@ -236,9 +242,14 @@ public sealed class FakeEndpointChecker : IEndpointChecker
         return Task.FromResult(Places.TryGetValue(baseUrl.Host, out var place) ? place : EndpointPlace.Internet);
     }
 
-    public Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken)
+    public Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken, EndpointCheckOptions? options = null)
     {
         Checked.Add(endpoint);
+        CheckOptions.Add(options);
+        if (Override is { } real)
+        {
+            return real(endpoint, cancellationToken, options);
+        }
         return Report.HasScript
             ? Report.Next(cancellationToken)
             : Task.FromResult(Reports.Usable(endpoint.BaseUrl, endpoint.Model.Length > 0 ? endpoint.Model : "m1"));

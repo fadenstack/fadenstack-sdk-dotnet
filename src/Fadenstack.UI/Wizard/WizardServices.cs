@@ -164,8 +164,11 @@ public sealed class EndpointChecker : IEndpointChecker
     public Task<EndpointPlace> PlaceOfAsync(Uri baseUrl, CancellationToken cancellationToken) =>
         EndpointCheck.PlaceOfAsync(baseUrl, cancellationToken);
 
-    public Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken) =>
-        new EndpointCheck(endpoint).RunAsync(_options, cancellationToken);
+    public Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken, EndpointCheckOptions? options = null) =>
+        new EndpointCheck(endpoint).RunAsync(options is null ? _options : (_options ?? new EndpointCheckOptions()) with
+        {
+            ProbeVision = _options?.ProbeVision == true || options.ProbeVision,
+        }, cancellationToken);
 }
 
 /// <summary>The wizard's clock on this computer: timers that run their action on the UI thread.</summary>

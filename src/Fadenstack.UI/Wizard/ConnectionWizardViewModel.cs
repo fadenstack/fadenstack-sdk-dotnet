@@ -1262,11 +1262,21 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
                 Go(WizardStep.OwnPick);
                 return;
         }
+        await CheckEndpointAsync(endpoint, run);
+    }
+
+    /// <summary>
+    /// The check itself. With no model named it lists the models and sends nothing to any of them (F3): one model is taken and
+    /// checked at once, several go to the pick, and the picked model's check (chat, tools, a picture, the context) comes after.
+    /// </summary>
+    private async Task CheckEndpointAsync(ModelEndpoint endpoint, CancellationTokenSource run)
+    {
         Go(WizardStep.OwnChecking);
         EndpointReport report;
         try
         {
-            report = await _checker.CheckAsync(endpoint, run.Token).ConfigureAwait(false);
+            // The check of the model the person picked also looks at pictures (F2): one small request.
+            report = await _checker.CheckAsync(endpoint, run.Token, new EndpointCheckOptions { ProbeVision = true }).ConfigureAwait(false);
         }
         catch (Exception e) when (e is not OperationCanceledException || !run.IsCancellationRequested)
         {
@@ -1288,6 +1298,24 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
             return;
         }
         Report = report;
+        if (string.IsNullOrEmpty(endpoint.Model) && string.IsNullOrEmpty(report.Model) && report.Reachable && report.KeyAccepted != false
+            && report.Models.Count > 0)
+        {
+            Problem = null;
+            Models = report.Models;
+            if (report.Models.Count == 1)
+            {
+                // One model: it is taken (the model step is skipped) and checked at once.
+                var only = report.Models[0];
+                _pending = _pending! with { Model = only };
+                SelectedModel = only;
+                await CheckEndpointAsync(endpoint with { Model = only }, run);
+                return;
+            }
+            SelectedModel = null;
+            Go(WizardStep.OwnModel); // several: the person picks, then the picked model is checked
+            return;
+        }
         if (!report.Usable)
         {
             Problem = Blocking.FirstOrDefault(report.Problems.Contains) is var first && report.Problems.Contains(first)
@@ -1297,7 +1325,7 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
         }
         Problem = null;
         Models = report.Models.Count > 0 ? report.Models : string.IsNullOrEmpty(report.Model) ? Array.Empty<string>() : [report.Model];
-        _pending = _pending with { Model = report.Model };
+        _pending = _pending! with { Model = report.Model };
         SelectedModel = report.Model;
         Go(WizardStep.OwnResult);
     }
@@ -1492,7 +1520,14 @@ public sealed class ConnectionWizardViewModel : ObservableObject, IDisposable
                 OpenPick();
                 break;
             case WizardStep.OwnModel:
-                Go(WizardStep.OwnResult);
+                if (string.IsNullOrEmpty(_report?.Model))
+                {
+                    OpenPick(); // the models were listed without a check of any: nothing to show
+                }
+                else
+                {
+                    Go(WizardStep.OwnResult);
+                }
                 break;
         }
     }

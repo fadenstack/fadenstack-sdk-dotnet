@@ -355,6 +355,12 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Réfléchit le plus longtemps.</value>
   </data>
+  <data name="ReasoningOffLowestDescription" xml:space="preserve">
+    <value>Ce modèle réfléchit toujours. Désactivée utilise son niveau le plus bas.</value>
+  </data>
+  <data name="ReasoningOffStillThinksDescription" xml:space="preserve">
+    <value>Ce modèle réfléchit même lorsque c'est désactivé.</value>
+  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Réflexion : {0}</value>
   </data>

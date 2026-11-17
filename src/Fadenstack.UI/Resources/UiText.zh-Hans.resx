@@ -355,6 +355,12 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>思考最久。</value>
   </data>
+  <data name="ReasoningOffLowestDescription" xml:space="preserve">
+    <value>该模型始终会思考。“关闭”使用它的最低级别。</value>
+  </data>
+  <data name="ReasoningOffStillThinksDescription" xml:space="preserve">
+    <value>该模型即使在“关闭”时也会思考。</value>
+  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>思考：{0}</value>
   </data>

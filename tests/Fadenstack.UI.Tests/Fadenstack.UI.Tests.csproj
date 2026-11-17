@@ -15,6 +15,7 @@
     <!-- The real skills workshop for the skill editor's view model tests (a temporary folder). -->
     <ProjectReference Include="..\..\src\Fadenstack.Skills\Fadenstack.Skills.csproj" />
     <Compile Include="..\Fadenstack.Client.Tests\FakeServer.cs" Link="FakeServer.cs" />
+    <Compile Include="..\Fadenstack.Client.Tests\OpenAiFake.cs" Link="OpenAiFake.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\Gateway.cs" Link="Gateway.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\PageTools.cs" Link="PageTools.cs" />
     <Compile Include="..\Fadenstack.Agents.Tests\FakeGrants.cs" Link="FakeGrants.cs" />

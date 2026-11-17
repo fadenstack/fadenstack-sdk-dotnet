@@ -355,6 +355,12 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Piensa durante más tiempo.</value>
   </data>
+  <data name="ReasoningOffLowestDescription" xml:space="preserve">
+    <value>Este modelo siempre piensa. Desactivado usa su nivel más bajo.</value>
+  </data>
+  <data name="ReasoningOffStillThinksDescription" xml:space="preserve">
+    <value>Este modelo piensa incluso con Desactivado.</value>
+  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Razonamiento: {0}</value>
   </data>
