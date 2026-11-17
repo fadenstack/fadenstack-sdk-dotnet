@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Fadenstack.Agents;
 
 namespace Fadenstack.Mcp;
@@ -43,6 +45,55 @@ internal static class McpText
     /// stray control characters removed; everything else stays.
     /// </summary>
     internal static string CleanResult(string text) => UntrustedContent.Clean(text);
+
+    /// <summary>What a description or title inside a tool's parameter schema carries at most, as the tool's own description.</summary>
+    internal const int MaxSchemaTextChars = 1024;
+
+    /// <summary>
+    /// A tool's parameter schema for the model: every <c>description</c>, <c>title</c> and <c>$comment</c> text in it, at any depth,
+    /// is cleaned like <see cref="CleanResult"/> and cut at <see cref="MaxSchemaTextChars"/>, as the tool's own description is.
+    /// Before, only the tool's description was cleaned, so a parameter's description could carry hidden text to the model. Names,
+    /// types, enums and defaults stay as the server wrote them: a call must send them back exactly. OWASP ASVS 5.0 V1 (encoding and
+    /// sanitization): a server's words reach the model only cleaned. TS: <c>cleanSchema</c>.
+    /// </summary>
+    internal static JsonElement CleanSchema(JsonElement schema)
+    {
+        if (schema.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+        {
+            return schema;
+        }
+        var node = JsonNode.Parse(schema.GetRawText());
+        CleanSchemaNode(node);
+        using var document = JsonDocument.Parse(node!.ToJsonString());
+        return document.RootElement.Clone();
+    }
+
+    private static void CleanSchemaNode(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                foreach (var key in obj.Select(pair => pair.Key).ToList())
+                {
+                    var value = obj[key];
+                    if (key is "description" or "title" or "$comment" && value is JsonValue text && text.TryGetValue<string>(out var words))
+                    {
+                        obj[key] = Cut(CleanResult(words).Trim(), MaxSchemaTextChars);
+                    }
+                    else
+                    {
+                        CleanSchemaNode(value); // a property named "description" holds a schema, not text: it is walked
+                    }
+                }
+                break;
+            case JsonArray array:
+                foreach (var item in array)
+                {
+                    CleanSchemaNode(item);
+                }
+                break;
+        }
+    }
 
     /// <summary>Plain characters only (letters, digits, space, dot, dash, underscore), for names that stand outside a fence.</summary>
     internal static string Plain(string? text, int limit) => UntrustedContent.Plain(text, limit);

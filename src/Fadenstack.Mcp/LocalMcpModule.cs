@@ -1665,7 +1665,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 hints?.Title is null ? null : McpText.OneLine(hints.Title, 120), hints?.ReadOnlyHint, hints?.DestructiveHint, hints?.IdempotentHint,
                 hints?.OpenWorldHint));
             OpenWorld = hints?.OpenWorldHint;
-            Function = new McpFunction(module, this, tool.JsonSchema);
+            Function = new McpFunction(module, this, McpText.CleanSchema(tool.JsonSchema)); // the parameters' words too, not only the tool's
         }
 
         public ServerEntry Server { get; }
