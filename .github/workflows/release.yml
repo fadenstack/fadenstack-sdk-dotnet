@@ -4,7 +4,8 @@ name: Release
 # tag must name it. A version with a suffix (v0.3.0-rc.1) is published as a prerelease.
 #
 # The jobs, in order:
-#   build           tests on Windows, packs the packages and keeps them as the run's artifact `packages`.
+#   build           tests on Windows, packs the packages and keeps them as the run's artifacts: `packages` (nuget.org's in
+#                   artifacts/, the delegation package in private/) and `release-files` (every .nupkg in one flat folder).
 #   github-release  a GitHub release for the tag, holding the packages as built here.
 #   supply-chain    core's shared release workflow (fadenstack/fadenstack, pinned by commit): an SBOM per package to BSI
 #                   TR-03183-2, the OSV scan with OpenVEX and CSAF (.vex/openvex.json holds this repository's statements),
@@ -125,6 +126,21 @@ jobs:
             artifacts/
             private/
 
+      # The release files, every .nupkg in one flat folder: the shared supply chain and the GitHub release read each file as
+      # <folder>/<name>, so the delegation package may not sit in a folder of its own there.
+      - name: Gather the release files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-files | Out-Null
+          Copy-Item artifacts/*.nupkg, private/*.nupkg -Destination release-files
+          if (-not (Get-ChildItem release-files -Filter *.nupkg)) { throw "No packages to release." }
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-files
+          path: release-files/
+          if-no-files-found: error
+
   github-release:
     if: github.ref_type == 'tag'
     needs: build
@@ -134,7 +150,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: packages
+          name: release-files
           path: packages
 
       # A rerun finds the release already made and replaces its packages with this run's.
@@ -179,7 +195,7 @@ jobs:
       supplier_name: Emagin8 UG (haftungsbeschränkt)
       supplier_url: https://fadenstack.com
       licence: Apache-2.0
-      files_artifact: packages
+      files_artifact: release-files
       files: "*.nupkg"
       signing: keyless
       attest: true
