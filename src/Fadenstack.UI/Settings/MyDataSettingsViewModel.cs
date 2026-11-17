@@ -281,6 +281,12 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         OnPropertyChanged(nameof(AuditLine));
     }
 
+    /// <summary>
+    /// Reads what the control shows again, so it says what is true now (the record of tool calls grows as the agents work). The views call
+    /// it whenever the control is shown: when it loads and when it becomes visible. Cheap; does nothing while an action works. TS: <c>refresh()</c>.
+    /// </summary>
+    public Task RefreshAsync() => IsBusy ? Task.CompletedTask : RefreshAuditAsync();
+
     /// <summary>Checks the record of tool calls again (it changes as the agents work); a failed check is a sentence, never its reason.</summary>
     public async Task RefreshAuditAsync()
     {
