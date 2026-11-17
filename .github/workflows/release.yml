@@ -3,6 +3,20 @@ name: Release
 # A tag v<version> publishes the packages to nuget.org. The version is the one in Directory.Build.props, and the
 # tag must name it. A version with a suffix (v0.3.0-rc.1) is published as a prerelease.
 #
+# The jobs, in order:
+#   build           tests on Windows, packs the packages and keeps them as the run's artifact `packages`.
+#   github-release  a GitHub release for the tag, holding the packages as built here.
+#   supply-chain    core's shared release workflow (fadenstack/fadenstack, pinned by commit): an SBOM per package to BSI
+#                   TR-03183-2, the OSV scan with OpenVEX and CSAF (.vex/openvex.json holds this repository's statements),
+#                   the OpenSSF Scorecard, keyless cosign signatures and GitHub's attestations, all added to the release.
+#   publish         nuget.org and the fadenstack feed, only after the supply chain passed: a high-severity finding
+#                   without a VEX statement stops the release before anything is published (CRA Annex I part II).
+# nuget.org adds its own repository signature to each package, so the file there differs from the one on the release;
+# the signatures and attestations verify the release's file.
+#
+# Run by hand (workflow_dispatch) it is a dry run: build and the supply chain's SBOMs, scan and Scorecard only, shown in
+# the run's summary; nothing is signed, uploaded or published.
+#
 # nuget.org trusts this workflow (trusted publishing): NuGet/login trades the job's GitHub OIDC token for an API key
 # that lasts an hour, so no key is stored. The policy on nuget.org names this file (release.yml) and the
 # environment `nuget`; NUGET_USER is the nuget.org account the policy belongs to.
@@ -15,6 +29,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,14 +39,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
     # Windows: the released Fadenstack.UI.Wpf (net472, net8.0-windows) is built on the platform it runs on.
     runs-on: windows-latest
-    environment: nuget
     permissions:
       contents: read
-      id-token: write
-      packages: write
+      packages: read # A2A from the fadenstack feed
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -41,13 +56,15 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: The tag names the version
+      - name: The version (a tag names it)
+        id: version
         shell: pwsh
         run: |
           $version = (Select-Xml -Path Directory.Build.props -XPath '//Version').Node.InnerText.Trim()
-          if ("v$version" -ne $env:GITHUB_REF_NAME) {
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and "v$version" -ne $env:GITHUB_REF_NAME) {
             throw "The tag $env:GITHUB_REF_NAME does not match the version $version in Directory.Build.props."
           }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       # A2A only from the fadenstack feed, everything else only from nuget.org: no package can come from the other source
       # (dependency confusion). NuGet reads the token from the environment of the step that restores.
@@ -108,6 +125,87 @@ jobs:
             artifacts/
             private/
 
+  github-release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # creates the release
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: packages
+
+      # A rerun finds the release already made and replaces its packages with this run's.
+      - name: Create the release with the packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find packages -type f -name '*.nupkg' | sort)
+          [ "${#files[@]}" -gt 0 ] || { echo "::error::No packages in the artifact"; exit 1; }
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+            exit 0
+          fi
+          prerelease=()
+          case "$VERSION" in *-*) prerelease=(--prerelease) ;; esac
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag "${prerelease[@]}" \
+            --title "Fadenstack .NET SDK $VERSION" \
+            --notes "The packages of this release as its workflow built them; nuget.org serves the same packages with its own repository signature added. What changed is in CHANGELOG.md. The supply-chain job adds an SBOM per package (CycloneDX, BSI TR-03183-2), the vulnerability report (OpenVEX, CSAF), cosign signatures and the build provenance." \
+            "${files[@]}"
+
+  supply-chain:
+    needs: [build, github-release]
+    # On a tag after the GitHub release; run by hand, a dry run without one.
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.github-release.result == 'success' || (github.ref_type != 'tag' && needs.github-release.result == 'skipped')) }}
+    # The called workflow asks for more than read on its publish job, and a caller must grant that ceiling or the run does
+    # not start. A dry run never uses the write grants: that job is skipped. No secrets are passed: keyless signing in a
+    # public repository needs none.
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      packages: write
+      actions: read
+    uses: fadenstack/fadenstack/.github/workflows/release-supply-chain.yml@6dd382f990c5c922154857cfdb5da3cdc6202c67
+    with:
+      product: fadenstack-sdk-dotnet
+      version: ${{ needs.build.outputs.version }}
+      release_tag: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+      supplier_name: Emagin8 UG (haftungsbeschränkt)
+      supplier_url: https://fadenstack.com
+      licence: Apache-2.0
+      files_artifact: packages
+      files: "*.nupkg"
+      signing: keyless
+      attest: true
+      dry_run: ${{ github.ref_type != 'tag' }}
+      tools_ref: 6dd382f990c5c922154857cfdb5da3cdc6202c67
+
+  publish:
+    if: github.ref_type == 'tag'
+    needs: [build, supply-chain]
+    runs-on: windows-latest
+    environment: nuget
+    permissions:
+      contents: read
+      id-token: write # trusted publishing on nuget.org
+      packages: write # the delegation package on the fadenstack feed
+    steps:
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      # The artifact holds artifacts/ (for nuget.org) and private/ (the delegation package), as the build job left them.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages
+          path: .
+
       - name: Sign in to nuget.org
         id: login
         uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
@@ -137,7 +235,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          foreach ($package in Get-ChildItem private -Filter *.nupkg) {
+          $packages = Get-ChildItem private -Filter *.nupkg
+          if (-not $packages) { throw "No delegation package in private." }
+          foreach ($package in $packages) {
             dotnet nuget push $package.FullName --api-key $env:GITHUB_TOKEN --no-symbols `
               --source https://nuget.pkg.github.com/fadenstack/index.json --skip-duplicate
             if ($LASTEXITCODE -ne 0) { throw "Pushing $($package.Name) failed." }

@@ -1,8 +1,15 @@
 # Releasing
 
 A tag publishes a release. `.github/workflows/release.yml` checks that the tag names the version, runs the tests
-on Windows, packs the six `Fadenstack.*` packages with their symbol packages, and pushes them to nuget.org with
-trusted publishing: no API key is stored anywhere.
+on Windows and packs the `Fadenstack.*` packages with their symbol packages. It then makes a GitHub release for the
+tag with the packages, and core's shared release workflow adds an SBOM per package (CycloneDX, BSI TR-03183-2), the
+OSV scan with OpenVEX and CSAF, the OpenSSF Scorecard, keyless cosign signatures and GitHub's attestations to it. Only
+then does it push the packages to nuget.org with trusted publishing (no API key is stored anywhere), and
+`Fadenstack.Agents.Delegation` to the fadenstack organisation's GitHub Packages feed. A high-severity finding without
+a statement in `.vex/openvex.json` stops the release before anything is published.
+
+Started by hand (**Run workflow**), the workflow is a dry run: the build and the supply chain's SBOMs, scan and
+Scorecard, shown in the run's summary; nothing is signed, uploaded or published.
 
 1. Set `<Version>` in `Directory.Build.props` and commit.
 2. Tag and push:
@@ -26,3 +33,7 @@ workflow stops half-way, run it again: it skips the packages that are on nuget.o
 2. The repository secret `NUGET_USER` is the nuget.org profile name the policy belongs to (not an e-mail
    address).
 3. In this repository's **Settings**, **Environments**, create `nuget` and allow only tags `v*` to deploy to it.
+
+A new package ID needs no step of its own on nuget.org, as long as the policy may push new packages (its scope); the
+release job created `Fadenstack.Provenance` that way with 0.3.0-rc.1. The `Fadenstack` prefix is not reserved, so an
+unused ID can be taken by anyone until our first version of it is out.
