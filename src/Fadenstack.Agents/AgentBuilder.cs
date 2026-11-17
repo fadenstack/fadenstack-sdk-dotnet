@@ -511,6 +511,11 @@ public sealed class AgentBuilder
             {
                 endpoint = endpoint with { AllowPlainHttpInLan = false, PlainHttpForbidden = true };
             }
+            // The check found that the model thinks although the off switch was sent: Off sends its lowest level (F10).
+            if (endpoint is not null && _endpointReport?.ThinksWhenOff == true)
+            {
+                endpoint = endpoint with { Dialect = endpoint.Dialect with { ThinksWhenOff = true } };
+            }
             var local = _localOptions ?? new LocalProfileOptions();
             local = local with
             {

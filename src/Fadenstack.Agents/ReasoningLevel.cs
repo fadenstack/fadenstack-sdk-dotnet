@@ -87,17 +87,30 @@ public static class ReasoningLevels
 /// agent's profile, <c>ui.reasoning</c> (<c>{"max": "low"}</c>; the gateway's scale none, minimal, low, medium, high, xhigh
 /// or max: minimal caps at none, the nearest level the SDK can send, and max sets no cap). Without a maximum, or
 /// with one that is not readable, all five are offered and Auto sends no field. With one, Auto means the maximum.
+/// <c>ui.reasoning.offered: false</c> (a standalone agent on a dialect with no thinking switch, F7) offers no level at all.
+/// <c>ui.reasoning.thinks_when_off</c> (<c>"lowest"</c>: Off sends the model's lowest level; <c>"always"</c>: the model thinks
+/// even when Off, F10) only changes what the Off item says.
 /// </summary>
 public sealed class ReasoningChoices
 {
     /// <summary>All five levels and no maximum: what an agent offers when its profile says nothing usable.</summary>
     public static ReasoningChoices Everything { get; } = new(ReasoningLevels.All, null);
 
-    internal ReasoningChoices(IReadOnlyList<ReasoningLevel> levels, ReasoningEffort? max)
+    /// <summary>No level: the agent's dialect sends no thinking switch, so a pick would change nothing (F7).</summary>
+    public static ReasoningChoices None { get; } = new([], null);
+
+    internal ReasoningChoices(IReadOnlyList<ReasoningLevel> levels, ReasoningEffort? max, string? thinksWhenOff = null)
     {
         Levels = levels;
         Max = max;
+        ThinksWhenOff = thinksWhenOff;
     }
+
+    /// <summary>
+    /// The model thinks although Off is sent (the check found it, F10): <c>lowest</c> when Off then sends the model's lowest
+    /// level, <c>always</c> when it thinks even with the off switch (a chat template has no lower level); null when Off turns it off.
+    /// </summary>
+    public string? ThinksWhenOff { get; }
 
     /// <summary>The levels offered, in menu order.</summary>
     public IReadOnlyList<ReasoningLevel> Levels { get; }
@@ -114,16 +127,26 @@ public sealed class ReasoningChoices
     /// <summary>Reads <c>ui.reasoning.max</c> out of a profile's <c>ui</c>; never throws on what a server wrote there.</summary>
     public static ReasoningChoices FromUi(IReadOnlyDictionary<string, JsonElement>? ui)
     {
-        if (ui is null || !ui.TryGetValue("reasoning", out var node) || node.ValueKind != JsonValueKind.Object
-            || !node.TryGetProperty("max", out var raw) || raw.ValueKind != JsonValueKind.String)
+        if (ui is null || !ui.TryGetValue("reasoning", out var node) || node.ValueKind != JsonValueKind.Object)
         {
             return Everything;
+        }
+        if (node.TryGetProperty("offered", out var offered) && offered.ValueKind == JsonValueKind.False)
+        {
+            return None;
+        }
+        var thinks = node.TryGetProperty("thinks_when_off", out var when) && when.ValueKind == JsonValueKind.String
+            && when.GetString() is "lowest" or "always" ? when.GetString() : null;
+        var all = thinks is null ? Everything : new ReasoningChoices(ReasoningLevels.All, null, thinks);
+        if (!node.TryGetProperty("max", out var raw) || raw.ValueKind != JsonValueKind.String)
+        {
+            return all;
         }
         var name = raw.GetString()?.Trim().ToLowerInvariant();
         if (name == "max")
         {
             // The top of the gateway's scale: the server lets the agent think as long as it likes.
-            return Everything;
+            return all;
         }
         ReasoningEffort? max = name switch
         {
@@ -139,9 +162,9 @@ public sealed class ReasoningChoices
         };
         if (max is not { } cap)
         {
-            return Everything;
+            return all;
         }
-        return new ReasoningChoices(ReasoningLevels.All.Where(l => l.ToEffort() is not { } e || Rank(e) <= Rank(cap)).ToList(), cap);
+        return new ReasoningChoices(ReasoningLevels.All.Where(l => l.ToEffort() is not { } e || Rank(e) <= Rank(cap)).ToList(), cap, thinks);
     }
 
     private static int Rank(ReasoningEffort effort) => effort == ReasoningEffort.None ? 0
