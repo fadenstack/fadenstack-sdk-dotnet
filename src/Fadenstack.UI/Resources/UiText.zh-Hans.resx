@@ -463,6 +463,15 @@
   <data name="PictureNotRead" xml:space="preserve">
     <value>无法将 {0} 读取为图片。</value>
   </data>
+  <data name="PictureTypeNotAllowed" xml:space="preserve">
+    <value>无法发送此图片的格式。请使用 PNG、JPEG、WebP 或 GIF 图片。</value>
+  </data>
+  <data name="PictureMissing" xml:space="preserve">
+    <value>您消息中的一张图片是空的，因此未发送任何内容。</value>
+  </data>
+  <data name="EmbedsNotAllowed" xml:space="preserve">
+    <value>服务器不接受这种形式的图片。</value>
+  </data>
   <data name="About" xml:space="preserve">
     <value>关于</value>
   </data>

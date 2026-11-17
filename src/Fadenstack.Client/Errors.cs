@@ -50,6 +50,42 @@ public class FadenstackApiException : FadenstackException
     /// TypeScript: <c>isAgentDisabled(error)</c>.
     /// </summary>
     public bool IsAgentDisabled => (int)Status == 403 && string.Equals(Code, ErrorCodes.AgentDisabled, StringComparison.Ordinal);
+
+    /// <summary>
+    /// The gateway refused a picture part (core 0.7.1 rc23): a 400 whose code is <see cref="ErrorCodes.PictureTypeNotAllowed"/>,
+    /// <see cref="ErrorCodes.PictureMissing"/> or <see cref="ErrorCodes.EmbedsNotAllowed"/>; null for any other error. TypeScript: <c>pictureRefusalOf(error)</c>.
+    /// </summary>
+    public PictureRefusal? PictureRefusal => (int)Status != 400 ? null
+        : string.Equals(Code, ErrorCodes.PictureTypeNotAllowed, StringComparison.Ordinal) ? Fadenstack.PictureRefusal.Type
+        : string.Equals(Code, ErrorCodes.PictureMissing, StringComparison.Ordinal) ? Fadenstack.PictureRefusal.Missing
+        : string.Equals(Code, ErrorCodes.EmbedsNotAllowed, StringComparison.Ordinal) ? Fadenstack.PictureRefusal.Embeds
+        : null;
+
+    /// <summary>The gateway's refusal of a picture that <paramref name="error"/> (or an error it was caused by) is, or null. TypeScript: <c>pictureRefusalOf</c>.</summary>
+    public static PictureRefusal? PictureRefusalOf(Exception? error)
+    {
+        for (var depth = 0; error is not null && depth < 8; error = error.InnerException, depth++)
+        {
+            if (error is FadenstackApiException { PictureRefusal: { } refusal })
+            {
+                return refusal;
+            }
+        }
+        return null;
+    }
+}
+
+/// <summary>Why the gateway refused a picture part (<see cref="FadenstackApiException.PictureRefusal"/>).</summary>
+public enum PictureRefusal
+{
+    /// <summary><c>picture_type_not_allowed</c>: the first bytes are not a PNG, JPEG, WebP or GIF.</summary>
+    Type,
+
+    /// <summary><c>picture_missing</c>: a picture part without data.</summary>
+    Missing,
+
+    /// <summary><c>embeds_not_allowed</c>: an <c>image_embeds</c> or <c>audio_embeds</c> part.</summary>
+    Embeds,
 }
 
 /// <summary>Error codes the server sends that an app may act on (<see cref="FadenstackApiException.Code"/>).</summary>
@@ -67,6 +103,18 @@ public static class ErrorCodes
     /// TypeScript: <c>errorCodes.agentDisabled</c>.
     /// </summary>
     public const string AgentDisabled = "agent_disabled";
+
+    /// <summary>
+    /// 400 (core 0.7.1 rc23): a picture part whose first bytes are not a PNG, JPEG, WebP or GIF; <see cref="FadenstackApiException.Param"/> is the
+    /// part's place in the messages. TypeScript: <c>ErrorCodes.pictureTypeNotAllowed</c>.
+    /// </summary>
+    public const string PictureTypeNotAllowed = "picture_type_not_allowed";
+
+    /// <summary>400 (core 0.7.1 rc23): a picture part without data. TypeScript: <c>ErrorCodes.pictureMissing</c>.</summary>
+    public const string PictureMissing = "picture_missing";
+
+    /// <summary>400 (core 0.7.1 rc23): an <c>image_embeds</c> or <c>audio_embeds</c> part. TypeScript: <c>ErrorCodes.embedsNotAllowed</c>.</summary>
+    public const string EmbedsNotAllowed = "embeds_not_allowed";
 }
 
 /// <summary>401: no or a bad token. For an agent: sign in again.</summary>

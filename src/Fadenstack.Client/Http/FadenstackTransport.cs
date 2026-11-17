@@ -86,6 +86,11 @@ public sealed class FadenstackTransport : IDisposable
                 Failed(activity, method, route, e, attempt, watch);
                 throw new FadenstackUnreachableException($"Fadenstack did not answer within {Timeout.TotalSeconds:0} s.", e);
             }
+            catch (HttpRequestException e) when (cancellationToken.IsCancellationRequested)
+            {
+                // The caller cancelled (Stop): a transport error that arrives after that is the cancel, not "unreachable".
+                throw new OperationCanceledException(e.Message, e, cancellationToken);
+            }
             catch (HttpRequestException e)
             {
                 Failed(activity, method, route, e, attempt, watch);

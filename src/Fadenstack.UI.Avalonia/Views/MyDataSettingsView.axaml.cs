@@ -35,11 +35,25 @@ public partial class MyDataSettingsView : UserControl
         {
             _texts.Follow(DataContext);
         }
+        else if (change.Property == IsVisibleProperty && change.GetNewValue<bool>())
+        {
+            RefreshWhenShown();
+        }
+    }
+
+    // The record of tool calls grows as the agents work: read it each time the control is shown.
+    private void RefreshWhenShown()
+    {
+        if (DataContext is MyDataSettingsViewModel model && IsEffectivelyVisible)
+        {
+            _ = model.RefreshAsync();
+        }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        RefreshWhenShown();
         Dispatcher.UIThread.Post(() => WizardFocus.FocusFirst(this), DispatcherPriority.Loaded);
     }
 }

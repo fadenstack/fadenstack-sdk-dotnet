@@ -448,6 +448,20 @@ public class MyDataSettingsViewModelTests
     }
 
     [Fact]
+    public async Task The_record_is_read_again_each_time_the_control_is_shown_and_counts_an_entry_added_after_loading()
+    {
+        var fake = new FakeMyData { Audit = new(true, 0, null, null, null) };
+        var model = Model(fake);
+        Assert.Equal("Record of tool calls: no entries yet", model.AuditLine);
+
+        fake.Audit = new(true, 1, 1, new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero)); // a tool call was recorded meanwhile
+        await model.RefreshAsync(); // the view calls it when it is shown
+
+        Assert.Equal($"Record of tool calls: 1 entry since {Since(fake)}, intact", model.AuditLine);
+        Assert.Equal(2, fake.AuditReads);
+    }
+
+    [Fact]
     public async Task Exporting_the_record_saves_one_web_page_through_the_hosts_save_path()
     {
         var fake = new FakeMyData();

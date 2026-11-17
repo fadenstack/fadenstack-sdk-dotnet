@@ -22,6 +22,23 @@ public partial class MyDataSettingsView : UserControl
         var texts = new SkillTextsFollower(strings => SkillViewSupport.ApplyStrings(this, strings));
         DataContextChanged += (_, e) => texts.Follow(e.NewValue);
         SkillViewSupport.FocusFirstWhenLoaded(this);
+        // The record of tool calls grows as the agents work: read it each time the control is shown.
+        Loaded += (_, _) => RefreshWhenShown();
+        IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is true)
+            {
+                RefreshWhenShown();
+            }
+        };
+    }
+
+    private void RefreshWhenShown()
+    {
+        if (DataContext is MyDataSettingsViewModel model && IsVisible)
+        {
+            _ = model.RefreshAsync();
+        }
     }
 
     public ChatTheme Theme

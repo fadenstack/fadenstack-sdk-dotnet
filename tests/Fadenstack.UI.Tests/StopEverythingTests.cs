@@ -84,6 +84,73 @@ public class StopEverythingTests
         Assert.True(model.StopCommand.CanExecute(null));
     }
 
+    private static (StopEverythingViewModel Model, ManualClock Clock) Timed(Queue<StopAllResult> results, TimeSpan? clearAfter = null)
+    {
+        var clock = new ManualClock();
+        var model = new StopEverythingViewModel(() => new FadenstackAgent[0], _ => Task.FromResult(results.Dequeue()), InlineDispatcher.Instance,
+            () => Strings("en"), clock, clearAfter);
+        return (model, clock);
+    }
+
+    [Fact]
+    public async Task The_result_line_appears_after_the_stop_and_is_empty_after_8_seconds()
+    {
+        var (model, clock) = Timed(new Queue<StopAllResult>(new[] { new StopAllResult { TurnsStopped = 2, GrantsEnded = 3 } }));
+        var changed = new List<string?>();
+        model.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        await model.StopCommand.ExecuteAsync(null);
+        Assert.Equal("Stopped 2 chats and ended 3 grants.", model.ResultText);
+        Assert.True(model.HasResult);
+
+        clock.Advance(TimeSpan.FromMilliseconds(7999));
+        Assert.True(model.HasResult);
+        changed.Clear();
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+
+        Assert.Equal("", model.ResultText);
+        Assert.False(model.HasResult);
+        Assert.Null(model.Result);
+        Assert.Contains(nameof(StopEverythingViewModel.ResultText), changed); // the view hears of it
+        Assert.Equal(0, clock.ActiveTimers);
+    }
+
+    [Fact]
+    public async Task A_new_press_shows_the_new_result_and_starts_the_time_again()
+    {
+        var (model, clock) = Timed(new Queue<StopAllResult>(new[] { new StopAllResult(), new StopAllResult { TurnsStopped = 1 } }));
+        await model.StopCommand.ExecuteAsync(null);
+        Assert.Equal("Nothing was running.", model.ResultText);
+        clock.Advance(TimeSpan.FromSeconds(5));
+
+        await model.StopCommand.ExecuteAsync(null);
+        Assert.Equal("Stopped 1 chat.", model.ResultText);
+        clock.Advance(TimeSpan.FromSeconds(5)); // 10 s after the first press, 5 s after the second
+        Assert.Equal("Stopped 1 chat.", model.ResultText);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.Equal("", model.ResultText);
+    }
+
+    [Fact]
+    public async Task The_time_is_an_option_zero_keeps_the_line_and_disposing_stops_the_timer()
+    {
+        var (shortModel, shortClock) = Timed(new Queue<StopAllResult>(new[] { new StopAllResult() }), TimeSpan.FromSeconds(1));
+        await shortModel.StopCommand.ExecuteAsync(null);
+        shortClock.Advance(TimeSpan.FromSeconds(1));
+        Assert.False(shortModel.HasResult);
+
+        var (kept, keptClock) = Timed(new Queue<StopAllResult>(new[] { new StopAllResult() }), TimeSpan.Zero);
+        await kept.StopCommand.ExecuteAsync(null);
+        keptClock.Advance(TimeSpan.FromMinutes(1));
+        Assert.True(kept.HasResult);
+
+        var (gone, goneClock) = Timed(new Queue<StopAllResult>(new[] { new StopAllResult() }));
+        await gone.StopCommand.ExecuteAsync(null);
+        Assert.Equal(1, goneClock.ActiveTimers);
+        gone.Dispose();
+        Assert.Equal(0, goneClock.ActiveTimers);
+    }
+
     [Fact]
     public async Task A_stop_that_fails_after_the_local_part_still_ends_and_says_nothing_was_counted()
     {
