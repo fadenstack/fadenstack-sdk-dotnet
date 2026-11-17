@@ -415,4 +415,10 @@ internal static class ChatWire
     public static string? Str(JsonElement e, string name) =>
         e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
             ? v.GetString() : null;
+
+    /// <summary>An error's <c>code</c> as text: a string as it is, a number as its digits (OpenRouter sends <c>502</c>); anything else is no code. TS: <c>codeText</c>.</summary>
+    public static string? CodeText(JsonElement e) =>
+        e.ValueKind == JsonValueKind.Object && e.TryGetProperty("code", out var v)
+            ? v.ValueKind switch { JsonValueKind.String => v.GetString(), JsonValueKind.Number => v.GetRawText(), _ => null }
+            : null;
 }

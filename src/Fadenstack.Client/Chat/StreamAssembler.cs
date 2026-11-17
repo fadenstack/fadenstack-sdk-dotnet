@@ -83,7 +83,7 @@ internal sealed class StreamAssembler
             // OpenAI's {"error": {...}}; Ollama's {"error": "..."}
             throw error.ValueKind == JsonValueKind.String
                 ? new FadenstackStreamException(error.GetString() is { Length: > 0 } m ? m : "The answer broke off.", null)
-                : new FadenstackStreamException(ChatWire.Str(error, "message") ?? "The answer broke off.", ChatWire.Str(error, "code"));
+                : new FadenstackStreamException(ChatWire.Str(error, "message") ?? "The answer broke off.", ChatWire.CodeText(error));
         }
         if (!_gateway && ChatWire.Str(root, "object") == "error" && !hasChoices)
         {

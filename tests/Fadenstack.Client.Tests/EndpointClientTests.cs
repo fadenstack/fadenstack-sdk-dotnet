@@ -231,6 +231,22 @@ public class EndpointClientTests
         Assert.Equal(message, e.Message);
     }
 
+    [Theory]
+    [InlineData("data: {\"error\":{\"message\":\"upstream down\",\"code\":502}}\n\n", "502")] // OpenRouter sends a number
+    [InlineData("data: {\"error\":{\"message\":\"upstream down\",\"code\":\"internal\"}}\n\n", "internal")]
+    [InlineData("data: {\"error\":{\"message\":\"upstream down\",\"code\":null}}\n\n", null)]
+    public async Task An_error_inside_the_stream_keeps_its_code_as_text(string sse, string? code)
+    {
+        var (client, fake) = Make();
+        fake.Intercept = _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(sse, Encoding.UTF8, "text/event-stream"),
+        };
+
+        var e = await Assert.ThrowsAsync<FadenstackStreamException>(() => StreamAsync(client));
+        Assert.Equal(code, e.Code);
+    }
+
     [Fact]
     public async Task A_line_longer_than_the_limit_ends_the_stream()
     {
