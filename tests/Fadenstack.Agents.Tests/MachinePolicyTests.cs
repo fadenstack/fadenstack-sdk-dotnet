@@ -141,7 +141,7 @@ public class MachinePolicyTests
         File.WriteAllText(file, content);
         try
         {
-            var policy = MachinePolicy.Load(file);
+            var policy = MachinePolicy.Load(file, _ => null, out _); // the test's temporary file stands for IT's
 
             Assert.Equal(PolicyAccess.Forbidden, policy.Standalone);
             Assert.Equal(PolicyRule.Forbidden, policy.Mcp);
@@ -165,7 +165,7 @@ public class MachinePolicyTests
             MachinePolicy policy;
             using (new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None)) // another process holds it
             {
-                policy = MachinePolicy.Load(file);
+                policy = MachinePolicy.Load(file, _ => null, out _); // the test's temporary file stands for IT's
             }
 
             Assert.Equal(PolicyAccess.Forbidden, policy.Standalone);

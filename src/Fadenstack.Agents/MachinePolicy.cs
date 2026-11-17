@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Fadenstack.Agents;
@@ -154,13 +155,28 @@ public sealed record MachinePolicy
 
     /// <summary>
     /// Reads a policy file; none there gives <see cref="None"/>. A file that is not JSON, or that exists but cannot be read
-    /// (no access, locked), forbids what it could have allowed.
+    /// (no access, locked), forbids what it could have allowed. On Windows a file that is not IT's (<see cref="PolicyFileTrust"/>:
+    /// another user of the computer could have written it into <c>%ProgramData%</c>) is not read at all, as if there were none:
+    /// nobody but IT can narrow or redirect the app, and a policy that forbids would let that user switch this person's own AI off.
     /// </summary>
-    public static MachinePolicy Load(string path)
+    public static MachinePolicy Load(string path) => Load(path, null, out _);
+
+    /// <summary>As <see cref="Load(string)"/>; <paramref name="ignored"/> says why a file was not read, for the app's log.</summary>
+    /// <param name="path">The policy file.</param>
+    /// <param name="untrusted">Why a file is not IT's, or null when it is; on Windows <see cref="PolicyFileTrust.Check"/> below
+    /// <c>%ProgramData%</c> when null (a test passes its own).</param>
+    /// <param name="ignored">Why the file was not read (it is not IT's); null when there was none or it was read.</param>
+    public static MachinePolicy Load(string path, Func<string, string?>? untrusted, out string? ignored)
     {
+        ignored = null;
         if (!File.Exists(path))
         {
             return None;
+        }
+        if ((untrusted ?? NotIts)(path) is { } why)
+        {
+            ignored = why;
+            return None; // not IT's: read as if there were no file
         }
         try
         {
@@ -173,6 +189,24 @@ public sealed record MachinePolicy
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             return Closed("The policy file could not be read");
+        }
+    }
+
+    /// <summary>This computer's check for <see cref="MachinePolicy.Load(string)"/>: below <c>%ProgramData%</c> on Windows, none elsewhere.</summary>
+    private static string? NotIts(string path)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return null; // Linux and macOS: the app's policy folder (/etc/...) is root's alone
+        }
+        try
+        {
+            return PolicyFileTrust.Check(path, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException
+            or System.Security.Principal.IdentityNotMappedException or PlatformNotSupportedException or SystemException)
+        {
+            return $"{path}: its owner and permissions could not be read ({e.GetType().Name})"; // ACLs that cannot be read: not IT's
         }
     }
 

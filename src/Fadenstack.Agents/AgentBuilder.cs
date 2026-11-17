@@ -117,7 +117,7 @@ public sealed class AgentBuilder
     /// <summary>
     /// What IT set for this machine (sdk/51 F09): <c>Build()</c> refuses an endpoint the policy forbids or does not list, takes
     /// away the plain-http opt-in where it forbids plain http, and narrows local MCP and skills, with a server too. The app
-    /// reads the policy from its managed location (<see cref="MachinePolicy.Load"/>) and locks what it sets.
+    /// reads the policy from its managed location (<see cref="MachinePolicy.Load(string)"/>) and locks what it sets.
     /// </summary>
     public AgentBuilder UseMachinePolicy(MachinePolicy policy)
     {

@@ -30,6 +30,12 @@ var agent = FadenstackAgent.CreateBuilder()
 
 ## Rules
 
+- **Only IT's file counts (Windows).** Every user may create files in `%ProgramData%`, so another user of a shared computer
+  could write an app's `policy.json` there. `Load` reads the file only when it and each folder above it up to
+  `%ProgramData%` are owned by SYSTEM, the Administrators or TrustedInstaller and nobody else may change, delete or
+  re-permission them (`PolicyFileTrust`). Any other file is ignored, as if there were none, rather than read as a policy
+  that forbids, which would let that user switch the person's own AI off. `Load(path, null, out var ignored)` says why,
+  for the app's log. A deployment by an administrator, Intune or a group policy passes.
 - **Fail closed.** An unknown key is ignored and reported in `policy.Warnings`; an unknown value narrows to `forbidden`; a
   file the SDK cannot parse or open (not JSON, not an object, no access, held by another process) forbids standalone, local
   MCP, local skills, web search and plain http, and turns time-stamps off. A warning names the key, never the value.
