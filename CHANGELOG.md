@@ -192,6 +192,9 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
   `IWizardClock`); it is `IDisposable`.
 - `EndpointReport.ThinksWhenOff` and `EndpointDialect.ThinksWhenOff`: the model thinks although the off switch was sent;
   `AgentChatViewModel.OffersReasoning`; `IEndpointChecker.CheckAsync` takes `EndpointCheckOptions`.
+- **About links to Fadenstack's help and contact page** (`AboutLinks.Support`, `AboutLinks.AboutSupport`,
+  `UiStrings.HelpAndContact`): *Help and contact*, `https://fadenstack.com/support/` with `ref` and `v` like About's other
+  links, in both skins, both modes and the five languages.
 
 ### Changed
 

@@ -505,6 +505,9 @@
   <data name="DeveloperDocs" xml:space="preserve">
     <value>Documentación para desarrolladores</value>
   </data>
+  <data name="HelpAndContact" xml:space="preserve">
+    <value>Ayuda y contacto</value>
+  </data>
   <data name="CopyDetails" xml:space="preserve">
     <value>Copiar detalles</value>
   </data>

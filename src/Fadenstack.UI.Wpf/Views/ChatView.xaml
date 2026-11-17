@@ -473,8 +473,8 @@
                                    Visibility="{Binding About.ServerText, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
                         <Border BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="0,1,0,0" Margin="0,10,0,6" />
                         <!--
-                            Links: Help (the organisation's server), Fadenstack, Developer docs; each opens in the browser. One per
-                            line, so nothing wraps unevenly, whatever the language makes of their names.
+                            Links: Help (the organisation's server), Fadenstack, Help and contact, Developer docs; each opens in the
+                            browser. One per line, so nothing wraps unevenly, whatever the language makes of their names.
                         -->
                         <ItemsControl ItemsSource="{Binding About.Links}" Focusable="False">
                             <ItemsControl.ItemTemplate>

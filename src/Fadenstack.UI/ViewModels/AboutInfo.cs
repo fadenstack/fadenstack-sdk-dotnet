@@ -29,8 +29,8 @@ public sealed class PanelLink
 
 /// <summary>
 /// What About shows, in the panel's language: the agent (name, version or draft, model), the app it runs in, the SDK,
-/// the server's address (shown, never sent), and the links: the organisation's Help, fadenstack.com and the developer
-/// docs. Before the agent started, the agent's lines are empty; the rest is there, which helps when it cannot start.
+/// the server's address (shown, never sent), and the links: the organisation's Help, fadenstack.com, Fadenstack's help and
+/// contact page and the developer docs. Before the agent started, the agent's lines are empty; the rest is there, which helps when it cannot start.
 /// </summary>
 public sealed class AboutInfo
 {
@@ -66,6 +66,7 @@ public sealed class AboutInfo
             links.Add(new PanelLink(strings.Help, help, strings));
         }
         links.Add(new PanelLink(Product, AboutLinks.AboutWebsite(refSource, SdkVersion), strings));
+        links.Add(new PanelLink(strings.HelpAndContact, AboutLinks.AboutSupport(refSource, SdkVersion), strings));
         links.Add(new PanelLink(strings.DeveloperDocs, AboutLinks.AboutDeveloperDocs(refSource, SdkVersion), strings));
         Links = links;
 
@@ -142,7 +143,10 @@ public sealed class AboutInfo
     /// <summary>"Server: https://ai.example.internal", or empty.</summary>
     public string ServerText { get; }
 
-    /// <summary>Help (the organisation's, when the server is known), Fadenstack (the website) and Developer docs.</summary>
+    /// <summary>
+    /// Help (the organisation's, when the server is known), Fadenstack (the website), Help and contact (Fadenstack's) and
+    /// Developer docs.
+    /// </summary>
     public IReadOnlyList<PanelLink> Links { get; }
 
     /// <summary>What "Copy details" copies: the agent, its version and model, the app, the SDK and the server, one per line.</summary>

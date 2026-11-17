@@ -955,6 +955,9 @@ public sealed class UiStrings
     /// <summary>The SDK documentation for developers.</summary>
     public string DeveloperDocs => Text();
 
+    /// <summary>Fadenstack's help and contact page.</summary>
+    public string HelpAndContact => Text();
+
     /// <summary>Copies what About shows, for a support request.</summary>
     public string CopyDetails => Text();
 

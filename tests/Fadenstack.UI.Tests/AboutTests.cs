@@ -60,6 +60,7 @@ public class AboutLinksTests
         Assert.Equal("https://fadenstack.com/?ref=office-panel&v=0.2", AboutLinks.PanelWebsite("office", "0.2.1").AbsoluteUri);
         Assert.Equal("https://fadenstack.com/?ref=office-about&v=0.2", AboutLinks.AboutWebsite("office", "0.2.1").AbsoluteUri);
         Assert.Equal("https://developers.fadenstack.com/?ref=chrome-about&v=1.4", AboutLinks.AboutDeveloperDocs("chrome", "1.4.0").AbsoluteUri);
+        Assert.Equal("https://fadenstack.com/support/?ref=office-about&v=0.3", AboutLinks.AboutSupport("office", "0.3.0").AbsoluteUri);
         Assert.Equal("https://fadenstack.com/?ref=sdk-about&v=0.2", AboutLinks.AboutWebsite("Anna's Laptop", "0.2.1").AbsoluteUri);
     }
 
@@ -68,6 +69,7 @@ public class AboutLinksTests
     {
         Assert.Equal("https://fadenstack.com/?ref=sdk-panel", AboutLinks.PanelWebsite("sdk", "").AbsoluteUri);
         Assert.Equal("https://developers.fadenstack.com/?ref=sdk-about", AboutLinks.AboutDeveloperDocs(null, null).AbsoluteUri);
+        Assert.Equal("https://fadenstack.com/support/?ref=sdk-about", AboutLinks.AboutSupport(null, null).AbsoluteUri);
     }
 
     [Theory]
@@ -124,8 +126,12 @@ public class AboutTests
         Assert.Equal("Runs in Viewer add-in 2.1.0", about.AppText);
         Assert.Equal($"Fadenstack SDK {SdkInfo.Version} (.NET)", about.SdkText);
         Assert.Equal(("https://faden.test", "Server: https://faden.test"), (about.Server, about.ServerText));
-        Assert.Equal(new[] { "Help", "Fadenstack", "Developer docs" }, about.Links.Select(l => l.Label));
-        Assert.Equal(new[] { "https://faden.test/help/", "https://fadenstack.com/?ref=sdk-about" + V, "https://developers.fadenstack.com/?ref=sdk-about" + V },
+        Assert.Equal(new[] { "Help", "Fadenstack", "Help and contact", "Developer docs" }, about.Links.Select(l => l.Label));
+        Assert.Equal(new[]
+            {
+                "https://faden.test/help/", "https://fadenstack.com/?ref=sdk-about" + V, "https://fadenstack.com/support/?ref=sdk-about" + V,
+                "https://developers.fadenstack.com/?ref=sdk-about" + V,
+            },
             about.Links.Select(l => l.Url.AbsoluteUri));
         Assert.Equal("Help (opens in your browser)", about.Links[0].Name);
     }
@@ -138,7 +144,7 @@ public class AboutTests
         Assert.Equal(("", "", ""), (chat.About.VersionText, chat.About.ModelText, chat.About.AppText));
         Assert.Equal(new[] { $"Fadenstack SDK {SdkInfo.Version} (.NET)", "Server: https://faden.test" },
             chat.About.Details.Split(new[] { Environment.NewLine }, StringSplitOptions.None));
-        Assert.Equal(3, chat.About.Links.Count);
+        Assert.Equal(4, chat.About.Links.Count);
     }
 
     [Fact]
@@ -149,7 +155,7 @@ public class AboutTests
         Assert.Equal(("Draft", "", "Draft", true), (draft.VersionText, draft.ModelText, draft.AgentDetail, draft.IsDraft));
         Assert.Equal("Fadenstack SDK 0.2.0-rc.3 (.NET)", draft.SdkText);
         Assert.Equal("", draft.ServerText);
-        Assert.Equal(new[] { "Fadenstack", "Developer docs" }, draft.Links.Select(l => l.Label)); // no server: no Help
+        Assert.Equal(new[] { "Fadenstack", "Help and contact", "Developer docs" }, draft.Links.Select(l => l.Label)); // no server: no Help
         Assert.Equal("https://fadenstack.com/?ref=sdk-about&v=0.2", draft.Links[0].Url.AbsoluteUri);
     }
 
@@ -220,7 +226,12 @@ public class AboutTests
         var office = Chat(new Gateway(), o => o.RefSource = "office");
         await office.InitializeAsync();
         Assert.Equal("https://fadenstack.com/?ref=office-panel" + V, office.BrandingLink!.Url.AbsoluteUri);
-        Assert.Equal(new[] { "https://fadenstack.com/?ref=office-about" + V, "https://developers.fadenstack.com/?ref=office-about" + V },
+        Assert.Equal(
+            new[]
+            {
+                "https://fadenstack.com/?ref=office-about" + V, "https://fadenstack.com/support/?ref=office-about" + V,
+                "https://developers.fadenstack.com/?ref=office-about" + V,
+            },
             office.About.Links.Skip(1).Select(l => l.Url.AbsoluteUri));
 
         var named = Chat(new Gateway(), o => o.RefSource = "Contoso Word");
@@ -235,9 +246,9 @@ public class AboutTests
         await chat.InitializeAsync();
         var outside = chat.About.Links.Concat(new[] { chat.BrandingLink! }).Where(l => l.Url.Host.EndsWith("fadenstack.com")).ToList();
         Assert.Equal(
-            new[] { "?ref=office-about" + V, "?ref=office-about" + V, "?ref=office-panel" + V },
+            new[] { "?ref=office-about" + V, "?ref=office-about" + V, "?ref=office-about" + V, "?ref=office-panel" + V },
             outside.Select(l => l.Url.Query));
-        Assert.All(outside, l => Assert.Equal("/", l.Url.AbsolutePath));
+        Assert.Equal(new[] { "/", "/support/", "/", "/" }, outside.Select(l => l.Url.AbsolutePath));
         Assert.All(outside, l => Assert.Equal("", l.Url.Fragment));
     }
 
@@ -249,7 +260,7 @@ public class AboutTests
         await chat.SetLanguageAsync("de");
         Assert.Equal(("Version 3 · Modell: qwen3-32b", "Läuft in Viewer add-in 2.1.0", "Server: https://faden.test"),
             (chat.About.AgentDetail, chat.About.AppText, chat.About.ServerText));
-        Assert.Equal(new[] { "Hilfe", "Fadenstack", "Entwicklerdokumentation" }, chat.About.Links.Select(l => l.Label));
+        Assert.Equal(new[] { "Hilfe", "Fadenstack", "Hilfe und Kontakt", "Entwicklerdokumentation" }, chat.About.Links.Select(l => l.Label));
         Assert.Equal("Hilfe (öffnet sich im Browser)", chat.About.Links[0].Name);
         Assert.Equal("Fadenstack (öffnet sich im Browser)", chat.BrandingLink!.Name);
         Assert.Equal(("Info", "Details kopieren"), (chat.Strings.About, chat.Strings.CopyDetails));
@@ -260,6 +271,19 @@ public class AboutTests
         Assert.Equal("Version 3 · Modèle\u00a0: qwen3-32b", chat.About.AgentDetail);
         await chat.SetLanguageAsync("es");
         Assert.Equal("Borrador", AboutInfo.Create(new AgentProfile { Name = "Docs", Draft = true }, null, "", null, null, chat.Strings).VersionText);
+    }
+
+    [Theory]
+    [InlineData("en", "Help and contact")]
+    [InlineData("de", "Hilfe und Kontakt")]
+    [InlineData("fr", "Aide et contact")]
+    [InlineData("es", "Ayuda y contacto")]
+    [InlineData("zh-Hans", "帮助与联系")]
+    public void Help_and_contact_is_in_the_five_languages(string language, string label)
+    {
+        var about = AboutInfo.Create(null, null, "0.3.0", null, null, UiStrings.For(CultureInfo.GetCultureInfo(language)));
+        var link = Assert.Single(about.Links, l => l.Url.AbsoluteUri == "https://fadenstack.com/support/?ref=sdk-about&v=0.3");
+        Assert.Equal(label, link.Label);
     }
 
     [Fact]
@@ -276,6 +300,8 @@ public class AboutTests
         Assert.Equal(AgentConnection.Standalone, standalone.Connection);
         Assert.StartsWith("Model endpoint: http://localhost:11434", standalone.ServerText);
         Assert.DoesNotContain(standalone.Links, l => l.Label == "Help");
+        Assert.Contains(governed.Links, l => l.Label == "Help and contact");
+        Assert.Contains(standalone.Links, l => l.Label == "Help and contact");
         Assert.Equal("Modell-Endpunkt: x", UiStrings.For(CultureInfo.GetCultureInfo("de")).AboutEndpoint("x"));
     }
 }

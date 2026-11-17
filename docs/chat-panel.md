@@ -250,7 +250,8 @@ The choice is kept per user in the panel's preferences, under the key `tell-unma
 - the app the agent runs in, when you described it with `DescribeApp` (its name and version);
 - the SDK: *Fadenstack SDK 0.3.0 (.NET)*, the version of the package;
 - the server's address, shown only;
-- links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website) and *Developer docs*;
+- links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website), *Help and contact*
+  (Fadenstack's help and contact page, `https://fadenstack.com/support/`) and *Developer docs*;
 - *Copy details*, which copies the agent, its version and model, the app, the SDK and the server as lines of text, for a support request.
 
 *Escape*, *Close* or a press anywhere outside the card closes it. About is there before the agent starts, too, so the SDK and the server show when the panel cannot connect.

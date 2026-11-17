@@ -15,6 +15,9 @@ public static class AboutLinks
     /// <summary>The developer docs (the SDKs').</summary>
     public const string DeveloperDocs = "https://developers.fadenstack.com/";
 
+    /// <summary>Fadenstack's help and contact page.</summary>
+    public const string Support = "https://fadenstack.com/support/";
+
     /// <summary>The <c>&lt;app&gt;</c> of a link's <c>ref</c> when the host names none, or one that is not allowed.</summary>
     public const string DefaultSource = "sdk";
 
@@ -46,6 +49,9 @@ public static class AboutLinks
 
     /// <summary>About's link to the developer docs: <c>ref=&lt;app&gt;-about</c>.</summary>
     public static Uri AboutDeveloperDocs(string? refSource, string? sdkVersion) => Tagged(DeveloperDocs, Source(refSource) + "-about", sdkVersion);
+
+    /// <summary>About's link to Fadenstack's help and contact page: <c>ref=&lt;app&gt;-about</c>.</summary>
+    public static Uri AboutSupport(string? refSource, string? sdkVersion) => Tagged(Support, Source(refSource) + "-about", sdkVersion);
 
     /// <summary>
     /// A fadenstack.com page with <c>?ref=</c> and, when the version has two numbers, <c>&amp;v=</c>.

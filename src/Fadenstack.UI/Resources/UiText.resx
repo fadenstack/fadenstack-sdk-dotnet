@@ -658,6 +658,10 @@
     <value>Developer docs</value>
     <comment>A link in About to the SDK documentation for developers</comment>
   </data>
+  <data name="HelpAndContact" xml:space="preserve">
+    <value>Help and contact</value>
+    <comment>A link in About to Fadenstack's help and contact page (fadenstack.com/support/)</comment>
+  </data>
   <data name="CopyDetails" xml:space="preserve">
     <value>Copy details</value>
     <comment>Copies what About shows, for a support request</comment>

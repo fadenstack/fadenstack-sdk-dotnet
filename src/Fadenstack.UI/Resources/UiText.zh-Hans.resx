@@ -505,6 +505,9 @@
   <data name="DeveloperDocs" xml:space="preserve">
     <value>开发者文档</value>
   </data>
+  <data name="HelpAndContact" xml:space="preserve">
+    <value>帮助与联系</value>
+  </data>
   <data name="CopyDetails" xml:space="preserve">
     <value>复制详细信息</value>
   </data>
