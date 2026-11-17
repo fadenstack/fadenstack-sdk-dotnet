@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Agents;
 using Fadenstack.UI.Services;
 using Fadenstack.UI.Skills;
+using Fadenstack.UI.Wizard;
 
 namespace Fadenstack.UI.Settings;
 
@@ -10,11 +11,19 @@ namespace Fadenstack.UI.Settings;
 /// "Stop everything", the emergency stop an app hosts in its tray menu or title bar (release plan 8.11): one press stops every running
 /// chat of the agents it is given and ends their grants (<see cref="FadenstackAgent.StopAllAsync(IEnumerable{FadenstackAgent}, CancellationToken)"/>),
 /// then says what it did in one line. There is no confirmation: it is the emergency stop. What the person allowed always stays.
-/// The agents come as a function because they come and go. A view binds to it and holds no logic: the texts come from
-/// <see cref="Strings"/>. TypeScript: <c>StopEverythingViewModel</c>.
+/// The agents come as a function because they come and go. The result line clears itself after <see cref="DefaultClearAfter"/> (a new
+/// press shows its own result and starts the time again), so it does not squeeze a narrow header for good; a view announces it politely
+/// when it appears. A view binds to it and holds no logic: the texts come from <see cref="Strings"/>. Dispose it when the control goes
+/// (it stops the timer). TypeScript: <c>StopEverythingViewModel</c>.
 /// </summary>
-public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts
+public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts, IDisposable
 {
+    /// <summary>How long the result line stays before it clears itself (8 s). TypeScript: <c>DEFAULT_STOP_RESULT_MS</c>.</summary>
+    public static readonly TimeSpan DefaultClearAfter = TimeSpan.FromSeconds(8);
+
+    private readonly IWizardClock _clock;
+    private readonly TimeSpan _clearAfter;
+    private IDisposable? _clearTimer;
     private readonly Func<IEnumerable<FadenstackAgent>> _agents;
     private readonly IUiDispatcher _dispatcher;
     private readonly Func<UiStrings> _strings;
@@ -25,17 +34,22 @@ public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts
     /// <param name="agents">The agents that run now; asked at each press.</param>
     /// <param name="dispatcher">The UI thread; inline by default.</param>
     /// <param name="strings">The texts; the current UI language's by default.</param>
-    public StopEverythingViewModel(Func<IEnumerable<FadenstackAgent>> agents, IUiDispatcher? dispatcher = null, Func<UiStrings>? strings = null)
-        : this(agents, list => FadenstackAgent.StopAllAsync(list), dispatcher, strings)
+    /// <param name="clock">The timer that clears the result line (a test's moves it by hand); the system's, posting to <paramref name="dispatcher"/>, by default.</param>
+    /// <param name="clearAfter">How long the result line stays; <see cref="DefaultClearAfter"/> by default; zero keeps it until the next press.</param>
+    public StopEverythingViewModel(Func<IEnumerable<FadenstackAgent>> agents, IUiDispatcher? dispatcher = null, Func<UiStrings>? strings = null,
+        IWizardClock? clock = null, TimeSpan? clearAfter = null)
+        : this(agents, list => FadenstackAgent.StopAllAsync(list), dispatcher, strings, clock, clearAfter)
     {
     }
 
     internal StopEverythingViewModel(Func<IEnumerable<FadenstackAgent>> agents, Func<IReadOnlyList<FadenstackAgent>, Task<StopAllResult>> stop,
-        IUiDispatcher? dispatcher, Func<UiStrings>? strings)
+        IUiDispatcher? dispatcher, Func<UiStrings>? strings, IWizardClock? clock = null, TimeSpan? clearAfter = null)
     {
         _agents = agents ?? throw new ArgumentNullException(nameof(agents));
         _stop = stop;
         _dispatcher = dispatcher ?? InlineDispatcher.Instance;
+        _clock = clock ?? new SystemWizardClock(_dispatcher);
+        _clearAfter = clearAfter is { } after && after > TimeSpan.Zero ? after : clearAfter is null ? DefaultClearAfter : TimeSpan.Zero;
         var current = UiStrings.Current;
         _strings = strings ?? (() => current);
         StopCommand = new AsyncRelayCommand(StopAsync, () => !_isBusy);
@@ -84,8 +98,17 @@ public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts
         OnPropertyChanged(nameof(ResultText));
     }
 
+    /// <summary>Stops the timer that clears the result line.</summary>
+    public void Dispose()
+    {
+        _clearTimer?.Dispose();
+        _clearTimer = null;
+    }
+
     private async Task StopAsync()
     {
+        _clearTimer?.Dispose(); // the old line goes with the new press
+        _clearTimer = null;
         IsBusy = true;
         StopAllResult result;
         try
@@ -104,7 +127,26 @@ public sealed class StopEverythingViewModel : ObservableObject, ISkillTexts
             IsBusy = false;
             OnPropertyChanged(nameof(ResultText));
             OnPropertyChanged(nameof(HasResult));
+            if (_clearAfter > TimeSpan.Zero)
+            {
+                _clearTimer?.Dispose();
+                _clearTimer = _clock.After(_clearAfter, ClearResult);
+            }
         });
+    }
+
+    private void ClearResult()
+    {
+        _clearTimer?.Dispose();
+        _clearTimer = null;
+        if (_isBusy || _result is null)
+        {
+            return;
+        }
+        _result = null;
+        OnPropertyChanged(nameof(Result));
+        OnPropertyChanged(nameof(ResultText));
+        OnPropertyChanged(nameof(HasResult));
     }
 
     /// <summary>The one line for a result, in <paramref name="strings"/>'s language.</summary>
