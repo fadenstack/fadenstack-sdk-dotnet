@@ -119,7 +119,7 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
   - `ModelEndpoint`, `EndpointDialect` (OpenAI, Azure OpenAI, Ollama, LM Studio, vLLM, SGLang, llama.cpp, LiteLLM,
     OpenRouter, Mistral), `EndpointPreset`, and `DirectChatClient`, the endpoint as an `IChatClient`.
   - `EndpointCheck` and its serialisable `EndpointReport`: reachable, the key, the models, usage figures, tool calls,
-    vision, the context length, and the text watermark status from a sourced table (`TextWatermark`, `EndpointWatermarkStatus`);
+    vision, whether the model thinks although the off switch was sent, the context length, and the text watermark status from a sourced table (`TextWatermark`, `EndpointWatermarkStatus`);
     `FindLocalAsync` looks for local servers only with the person's consent.
   - Typed errors: `EndpointKeyRejectedException`, `EndpointOriginRefusedException`, `EndpointModelNotFoundException`,
     `EndpointContextLengthException`, `EndpointNotCompatibleException`, `EndpointUnreachableException`,
@@ -180,13 +180,26 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
 - `AboutInfo.Create` with an `AgentConnection`, and `UiStrings.AboutEndpoint`: About names the person's model endpoint
   for an agent without a server.
 
+- **The host's own data in "Remove my data"** (`AgentBuilder.UseHostData`): a callback the removal runs for both scopes,
+  after the SDK's own, for what the app keeps itself (an endpoint key store behind `IEndpointKeyStore`); its count goes into
+  `DataDeletion.FoldersRemoved`.
+- **Pictures are judged by their first bytes** (`PictureData.Check`, `PictureData.TypeOf`): PNG, JPEG, WebP and GIF, as a
+  Fadenstack gateway from 0.7.1 does. The gateway's refusals have names (`ErrorCodes.PictureTypeNotAllowed`,
+  `PictureMissing`, `EmbedsNotAllowed`; `FadenstackApiException.PictureRefusal`, `PictureRefusalOf`), and the panel says
+  them in plain words, in five languages.
+- `MyDataSettingsViewModel.RefreshAsync`, which the WPF and Avalonia views call each time the control is shown.
+- `StopEverythingViewModel` clears its result line after `DefaultClearAfter` (8 seconds; `clearAfter`, with an
+  `IWizardClock`); it is `IDisposable`.
+- `EndpointReport.ThinksWhenOff` and `EndpointDialect.ThinksWhenOff`: the model thinks although the off switch was sent;
+  `AgentChatViewModel.OffersReasoning`; `IEndpointChecker.CheckAsync` takes `EndpointCheckOptions`.
+
 ### Changed
 
 - **Behaviour change:** `UseHookContent()` and `AgentOpenTelemetryOptions.EnableSensitiveData` now only mean that the app
   *offers* content logging. Hooks and spans carry prompts, answers, tool arguments and results only while the person has
   switched content logging on (`StartContentLogging`). A development setup calls `StartContentLogging` itself.
-- `EndpointCheck` probes with the first model `/models` lists when the endpoint names none, and its report names it (the
-  wizard checks before the person picks a model).
+- `EndpointCheck` with no model named lists the models and sends nothing to any of them; chat, usage, tool calls and
+  pictures stay unknown until a model is named (the wizard checks before the person picks one).
 - **Breaking (unlikely to matter):** `find_tool` is the SDK's own name, `AgentTool.ToolSearchName`: `AddTool` and `AddTools`
   refuse an app's tool of that name, and an app's tool source that brings one has it left out (log event 2016). A
   Fadenstack gateway from 0.7.1 takes `find_tool` as read, so the local MCP module's search no longer asks under a server;
@@ -236,6 +249,25 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
 
 ### Fixed
 
+- **The connection wizard sends nothing to a model the person did not pick.** Before the pick, the check only lists the
+  models; one model is taken and checked at once, several go to the pick, and only the picked model is checked. Before, the
+  first listed model was probed, on the person's bill, and on Ollama a large model was loaded (live matrix F3).
+- **Pictures work through the wizard.** The check of the picked model probes a picture, or reads what `/models` says the
+  model takes in (`architecture.input_modalities`, OpenRouter), and an agent on the person's own model whose picture support
+  is not known accepts a picture; only a known "no" refuses it (F2).
+- **A thinking model is no longer called one that "can only talk".** The tool probe allows 1,024 tokens, and one that ends
+  on the length limit without a call reads as not known, not as no tool calls (F9).
+- **"Off" for a model that cannot stop thinking** (gpt-oss ignores `reasoning_effort: "none"`): the check notes it, Off
+  then sends the model's lowest level, `low`, and the menu says "This model always thinks. Off uses its lowest level." (F10).
+  Where the dialect sends no thinking switch (`openai-compatible`, `lm-studio`, Mistral), the thinking menu is not shown (F7).
+- **A stop the person chose ends as stopped.** A transport error that arrives after Stop or "Stop everything" (an
+  `IOException`, "aborted because of ... an application request") counts as the cancel, in the session, the transports
+  and the panel, instead of ending the turn as failed (F6, F11).
+- "Your data" reads the record of tool calls each time it is shown, so its line is never stale (F5).
+- "Stop everything"'s result line clears itself, so it no longer squeezes a narrow header's title for good.
+- A mid-stream error's numeric `code` (OpenRouter sends `502`) is kept as its text (F8).
+- The `Fadenstack.UI.Avalonia` package carries `THIRD-PARTY-NOTICES` and the fonts' OFL texts at its root, so an app that
+  ships it can pass them on.
 - **A local MCP server on 2026-07-28 only attaches when it is slow to start.** The MCP SDK's 5-second probe for that revision
   ran out while `uvx` was still fetching the server, the client took it for an older server, sent `initialize`, and was
   refused. The client now asks once more with 2026-07-28 pinned; 2025-11-25 servers still attach by the SDK's fallback.
@@ -259,6 +291,14 @@ Fields added or changed since 0.2.x; no field is removed. A row marked Yes goes 
 
 ### Security
 
+- A local MCP server's parameter schema reaches the model cleaned like its tool description: every `description`,
+  `title` and `$comment` text, at any depth, without the characters that hide text, cut at 1,024 characters (OWASP ASVS
+  5.0 V1).
+- A picture is sent only when its first bytes show a PNG, JPEG, WebP or GIF, with the type the bytes show, not the one its
+  data URL claims (OWASP ASVS 5.0 V5); the same check runs for pictures a host attaches itself.
+- Releases are built with core's shared supply chain: an SBOM per package (CycloneDX 1.6, BSI TR-03183-2), the OSV scan
+  with OpenVEX and CSAF, keyless cosign signatures and GitHub's attestations on the GitHub release; a high-severity finding
+  without a VEX statement stops a release before anything is published.
 - A model endpoint (standalone mode) is reached under transport rules: https, or plain http only to this computer or, with
   the person's opt-in, the local network; a key over plain http only to this computer, decided by the address (resolved
   once and kept), never the name; no redirect to another origin; limits on what a
