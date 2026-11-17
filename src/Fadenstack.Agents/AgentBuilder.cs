@@ -42,6 +42,7 @@ public sealed class AgentBuilder
     private ISessionStore? _sessions;
     private IApprovalStore? _approvalStore;
     private IAuditLog? _auditLog;
+    private Func<DataScope, CancellationToken, Task<int>>? _hostData;
     private SessionRetention _retention = SessionRetention.Default;
     private PermissionMode _permissionMode = PermissionMode.Ask;
     private bool _requireHostToolPolicyChecks;
@@ -227,6 +228,18 @@ public sealed class AgentBuilder
     public AgentBuilder UseAuditLog(IAuditLog log)
     {
         _auditLog = log ?? throw new ArgumentNullException(nameof(log));
+        return this;
+    }
+
+    /// <summary>
+    /// The host's own data that <see cref="FadenstackAgent.DeleteMyDataAsync(DataScope, CancellationToken)"/> removes with the SDK's:
+    /// what the app keeps itself (for example the endpoint key store behind <c>IEndpointKeyStore</c>). <paramref name="remove"/> gets
+    /// the scope and returns how many things it removed; the count goes into <see cref="DataDeletion.FoldersRemoved"/>. Without
+    /// this, what the app keeps itself stays. TS: <c>useHostData({ indexedDb, localStoragePrefixes, remove })</c>.
+    /// </summary>
+    public AgentBuilder UseHostData(Func<DataScope, CancellationToken, Task<int>> remove)
+    {
+        _hostData = remove ?? throw new ArgumentNullException(nameof(remove));
         return this;
     }
 
@@ -600,6 +613,7 @@ public sealed class AgentBuilder
             Sessions = _sessions,
             ApprovalStore = _approvalStore,
             AuditLog = _auditLog,
+            HostData = _hostData,
             Retention = _retention,
             PermissionMode = _permissionMode,
             RequireHostToolPolicyChecks = _requireHostToolPolicyChecks,
@@ -687,6 +701,7 @@ internal sealed class AgentSettings
     public ISessionStore? Sessions { get; init; }
     public IApprovalStore? ApprovalStore { get; init; }
     public IAuditLog? AuditLog { get; init; }
+    public Func<DataScope, CancellationToken, Task<int>>? HostData { get; init; }
     public SessionRetention Retention { get; init; } = SessionRetention.Default;
     public PermissionMode PermissionMode { get; init; }
     public bool RequireHostToolPolicyChecks { get; init; }

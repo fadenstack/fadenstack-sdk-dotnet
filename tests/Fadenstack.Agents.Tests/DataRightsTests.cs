@@ -266,6 +266,28 @@ public class DataRightsTests : IDisposable
         Assert.Single(await sessions.ListAsync(Gateway.Slug));
     }
 
+    [Theory]
+    [InlineData(DataScope.ThisApp)]
+    [InlineData(DataScope.AllApps)]
+    public async Task Deleting_takes_the_hosts_own_data_with_it_and_counts_it(DataScope scope)
+    {
+        // The host keeps data of its own (an endpoint key store): UseHostData lets "Remove my data" take it, whichever the scope.
+        var asked = new List<DataScope>();
+        using var plain = Plain(new Gateway { Principal = Principal }).Build();
+        var without = await plain.DeleteMyDataAsync(scope);
+        using var agent = Plain(new Gateway { Principal = Principal }).UseHostData((s, _) =>
+        {
+            asked.Add(s);
+            return Task.FromResult(3);
+        }).Build();
+
+        var deletion = await agent.DeleteMyDataAsync(scope);
+
+        Assert.Equal(new[] { scope }, asked);
+        Assert.Equal(without.FoldersRemoved + 3, deletion.FoldersRemoved);
+        Assert.Throws<ArgumentNullException>(() => Plain(new Gateway()).UseHostData(null!));
+    }
+
     [Fact]
     public async Task Without_a_principal_deleting_removes_the_shared_folders_only()
     {
