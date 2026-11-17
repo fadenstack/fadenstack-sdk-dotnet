@@ -480,7 +480,7 @@ public sealed class EndpointCheck
         }
         foreach (var entry in data.EnumerateArray())
         {
-            if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("id", out var id) || id.GetString() != model)
+            if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String || id.GetString() != model)
             {
                 continue;
             }
