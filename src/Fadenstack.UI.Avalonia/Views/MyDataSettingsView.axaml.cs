@@ -35,25 +35,20 @@ public partial class MyDataSettingsView : UserControl
         {
             _texts.Follow(DataContext);
         }
-        else if (change.Property == IsVisibleProperty && change.GetNewValue<bool>())
+        else if (change.Property == IsVisibleProperty && change.GetNewValue<bool>() && IsEffectivelyVisible
+            && DataContext is MyDataSettingsViewModel shown)
         {
-            RefreshWhenShown();
-        }
-    }
-
-    // The record of tool calls grows as the agents work: read it each time the control is shown.
-    private void RefreshWhenShown()
-    {
-        if (DataContext is MyDataSettingsViewModel model && IsEffectivelyVisible)
-        {
-            _ = model.RefreshAsync();
+            _ = shown.RefreshAsync(); // the record of tool calls grows as the agents work: read it each time the control is shown (F5)
         }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        RefreshWhenShown();
+        if (IsEffectivelyVisible && DataContext is MyDataSettingsViewModel model)
+        {
+            _ = model.RefreshAsync(); // as above, when the control is shown
+        }
         Dispatcher.UIThread.Post(() => WizardFocus.FocusFirst(this), DispatcherPriority.Loaded);
     }
 }

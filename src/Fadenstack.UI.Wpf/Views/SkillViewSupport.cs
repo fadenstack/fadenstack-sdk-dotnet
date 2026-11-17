@@ -45,4 +45,27 @@ internal static class SkillViewSupport
     {
         view.Loaded += (_, _) => view.Dispatcher.BeginInvoke(new Action(() => WizardFocus.FocusFirst(view)), DispatcherPriority.Loaded);
     }
+
+    /// <summary>
+    /// Calls <paramref name="shown"/> when the view is loaded while visible, and each time it becomes visible again: a control that
+    /// reads something that changes meanwhile (the "Your data" control's record of tool calls) asks its view model to read it again.
+    /// View-only glue, so the code-behind gets no member of its own. TS: <c>whenShown</c> (ui-web).
+    /// </summary>
+    public static void WhenShown(FrameworkElement view, Action shown)
+    {
+        view.Loaded += (_, _) =>
+        {
+            if (view.IsVisible)
+            {
+                shown();
+            }
+        };
+        view.IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is true && view.IsLoaded)
+            {
+                shown();
+            }
+        };
+    }
 }
