@@ -24,6 +24,19 @@ Scorecard, shown in the run's summary; nothing is signed, uploaded or published.
 A version can never be replaced on nuget.org; it can only be unlisted. Rehearse with an rc version. If the
 workflow stops half-way, run it again: it skips the packages that are on nuget.org already.
 
+## Checking a release's files
+
+Core's shared workflow signs and attests, so name its repository as the signer:
+
+```bash
+gh release download v0.3.0-rc.4 -R fadenstack/fadenstack-sdk-dotnet -p "Fadenstack.Client.0.3.0-rc.4.nupkg"
+gh attestation verify Fadenstack.Client.0.3.0-rc.4.nupkg --repo fadenstack/fadenstack-sdk-dotnet --signer-repo fadenstack/fadenstack
+```
+
+It checks the file on the GitHub release; nuget.org's copy carries nuget.org's own repository signature as well, so its
+bytes differ. Each file's SBOM (`.cdx.json`), its OpenVEX document and the cosign bundles (`.sigstore.json`) are next to
+it on the release.
+
 ## Before the first release (once)
 
 1. On nuget.org, **Trusted Publishing** has a policy for repository owner `fadenstack`, repository
