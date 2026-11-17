@@ -39,7 +39,9 @@ internal static class EndpointWire
             switch (dialect.Thinking)
             {
                 case ThinkingSwitch.ReasoningEffort:
-                    body["reasoning_effort"] = effort == "xhigh" && !dialect.ExtraHighEffort ? "high" : effort;
+                    // A model that thinks when told "none" (gpt-oss) has "low" as its lowest level: Off sends that.
+                    body["reasoning_effort"] = effort == "none" && dialect.ThinksWhenOff ? "low"
+                        : effort == "xhigh" && !dialect.ExtraHighEffort ? "high" : effort;
                     break;
                 case ThinkingSwitch.ChatTemplateKwargs:
                     body["chat_template_kwargs"] = new JsonObject { ["enable_thinking"] = effort != "none" };

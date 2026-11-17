@@ -30,6 +30,9 @@ public sealed class OpenAiFake : HttpMessageHandler
 
     public List<string> Models { get; set; } = ["qwen3:14b"];
 
+    /// <summary>More fields of a model's <c>/models</c> entry, by id (OpenRouter's <c>architecture</c>, vLLM's <c>max_model_len</c>).</summary>
+    public Dictionary<string, Dictionary<string, object?>> ModelFields { get; } = new();
+
     /// <summary><c>reasoning_content</c> (most servers) or <c>reasoning</c> (vLLM's newer name).</summary>
     public string ReasoningField { get; set; } = "reasoning_content";
 
@@ -64,6 +67,10 @@ public sealed class OpenAiFake : HttpMessageHandler
     public Func<FakeRequest, HttpResponseMessage?>? Intercept { get; set; }
 
     public static FakeAnswer Text(string text, string? reasoning = null) => new() { Content = text, Reasoning = reasoning };
+
+    /// <summary>An answer that ends on <paramref name="finishReason"/> (for example <c>length</c>) with <paramref name="reasoning"/> and <paramref name="content"/>.</summary>
+    public static FakeAnswer Ended(string finishReason, string? content = null, string? reasoning = null) =>
+        new() { FinishReason = finishReason, Content = content, Reasoning = reasoning };
 
     public static FakeAnswer Calls(params (string Id, string Name, string Arguments)[] calls) => new() { ToolCalls = calls.ToList() };
 
@@ -104,7 +111,22 @@ public sealed class OpenAiFake : HttpMessageHandler
         var path = request.RequestUri!.AbsolutePath;
         if (recorded.Method == "GET" && path.EndsWith("/models", StringComparison.Ordinal))
         {
-            return Json(new { @object = "list", data = Models.Select(m => new { id = m, @object = "model", owned_by = "fake" }) });
+            return Json(new
+            {
+                @object = "list",
+                data = Models.Select(m =>
+                {
+                    var entry = new Dictionary<string, object?> { ["id"] = m, ["object"] = "model", ["owned_by"] = "fake" };
+                    if (ModelFields.TryGetValue(m, out var more))
+                    {
+                        foreach (var pair in more)
+                        {
+                            entry[pair.Key] = pair.Value;
+                        }
+                    }
+                    return entry;
+                }),
+            });
         }
         if (recorded.Method == "POST" && path.EndsWith("/chat/completions", StringComparison.Ordinal))
         {
@@ -153,7 +175,7 @@ public sealed class OpenAiFake : HttpMessageHandler
             response = Json(new
             {
                 id = "chatcmpl-1", @object = "chat.completion", model,
-                choices = new[] { new { index = 0, message, finish_reason = answer.ToolCalls.Count > 0 ? "tool_calls" : "stop" } },
+                choices = new[] { new { index = 0, message, finish_reason = answer.FinishReason ?? (answer.ToolCalls.Count > 0 ? "tool_calls" : "stop") } },
                 usage = new { prompt_tokens = 11, completion_tokens = 3, total_tokens = 14 },
             });
         }
@@ -216,7 +238,7 @@ public sealed class OpenAiFake : HttpMessageHandler
             Chunk(new { tool_calls = new[] { Call(id, name, arguments.Substring(0, half)) } });
             Chunk(new { tool_calls = new[] { Call(null, null, arguments.Substring(half)) } });
         }
-        Chunk(new { }, answer.ToolCalls.Count > 0 ? "tool_calls" : "stop");
+        Chunk(new { }, answer.FinishReason ?? (answer.ToolCalls.Count > 0 ? "tool_calls" : "stop"));
         if (usage)
         {
             text.Append("data: ").Append(JsonSerializer.Serialize(new
@@ -248,6 +270,10 @@ public sealed record FakeAnswer
 {
     public string? Content { get; init; }
     public string? Reasoning { get; init; }
+
+    /// <summary>The finish reason the answer ends on (default: <c>tool_calls</c> with calls, else <c>stop</c>); <c>length</c> plays a model that ran out of tokens.</summary>
+    public string? FinishReason { get; init; }
+
     public List<(string Id, string Name, string Arguments)> ToolCalls { get; init; } = new();
 }
 

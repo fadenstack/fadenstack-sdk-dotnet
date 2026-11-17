@@ -439,23 +439,230 @@ public class EndpointCheckTests
         Assert.Equal(new Version(major, minor, patch), v);
     }
 
+    private static bool IsChat(FakeRequest r) => r.Url.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal);
+
     [Fact]
-    public async Task An_endpoint_with_no_model_is_probed_with_the_first_model_the_server_lists()
+    public async Task With_no_model_named_only_models_is_asked_and_nothing_goes_to_a_model_F3()
     {
         var (check, fake) = Make(model: "");
         fake.Models = ["llama3.2:3b", "qwen3:14b"];
+
+        var report = await check.RunAsync(new EndpointCheckOptions { ProbeVision = true });
+
+        var only = Assert.Single(fake.Requests);
+        Assert.Equal("/v1/models", only.Url.AbsolutePath);
+        Assert.DoesNotContain(fake.Requests, IsChat);
+        Assert.True(report.Reachable);
+        Assert.True(report.KeyAccepted);
+        Assert.Equal(new[] { "llama3.2:3b", "qwen3:14b" }, report.Models);
+        Assert.Equal(EndpointServer.Ollama, report.Server);
+        Assert.Equal("", report.Model);
+        Assert.Null(report.Chat);
+        Assert.Null(report.Usage);
+        Assert.Null(report.ToolCalls);
+        Assert.Null(report.Vision);
+        Assert.False(report.Usable);
+    }
+
+    [Fact]
+    public async Task Before_the_pick_a_vllm_servers_version_is_still_read_and_after_it_the_probes_go_to_the_picked_model_only()
+    {
+        var fake = new OpenAiFake { Models = ["a", "b"], VllmVersion = "0.31.0" };
+        ModelEndpoint Endpoint(string model) => new()
+        {
+            BaseUrl = new Uri("http://localhost:8000/v1"), Model = model, Dialect = EndpointDialect.Vllm, Handler = fake,
+        };
+
+        var before = await new EndpointCheck(Endpoint("")).RunAsync();
+
+        Assert.Equal("0.31.0", before.ServerVersion);
+        Assert.Equal(new[] { "/v1/models", "/version" }, fake.Requests.Select(r => r.Url.AbsolutePath));
+
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        fake.Answers.Enqueue(OpenAiFake.Text("Green"));
+        var after = await new EndpointCheck(Endpoint("b")).RunAsync(new EndpointCheckOptions { ProbeVision = true });
+
+        Assert.Equal("b", after.Model);
+        Assert.True(after.Chat);
+        var chats = fake.Requests.Where(IsChat).ToList();
+        Assert.Equal(3, chats.Count);
+        Assert.All(chats, r => Assert.Equal("b", r.Json.GetProperty("model").GetString()));
+    }
+
+    [Fact]
+    public async Task The_tool_probe_leaves_a_thinking_model_room_1024_tokens()
+    {
+        var (check, fake) = Make();
         fake.Answers.Enqueue(OpenAiFake.Text("OK"));
         fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
 
+        await check.RunAsync();
+
+        Assert.Equal(1024, fake.Requests.Single(r => r.Body.Contains("report_ready")).Json.GetProperty("max_tokens").GetInt32());
+    }
+
+    [Fact]
+    public async Task A_probe_that_reasons_and_ends_on_the_length_limit_without_a_call_is_not_known_not_chat_only_F9()
+    {
+        var (check, fake) = Make();
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Ended("length", reasoning: "I should call the tool, but first let me think about it for a long time"));
+
         var report = await check.RunAsync();
 
-        Assert.Equal("llama3.2:3b", report.Model);
-        Assert.Equal(new[] { "llama3.2:3b", "qwen3:14b" }, report.Models);
+        Assert.Null(report.ToolCalls);
+        Assert.False(report.ChatOnly);
+        Assert.DoesNotContain(EndpointProblem.NoToolCalls, report.Problems);
         Assert.True(report.Usable);
-        Assert.True(report.ToolCalls);
-        var chats = fake.Requests.Where(r => r.Url.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal)).ToList();
-        Assert.True(chats.Count >= 2, "the chat probe and the tool-call probe both ask");
-        Assert.All(chats, r => Assert.Equal("llama3.2:3b", r.Json.GetProperty("model").GetString()));
+    }
+
+    [Fact]
+    public async Task A_finished_answer_without_a_call_is_false_and_a_call_after_reasoning_is_true()
+    {
+        var said = Make();
+        said.Fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        said.Fake.Answers.Enqueue(OpenAiFake.Text("I am ready.", "thinking"));
+        var no = await said.Check.RunAsync();
+        Assert.False(no.ToolCalls);
+        Assert.Contains(EndpointProblem.NoToolCalls, no.Problems);
+
+        var called = Make();
+        called.Fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        called.Fake.Answers.Enqueue(new FakeAnswer { ToolCalls = [("call-1", "report_ready", "{}")], Reasoning = "thinking" });
+        Assert.True((await called.Check.RunAsync()).ToolCalls);
+    }
+
+    [Fact]
+    public async Task A_probe_stream_that_reasons_under_none_gives_thinks_when_off_true_and_the_probe_sent_none_F10()
+    {
+        var (check, fake) = Make();
+        fake.ReasoningField = "reasoning";
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(new FakeAnswer { ToolCalls = [("call-1", "report_ready", "{}")], Reasoning = "The user wants a call." });
+
+        var report = await check.RunAsync();
+
+        Assert.True(report.ThinksWhenOff);
+        Assert.Equal("none", fake.Requests.Single(r => r.Body.Contains("report_ready")).Json.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public async Task A_probe_with_no_reasoning_gives_thinks_when_off_false()
+    {
+        var (check, fake) = Make();
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+
+        Assert.False((await check.RunAsync()).ThinksWhenOff);
+    }
+
+    [Fact]
+    public async Task A_dialect_with_no_switch_gives_thinks_when_off_null_even_when_reasoning_came()
+    {
+        var (check, fake) = Make("http://localhost:1234/v1", EndpointDialect.LMStudio);
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(new FakeAnswer { ToolCalls = [("call-1", "report_ready", "{}")], Reasoning = "hmm" });
+
+        var report = await check.RunAsync();
+
+        Assert.Null(report.ThinksWhenOff);
+        Assert.False(fake.Requests.Single(r => r.Body.Contains("report_ready")).Json.TryGetProperty("reasoning_effort", out _));
+    }
+
+    [Fact]
+    public async Task A_chat_template_dialect_sends_its_off_switch_and_notes_the_reasoning_too()
+    {
+        var (check, fake) = Make("http://localhost:8000/v1", EndpointDialect.Vllm);
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(new FakeAnswer { ToolCalls = [("call-1", "report_ready", "{}")], Reasoning = "hmm" });
+
+        var report = await check.RunAsync();
+
+        Assert.True(report.ThinksWhenOff);
+        Assert.False(fake.Requests.Single(r => r.Body.Contains("report_ready")).Json.GetProperty("chat_template_kwargs").GetProperty("enable_thinking").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_probe_keeps_the_real_off_switch_when_the_dialect_already_knows_the_model_thinks()
+    {
+        var fake = new OpenAiFake();
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        var check = new EndpointCheck(new ModelEndpoint
+        {
+            BaseUrl = new Uri("http://localhost:11434/v1"), Model = "m", Dialect = EndpointDialect.Ollama with { ThinksWhenOff = true }, Handler = fake,
+        });
+
+        await check.RunAsync();
+
+        Assert.Equal("none", fake.Requests.Single(r => r.Body.Contains("report_ready")).Json.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public void A_report_saved_without_thinks_when_off_reads_as_null_and_the_field_round_trips()
+    {
+        var json = new EndpointReport { BaseUrl = new Uri("http://localhost:11434/v1"), ThinksWhenOff = true }.ToJson();
+        Assert.Contains("\"thinksWhenOff\":true", json);
+        Assert.True(EndpointReport.FromJson(json).ThinksWhenOff);
+        var without = json.Replace(",\"thinksWhenOff\":true", "");
+        Assert.DoesNotContain("thinksWhenOff", without);
+        Assert.Null(EndpointReport.FromJson(without).ThinksWhenOff);
+    }
+
+    private static (EndpointCheck Check, OpenAiFake Fake) Listed(Dictionary<string, object?> fields)
+    {
+        var fake = new OpenAiFake { Models = ["vision-model"] };
+        fake.ModelFields["vision-model"] = fields;
+        fake.Answers.Enqueue(OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        var check = new EndpointCheck(new ModelEndpoint
+        {
+            BaseUrl = new Uri("https://openrouter.ai/api/v1"), Model = "vision-model", Dialect = EndpointDialect.OpenRouter, Handler = fake,
+        });
+        return (check, fake);
+    }
+
+    [Fact]
+    public async Task Input_modalities_with_an_image_give_vision_true_and_no_picture_is_sent_F2()
+    {
+        var (check, fake) = Listed(new() { ["architecture"] = new { input_modalities = new[] { "text", "image" } } });
+
+        var report = await check.RunAsync(new EndpointCheckOptions { ProbeVision = true });
+
+        Assert.True(report.Vision);
+        Assert.DoesNotContain(fake.Requests, r => r.Body.Contains("image_url"));
+    }
+
+    [Fact]
+    public async Task Input_modalities_with_text_only_give_vision_false_and_no_picture_is_sent()
+    {
+        var (check, fake) = Listed(new() { ["architecture"] = new { input_modalities = new[] { "text" } } });
+
+        var report = await check.RunAsync(new EndpointCheckOptions { ProbeVision = true });
+
+        Assert.False(report.Vision);
+        Assert.DoesNotContain(fake.Requests, r => r.Body.Contains("image_url"));
+    }
+
+    [Fact]
+    public async Task The_listing_decides_even_when_the_check_was_not_asked_to_probe()
+    {
+        var (check, _) = Listed(new() { ["architecture"] = new { input_modalities = new[] { "image", "text" } } });
+
+        Assert.True((await check.RunAsync()).Vision);
+    }
+
+    [Fact]
+    public async Task A_listing_that_does_not_say_leaves_it_to_the_probe()
+    {
+        var (check, fake) = Listed(new() { ["architecture"] = new { } });
+        fake.Answers.Enqueue(OpenAiFake.Text("Green"));
+
+        var report = await check.RunAsync(new EndpointCheckOptions { ProbeVision = true });
+
+        Assert.True(report.Vision);
+        Assert.Contains(fake.Requests, r => r.Body.Contains("image_url"));
     }
 
     [Fact]
