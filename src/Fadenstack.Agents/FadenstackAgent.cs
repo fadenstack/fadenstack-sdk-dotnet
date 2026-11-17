@@ -976,6 +976,18 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
     public async Task<DataDeletion> DeleteMyDataAsync(DataScope scope, CancellationToken cancellationToken = default)
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
+        var deletion = DeleteSdkData(scope);
+        // The host's own data (AgentBuilder.UseHostData) goes after the SDK's, whichever the scope, so a host's removal that fails
+        // never keeps the SDK's data; it is counted with the SDK's own.
+        if (_settings.HostData is { } host)
+        {
+            deletion = deletion with { FoldersRemoved = deletion.FoldersRemoved + await host(scope, cancellationToken).ConfigureAwait(false) };
+        }
+        return deletion;
+    }
+
+    private DataDeletion DeleteSdkData(DataScope scope)
+    {
         var principal = Profile.Principal;
         if (scope == DataScope.ThisApp)
         {

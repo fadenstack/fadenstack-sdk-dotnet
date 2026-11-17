@@ -266,6 +266,42 @@ public class DataRightsTests : IDisposable
         Assert.Single(await sessions.ListAsync(Gateway.Slug));
     }
 
+    [Theory]
+    [InlineData(DataScope.ThisApp)]
+    [InlineData(DataScope.AllApps)]
+    public async Task Deleting_takes_the_hosts_own_data_with_it_and_counts_it(DataScope scope)
+    {
+        // The host keeps data of its own (an endpoint key store): UseHostData lets "Remove my data" take it, whichever the scope.
+        var asked = new List<DataScope>();
+        using var plain = Plain(new Gateway { Principal = Principal }).Build();
+        var without = await plain.DeleteMyDataAsync(scope);
+        using var agent = Plain(new Gateway { Principal = Principal }).UseHostData((s, _) =>
+        {
+            asked.Add(s);
+            return Task.FromResult(3);
+        }).Build();
+
+        var deletion = await agent.DeleteMyDataAsync(scope);
+
+        Assert.Equal(new[] { scope }, asked);
+        Assert.Equal(without.FoldersRemoved + 3, deletion.FoldersRemoved);
+        Assert.Throws<ArgumentNullException>(() => Plain(new Gateway()).UseHostData(null!));
+    }
+
+    [Fact]
+    public async Task A_host_removal_that_fails_never_keeps_the_sdks_data()
+    {
+        // The SDK's removal runs first (GDPR Art. 17): a host callback that throws comes after it, and its error reaches the caller.
+        await Seed("u-1", "other-agent", "s9", "also mine");
+        using var agent = Plain(new Gateway { Principal = Principal })
+            .UseHostData((_, _) => throw new InvalidOperationException("the host's store is locked")).Build();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => agent.DeleteMyDataAsync(DataScope.AllApps));
+
+        Assert.Equal("the host's store is locked", error.Message);
+        Assert.False(Directory.Exists(Data("users", "u-1")));
+    }
+
     [Fact]
     public async Task Without_a_principal_deleting_removes_the_shared_folders_only()
     {
