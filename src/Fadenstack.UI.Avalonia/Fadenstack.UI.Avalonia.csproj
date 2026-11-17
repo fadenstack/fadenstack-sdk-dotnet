@@ -18,6 +18,12 @@
     <AvaloniaResource Include="Assets\Fonts\*.ttf;Assets\Fonts\*.otf" />
   </ItemGroup>
   <ItemGroup>
+    <!-- The package carries the notices of what it bundles (G-A 1.2): THIRD-PARTY-NOTICES and the fonts' OFL texts at its
+         root, so an app that ships the package can pass them on (OFL 1.1 condition 2). -->
+    <None Include="$(MSBuildThisFileDirectory)..\..\THIRD-PARTY-NOTICES" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="Assets\Fonts\licenses\*-OFL.txt" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Fadenstack.UI\Fadenstack.UI.csproj" />
   </ItemGroup>
   <ItemGroup>

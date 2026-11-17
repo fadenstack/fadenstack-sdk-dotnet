@@ -1,7 +1,8 @@
 Third-party notices for the Fadenstack .NET SDK
 
 The Fadenstack.UI.Avalonia package bundles the fonts and icons below. Their licence texts are kept in
-src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/ and are repeated by the project's NuGet package.
+src/Fadenstack.UI.Avalonia/Assets/Fonts/licenses/. The project's NuGet package carries this file and the four OFL
+texts (Inter-OFL.txt, NotoSansSC-OFL.txt, JetBrainsMono-OFL.txt, Sora-OFL.txt) at its root.
 
 == Fonts (SIL Open Font License 1.1) ==
 
