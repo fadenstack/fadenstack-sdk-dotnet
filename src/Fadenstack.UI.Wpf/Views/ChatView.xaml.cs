@@ -160,13 +160,17 @@ public partial class ChatView : UserControl
         var link = _chat?.BrandingLink;
         AiNotice.Text = notice;
         AiNotice.Visibility = notice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        // The notice is also the message field's help text, so Narrator says it when the field gets focus: at the first interaction
+        // (AI Act Art. 50(5)). Before, it was read only six items after the field. TS: the composer's aria-describedby.
         if (notice.Length > 0)
         {
             AutomationProperties.SetName(AiNotice, notice);
+            AutomationProperties.SetHelpText(Composer, notice);
         }
         else
         {
             AiNotice.ClearValue(AutomationProperties.NameProperty);
+            Composer.ClearValue(AutomationProperties.HelpTextProperty);
         }
         BrandingLine.Inlines.Clear();
         if (link is not null && _chat is { } chat)

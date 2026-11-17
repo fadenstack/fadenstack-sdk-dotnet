@@ -105,6 +105,28 @@ public class StopEverythingViewTests
 
     [Theory]
     [MemberData(nameof(Each))]
+    public void The_ai_notice_is_the_message_field_s_help_text_so_Narrator_says_it_on_focus(string language) => Sta.Run(() =>
+    {
+        // AI Act Art. 50(5): at the first interaction. Measured by the apps session: Narrator reached the notice only six items
+        // after the field.
+        var (agent, _, broker) = NewAgent(off: false);
+        using var _ = agent;
+        var chat = new AgentChatViewModel(agent, broker, new WpfDispatcher(), new AgentChatOptions
+        {
+            AutomaticLanguage = new System.Globalization.CultureInfo(language), Preferences = new MemoryPreferenceStore(), RenderInterval = TimeSpan.Zero,
+        });
+        chat.InitializeAsync().GetAwaiter().GetResult();
+        var view = new ChatView { DataContext = chat, Width = 420, Height = 560 };
+        view.Measure(new Size(420, 560));
+        view.Arrange(new Rect(0, 0, 420, 560));
+        view.UpdateLayout();
+
+        Assert.False(string.IsNullOrEmpty(chat.Strings.AiNotice));
+        Assert.Equal(chat.Strings.AiNotice, AutomationProperties.GetHelpText(Named<TextBox>(view, "Composer")));
+    });
+
+    [Theory]
+    [MemberData(nameof(Each))]
     public void The_stop_button_has_its_name_and_tooltip_and_says_what_it_did_in_every_language(string language) => Sta.Run(() =>
     {
         var (agent, _, _) = NewAgent(off: false);

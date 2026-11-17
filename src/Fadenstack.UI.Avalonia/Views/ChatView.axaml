@@ -928,8 +928,11 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <!-- The AI notice is also the field's help text, so a screen reader says it when the field gets focus: at the first
+                     interaction (AI Act Art. 50(5)). -->
                 <TextBox Name="Composer" Classes="composer" Text="{Binding Input, Mode=TwoWay}" IsEnabled="{Binding IsInputEnabled}"
-                         PlaceholderText="{v:Text ComposerPlaceholder}" AutomationProperties.Name="{v:Text Message}" />
+                         PlaceholderText="{v:Text ComposerPlaceholder}" AutomationProperties.Name="{v:Text Message}"
+                         AutomationProperties.HelpText="{Binding Strings.AiNotice}" />
                 <DockPanel Classes="composer-bar">
                     <Panel DockPanel.Dock="Right">
                         <Button Classes="icon large primary" ToolTip.Tip="{v:Text SendShortcut}" AutomationProperties.Name="{v:Text Send}"

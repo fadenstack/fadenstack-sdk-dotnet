@@ -347,6 +347,18 @@ public class ChatViewTests
     }
 
     [AvaloniaFact]
+    public async Task The_ai_notice_is_the_message_field_s_help_text_so_a_screen_reader_says_it_on_focus()
+    {
+        // AI Act Art. 50(5): at the first interaction. Before, a screen reader reached the notice only items after the field.
+        using var host = await ChatHost.OpenAsync(3);
+        await host.PumpAsync();
+
+        var notice = host.Chat.Strings.AiNotice;
+        Assert.False(string.IsNullOrEmpty(notice));
+        Assert.Equal(notice, global::Avalonia.Automation.AutomationProperties.GetHelpText(Composer(host)));
+    }
+
+    [AvaloniaFact]
     public async Task A_host_can_switch_the_automatic_focus_off_without_compact()
     {
         using var host = await ChatHost.OpenAsync(3);
