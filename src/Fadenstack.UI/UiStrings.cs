@@ -905,6 +905,15 @@ public sealed class UiStrings
 
     public string PictureNotRead(string name) => Fill(name);
 
+    /// <summary>A picture that is not a PNG, JPEG, WebP or GIF (checked when it is attached; the gateway's <c>picture_type_not_allowed</c>).</summary>
+    public string PictureTypeNotAllowed => Text();
+
+    /// <summary>A picture without data (<c>picture_missing</c>).</summary>
+    public string PictureMissing => Text();
+
+    /// <summary>The gateway does not take pictures given as embeddings (<c>embeds_not_allowed</c>).</summary>
+    public string EmbedsNotAllowed => Text();
+
     // -- About (the settings' last item) --------------------------------------------------------------
 
     /// <summary>The settings' last item, and the heading of what it opens.</summary>

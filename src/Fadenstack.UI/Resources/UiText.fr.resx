@@ -457,6 +457,15 @@
   <data name="PictureNotRead" xml:space="preserve">
     <value>{0} n'a pas pu être lu comme image.</value>
   </data>
+  <data name="PictureTypeNotAllowed" xml:space="preserve">
+    <value>Le format de cette image ne peut pas être envoyé. Utilisez une image PNG, JPEG, WebP ou GIF.</value>
+  </data>
+  <data name="PictureMissing" xml:space="preserve">
+    <value>Une image de votre message était vide, rien n'a donc été envoyé.</value>
+  </data>
+  <data name="EmbedsNotAllowed" xml:space="preserve">
+    <value>Le serveur n'accepte pas les images sous cette forme.</value>
+  </data>
   <data name="About" xml:space="preserve">
     <value>À propos</value>
   </data>

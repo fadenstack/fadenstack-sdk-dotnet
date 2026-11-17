@@ -596,6 +596,18 @@
     <value>{0} could not be read as a picture.</value>
     <comment>{0}: the file's name</comment>
   </data>
+  <data name="PictureTypeNotAllowed" xml:space="preserve">
+    <value>This picture's format can't be sent. Use a PNG, JPEG, WebP or GIF picture.</value>
+    <comment>Said when a picture is attached or sent that is not a PNG, JPEG, WebP or GIF (the gateway's picture_type_not_allowed)</comment>
+  </data>
+  <data name="PictureMissing" xml:space="preserve">
+    <value>A picture in your message was empty, so nothing was sent.</value>
+    <comment>Said when a picture has no data (the gateway's picture_missing)</comment>
+  </data>
+  <data name="EmbedsNotAllowed" xml:space="preserve">
+    <value>The server does not accept pictures in this form.</value>
+    <comment>Said when the gateway refuses pictures given as embeddings (embeds_not_allowed)</comment>
+  </data>
   <data name="About" xml:space="preserve">
     <value>About</value>
     <comment>The settings menu's last item, and the heading of what it opens (the agent, the app, the SDK, the server, links)</comment>

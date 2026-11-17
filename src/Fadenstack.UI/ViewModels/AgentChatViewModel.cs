@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Text.RegularExpressions;
 using Fadenstack.Agents;
 using Fadenstack.Agents.Sessions;
 using Fadenstack.Models;
@@ -158,9 +157,6 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     /// <summary>The preference that turns the notice for an answer without an AI mark on ("1"); off when absent.</summary>
     public const string TellUnmarkedPreference = "tell-unmarked";
-
-    /// <summary>A picture's media type, from its <c>data:</c> URL.</summary>
-    private static readonly Regex PictureType = new(@"^data:(image/[\w.+-]+)[;,]", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     /// <summary>The chat's texts, in the language the user picked (or the host's): the skin binds its labels to them.</summary>
     public UiStrings Strings
@@ -1175,18 +1171,38 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             Error = Strings.PicturesNotSeen;
             return false;
         }
+        // The data's first bytes decide whether it is a picture the gateway takes, and which type it is: not what the URL claims. Nothing is
+        // attached, and nothing sent, for a picture that would be refused (OWASP ASVS 5.0 V5, file handling). TypeScript: `checkPicture`.
+        var checkedPicture = PictureData.Check(dataUrl);
+        if (!checkedPicture.Ok)
+        {
+            Error = PictureSentence(checkedPicture.Problem);
+            return false;
+        }
         var name = string.IsNullOrWhiteSpace(title) ? Strings.PastedPicture : title!.Trim();
         var attachment = new MessageAttachment
         {
             Title = name,
-            Content = dataUrl,
+            Content = checkedPicture.DataUrl,
             Kind = string.IsNullOrEmpty(kind) ? "picture" : kind,
-            MediaType = PictureType.Match(dataUrl) is { Success: true } m ? m.Groups[1].Value : "image/png",
+            MediaType = checkedPicture.MediaType,
         };
-        Attachments.Add(new AttachmentViewModel(name, Strings.Picture, _ => Task.FromResult<MessageAttachment?>(attachment)) { Image = dataUrl });
+        Attachments.Add(new AttachmentViewModel(name, Strings.Picture, _ => Task.FromResult<MessageAttachment?>(attachment)) { Image = checkedPicture.DataUrl });
         RequestComposerFocus();
         return true;
     }
+
+    /// <summary>The sentence for a refused picture, in the panel's language.</summary>
+    private string PictureSentence(PictureProblem problem) => problem == PictureProblem.Missing ? Strings.PictureMissing : Strings.PictureTypeNotAllowed;
+
+    /// <summary>What a failed turn says: a picture the gateway refused in plain words, in the panel's language; otherwise the error's own message.</summary>
+    private string ErrorText(Exception e) => FadenstackApiException.PictureRefusalOf(e) switch
+    {
+        PictureRefusal.Type => Strings.PictureTypeNotAllowed,
+        PictureRefusal.Missing => Strings.PictureMissing,
+        PictureRefusal.Embeds => Strings.EmbedsNotAllowed,
+        _ => e.Message,
+    };
 
     /// <summary>Says that a file the user added could not be read as a picture (<see cref="Error"/>).</summary>
     public void PictureNotRead(string name) => Error = Strings.PictureNotRead(name);
@@ -1652,7 +1668,21 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 {
                     if (await a.ResolveAsync(cancellationToken).ConfigureAwait(false) is { } resolved)
                     {
-                        attachments.Add(resolved);
+                        if (!resolved.IsPicture)
+                        {
+                            attachments.Add(resolved);
+                        }
+                        else if (PictureData.Check(resolved.Content) is { Ok: true } good)
+                        {
+                            // Whatever put a picture on the chip (the host's own attachment included): the same check as AttachPicture, before it is sent.
+                            attachments.Add(resolved with { Content = good.DataUrl, MediaType = good.MediaType });
+                        }
+                        else
+                        {
+                            var refused = PictureSentence(PictureData.Check(resolved.Content).Problem);
+                            var name = a.Title;
+                            _batcher.Enqueue(() => turn.AddPart(Parts.NoticePart.Localized(Strings, Parts.NoticeSeverity.Warning, s => (s.NotAttached(name), refused, null))));
+                        }
                     }
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
@@ -1692,7 +1722,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         catch (Exception e)
         {
-            _batcher.Enqueue(() => turn.Fail(e.Message, _options.Clock()));
+            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock()));
         }
     }
 
@@ -1732,7 +1762,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         }
         catch (Exception e)
         {
-            _batcher.Enqueue(() => turn.Fail(e.Message, _options.Clock()));
+            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock()));
         }
         return result;
     }
