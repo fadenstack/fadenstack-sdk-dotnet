@@ -141,14 +141,15 @@ public sealed class McpSharedListTests : IDisposable
 
         await excel.AddAsync(McpStoreTests.Program("beta"));
         await McpRig.EventuallyAsync(() => word.Module!.GetStatus("beta") is not null, "Word's module has the server Excel added");
-        Assert.Equal(["beta"], word.Rows.Select(r => r.Label));
+        // The host's rows follow the module on their own turn: under load they may come a moment later.
+        await McpRig.EventuallyAsync(() => word.Rows.Select(r => r.Label).SequenceEqual(["beta"]), "Word's rows show the server");
 
         await excel.SetEnabledAsync("beta", false);
         await McpRig.EventuallyAsync(() => word.Module!.GetStatus("beta")?.State == McpServerState.Off, "Excel's switch holds in Word");
 
         await excel.RemoveAsync("beta");
         await McpRig.EventuallyAsync(() => word.Module!.GetStatus("beta") is null, "the server leaves Word's module");
-        Assert.Empty(word.Rows);
+        await McpRig.EventuallyAsync(() => word.Rows.Count == 0, "the server leaves Word's rows");
     }
 
     [Fact]
