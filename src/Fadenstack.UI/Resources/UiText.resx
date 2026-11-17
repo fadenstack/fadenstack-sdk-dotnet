@@ -462,6 +462,12 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Thinks longest.</value>
   </data>
+  <data name="ReasoningOffLowestDescription" xml:space="preserve">
+    <value>This model always thinks. Off uses its lowest level.</value>
+  </data>
+  <data name="ReasoningOffStillThinksDescription" xml:space="preserve">
+    <value>This model thinks even when Off.</value>
+  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Thinking: {0}</value>
     <comment>The pill: {0} is the level, e.g. Low or Off</comment>

@@ -355,6 +355,12 @@
   <data name="Reasoning_High_Description" xml:space="preserve">
     <value>Denkt am längsten nach.</value>
   </data>
+  <data name="ReasoningOffLowestDescription" xml:space="preserve">
+    <value>Dieses Modell denkt immer nach. „Aus“ nutzt seine niedrigste Stufe.</value>
+  </data>
+  <data name="ReasoningOffStillThinksDescription" xml:space="preserve">
+    <value>Dieses Modell denkt auch bei „Aus“ nach.</value>
+  </data>
   <data name="ReasoningPill" xml:space="preserve">
     <value>Nachdenken: {0}</value>
   </data>

@@ -205,10 +205,13 @@ public sealed class ReasoningOption : ObservableObject
     private bool _isSelected;
     private UiStrings _strings;
 
-    internal ReasoningOption(ReasoningLevel level, UiStrings strings)
+    private readonly string? _thinksWhenOff;
+
+    internal ReasoningOption(ReasoningLevel level, UiStrings strings, string? thinksWhenOff = null)
     {
         Level = level;
         _strings = strings;
+        _thinksWhenOff = thinksWhenOff;
     }
 
     public ReasoningLevel Level { get; }
@@ -216,7 +219,25 @@ public sealed class ReasoningOption : ObservableObject
     /// <summary>"Low".</summary>
     public string Label => _strings.ReasoningLabel(Level);
 
-    public string Description => _strings.ReasoningDescription(Level);
+    /// <summary>
+    /// What the level means. Off says what it really does when the check found the model thinks anyway (F10): it uses the lowest
+    /// level, or the model thinks even with the off switch.
+    /// </summary>
+    public string Description
+    {
+        get
+        {
+            if (Level == ReasoningLevel.Off && _thinksWhenOff == "lowest")
+            {
+                return _strings.ReasoningOffLowestDescription;
+            }
+            if (Level == ReasoningLevel.Off && _thinksWhenOff == "always")
+            {
+                return _strings.ReasoningOffStillThinksDescription;
+            }
+            return _strings.ReasoningDescription(Level);
+        }
+    }
 
     /// <summary>The level new messages think at: the menu marks it.</summary>
     public bool IsSelected

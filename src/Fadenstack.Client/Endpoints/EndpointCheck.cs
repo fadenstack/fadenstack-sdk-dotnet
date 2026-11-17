@@ -58,8 +58,8 @@ public enum EndpointPlace
 public sealed record EndpointCheckOptions
 {
     /// <summary>
-    /// Also send a small green picture and ask for its colour; the model sees pictures only if the answer says "green"
-    /// (optional; the person may set it instead).
+    /// Also send a small green picture and ask for its colour; the model sees pictures only if the answer says "green". The
+    /// connection wizard sets it for the model the person picked. Skipped where <c>/models</c> says what the model takes in.
     /// </summary>
     public bool ProbeVision { get; init; }
 
@@ -96,14 +96,21 @@ public sealed record EndpointReport
     /// <summary>Whether a stream brought usage figures.</summary>
     public bool? Usage { get; init; }
 
-    /// <summary>Whether the model calls tools; false means the agent can only talk.</summary>
+    /// <summary>Whether the model calls tools; false means the agent can only talk; null when the probe could not tell (it ended on the length limit, or was not run).</summary>
     public bool? ToolCalls { get; init; }
 
     /// <summary>
-    /// Whether the model saw a picture: its answer to a solid green one named "green". False for any other answer, an empty
-    /// one, a refusal ("I can't see images") or an API error; null when not probed.
+    /// Whether the model saw a picture: what <c>/models</c> says it takes in, else its answer to a solid green one named
+    /// "green". False for any other answer, an empty one, a refusal ("I can't see images") or an API error; null when not known.
     /// </summary>
     public bool? Vision { get; init; }
+
+    /// <summary>
+    /// Whether the model thinks although the dialect's off switch was sent (the tool probe sends <c>reasoning_effort: "none"</c>
+    /// and saw reasoning anyway: gpt-oss). Null: the dialect sends no switch, or the probe did not run. Reports saved before this
+    /// field read as null.
+    /// </summary>
+    public bool? ThinksWhenOff { get; init; }
 
     /// <summary>
     /// The context length that applies: the person's, else the server's running setting (Ollama: the model's <c>num_ctx</c>,
@@ -243,23 +250,20 @@ public sealed class EndpointCheck
             return Finish(report with { Reachable = stop.Reachable, KeyAccepted = stop.KeyAccepted }, problems);
         }
 
-        // No model named yet (the wizard checks before the person picks one, F15): the first listed model stands in for the
-        // probes, and the report names it.
-        var endpoint = _endpoint;
-        EndpointTransport? chosen = null;
-        if (endpoint.Model.Length == 0 && report.Models.Count > 0)
-        {
-            endpoint = endpoint with { Model = report.Models[0] };
-            report = report with { Model = endpoint.Model };
-            transport = chosen = new EndpointTransport(endpoint);
-        }
-        using var chosenTransport = chosen;
-
-        // The server's version where it says (vLLM's and SGLang's /version), for the watermark table.
+        // The server's version where it says (vLLM's and SGLang's /version), for the watermark table. It sends nothing to a model.
         string? version = null;
         if (server is EndpointServer.Vllm or EndpointServer.Sglang)
         {
             version = await VersionAsync(transport, cancellationToken).ConfigureAwait(false);
+        }
+
+        // No model named yet (the wizard checks before the person picks one, F15, F3): nothing goes to a model the person did
+        // not pick. The check ends with what /models said (reachable, the key, the models, the server); chat, usage, tools and
+        // pictures stay unknown until a model is named. A server that lists no model goes on as before.
+        var endpoint = _endpoint;
+        if (endpoint.Model.Length == 0 && report.Models.Count > 0)
+        {
+            return Finish(report, problems, version);
         }
 
         // 2. A one-token streamed chat: does it answer, do usage figures come back?
@@ -301,11 +305,12 @@ public sealed class EndpointCheck
                 version, watermarkRequested, confirmed);
         }
 
-        // 3. The tool-call probe.
+        // 3. The tool-call probe. It sends the dialect's own off switch (never the "lowest level" stand-in), and notes whether the
+        // model reasoned anyway (ThinksWhenOff).
         try
         {
-            var called = await ProbeToolsAsync(client, cancellationToken).ConfigureAwait(false);
-            report = report with { ToolCalls = called };
+            var (called, thinksWhenOff) = await ProbeToolsAsync(client, cancellationToken).ConfigureAwait(false);
+            report = report with { ToolCalls = called, ThinksWhenOff = thinksWhenOff };
         }
         catch (FadenstackApiException e) when ((int)e.Status is 400 or 422 or 500)
         {
@@ -316,8 +321,14 @@ public sealed class EndpointCheck
             problems.Add(EndpointProblem.NoToolCalls);
         }
 
-        // 4. A picture, when asked for: only an answer that names the colour (green) counts; a model that cannot see answers anyway.
-        if (options.ProbeVision)
+        // 4. Pictures. Where /models says what the model takes in (OpenRouter's architecture.input_modalities), that decides and no
+        // picture is sent. Otherwise, when asked for, a picture: only an answer that names the colour (green) counts; a model that
+        // cannot see answers anyway.
+        if (InputModalitiesOf(listing, endpoint.Model) is { } modalities)
+        {
+            report = report with { Vision = modalities.Contains("image") };
+        }
+        else if (options.ProbeVision)
         {
             try
             {
@@ -419,24 +430,66 @@ public sealed class EndpointCheck
         return (text.ToString(), usage, marking);
     }
 
-    private static async Task<bool> ProbeToolsAsync(DirectChatClient client, CancellationToken cancellationToken)
+    /// <summary>Room for a model that cannot stop thinking to reason and still make the call (gpt-oss reasons for 256 tokens and more).</summary>
+    private const int ToolProbeMaxTokens = 1024;
+
+    /// <summary>
+    /// The tool-call probe: <c>ToolCalls</c> is true when the model calls the tool, false only when it finished its answer
+    /// ("stop") without a call, null when that is not known (the answer ended on the length limit, or with no finish reason, for
+    /// example while thinking). <c>ThinksWhenOff</c> says whether reasoning came although the off switch (<c>reasoning_effort:
+    /// "none"</c>) was sent; null when the dialect sends no switch.
+    /// </summary>
+    private static async Task<(bool? ToolCalls, bool? ThinksWhenOff)> ProbeToolsAsync(DirectChatClient client, CancellationToken cancellationToken)
     {
         var tool = AIFunctionFactory.Create(() => "ready", ProbeTool, "Reports that the assistant is ready. Call it now.");
         var options = new ChatOptions
         {
-            Tools = [tool], ToolMode = ChatToolMode.RequireAny, MaxOutputTokens = 256,
+            Tools = [tool], ToolMode = ChatToolMode.RequireAny, MaxOutputTokens = ToolProbeMaxTokens,
             Reasoning = new ReasoningOptions { Effort = ReasoningEffort.None },
         };
+        var dialect = client.Endpoint.Dialect;
+        // A dialect that already knows the model thinks would send "low" for "none": the probe asks with the real off switch.
+        using var bare = dialect.ThinksWhenOff
+            ? new DirectChatClient(new EndpointTransport(client.Endpoint with { Dialect = dialect with { ThinksWhenOff = false } }), ownsTransport: true)
+            : null;
+        client = bare ?? client;
+        var called = false;
+        var finished = false;
+        var reasoned = false;
         await foreach (var update in client.GetStreamingResponseAsync(
             [new ChatMessage(ChatRole.User, $"Call the tool {ProbeTool} now, with no arguments.")], options, cancellationToken)
             .ConfigureAwait(false))
         {
-            if (update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == ProbeTool))
-            {
-                return true;
-            }
+            called |= update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == ProbeTool);
+            finished |= update.FinishReason == ChatFinishReason.Stop;
+            reasoned |= update.Contents.OfType<TextReasoningContent>().Any(r => !string.IsNullOrWhiteSpace(r.Text));
         }
-        return false;
+        bool? thinks = dialect.Thinking == ThinkingSwitch.None ? null : reasoned;
+        return (called ? true : finished ? false : null, thinks);
+    }
+
+    /// <summary>
+    /// What a model takes in, as <c>/models</c> says it (<c>architecture.input_modalities</c>, e.g. <c>["text", "image"]</c>);
+    /// null where the listing does not say, so the probe decides.
+    /// </summary>
+    private static IReadOnlyList<string>? InputModalitiesOf(JsonElement? listing, string model)
+    {
+        if (listing is not { ValueKind: JsonValueKind.Object } l || !l.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+        foreach (var entry in data.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.String || id.GetString() != model)
+            {
+                continue;
+            }
+            return entry.TryGetProperty("architecture", out var architecture) && architecture.ValueKind == JsonValueKind.Object
+                && architecture.TryGetProperty("input_modalities", out var modalities) && modalities.ValueKind == JsonValueKind.Array
+                ? modalities.EnumerateArray().Where(m => m.ValueKind == JsonValueKind.String).Select(m => m.GetString()!.ToLowerInvariant()).ToList()
+                : null;
+        }
+        return null;
     }
 
     private static async Task<(List<string> Models, string? Owner)> ModelsAsync(EndpointTransport transport,

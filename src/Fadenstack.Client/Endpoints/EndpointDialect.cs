@@ -92,6 +92,15 @@ public sealed record EndpointDialect
     /// </summary>
     public WatermarkSwitchOff WatermarkSwitchOff { get; init; }
 
+    /// <summary>
+    /// The check found that the model thinks although the off switch was sent (gpt-oss ignores <c>reasoning_effort: "none"</c>; it
+    /// knows only low, medium and high). With a <see cref="ThinkingSwitch.ReasoningEffort"/> switch, Off then sends <c>low</c>, the
+    /// lowest level the model has; a <see cref="ThinkingSwitch.ChatTemplateKwargs"/> switch has no lower level and still sends the
+    /// off switch. Set from the check's report (<see cref="EndpointReport.ThinksWhenOff"/>); false means no. TypeScript:
+    /// <c>EndpointDialect.thinksWhenOff</c>.
+    /// </summary>
+    public bool ThinksWhenOff { get; init; }
+
     /// <summary>Any server that speaks the OpenAI chat completions API: nothing beyond the common fields.</summary>
     public static EndpointDialect OpenAICompatible { get; } = new();
 

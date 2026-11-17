@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Net;
 using System.Reflection;
+using CommunityToolkit.Mvvm.Input;
 using Fadenstack.Agents;
 using Fadenstack.Auth;
 using Fadenstack.Endpoints;
@@ -3210,6 +3211,125 @@ public class ConnectionWizardTests
         Assert.NotNull(english);
         Assert.Equal(UiStrings.For(German).WizardConnectedServer(Org.AbsoluteUri), rig.Wizard.ConnectedText);
         Assert.NotEqual(english, rig.Wizard.ConnectedText);
+    }
+
+    // ===================================================================================================================
+    // The check before the pick sends nothing to a model (F3), and the check after it looks at pictures (F2)
+    // ===================================================================================================================
+
+    private static bool IsChat(Fadenstack.Client.Tests.FakeRequest r) =>
+        r.Url.AbsolutePath.EndsWith("/chat/completions", StringComparison.Ordinal);
+
+    /// <summary>The wizard over the real check, against a scripted Ollama that lists <paramref name="models"/>.</summary>
+    private static (WizardRig Rig, Fadenstack.Client.Tests.OpenAiFake Fake) OverRealCheck(params string[] models)
+    {
+        var fake = new Fadenstack.Client.Tests.OpenAiFake { Models = models.ToList() };
+        var rig = OwnPick();
+        rig.Checker.Override = (endpoint, token, options) => new EndpointCheck(endpoint with { Handler = fake }).RunAsync(options, token);
+        Pick(rig, EndpointPreset.Ollama);
+        return (rig, fake);
+    }
+
+    private static void Script(Fadenstack.Client.Tests.OpenAiFake fake, string vision)
+    {
+        fake.Answers.Enqueue(Fadenstack.Client.Tests.OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(Fadenstack.Client.Tests.OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+        fake.Answers.Enqueue(Fadenstack.Client.Tests.OpenAiFake.Text(vision));
+    }
+
+    private static Task PressAsync(IRelayCommand command) => ((IAsyncRelayCommand)command).ExecuteAsync(null);
+
+    [Fact]
+    public async Task With_several_models_the_check_before_the_pick_sends_exactly_one_request_and_nothing_to_chat_completions()
+    {
+        var (rig, fake) = OverRealCheck("m1", "m2");
+        using var _ = rig;
+
+        await PressAsync(rig.Wizard.UseEndpointCommand);
+
+        Assert.Equal(WizardStep.OwnModel, rig.Wizard.Step);
+        Assert.Equal(new[] { "m1", "m2" }, rig.Wizard.Models);
+        Assert.Null(rig.Wizard.SelectedModel);
+        var only = Assert.Single(fake.Requests);
+        Assert.Equal("/v1/models", only.Url.AbsolutePath);
+        Assert.DoesNotContain(fake.Requests, IsChat);
+    }
+
+    [Fact]
+    public async Task After_the_pick_the_probes_go_to_the_picked_model_only_and_vision_is_probed()
+    {
+        var (rig, fake) = OverRealCheck("m1", "m2");
+        using var _ = rig;
+        await PressAsync(rig.Wizard.UseEndpointCommand);
+        Script(fake, "Green");
+
+        rig.Wizard.SelectedModel = "m2";
+        await PressAsync(rig.Wizard.ContinueCommand);
+
+        Assert.Equal(WizardStep.OwnResult, rig.Wizard.Step);
+        var chats = fake.Requests.Where(IsChat).ToList();
+        Assert.Equal(3, chats.Count); // one chat probe, one tool probe, one vision probe
+        Assert.All(chats, r => Assert.Equal("m2", r.Json.GetProperty("model").GetString()));
+        Assert.Contains(chats, r => r.Body.Contains("image_url"));
+        Assert.Equal("m2", rig.Wizard.Report!.Model);
+        Assert.True(rig.Wizard.Report.Vision);
+        await PressAsync(rig.Wizard.ContinueCommand);
+        var saved = Assert.Single(rig.Store.Saved);
+        Assert.Equal("m2", saved.Endpoint!.Model);
+        Assert.True(saved.Report!.Vision);
+    }
+
+    [Fact]
+    public async Task With_one_model_it_is_taken_and_checked_at_once()
+    {
+        var (rig, fake) = OverRealCheck("only");
+        using var _ = rig;
+        Script(fake, "Green");
+
+        await PressAsync(rig.Wizard.UseEndpointCommand);
+
+        Assert.Equal(WizardStep.OwnResult, rig.Wizard.Step);
+        Assert.Equal("only", rig.Wizard.SelectedModel);
+        Assert.All(fake.Requests.Where(IsChat), r => Assert.Equal("only", r.Json.GetProperty("model").GetString()));
+        Assert.True(rig.Wizard.Report!.Chat);
+        Assert.True(rig.Wizard.Report.Vision);
+    }
+
+    [Fact]
+    public async Task A_listing_that_says_the_model_takes_images_decides_without_a_picture_request()
+    {
+        var (rig, fake) = OverRealCheck("only");
+        using var _ = rig;
+        fake.ModelFields["only"] = new() { ["architecture"] = new { input_modalities = new[] { "text", "image" } } };
+        fake.Answers.Enqueue(Fadenstack.Client.Tests.OpenAiFake.Text("OK"));
+        fake.Answers.Enqueue(Fadenstack.Client.Tests.OpenAiFake.Calls(("call-1", "report_ready", "{}")));
+
+        await PressAsync(rig.Wizard.UseEndpointCommand);
+
+        Assert.True(rig.Wizard.Report!.Vision);
+        Assert.DoesNotContain(fake.Requests, r => r.Body.Contains("image_url"));
+    }
+
+    [Fact]
+    public void Every_check_the_wizard_runs_asks_for_the_picture_probe()
+    {
+        using var rig = OwnPick();
+        Pick(rig, EndpointPreset.Ollama);
+        UseEndpoint(rig);
+
+        Assert.True(Assert.Single(rig.Checker.CheckOptions)!.ProbeVision);
+    }
+
+    [Fact]
+    public async Task Back_from_the_pick_goes_to_the_address_step_when_no_model_was_checked_yet()
+    {
+        var (rig, _) = OverRealCheck("m1", "m2");
+        using var _ = rig;
+        await PressAsync(rig.Wizard.UseEndpointCommand);
+
+        rig.Press(rig.Wizard.BackCommand);
+
+        Assert.Equal(WizardStep.OwnPick, rig.Wizard.Step);
     }
 
     [Fact]

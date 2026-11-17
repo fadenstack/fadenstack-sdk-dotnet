@@ -344,8 +344,13 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The server offers skills: typing <c>$</c> in the composer lists them.</summary>
     public bool CanPickSkills => _profile?.Skills == true;
 
-    /// <summary>The agent's model sees pictures: a picture can go with a message (<see cref="AttachPicture"/>).</summary>
-    public bool CanAttachPictures => _profile?.Vision == true;
+    /// <summary>
+    /// The agent's model sees pictures: a picture can go with a message (<see cref="AttachPicture"/>). An agent on the person's own
+    /// model (standalone) whose vision is not known (null: a connection saved before the check looked at pictures) lets a picture
+    /// through; only a "no" (false) refuses. With a Fadenstack server the server's word stands: only a "yes" does.
+    /// </summary>
+    public bool CanAttachPictures => _profile?.Vision == true
+        || (_profile is { Vision: null } && _agent.Connection == AgentConnection.Standalone);
 
     public bool IsEmpty => Turns.Count == 0;
 
@@ -603,6 +608,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The levels of thinking the agent offers (its profile's <c>ui.reasoning</c>); empty until it started.</summary>
     public ObservableCollection<ReasoningOption> ReasoningOptions { get; }
 
+    /// <summary>
+    /// Whether the thinking pill and its menu show: not for an agent that offers no level (a standalone agent whose dialect sends
+    /// no thinking switch, so a pick would change nothing). Before the agent started the pill shows, as before.
+    /// </summary>
+    public bool OffersReasoning => _profile is null || _agent.ReasoningChoices.Levels.Count > 0;
+
     /// <summary>The thinking menu is open (presentation state, so the skin needs no code).</summary>
     public bool IsReasoningMenuOpen
     {
@@ -659,8 +670,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         ReasoningOptions.Clear();
         foreach (var level in choices.Levels)
         {
-            ReasoningOptions.Add(new ReasoningOption(level, Strings));
+            ReasoningOptions.Add(new ReasoningOption(level, Strings, choices.ThinksWhenOff));
         }
+        OnPropertyChanged(nameof(OffersReasoning));
         FollowReasoning();
     }
 
@@ -670,7 +682,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         var level = _session?.Reasoning ?? _agent.Reasoning;
         // A level the agent starts at but does not list (the app set it) still shows as it is.
         var option = ReasoningOptions.FirstOrDefault(o => o.Level == level)
-            ?? new ReasoningOption(level, Strings);
+            ?? new ReasoningOption(level, Strings, _agent.ReasoningChoices.ThinksWhenOff);
         SetProperty(ref _selectedReasoning, option, nameof(SelectedReasoning));
         MarkReasoning();
         OnPropertyChanged(nameof(ReasoningPillText));

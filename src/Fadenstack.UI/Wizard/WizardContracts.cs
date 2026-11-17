@@ -360,8 +360,8 @@ public interface IEndpointChecker
     /// <summary>Where the address points, decided on the resolved addresses.</summary>
     Task<EndpointPlace> PlaceOfAsync(Uri baseUrl, CancellationToken cancellationToken);
 
-    /// <summary>The endpoint check (F03).</summary>
-    Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken);
+    /// <summary>The endpoint check (F03). <paramref name="options"/> add to the checker's own (the wizard asks for the picture probe).</summary>
+    Task<EndpointReport> CheckAsync(ModelEndpoint endpoint, CancellationToken cancellationToken, EndpointCheckOptions? options = null);
 }
 
 /// <summary>What the app declares, and what the wizard needs to run (F15).</summary>

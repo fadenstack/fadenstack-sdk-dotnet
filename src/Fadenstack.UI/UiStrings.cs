@@ -544,6 +544,12 @@ public sealed class UiStrings
     /// <summary>What the level means, in one line.</summary>
     public string ReasoningDescription(ReasoningLevel level) => this[$"Reasoning_{level}_Description"];
 
+    /// <summary>Off's line when the check found the model thinks anyway and Off sends its lowest level.</summary>
+    public string ReasoningOffLowestDescription => Text();
+
+    /// <summary>Off's line when the model thinks even with the off switch sent (a chat template has no lower level).</summary>
+    public string ReasoningOffStillThinksDescription => Text();
+
     /// <summary>The pill: "Thinking: Low".</summary>
     public string ReasoningPill(string level) => Fill(level);
 

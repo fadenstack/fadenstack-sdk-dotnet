@@ -51,6 +51,29 @@ internal sealed class LocalAgentBackend : IAgentBackend
         _options = options ?? new LocalProfileOptions();
     }
 
+    /// <summary>
+    /// What the endpoint's dialect says about the thinking menu, for the profile's <c>ui.reasoning</c>: no level where the dialect
+    /// sends no thinking switch (F7); a note on Off where the check found the model thinks anyway (F10). Null: nothing to say, or
+    /// a host's own chat client (no dialect).
+    /// </summary>
+    private Dictionary<string, object?>? ReasoningUi()
+    {
+        if (_endpoint is null)
+        {
+            return null;
+        }
+        if (_endpoint.Dialect.Thinking == ThinkingSwitch.None)
+        {
+            return new Dictionary<string, object?> { ["offered"] = false };
+        }
+        return _endpoint.Dialect.ThinksWhenOff || _report?.ThinksWhenOff == true
+            ? new Dictionary<string, object?>
+            {
+                ["thinks_when_off"] = _endpoint.Dialect.Thinking == ThinkingSwitch.ReasoningEffort ? "lowest" : "always",
+            }
+            : null;
+    }
+
     public AgentConnection Connection => AgentConnection.Standalone;
 
     public FadenstackClient? ServerClient => null;
@@ -81,6 +104,17 @@ internal sealed class LocalAgentBackend : IAgentBackend
         var residency = _endpoint is null ? AddressScope.Public
             : await NetworkAddress.OfHostAsync(_endpoint.BaseUrl.Host, cancellationToken).ConfigureAwait(false);
         ui["model_residency"] = JsonSerializer.SerializeToElement(residency == AddressScope.Public ? "external" : "private");
+        if (ReasoningUi() is { } thinking)
+        {
+            var reasoning = ui.TryGetValue("reasoning", out var own) && own.ValueKind == JsonValueKind.Object
+                ? own.EnumerateObject().ToDictionary(p => p.Name, p => (object?)p.Value.Clone(), StringComparer.Ordinal)
+                : new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var pair in thinking)
+            {
+                reasoning[pair.Key] = pair.Value;
+            }
+            ui["reasoning"] = JsonSerializer.SerializeToElement(reasoning);
+        }
         return new AgentProfile
         {
             Id = _definition.Slug,

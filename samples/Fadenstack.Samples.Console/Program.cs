@@ -52,7 +52,7 @@ if (arguments.Get("endpoint", "FADEN_ENDPOINT") is { } endpointUrl)
     EndpointReport? report = null;
     if (arguments.Has("check"))
     {
-        report = await new EndpointCheck(endpoint).RunAsync(new EndpointCheckOptions { RequiredContextTokens = 8000 });
+        report = await new EndpointCheck(endpoint).RunAsync(new EndpointCheckOptions { RequiredContextTokens = 8000, ProbeVision = true });
     }
     // What the person sees first: where their questions go, which model answers, and what the check found.
     Console.WriteLine($"Endpoint {endpoint.BaseUrl.GetLeftPart(UriPartial.Path)}, model {endpoint.Model}, dialect {endpoint.Dialect.Name}.");
@@ -252,7 +252,8 @@ static string Describe(EndpointReport report)
     {
         report.Reachable ? "reachable" : "not reachable",
         report.Chat == true ? "answers" : "does not answer",
-        report.ToolCalls == true ? "calls tools" : report.ToolCalls == false ? "no tool calls (it can only talk)" : "tool calls not tried",
+        report.ToolCalls == true ? "calls tools" : report.ToolCalls == false ? "no tool calls (it can only talk)" : "tool calls not known",
+        report.Vision == true ? "sees pictures" : report.Vision == false ? "does not see pictures" : "pictures not known",
         report.ContextLength is { } context ? $"context {context} tokens" : "context unknown",
     };
     var problems = report.Problems.Count == 0 ? "no problems" : "problems: " + string.Join(", ", report.Problems);
