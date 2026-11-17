@@ -107,6 +107,11 @@ internal sealed class EndpointTransport : IDisposable
                 Failed(activity, method, route, e, attempt, watch);
                 throw new EndpointUnreachableException($"The endpoint did not answer within {Endpoint.Timeout.TotalSeconds:0} s.", e);
             }
+            catch (HttpRequestException e) when (cancellationToken.IsCancellationRequested)
+            {
+                // The caller cancelled (Stop): a transport error that arrives after that is the cancel, not "unreachable".
+                throw new OperationCanceledException(e.Message, e, cancellationToken);
+            }
             catch (HttpRequestException e)
             {
                 Failed(activity, method, route, e, attempt, watch);

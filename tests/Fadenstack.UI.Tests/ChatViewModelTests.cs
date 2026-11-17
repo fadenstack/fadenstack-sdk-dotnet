@@ -306,6 +306,28 @@ public class ChatViewModelTests
         Assert.False(chat.IsBusy);
     }
 
+    [Fact]
+    public async Task Stop_whose_read_fails_with_an_IOException_ends_the_turn_as_stopped_with_no_error()
+    {
+        var gateway = new Gateway();
+        gateway.Then(AbortedStream.Answer(Gateway.Text("Reading the page"), out var stream));
+        var (chat, _, _) = Chat(gateway);
+        await chat.InitializeAsync();
+        var sending = chat.SendAsync("Go.");
+        var turn = await TurnOf(chat);
+        await stream.Started.Task;
+        await Task.Delay(100);
+
+        chat.StopCommand.Execute(null);
+        await sending;
+
+        Assert.Equal(TurnState.Stopped, turn.State);
+        Assert.Equal("Stopped", turn.StatusText);
+        Assert.NotEqual("Something went wrong", turn.StatusText);
+        Assert.True(string.IsNullOrEmpty(turn.ErrorMessage));
+        Assert.False(chat.IsBusy);
+    }
+
     private static string Reasoning(string text) =>
         FakeServer.Data(new { id = "c1", choices = new[] { new { index = 0, delta = new { reasoning_content = text } } } });
 

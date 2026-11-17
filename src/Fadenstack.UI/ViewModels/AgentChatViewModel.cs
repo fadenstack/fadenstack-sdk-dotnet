@@ -1677,8 +1677,9 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 Apply(turn, e);
             }
         }
-        catch (OperationCanceledException)
+        catch (Exception e) when (e is OperationCanceledException || cancellationToken.IsCancellationRequested)
         {
+            // A stop the person chose ends as stopped, never as "Something went wrong" (also when the transport's own error follows it).
             _batcher.Enqueue(() => turn.Stop(_options.Clock()));
         }
         catch (FadenstackSignInRequiredException e)
@@ -1717,7 +1718,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
                 }
             }
         }
-        catch (OperationCanceledException)
+        catch (Exception e) when (e is OperationCanceledException || cancellationToken.IsCancellationRequested)
         {
             _batcher.Enqueue(() => turn.Stop(_options.Clock()));
         }

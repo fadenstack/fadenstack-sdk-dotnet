@@ -48,7 +48,7 @@ internal static class SseReader
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(stream, Encoding.UTF8);
-        var lines = new LineReader(reader, limits);
+        var lines = new LineReader(reader, limits, cancellationToken);
         string? name = null;
         var data = new StringBuilder();
         while (true)
@@ -111,16 +111,18 @@ internal static class SseReader
     {
         private readonly StreamReader _reader;
         private readonly SseLimits _limits;
+        private readonly CancellationToken _cancellationToken;
         private readonly char[] _buffer = new char[8192];
         private int _start;
         private int _end;
         private bool _skipLf;
         private long _total;
 
-        public LineReader(StreamReader reader, SseLimits limits)
+        public LineReader(StreamReader reader, SseLimits limits, CancellationToken cancellationToken)
         {
             _reader = reader;
             _limits = limits;
+            _cancellationToken = cancellationToken;
         }
 
         public async Task<string?> ReadAsync()
@@ -131,7 +133,17 @@ internal static class SseReader
                 if (_start == _end)
                 {
                     _start = 0;
-                    _end = await _reader.ReadAsync(_buffer, 0, _buffer.Length).ConfigureAwait(false);
+                    try
+                    {
+                        _end = await _reader.ReadAsync(_buffer, 0, _buffer.Length).ConfigureAwait(false);
+                    }
+                    catch (Exception e) when (_cancellationToken.IsCancellationRequested && e is not OperationCanceledException)
+                    {
+                        // Stop closes the stream under the read, and the transport then throws its own error (an IOException "aborted
+                        // because of either a thread exit or an application request", or ObjectDisposedException): after a cancel
+                        // that is the cancel, not a failure.
+                        throw new OperationCanceledException(e.Message, e, _cancellationToken);
+                    }
                     if (_end == 0)
                     {
                         return line?.ToString();

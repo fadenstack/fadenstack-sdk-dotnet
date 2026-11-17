@@ -905,6 +905,13 @@ public sealed class ChatSession
                 await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
                 throw;
             }
+            catch (Exception e) when (cancellationToken.IsCancellationRequested)
+            {
+                // A stop the person chose: the transport's own error after it (an IOException "aborted because of either a thread exit or
+                // an application request") is the cancel, not a failure.
+                await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
+                throw new OperationCanceledException(e.Message, e, cancellationToken);
+            }
             catch
             {
                 await EndAsync(TurnStatus.Error, null).ConfigureAwait(false);
@@ -1119,7 +1126,7 @@ public sealed class ChatSession
                     }
                 }
             }
-            catch (Exception e) when (IsAgentOff(e) || (e is OperationCanceledException && _session.StoppedForOff))
+            catch (Exception e) when (IsAgentOff(e) || ((e is OperationCanceledException || cancellationToken.IsCancellationRequested) && _session.StoppedForOff))
             {
                 // The organisation turned the agent off (agent_disabled, in force at the next request): the turn ends at once, with the
                 // fixed sentence and no more requests. A grant the person had is already ended (MarkTurnedOff).
@@ -1135,6 +1142,13 @@ public sealed class ChatSession
             {
                 await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
                 throw;
+            }
+            catch (Exception e) when (cancellationToken.IsCancellationRequested)
+            {
+                // A stop the person chose: the transport's own error after it (an IOException "aborted because of either a thread exit or
+                // an application request") is the cancel, not a failure. TS: the turn's `signal.aborted` check.
+                await EndAsync(TurnStatus.Cancelled, null).ConfigureAwait(false);
+                throw new OperationCanceledException(e.Message, e, cancellationToken);
             }
             catch (FadenstackRateLimitedException e)
             {
