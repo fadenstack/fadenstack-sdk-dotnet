@@ -59,7 +59,7 @@ SDKs must agree, and they do (a shared test vector is in both suites).
 | A gateway chat, or a standalone endpoint that streams tool calls | The `function.arguments` string as the stream carried it (`ChatWire.ArgumentsText` reads it from the call's `faden.arguments_text` property); blank is `{}`. |
 | A provider that hands over parsed arguments only (Microsoft.Extensions.AI) | The JSON the SDK itself writes back as `function.arguments` in its next request (compact, properties in their order). |
 | A person's own command (`InvokeToolAsync`) | The canonical command JSON the server's check also sees. |
-| A call a gateway holds (`faden.approval_required` with an `approvalId`) | From core 0.7.1 rc22 the event carries `arguments` (the text, cut at 8000 characters), `argumentsTruncated` (only when it was cut) and `argumentsSha256` (of the whole text). The entry takes the gateway's hash; if only the text came and it was not cut, the SDK hashes it; a cut text without a hash leaves the field empty. An older gateway sends none of these, so the field is empty. |
+| A call a gateway holds (`faden.approval_required` with an `approvalId`) | From server 0.7.1 the event carries `arguments` (the text, cut at 8000 characters), `argumentsTruncated` (only when it was cut) and `argumentsSha256` (of the whole text). The entry takes the gateway's hash; if only the text came and it was not cut, the SDK hashes it; a cut text without a hash leaves the field empty. An older gateway sends none of these, so the field is empty. |
 
 ## The chain
 

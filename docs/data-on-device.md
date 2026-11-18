@@ -125,7 +125,7 @@ Before 0.3.0 the SDK kept `sessions`, `approvals` and `preferences` (the thinkin
 
 A person can ask for the data a device holds about them (GDPR Art. 15 and 20) and for its deletion (Art. 17). [Export and delete my data](sessions.md#export-and-delete-my-data) shows the calls.
 
-Several Fadenstack apps may use one person's folder: the Word add-in, the desktop agent, Excel. Since standalone.9 the calls work per app (`DataScope`):
+Several Fadenstack apps may use one person's folder: the Word add-in, the desktop agent, Excel. Since 0.3.0 the calls work per app (`DataScope`):
 
 - **This app** (`DataScope.ThisApp`, the default): the sessions and "Allow always" of the app's agents, their thinking levels, and the app's record (`apps/<app>.json`). An agent that another app's record names too keeps its data (`DataDeletion.AgentsKept`).
 - **The shared data**, which no single app owns: skills and the skills turned off, the MCP list and its audit log, the record of tool calls, keys, provenance records and log, the web search and old-chats settings, the standalone language, the approvals' seal key. It goes with this app's data only when no other app uses the person's data: no other app's record, and no data of an agent that no record names (an app on an SDK before standalone.9 writes no record, so its data stands for it, which keeps the shared data). Otherwise it stays, and `DataDeletion.OtherApps` names the apps it stays for. When nothing is left, the person's folder goes as a whole. The seal key goes with the last "Allow always".

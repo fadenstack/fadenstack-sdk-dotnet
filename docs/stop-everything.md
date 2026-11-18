@@ -5,7 +5,7 @@ the server of core 0.7.1 or later for the server's part; without it the SDK stil
 
 ## Stop everything
 
-`agent.StopAllAsync()` (TypeScript: `agent.stopAll()`) is the emergency stop (release plan 8.11):
+`agent.StopAllAsync()` (TypeScript: `agent.stopAll()`) is the emergency stop:
 
 1. Every running turn in every open chat of the agent stops the way the chat's own Stop button does. The turn ends as
    stopped (its stream throws `OperationCanceledException`, the transcript says `cancelled`), a tool call that waits for
@@ -43,13 +43,13 @@ chat panel then shows the sign-in again (ASVS 5.0 V7, session ending).
 
 ### Access tokens are short
 
-Core cuts the agent access token to 300 seconds at most (from rc21). The SDKs refresh from `expires_in`, 30 seconds ahead,
+Core cuts the agent access token to 300 seconds at most. The SDKs refresh from `expires_in`, 30 seconds ahead,
 and assume no lifetime. A device signed out stops within one token's life; an agent turned off, a person deactivated or a
 sign-in ended stop at the next request.
 
 ## The off-switch
 
-An administrator can **turn an agent off** in the console (release plan 8.3). From then on every agent route but the
+An administrator can **turn an agent off** in the console. From then on every agent route but the
 profile, the events and the manifest answers 403 `agent_disabled` ("Your organisation turned this agent off."), for
 everyone, and the server has ended the agent's grants (`revoked_by: agent_turned_off`).
 
@@ -74,6 +74,6 @@ everyone, and the server has ended the agent's grants (`revoked_by: agent_turned
 
 ## Testing
 
-The SDK's own test gateway (the fake server its tests use) has `TurnOff()` and `TurnOn()` (TypeScript: `fakeGateway.turnOff()`, `turnOn()` in `@fadenstack/testing`): every agent route but the
+To test the off-switch, answer as the server does. The TypeScript SDK's test gateway has `fakeGateway.turnOff()` and `turnOn()` (`@fadenstack/testing`) for it; in .NET, make your own fake server do the same. Every agent route but the
 profile, the events and the manifest answers the 403, the profile says `enabled: false`, and the grants end with
 `revoked_by: agent_turned_off`.

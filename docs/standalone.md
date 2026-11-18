@@ -116,7 +116,7 @@ if (report.ChatOnly) { /* the model calls no tools: the agent can only talk */ }
 ### The text watermark status
 
 Some servers mark the text a model writes with an invisible watermark; the agent cannot add one itself. The report's
-`Watermark` says, from a table of each server's own documentation (read 14 November 2026), whether this connection
+`Watermark` says, from a table of each server's own documentation, whether this connection
 marks text:
 
 | Server | `TextWatermark` |

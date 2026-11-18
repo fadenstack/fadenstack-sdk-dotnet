@@ -25,11 +25,11 @@ A standing approval spares a question the level would ask. The request offers on
 |---|---|---|
 | Once (`ApprovalDecision.Approve()`) | This call. | Nowhere. |
 | For this chat (`ApproveForSession()`) | One tool, this conversation. | The device's memory; a chat opened again asks again. |
-| Always (`ApproveAlways()`) | One tool, on this device. | `FileApprovalStore`, sealed: an HMAC-SHA256 under the device's key since standalone.8, over the agent, the tool, its class, its source and its server. An approval that fails the seal answers nothing and the person is asked again. A new MCP server bringing a tool of the same name inherits no "always". |
+| Always (`ApproveAlways()`) | One tool, on this device. | `FileApprovalStore`, sealed: an HMAC-SHA256 under the device's key, over the agent, the tool, its class, its source and its server. An approval that fails the seal answers nothing and the person is asked again. A new MCP server bringing a tool of the same name inherits no "always". |
 | For a time (`ApproveFor(duration)`) | One tool, a chosen time. | A server grant. |
 | For a stretch of work (`session.OfferWorkAsync(places)`) | Named places and classes, for a time. | A server grant. |
 
-A server grant is read from the server for each covered call and once more as the call goes out (standalone.9), so a grant that ended meanwhile runs nothing. A time or work grant never covers a call on the never-skip list below, nor a destructive or unclassified one.
+A server grant is read from the server for each covered call and once more as the call goes out, so a grant that ended meanwhile runs nothing. A time or work grant never covers a call on the never-skip list below, nor a destructive or unclassified one.
 
 ## The never-skip list
 
@@ -45,13 +45,13 @@ These ask, or are refused, at every level, Bypass included. Bypass skips questio
 | `mcp_server_question` | A question an MCP server asks the person itself (elicitation). | It goes to the app's question handler (`LocalMcpModule.Ask`); the SDK never answers it. Without a handler the module does not declare elicitation, so a server cannot ask. |
 | `gateway_held` | A call the gateway holds for the person (a gateway tool's approval). | The person is asked and the SDK sends their answer. Bypass never answers the gateway: only the server may skip its own question, so a Bypass grant does not cover a call the gateway holds, even if the gateway also names the grant for it (time and work grants are not affected). |
 
-**Not marked yet.** Neither the SDK nor the gateway has a marker for `physical` and `open_world_tainted` (`ApprovalFloor.NotMarkedYet`; desktop 16 F-10, intent IM-09). Until they do, a tool of that kind needs `approval: always` in its contract or an administrator's "Ask first" rule to be held to the floor.
+**Not marked yet.** Neither the SDK nor the gateway has a marker for `physical` and `open_world_tainted` (`ApprovalFloor.NotMarkedYet`). Until they do, a tool of that kind needs `approval: always` in its contract or an administrator's "Ask first" rule to be held to the floor.
 
 **Destructive and unclassified calls** (`destructive_or_unclassified`, `ApprovalFloor.DestructiveOrUnclassified`; not on the list) ask at every level except Bypass. Bypass covers them only where the tenant allows it, after the second sign-in ([Bypass](server-grants.md#bypass)), and only the calls the gateway says the conversation's grant covers; the rest still ask.
 
 ## The arguments of a call the gateway holds
 
-From core 0.7.1 (rc22) the event of a call the gateway holds for the person carries the call's `arguments` text (cut at 8000 characters), `argumentsTruncated` when it was cut, and `argumentsSha256`. The SDK fills `ApprovalRequest.Arguments` from it, so the card shows them as it does for the app's own calls: when the text is a complete JSON object, its members; when it was cut or is not a JSON object, the text as one read-only value under the note "The arguments are shortened." (`ApprovalRequest.ArgumentsShortened`, `ApprovalPart.ArgumentsNote`; five languages). The card never shows more than its usual preview. An older gateway sends none, and the card shows no arguments, as before. The record of tool calls takes the hash from the same event. TypeScript: `ApprovalRequest.arguments`, `argumentsShortened`, `ApprovalPart.argumentsNote`.
+From server 0.7.1 the event of a call the gateway holds for the person carries the call's `arguments` text (cut at 8000 characters), `argumentsTruncated` when it was cut, and `argumentsSha256`. The SDK fills `ApprovalRequest.Arguments` from it, so the card shows them as it does for the app's own calls: when the text is a complete JSON object, its members; when it was cut or is not a JSON object, the text as one read-only value under the note "The arguments are shortened." (`ApprovalRequest.ArgumentsShortened`, `ApprovalPart.ArgumentsNote`; five languages). The card never shows more than its usual preview. An older gateway sends none, and the card shows no arguments, as before. The record of tool calls takes the hash from the same event. TypeScript: `ApprovalRequest.arguments`, `argumentsShortened`, `ApprovalPart.argumentsNote`.
 
 ## After a restart
 

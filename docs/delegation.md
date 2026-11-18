@@ -66,7 +66,7 @@ Each call is reported to the server as a `tool.executed` event for the tool `del
 
 ## On the wire
 
-The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview, asksEveryTime}`; only `asksEveryTime: false` lets the caller answer later calls of the tool for the task, and a missing flag (an agent on 0.3.0-standalone.8 or older) counts as true. The answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
+The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after a hello with the secret of the launch. The A2A library (`A2A`, in the Fadenstack fork until upstream ships a `netstandard2.0` build, a2aproject/a2a-dotnet issue #197) serves the agent: the methods are `SendStreamingMessage`, `CancelTask`, `GetTask` and `GetExtendedAgentCard`. An approval is the task state `input-required` with a data part `{approvalId, tool, toolClass, summary, argumentsPreview, asksEveryTime}`; only `asksEveryTime: false` lets the caller answer later calls of the tool for the task, and a missing flag (an older agent) counts as true. The answer is a message on the same task with a data part `{approvalId, decision}`, where the decision is `once`, `chat` or `deny`. The answer is an artifact with one text part, and the task ends `completed`.
 
 ## Getting the package
 
@@ -92,4 +92,4 @@ The pipe carries A2A 1.0 over JSON-RPC, one request or response per line, after 
 
 The feed needs a GitHub token that may read the organisation's packages. In GitHub Actions that is the job's `GITHUB_TOKEN`, once both packages give the repository read access.
 
-While A2A is a preview, a stable SDK version has this package as a preview of it: with SDK 0.3.0, reference `Fadenstack.Agents.Delegation` 0.3.0-preview. A prerelease of the SDK, such as 0.3.0-rc.2, has the same version for both.
+While A2A is a preview, a stable SDK version has this package as a preview of it: with SDK 0.3.0, reference `Fadenstack.Agents.Delegation` 0.3.0-preview. A prerelease of the SDK has the same version for both.
