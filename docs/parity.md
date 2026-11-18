@@ -12,7 +12,7 @@ This table is for SDK 0.3.0, against Fadenstack server 0.7.1. A dash means the S
 | The agent | `Fadenstack.Agents` | `@fadenstack/agents` | |
 | View models of the chat | `Fadenstack.UI` | `@fadenstack/ui` | |
 | The skin of the chat | `Fadenstack.UI.Wpf`, `Fadenstack.UI.Avalonia` | `@fadenstack/ui-web` (the look), `@fadenstack/ui-react`, `@fadenstack/ui-vue` | |
-| Local MCP servers | `Fadenstack.Mcp` | — | A browser has no local MCP process. |
+| Local MCP servers | `Fadenstack.Mcp` | `@fadenstack/mcp` | A browser starts no program: over HTTP only, no stdio, no scan ([Local MCP servers](../typescript/local-mcp.md)). |
 | Delegation between agents on one device | `Fadenstack.Agents.Delegation` (a preview, on the fadenstack organisation's GitHub Packages feed, not on nuget.org: [Delegating to agents](delegation.md)) | — | A browser has no local pipe. A TypeScript A2A client comes later. |
 | Content provenance | `Fadenstack.Provenance` | `@fadenstack/provenance` | |
 | Encryption at rest on macOS and Linux | `Fadenstack.Secrets` | — | A browser encrypts its stores with a WebCrypto key ([Stores](#stores-and-data-rights)). |
@@ -105,7 +105,7 @@ This table is for SDK 0.3.0, against Fadenstack server 0.7.1. A dash means the S
 | Retention | `UseSessionRetention(SessionRetention)`; the server's `local_retention` can only lower it | `useSessionRetention({ maxSessions, maxAgeDays })`; the same rule | |
 | The record of tool calls | `agent.VerifyAuditAsync()`, `ExportAuditAsync(AuditExportFormat, stream)`, `AuditRetentionDays`; `UseAuditLog(IAuditLog)`: `FileAuditLog`, `MemoryAuditLog` ([The record of tool calls](audit-log.md)) | `agent.verifyAudit()`, `exportAudit("csv" \| "html")` (text), `auditRetentionDays`; `useAuditLog(log)`: `IndexedDbAuditLog`, `MemoryAuditLog` | The same entries, hash chain, seal, test vectors and texts; a file per person here, an IndexedDB database per person there. |
 | Fencing content you did not write | `UntrustedContent.Fence(label, origin, body)`, `UntrustedContent.Clean(text)` ([Tools](tools.md)) | `fenceUntrusted({ label, origin, body })`, `cleanUntrusted(text)` | |
-| The injection suite | `tests/Fadenstack.Agents.Tests/Injection`, trait `Category=Injection` | `packages/agents/test/injection`, a step of its own in `release.yml` | The same corpus, byte for byte; TS has no delegation channel. |
+| The injection suite | `tests/Fadenstack.Agents.Tests/Injection`, trait `Category=Injection` | `packages/agents/test/injection` | The same corpus, byte for byte; TS has no delegation channel. |
 | Content logging for a time | `agent.ContentLogging`, `StartContentLogging(TimeSpan)`, `StopContentLogging()`, `ContentLoggingSettingsViewModel`, the band in the chat; machine policy `contentLogging` | `agent.contentLogging`, `startContentLogging(ms)`, `stopContentLogging()`, `ContentLoggingSettingsViewModel`, the band in the chat; machine policy `contentLogging` | TS has no OpenTelemetry chat client: only the hooks follow the switch. |
 | The mark on copy | `agent.MarkCopyAsync(AnswerCopy)` (`MarkedCopy`), `IAnswerCopyMarker`, `IHtmlClipboard` | `agent.markCopy({ text, html, chat, turn })`, `AnswerCopyMarker`, `Clipboard.setContent` | .NET has no chat export; TS's saved chat is marked in its front matter. |
 | A local MCP server's program pinned | `McpServerEntry.ProgramPin`, `McpHost.ConfirmNewProgramAsync`, the Tools view's "Use the new program" | — | A browser starts no program: an MCP server over http has nothing to pin. |
