@@ -111,7 +111,7 @@ its kind (`AuditProblems`: `unreadable_line`, `seq_gap`, `prev_mismatch`, `hash_
 `anchor_missing`, `key_missing`, `head_mismatch`, `head_missing`) and the entry's number, never content. The head makes a cut-off end visible: the last entry must be the one the sealed head names (`head_mismatch` when entries after the head's number are missing, or the head names another hash or was forged; `head_missing` when entries exist and the head was deleted). A log from before the head existed takes its head with its next append.
 
 `ExportAsync` writes every entry readable, with the verification result at the top. The CSV has the verification in its
-first two lines, then one row per entry; a cell that starts with `=`, `+`, `-` or `@` gets a leading apostrophe so a
+first two lines, then one row per entry; a cell with a `;` or `,` is quoted, and a part of a cell that starts with `=`, `+`, `-` or `@` (at the start or after a `;` or `,`) gets a leading apostrophe so a
 spreadsheet never reads it as a formula. The HTML is one self-contained page: a table, escaped text, inline CSS, no script
 and no outside resource. Both are in English: they are a record, not a screen.
 

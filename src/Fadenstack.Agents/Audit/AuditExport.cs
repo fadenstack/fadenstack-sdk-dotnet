@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Fadenstack.Agents.Audit;
 
@@ -50,14 +51,14 @@ internal static class AuditExport
 
     private static string Row(string[] cells) => string.Join(",", cells.Select(Cell)) + "\r\n";
 
-    /// <summary>A CSV cell: quoted when it needs it, and never read as a formula by a spreadsheet (a leading <c>= + - @</c>, tab or CR).</summary>
+    /// <summary>Where a spreadsheet could start a formula cell: the start of the field and right after a <c>;</c> or <c>,</c> inside it (Excel in a German, French or Spanish locale splits a double-clicked CSV at <c>;</c>), before <c>= + - @</c>, tab, CR or NUL.</summary>
+    private static readonly Regex FormulaStart = new(@"(^|[;,])(?=[=+\-@\t\r\0])", RegexOptions.CultureInvariant);
+
+    /// <summary>A CSV cell: quoted when it needs it (a <c>,</c>, <c>;</c>, quote, CR or LF), and never read as a formula by a spreadsheet: a <c>'</c> goes before <c>= + - @</c>, tab, CR or NUL at the start of the field and right after a <c>;</c> or <c>,</c> inside it. TypeScript: <c>csvCell</c> and the UI's <c>csvField</c> follow the same rule.</summary>
     internal static string Cell(string value)
     {
-        if (value.Length > 0 && "=+-@\t\r".IndexOf(value[0]) >= 0)
-        {
-            value = "'" + value;
-        }
-        return value.IndexOfAny(new[] { ',', '"', '\r', '\n' }) >= 0 ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
+        value = FormulaStart.Replace(value, "$1'");
+        return value.IndexOfAny(new[] { ';', ',', '"', '\r', '\n' }) >= 0 ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
     }
 
     internal static string Html(AuditVerification v, IReadOnlyList<AuditEntry> entries)
