@@ -89,7 +89,7 @@ public static class FadenstackPaths
 
     /// <summary>A folder of one user's own content (<c>DataRoot/users/&lt;user&gt;/...</c>), created, owner only.</summary>
     public static string User(string userId, params string[] parts) =>
-        Ensure(DataRoot, new[] { "users", SafeName(userId) }.Concat(parts));
+        Ensure(DataRoot, new[] { "users", UserSegment(userId) }.Concat(parts));
 
     /// <summary>The log folder, or one user's below it; created, owner only.</summary>
     public static string Logs(string? userId) =>
@@ -113,7 +113,30 @@ public static class FadenstackPaths
     }
 
     /// <summary>One user's folder (<c>DataRoot/users/&lt;user&gt;</c>), not created.</summary>
-    internal static string UserFolder(string userId) => Path.Combine(DataRoot, "users", SafeName(userId));
+    internal static string UserFolder(string userId) => Path.Combine(DataRoot, "users", UserSegment(userId));
+
+    /// <summary>The user id of standalone mode, the person's own AI: its folder is <c>users/standalone/</c>, no governed person's.</summary>
+    internal const string StandaloneUserId = "standalone";
+
+    /// <summary>What <see cref="GovernedUserId"/> puts in front of a user id a server chose that would share the standalone folder.</summary>
+    internal const string GovernedMarker = "governed:";
+
+    /// <summary>
+    /// The user id of a person a governed server named, as the SDK keeps it. The standalone folder is <c>users/standalone/</c>; a server
+    /// that names a user <c>standalone</c> (any case: Windows and macOS do not tell them apart) would get it and the person's own
+    /// AI's chats, keys and skills with it, and could delete them with "Remove my data". Such an id gets <see cref="GovernedMarker"/>
+    /// in front, so its folder is <c>users/governed.standalone/</c> (see <see cref="UserSegment"/>). Any other id stays as it is.
+    /// </summary>
+    internal static string GovernedUserId(string userId) =>
+        string.Equals(SafeName(userId), StandaloneUserId, StringComparison.OrdinalIgnoreCase) ? GovernedMarker + userId : userId;
+
+    /// <summary>
+    /// The folder name of a user below <c>users/</c>: the safe name, but for an id that starts with <see cref="GovernedMarker"/> a
+    /// <c>governed.</c> in front of the safe name of the rest. <see cref="SafeName"/> turns every dot into an underscore, so no safe
+    /// name has one and this name cannot equal the folder of any other id, <c>standalone</c> included.
+    /// </summary>
+    private static string UserSegment(string userId) =>
+        userId.StartsWith(GovernedMarker, StringComparison.Ordinal) ? "governed." + SafeName(userId.Substring(GovernedMarker.Length)) : SafeName(userId);
 
     /// <summary>
     /// Deletes a folder with all it holds, if it exists; true when it did. Only a folder strictly below <see cref="DataRoot"/>

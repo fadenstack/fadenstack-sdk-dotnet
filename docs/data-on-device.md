@@ -71,7 +71,7 @@ What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 
 `users/<user>/` holds what belongs to one person, so two people who use one OS account never see each other's chats:
 
-- **Standalone** (`UseEndpoint`, `UseChatClient`): `users/standalone/`, apart from any governed person's.
+- **Standalone** (`UseEndpoint`, `UseChatClient`): `users/standalone/`, apart from any governed person's. A governed server that names a user `standalone` (in any letter case) gets `users/governed.standalone/` instead: the SDK puts `governed:` in front of that id, and a folder name with a dot comes from no other id, so the person's own AI never shares its folder with a server's user.
 - **Governed:** the user id the server names in the agent's profile (`AgentProfile.Principal.UserId`), made safe as a folder name (`FadenstackPaths.SafeName`).
 - **A server that names no user:** `sessions`, `approvals` and `preferences` directly in the data folder, shared, as the SDK kept them before 0.3.0.
 

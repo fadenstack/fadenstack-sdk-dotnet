@@ -9,6 +9,7 @@ this file says where it does.
 ### Security
 
 - The CSV export of the record of tool calls now puts a cell with a semicolon in quotes, and puts a leading apostrophe before `=`, `+`, `-`, `@`, tab or carriage return not only at the start of a cell but also after a `;` or `,` inside it. Excel in a German, French or Spanish locale splits a double-clicked CSV at `;`, so text after one could start a cell with `=` and run as a formula. OWASP ASVS 5.0 V1 (output encoding, 1.2.10).
+- A governed server that names a user `standalone` (in any letter case) no longer gets the folder of the person's own AI, `users/standalone/`, with its chats, keys and skills, and can no longer make "Remove my data" delete it. Such a user's folder is now `users/governed.standalone/`; the standalone folder does not move, and no other user's folder changes. OWASP ASVS 5.0 V8 (data protection: separation of one person's data from another's).
 
 ## [0.3.0] - 2026-11-18
 

@@ -151,7 +151,7 @@ internal sealed class AgentPrincipalConverter : JsonConverter<AgentPrincipal?>
         var (tenant, user, agent) = (Text("tenant_id"), Text("user_id"), Text("agent_id"));
         return tenant is null || user is null || agent is null
             ? null
-            : new AgentPrincipal { TenantId = tenant, UserId = user, AgentId = agent, DeviceId = Text("device_id") };
+            : new AgentPrincipal { TenantId = tenant, UserId = Storage.FadenstackPaths.GovernedUserId(user), AgentId = agent, DeviceId = Text("device_id") };
     }
 
     public override void Write(Utf8JsonWriter writer, AgentPrincipal? value, JsonSerializerOptions options)
