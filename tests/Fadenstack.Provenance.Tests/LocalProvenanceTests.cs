@@ -367,6 +367,40 @@ public class LocalProvenanceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_kept_record_whose_id_is_no_guid_is_skipped_and_never_becomes_a_path()
+    {
+        // ASVS 5.0 V5 (file handling): an id read back from disk is not trusted. Plant "../x" beside a real, waiting record.
+        var tsa = new TsaFake { Down = true };
+        var logs = new CapturingLoggerFactory();
+        using var agent = Agent();
+        using var backend = new LocalProvenanceBackend(new LocalProvenanceOptions
+        {
+            Folder = _folder, Signer = DeviceSigner.Ephemeral(), Handler = tsa, Logger = logs.CreateLogger(Log.Category),
+            TimestampAuthority = new Uri("https://tsa.example.test/"), TimestampRoots = TestAuthority.Roots,
+        });
+        var signed = await backend.SignRecordAsync(agent, Request(), default);
+        var records = Path.Combine(_folder, "records");
+        var real = Path.Combine(records, signed.Record.Id + ".json");
+        foreach (var bad in new[] { "../x", "..\\x", "x", signed.Record.Id + "/../x", "" })
+        {
+            File.WriteAllText(Path.Combine(records, "planted-" + Guid.NewGuid().ToString("N") + ".json"),
+                File.ReadAllText(real).Replace(signed.Record.Id, bad));
+        }
+
+        tsa.Down = false;
+        var stamped = await backend.FlushTimestampQueueAsync(agent);
+
+        Assert.Equal(1, stamped); // only the real one
+        Assert.Equal(signed.Record.Id, Assert.Single(backend.KeptRecords()).Signed.Record.Id);
+        Assert.Empty(Directory.GetFiles(_folder, "*.json")); // nothing written beside the records folder
+        Assert.False(File.Exists(Path.Combine(_folder, "x.json")));
+        var skipped = logs.Entries.Where(e => e.EventId == 4010).ToList();
+        Assert.NotEmpty(skipped);
+        Assert.All(skipped, e => Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Warning, e.Level));
+        Assert.DoesNotContain(logs.Texts, t => t.Contains("../x", StringComparison.Ordinal) || t.Contains("..\\x", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Signing_a_record_once_the_authority_answers_stamps_what_waited()
     {
         var tsa = new TsaFake { Down = true };

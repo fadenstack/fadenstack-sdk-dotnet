@@ -11,6 +11,8 @@ using Fadenstack.Http;
 using Fadenstack.Models;
 using Fadenstack.Storage;
 using Fadenstack.Tools;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Fadenstack.Provenance;
 
@@ -40,6 +42,9 @@ public sealed record LocalProvenanceOptions
 
     /// <summary>How many queued records are stamped at a time, once the authority answers again.</summary>
     public int QueueBatch { get; init; } = 20;
+
+    /// <summary>Where the backend logs what it skips (event ids only, never a value); the agent's logger once it signs a record, else none.</summary>
+    public ILogger? Logger { get; init; }
 
     /// <summary>The handler the time-stamp request goes through (tests, a proxy); the SDK's own when null.</summary>
     public HttpMessageHandler? Handler { get; init; }
@@ -101,10 +106,12 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
     private readonly Lazy<HttpClient> _http;
     private readonly object _logLock = new();
     private readonly SemaphoreSlim _queueGate = new(1, 1);
+    private ILogger _logger;
 
     public LocalProvenanceBackend(LocalProvenanceOptions? options = null)
     {
         _options = options ?? new LocalProvenanceOptions();
+        _logger = _options.Logger ?? NullLogger.Instance;
         _signer = new Lazy<DeviceSigner>(() => _options.Signer ?? DeviceSigner.ForInstallation(
             Path.Combine(FadenstackPaths.User(StandaloneId, "keys"), "provenance-signing.key"), SecretProtection.Default));
         _http = new Lazy<HttpClient>(() => _options.Handler is { } handler
@@ -129,6 +136,7 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
 
     public async Task<SignedRecord> SignRecordAsync(FadenstackAgent agent, RecordRequest request, CancellationToken cancellationToken)
     {
+        UseLogger(agent);
         var app = agent.App;
         var record = new ProvenanceRecord
         {
@@ -174,10 +182,13 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
     /// Stamps the records that wait in the queue, when the authority the policy names answers (an app may call it at start;
     /// signing a record does it too, once the authority answers). The number stamped.
     /// </summary>
-    public Task<int> FlushTimestampQueueAsync(FadenstackAgent agent, CancellationToken cancellationToken = default) =>
-        AuthorityFor(agent.MachinePolicy.Timestamping) is { } authority
+    public Task<int> FlushTimestampQueueAsync(FadenstackAgent agent, CancellationToken cancellationToken = default)
+    {
+        UseLogger(agent);
+        return AuthorityFor(agent.MachinePolicy.Timestamping) is { } authority
             ? StampQueuedAsync(authority, cancellationToken)
             : Task.FromResult(0);
+    }
 
     /// <summary>The records kept on the device, oldest first: each with its token, or labelled with the device's clock.</summary>
     public IReadOnlyList<KeptRecord> KeptRecords() =>
@@ -228,19 +239,57 @@ public sealed class LocalProvenanceBackend : IProvenanceBackend, IDisposable
         }
     }
 
+    /// <summary>The agent's logger, unless the app passed its own.</summary>
+    private void UseLogger(FadenstackAgent agent)
+    {
+        if (_options.Logger is null)
+        {
+            _logger = Log.For(agent);
+        }
+    }
+
+    /// <summary>
+    /// A record's id as a file name: parsed as a GUID (format <c>D</c>) and written back, so nothing else -- <c>..</c>, a separator,
+    /// a drive -- ever reaches a path. An id read back from disk is not trusted (ASVS 5.0 V5 file handling, V1 injection).
+    /// </summary>
+    private static bool TryFileName(string? id, out string fileName)
+    {
+        if (id is not null && Guid.TryParseExact(id, "D", out var guid))
+        {
+            fileName = guid.ToString("D") + ".json";
+            return true;
+        }
+        fileName = "";
+        return false;
+    }
+
     private void Keep(KeptRecord kept)
     {
+        if (!TryFileName(kept.Signed.Record.Id, out var fileName))
+        {
+            Log.RecordIdRejected(_logger);
+            return;
+        }
         Directory.CreateDirectory(RecordsFolder);
-        var path = Path.Combine(RecordsFolder, kept.Signed.Record.Id + ".json");
+        var path = Path.Combine(RecordsFolder, fileName);
         SecretProtection.WriteOwnerOnly(path, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(kept, FadenstackJson.Options)));
     }
 
-    private static KeptRecord? Read(string path)
+    private KeptRecord? Read(string path)
     {
         try
         {
             var kept = JsonSerializer.Deserialize<KeptRecord>(File.ReadAllText(path), FadenstackJson.Options);
-            return kept is { Signed.Record.Id.Length: > 0 } ? kept : null;
+            if (kept is not { Signed.Record.Id.Length: > 0 })
+            {
+                return null;
+            }
+            if (!TryFileName(kept.Signed.Record.Id, out _))
+            {
+                Log.RecordIdRejected(_logger); // an id that is no GUID is never turned into a path
+                return null;
+            }
+            return kept;
         }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException)
         {

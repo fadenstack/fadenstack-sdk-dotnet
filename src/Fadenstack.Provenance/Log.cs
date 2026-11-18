@@ -48,4 +48,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 4009, Level = LogLevel.Warning, Message = "A placement observer failed ({ErrorType})")]
     internal static partial void ObserverFailed(ILogger logger, string errorType);
+
+    [LoggerMessage(EventId = 4010, Level = LogLevel.Warning, Message = "A kept provenance record was skipped: its id is not a GUID")]
+    internal static partial void RecordIdRejected(ILogger logger);
 }
