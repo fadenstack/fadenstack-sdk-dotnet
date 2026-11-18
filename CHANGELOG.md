@@ -4,6 +4,12 @@ All notable changes to the Fadenstack .NET SDK. The format follows [Keep a Chang
 and the packages follow [Semantic Versioning](https://semver.org/): before 1.0, a minor version may break the API, and
 this file says where it does.
 
+## [0.3.1] - Unreleased
+
+### Fixed
+
+- A model endpoint at `http://localhost` with a key now connects when the server listens on `127.0.0.1` only (or on `::1` only). The SDK used to connect to the first address the name resolved to, which on Windows is `::1`. It now tries each address in order until one connects, and every address still has to be this computer (OWASP ASVS 5.0 V12).
+
 ## [0.3.0] - 2026-11-18
 
 ### Data fields

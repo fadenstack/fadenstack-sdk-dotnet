@@ -168,8 +168,9 @@ OWASP ASVS 5.0 V12 (secure communication) and V13 (secrets):
   actually connected to is checked too, so a name cannot be pointed elsewhere between the check and the connection.
 - **A key travels over plain http only to this computer** (a local LiteLLM or vLLM with a key). Every address the name
   resolves to must be loopback (127.0.0.0/8, `::1`), never a private range, opt-in or not; the name is resolved once and
-  the connection goes to exactly that address, so a second DNS answer cannot move the key (on .NET 8 the address
-  connected to is checked as well). The check says so (`KeyUnencryptedOnThisComputer`), and a machine policy's
+  the connection goes to one of those addresses only, so a second DNS answer cannot move the key (on .NET 8 the address
+  connected to is checked as well). When the name gives several (`localhost` gives `::1` and `127.0.0.1`), each is tried
+  in order until one connects, so a server that listens on `127.0.0.1` only is reached too. The check says so (`KeyUnencryptedOnThisComputer`), and a machine policy's
   `plainHttp: forbidden` forbids it. Anywhere else the request is refused before anything is sent
   (`EndpointPlainHttpRefusedException`, `Reason = KeyOverPlainHttp`).
 - **No automatic redirect.** A redirect to the same origin is followed (at most three); any other is refused, so the key

@@ -35,8 +35,11 @@ internal sealed class EndpointTransport : IDisposable
     private readonly HttpClient _http;
     private readonly ILogger _log;
 
-    /// <summary>The loopback address a keyed plain-http endpoint was resolved to, once, and connected to from then on.</summary>
+    /// <summary>The loopback address a keyed plain-http endpoint was reached at, once, and connected to from then on.</summary>
     private System.Net.IPAddress? _pinned;
+
+    /// <summary>The addresses the name resolved to the first time (all loopback): the only ones this transport connects to.</summary>
+    private System.Net.IPAddress[]? _pinnedSet;
 
     public EndpointTransport(ModelEndpoint endpoint)
     {
@@ -67,13 +70,18 @@ internal sealed class EndpointTransport : IDisposable
             {
                 throw new ArgumentException("A request to an endpoint stays at the endpoint's own origin.", nameof(url));
             }
-            var pinned = await CheckPlainHttpAsync(url, Endpoint, cancellationToken).ConfigureAwait(false);
-            if (pinned is not null && _pinned is null)
+            var checkedAddresses = await CheckPlainHttpAsync(url, Endpoint, cancellationToken).ConfigureAwait(false);
+            if (checkedAddresses is not null)
             {
-                _pinned = pinned; // resolved once: a second DNS answer cannot move a keyed connection
+                // Every address the name resolved to is loopback (checked above). The set of the first resolution stays, so a
+                // second DNS answer cannot move a keyed connection; the first of them that accepts a connection is pinned, so
+                // a server on 127.0.0.1 only is reached through "localhost" although ::1 comes first. Nothing is pinned while
+                // none answers: the request then fails as unreachable, and the next one tries again.
+                _pinnedSet ??= checkedAddresses;
+                _pinned ??= await FirstReachableAsync(_pinnedSet, url.Port, cancellationToken).ConfigureAwait(false);
             }
-            var request = build(pinned is null ? url : Pin(url, _pinned!));
-            if (pinned is not null)
+            var request = build(checkedAddresses is null ? url : Pin(url, _pinned ?? _pinnedSet![0]));
+            if (checkedAddresses is not null)
             {
                 request.Headers.Host = url.IsDefaultPort ? url.Host : $"{url.Host}:{url.Port}";
             }
@@ -165,11 +173,12 @@ internal sealed class EndpointTransport : IDisposable
     /// <para>
     /// A key goes over plain http only to this computer (owner, 14 Nov): every address the name resolves to must be loopback
     /// (127.0.0.0/8, ::1), never a private range, opt-in or not, and never where the machine policy forbids plain http. The
-    /// address is returned, and the transport connects to exactly that one from then on, so a second DNS answer cannot move
-    /// the key elsewhere (.NET Framework's handler cannot report the address it connected to). Null for anything without a key.
+    /// addresses are returned (all of them passed the rule), and the transport connects to exactly one of them from then on
+    /// (<see cref="FirstReachableAsync"/>), so a second DNS answer cannot move the key elsewhere (.NET Framework's handler
+    /// cannot report the address it connected to). Null for anything without a key.
     /// </para>
     /// </summary>
-    internal static async Task<System.Net.IPAddress?> CheckPlainHttpAsync(Uri url, ModelEndpoint endpoint,
+    internal static async Task<System.Net.IPAddress[]?> CheckPlainHttpAsync(Uri url, ModelEndpoint endpoint,
         CancellationToken cancellationToken)
     {
         if (url.Scheme != Uri.UriSchemeHttp)
@@ -189,7 +198,7 @@ internal sealed class EndpointTransport : IDisposable
                 throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.KeyOverPlainHttp,
                     "A key travels over plain http only to this computer: use the endpoint's https address, or leave the key out.");
             }
-            return addresses[0];
+            return addresses;
         }
         var scope = await NetworkAddress.OfHostAsync(url.Host, endpoint.Resolve, cancellationToken).ConfigureAwait(false);
         if (scope == AddressScope.Loopback)
@@ -213,6 +222,40 @@ internal sealed class EndpointTransport : IDisposable
         throw new EndpointPlainHttpRefusedException(PlainHttpRefusal.NotLocal,
             "Plain http goes only to this computer or, with an opt-in, to the local network: use the endpoint's https address.");
     }
+
+    /// <summary>
+    /// The first of <paramref name="addresses"/>, in the order the name resolved to them, that accepts a connection on
+    /// <paramref name="port"/>; null when none does. A name like <c>localhost</c> resolves to ::1 and 127.0.0.1 (the order is
+    /// the OS's), and a server may listen on only one of them.
+    /// </summary>
+    internal static async Task<System.Net.IPAddress?> FirstReachableAsync(System.Net.IPAddress[] addresses, int port,
+        CancellationToken cancellationToken)
+    {
+        foreach (var address in addresses)
+        {
+            using var client = new System.Net.Sockets.TcpClient(address.AddressFamily);
+            var connect = client.ConnectAsync(address, port);
+            var finished = await Task.WhenAny(connect, Task.Delay(ProbeTimeout, cancellationToken)).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (finished != connect)
+            {
+                _ = connect.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted); // observed, not raised
+                continue;
+            }
+            try
+            {
+                await connect.ConfigureAwait(false);
+                return address;
+            }
+            catch (System.Net.Sockets.SocketException)
+            {
+                // nothing listens at this address: the next one
+            }
+        }
+        return null;
+    }
+
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(2);
 
     /// <summary>The URL with its host replaced by <paramref name="address"/> (the Host header keeps the name).</summary>
     private static Uri Pin(Uri url, System.Net.IPAddress address) =>
