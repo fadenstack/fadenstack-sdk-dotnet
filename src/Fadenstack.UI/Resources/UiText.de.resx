@@ -2413,6 +2413,9 @@
   <data name="McpPlainHttpSecret" xml:space="preserve">
     <value>Ein Server mit dem Wert einer Kopfzeile braucht https.</value>
   </data>
+  <data name="McpStartShellCharacter" xml:space="preserve">
+    <value>Nicht gestartet: Ein Argument enthält ein Zeichen, das Windows als Befehl ausführen würde (&amp; | &lt; &gt; ^ % ! &quot; ( ) oder ein Zeilenumbruch). Ein .cmd- oder .bat-Programm verträgt es nicht. Entfernen Sie es oder verweisen Sie auf das Programm selbst.</value>
+  </data>
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Klartext-http ist hier nicht erlaubt.</value>
   </data>

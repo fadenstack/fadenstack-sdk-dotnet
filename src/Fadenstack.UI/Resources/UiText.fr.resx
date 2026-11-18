@@ -2413,6 +2413,9 @@
   <data name="McpPlainHttpSecret" xml:space="preserve">
     <value>Un serveur avec une valeur d’en-tête exige https.</value>
   </data>
+  <data name="McpStartShellCharacter" xml:space="preserve">
+    <value>Non démarré : un argument contient un caractère que Windows exécuterait comme une commande (&amp; | &lt; &gt; ^ % ! &quot; ( ) ou un saut de ligne). Un programme .cmd ou .bat ne peut pas l’accepter. Supprimez-le, ou indiquez le programme lui-même.</value>
+  </data>
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Le http en clair n’est pas autorisé ici.</value>
   </data>

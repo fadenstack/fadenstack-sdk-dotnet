@@ -54,6 +54,12 @@ internal sealed class McpConnection
     /// <summary>The name resolver (DNS when null; tests give their own).</summary>
     public Func<string, Task<IPAddress[]>>? Resolve { get; }
 
+    /// <summary>The module resolved the program of a stdio server for this start (<see cref="Program"/>, null when it was not found); the connection starts exactly that file.</summary>
+    public bool ProgramResolved { get; set; }
+
+    /// <summary>The absolute file the command of a stdio server resolved to for this start.</summary>
+    public string? Program { get; set; }
+
     /// <summary>Set by the connection: it goes over plain http to an address on the local network (not this computer).</summary>
     public bool UsedLocalNetwork { get; set; }
 

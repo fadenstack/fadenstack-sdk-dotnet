@@ -4,6 +4,26 @@ All notable changes to the Fadenstack .NET SDK. The format follows [Keep a Chang
 and the packages follow [Semantic Versioning](https://semver.org/): before 1.0, a minor version may break the API, and
 this file says where it does.
 
+## [0.3.1] - Unreleased
+
+### Security
+
+- **A local MCP server over stdio starts as the file that was checked, and Windows no longer reads its arguments as a shell line.**
+  The MCP C# SDK's stdio transport runs every command through `cmd.exe /c` on Windows, so an argument such as `a&calc` could
+  start a second program, past the machine policy's `mcp` list and the program pin, and a `node.cmd` in the server's working
+  folder could run while the pin hashed the one on `PATH`. Now (OWASP ASVS 5.0 V1 injection, V13 configuration):
+  - the command is resolved once, to an absolute file (`PATH`, and `PATHEXT` on Windows; a bare name is never looked up in the
+    working folder), and that file is what starts; the policy, the pin and the process all use that one result. A command that
+    is not found is not started;
+  - a Windows `.exe` starts directly, without a shell, with a properly quoted command line; Linux and macOS never used a shell
+    and now also start the resolved absolute path;
+  - a `.cmd` or `.bat` starts through the system's `cmd.exe /d /s /c`, and only when no argument holds `& | < > ^ % ! " ( )` or a
+    control character. Otherwise it is not started: the status is `NotAllowed` with `McpServerStatus.StartRefusal`
+    (`McpStartRefusal.ShellCharacter`), log event 3012 (label and kind, never an argument), and the Tools view says so in
+    English, German, French, Spanish and Simplified Chinese;
+  - the machine policy's `mcp` list now judges the file that will start (`LocalMcpServer.ResolvedProgram`): an item names its
+    full path or its file name; an item that names the typed command without the extension `PATHEXT` adds no longer matches.
+
 ## [0.3.0] - 2026-11-18
 
 ### Data fields

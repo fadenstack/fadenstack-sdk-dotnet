@@ -2043,6 +2043,9 @@ public sealed class UiStrings
     /// <summary>"Plain http is not allowed here."</summary>
     public string McpPlainHttpNotAllowed => Text();
 
+    /// <summary>"Not started: an argument holds a character that Windows would run as a command (&amp; | &lt; &gt; ^ % ! " ( ) or a line break). A .cmd or .bat program cannot take it; remove it, or point to the program itself."</summary>
+    public string McpStartShellCharacter => Text();
+
     /// <summary>"Web search"</summary>
     public string WebSearchRowName => Text();
 

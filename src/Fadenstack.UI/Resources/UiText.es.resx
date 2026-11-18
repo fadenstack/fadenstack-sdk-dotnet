@@ -2413,6 +2413,9 @@
   <data name="McpPlainHttpSecret" xml:space="preserve">
     <value>Un servidor con un valor de encabezado necesita https.</value>
   </data>
+  <data name="McpStartShellCharacter" xml:space="preserve">
+    <value>No se inició: un argumento contiene un carácter que Windows ejecutaría como un comando (&amp; | &lt; &gt; ^ % ! &quot; ( ) o un salto de línea). Un programa .cmd o .bat no puede admitirlo. Quítelo o indique el propio programa.</value>
+  </data>
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>El http en texto plano no está permitido aquí.</value>
   </data>

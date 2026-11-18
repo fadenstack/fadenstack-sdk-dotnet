@@ -46,4 +46,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 3011, Level = LogLevel.Information, Message = "MCP server {Label} ({Transport}) had no pinned program; it was pinned at this start")]
     internal static partial void ProgramPinned(ILogger logger, string label, string transport);
+
+    [LoggerMessage(EventId = 3012, Level = LogLevel.Warning, Message = "MCP server {Label} ({Transport}) was not started: an argument holds a character the command shell would run ({Reason})")]
+    internal static partial void StartRefused(ILogger logger, string label, string transport, McpStartRefusal reason);
 }

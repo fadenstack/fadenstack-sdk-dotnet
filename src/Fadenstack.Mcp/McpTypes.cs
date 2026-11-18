@@ -61,6 +61,12 @@ public sealed record McpServerStatus(string Label, McpServerState State)
     /// </summary>
     public McpPlainHttpRefusal? PlainHttp { get; init; }
 
+    /// <summary>
+    /// Why the program was not started (sdk 0.3.1), with <see cref="McpServerState.NotAllowed"/>: the app shows its own words for it.
+    /// Null otherwise.
+    /// </summary>
+    public McpStartRefusal? StartRefusal { get; init; }
+
     /// <summary>What differs about the program, with <see cref="McpServerState.ProgramChanged"/>; null otherwise.</summary>
     public McpProgramChange? ProgramChange { get; init; }
 }

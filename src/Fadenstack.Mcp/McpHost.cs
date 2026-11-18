@@ -568,7 +568,12 @@ public sealed class McpHost : IDisposable
     /// <summary>The SDK's server for an entry, with the person's own trust marks.</summary>
     public static LocalMcpServer ToServer(McpServerEntry entry) => ToServer(entry, new McpServerMarks(entry.Trusted, entry.ToolClasses));
 
-    /// <summary>The SDK's server for an entry: arguments and environment as lists, never a shell string. <paramref name="marks"/>: whose word counts for its tools' classes.</summary>
+    /// <summary>
+    /// The SDK's server for an entry: arguments and environment as lists, never a shell string. The program is resolved once to an
+    /// absolute file and started as that file: without a shell on Linux, macOS and for a Windows <c>.exe</c>; a <c>.cmd</c> or <c>.bat</c>
+    /// only through <c>cmd.exe</c>, and only when no argument holds a character <c>cmd.exe</c> reads as a command (<see cref="McpStart"/>).
+    /// <paramref name="marks"/>: whose word counts for its tools' classes.
+    /// </summary>
     public static LocalMcpServer ToServer(McpServerEntry entry, McpServerMarks? marks)
     {
         LocalMcpServer server;

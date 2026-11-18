@@ -243,6 +243,7 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
             PlainHttpApplies = PlainHttpApplies(entry),
             PlainHttpInLan = entry.PlainHttpInLan,
             PlainHttpRefusal = row.Status?.PlainHttp is { } refusal ? Refusal(refusal) : null,
+            StartRefusal = row.Status?.StartRefusal is not null ? LocalStartRefusal.ShellCharacter : null,
             ProgramChange = row.Status?.ProgramChange is { } change ? ProgramChangeOf(change) : null,
             OnlyRunnerChecked = McpProgramPinner.OnlyRunnerChecked(entry),
             ProgramPinned = entry.ProgramPin is not null,

@@ -2413,6 +2413,9 @@
   <data name="McpPlainHttpSecret" xml:space="preserve">
     <value>带有标头值的服务器需要 https。</value>
   </data>
+  <data name="McpStartShellCharacter" xml:space="preserve">
+    <value>未启动：参数中含有 Windows 会当作命令执行的字符（&amp; | &lt; &gt; ^ % ! &quot; ( ) 或换行）。.cmd 或 .bat 程序不能接受这些字符。请删除它们，或直接指向程序本身。</value>
+  </data>
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>此处不允许使用明文 http。</value>
   </data>
