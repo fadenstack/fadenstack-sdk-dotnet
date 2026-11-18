@@ -9,6 +9,7 @@ this file says where it does.
 ### Fixed
 
 - A model endpoint at `http://localhost` with a key now connects when the server listens on `127.0.0.1` only (or on `::1` only). The SDK used to connect to the first address the name resolved to, which on Windows is `::1`. It now tries each address in order until one connects, and every address still has to be this computer (OWASP ASVS 5.0 V12).
+- A redirect to a relative address on the same server (`Location: /v1/models`) is followed on Linux and macOS too. There the SDK read it as `file:///v1/models` and refused it as another origin. A relative `Location` is now resolved against the request's address on every OS, and `//other.example/x` still counts as another origin (OWASP ASVS 5.0 V12).
 
 ## [0.3.0] - 2026-11-18
 

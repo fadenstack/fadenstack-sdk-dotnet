@@ -52,6 +52,14 @@ internal static class EndpointUrl
         return new Uri(new UriBuilder(b.Scheme, b.Host, b.Port, root).Uri, relative.TrimStart('/'));
     }
 
+    /// <summary>
+    /// Where a <c>Location</c> header points, resolved against the request's URI, the same on every OS: on Linux and macOS
+    /// <c>new Uri("/v1/models", UriKind.RelativeOrAbsolute)</c> is an absolute <c>file:///v1/models</c>, so the header's own
+    /// text is resolved instead (a leading <c>/</c> is a path, <c>//host/x</c> is another host). Null when it cannot be.
+    /// </summary>
+    public static Uri? ResolveLocation(Uri request, Uri? location) =>
+        location is not null && Uri.TryCreate(request, location.OriginalString, out var target) ? target : null;
+
     /// <summary>The origin (scheme, host, port) a key may go to: requests and redirects never leave it.</summary>
     public static string Origin(Uri url) => url.GetLeftPart(UriPartial.Authority).ToLowerInvariant();
 }

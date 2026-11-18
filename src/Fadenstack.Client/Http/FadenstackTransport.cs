@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using Fadenstack.Auth;
+using Fadenstack.Endpoints;
 using Microsoft.Extensions.Logging;
 
 namespace Fadenstack.Http;
@@ -130,7 +131,7 @@ public sealed class FadenstackTransport : IDisposable
         {
             return null;
         }
-        var location = response.Headers.Location is { } l && (l.IsAbsoluteUri ? l : new Uri(requested, l)) is var to
+        var location = EndpointUrl.ResolveLocation(requested, response.Headers.Location) is { } to
             ? $"{to.Scheme}://{to.Authority}{to.AbsolutePath}"
             : "another address";
         return new FadenstackApiException(response.StatusCode,

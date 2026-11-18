@@ -146,7 +146,7 @@ internal sealed class EndpointTransport : IDisposable
             }
             if (status is >= 300 and <= 399)
             {
-                var to = response.Headers.Location is { } l ? (l.IsAbsoluteUri ? l : new Uri(url, l)) : null;
+                var to = EndpointUrl.ResolveLocation(url, response.Headers.Location);
                 var code = response.StatusCode;
                 response.Dispose();
                 if (to is null || EndpointUrl.Origin(to) != origin || ++redirects > MaxRedirects)
