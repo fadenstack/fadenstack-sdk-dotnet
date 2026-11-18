@@ -6,6 +6,11 @@ this file says where it does.
 
 ## [0.3.1] - Unreleased
 
+### Fixed
+
+- A model endpoint at `http://localhost` with a key now connects when the server listens on `127.0.0.1` only (or on `::1` only). The SDK used to connect to the first address the name resolved to, which on Windows is `::1`. It now tries each address in order until one connects, and every address still has to be this computer (OWASP ASVS 5.0 V12).
+- A redirect to a relative address on the same server (`Location: /v1/models`) is followed on Linux and macOS too. There the SDK read it as `file:///v1/models` and refused it as another origin. A relative `Location` is now resolved against the request's address on every OS, and `//other.example/x` still counts as another origin (OWASP ASVS 5.0 V12).
+
 ### Security
 
 - The CSV export of the record of tool calls now puts a cell with a semicolon in quotes, and puts a leading apostrophe before `=`, `+`, `-`, `@`, tab or carriage return not only at the start of a cell but also after a `;` or `,` inside it. Excel in a German, French or Spanish locale splits a double-clicked CSV at `;`, so text after one could start a cell with `=` and run as a formula. OWASP ASVS 5.0 V1 (output encoding, 1.2.10).
@@ -26,6 +31,8 @@ this file says where it does.
     English, German, French, Spanish and Simplified Chinese;
   - the machine policy's `mcp` list now judges the file that will start (`LocalMcpServer.ResolvedProgram`): an item names its
     full path or its file name; an item that names the typed command without the extension `PATHEXT` adds no longer matches.
+- A time-stamp token now counts only when its certificate chains to a root the SDK carries (DigiCert Trusted Root G4, the same certificate as in the TypeScript SDK) or to one in `TimestampRoots`. Before, any root in the computer's own certificate store was enough, so a root added to that store could vouch for a forged time-stamp. An organisation's own time-stamp server (the machine policy's `timestamping`) has to name its root in `TimestampRoots`, as in the TypeScript SDK (OWASP ASVS 5.0 V11, V13).
+- On .NET Framework, the delegation client now checks that the pipe's server runs as the current user before it sends anything, as it already did on .NET 8. It reads the server's process from the connected pipe, then that process's owner, and compares it with the current user; a different owner or a failed check refuses the connection. Before, another local user could take the pipe's name for the moment it is re-created and receive the launch's secret (OWASP ASVS 5.0 V8).
 
 ## [0.3.0] - 2026-11-18
 

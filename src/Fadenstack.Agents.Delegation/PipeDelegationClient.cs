@@ -80,6 +80,10 @@ internal sealed class PipeDelegationClient : IDelegationClient
             try
             {
                 await pipe.ConnectAsync((int)_connectTimeout.TotalMilliseconds, cancellationToken).ConfigureAwait(false);
+#if !NET8_0_OR_GREATER
+                // .NET Framework has no PipeOptions.CurrentUserOnly: the server's owner is checked before anything is sent.
+                PipeServerOwner.RequireCurrentUser(pipe);
+#endif
             }
             catch (Exception e) when (e is TimeoutException or IOException or UnauthorizedAccessException)
             {

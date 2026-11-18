@@ -117,9 +117,12 @@ backend, `LocalProvenanceBackend`, unless the app set one with `UseBackend`:
   the app runs. It never goes into a file as such or a log.
 - **The time-stamp:** an RFC 3161 token from DigiCert (`http://timestamp.digicert.com`; plain http is fine, the token is
   signed and only the signature's SHA-256 leaves the device). A machine policy's `timestamping` names the organisation's
-  own server instead, or `off` sends nothing (`TimestampRoots` adds the roots an own server's certificate chains to). A
-  token counts only when its CMS signature checks out, its certificate is made for time-stamping and chains to a trusted
-  root, and it covers the signature's hash with the request's nonce: the answer is input from outside.
+  own server instead, or `off` sends nothing. The SDK pins the roots a token may chain to: DigiCert Trusted Root G4 is
+  carried in the package (SHA-256 `552f7bdc...ac89988`, the same certificate the TypeScript SDK carries), and this
+  computer's certificate store is not asked, so a root added to it cannot vouch for a time-stamp. An organisation's own
+  server needs its root in `TimestampRoots`, with or without the policy's address; without it the token does not count
+  and the record waits in the queue. A token counts only when its CMS signature checks out, its certificate is made for
+  time-stamping and chains to a pinned root, and it covers the signature's hash with the request's nonce: the answer is input from outside.
 - **The local backup:** every record is kept on the device with its token (`KeptRecords()`, in the `records` folder).
   When the authority cannot be reached, the record keeps the device's clock, labelled `device-clock`, and waits in a queue
   that survives a restart; it is stamped when the authority answers again (signing the next record, or

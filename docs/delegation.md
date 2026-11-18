@@ -8,7 +8,7 @@ The other agent runs the task as a new session of its own: its own server agent,
 
 ## In the add-in: take tasks
 
-Start a `DelegationHost` once the add-in's agent is ready. It registers the agent in the device agent registry with a short card, and listens on a local pipe that only the current OS user can open. The first message on the pipe must carry a secret that exists only for this launch, and it is written to the registry folder, which only the same user can read.
+Start a `DelegationHost` once the add-in's agent is ready. It registers the agent in the device agent registry with a short card, and listens on a local pipe that only the current OS user can open. The caller checks that the pipe's server runs as the current user before it sends anything: on .NET 8 and later with `PipeOptions.CurrentUserOnly`, and on .NET Framework (which has no such option) by asking Windows for the server's process and that process's owner, compared with the current user's SID; a different owner, or any failure of that check, refuses the connection (the agent counts as unreachable). The first message on the pipe must carry a secret that exists only for this launch, and it is written to the registry folder, which only the same user can read.
 
 ```csharp
 using Fadenstack.Agents.Delegation;

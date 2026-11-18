@@ -168,12 +168,15 @@ OWASP ASVS 5.0 V12 (secure communication) and V13 (secrets):
   actually connected to is checked too, so a name cannot be pointed elsewhere between the check and the connection.
 - **A key travels over plain http only to this computer** (a local LiteLLM or vLLM with a key). Every address the name
   resolves to must be loopback (127.0.0.0/8, `::1`), never a private range, opt-in or not; the name is resolved once and
-  the connection goes to exactly that address, so a second DNS answer cannot move the key (on .NET 8 the address
-  connected to is checked as well). The check says so (`KeyUnencryptedOnThisComputer`), and a machine policy's
+  the connection goes to one of those addresses only, so a second DNS answer cannot move the key (on .NET 8 the address
+  connected to is checked as well). When the name gives several (`localhost` gives `::1` and `127.0.0.1`), each is tried
+  in order until one connects, so a server that listens on `127.0.0.1` only is reached too. The check says so (`KeyUnencryptedOnThisComputer`), and a machine policy's
   `plainHttp: forbidden` forbids it. Anywhere else the request is refused before anything is sent
   (`EndpointPlainHttpRefusedException`, `Reason = KeyOverPlainHttp`).
 - **No automatic redirect.** A redirect to the same origin is followed (at most three); any other is refused, so the key
-  and the request never leave the origin they were meant for (`FadenstackApiException`, code `redirect`).
+  and the request never leave the origin they were meant for (`FadenstackApiException`, code `redirect`). A relative
+  `Location` (`/v1/models`, `models`, `../models`) is resolved against the request's address, the same on Windows, Linux
+  and macOS; `//other.example/x` is another host and is refused.
 - **A CA of the endpoint's own** (`TrustedCaCertificate`), for this connection only.
 - **Limits on what an endpoint may send:** a line of 4 Mi characters, an event of 8 Mi, a whole answer of 64 Mi, a tool
   call's arguments of 8 Mi; past one, the answer breaks off (`FadenstackStreamException`, code `stream_too_large`). A

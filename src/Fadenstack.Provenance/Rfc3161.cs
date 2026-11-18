@@ -40,7 +40,7 @@ internal static class Rfc3161
 
     /// <summary>
     /// Whether <paramref name="response"/> (a <c>TimeStampResp</c>) grants a token that: is signed (CMS) by a certificate made
-    /// for time-stamping, which chains to a root this computer trusts or to one of <paramref name="roots"/>; and whose signed
+    /// for time-stamping, which chains to DigiCert's pinned root or to one of <paramref name="roots"/> (never to a root only this computer's store has); and whose signed
     /// <c>TSTInfo</c> covers <paramref name="sha256"/> with <paramref name="nonce"/>. Anything else, a malformed answer too,
     /// is false.
     /// </summary>
@@ -92,35 +92,36 @@ internal static class Rfc3161
             .Any(e => e.EnhancedKeyUsages.Cast<Oid>().Any(o => o.Value == TimeStampingUsage));
 
     /// <summary>
-    /// Whether the authority's certificate chains to a root this computer trusts, or to one of <paramref name="roots"/> (an
-    /// organisation's own authority; tests). Revocation is not checked: the device may be offline.
+    /// Whether the authority's certificate chains to one of the pinned roots: DigiCert's (<see cref="TimestampRoots"/>) or one of
+    /// <paramref name="roots"/> (an organisation's own authority; tests). The computer's certificate store decides nothing
+    /// (OWASP ASVS 5.0 V11, V13), whether the authority is the default or a policy's own server. Revocation is not checked:
+    /// the device may be offline.
     /// </summary>
     private static bool Trusted(X509Certificate2 certificate, X509Certificate2Collection intermediates, X509Certificate2Collection? roots)
     {
-        using (var chain = new X509Chain())
+        var pinned = TimestampRoots.DigiCert();
+        if (roots is not null)
         {
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-            chain.ChainPolicy.ExtraStore.AddRange(intermediates);
-            if (chain.Build(certificate))
-            {
-                return true;
-            }
+            pinned.AddRange(roots);
         }
-        if (roots is not { Count: > 0 })
+        using var chain = new X509Chain();
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        chain.ChainPolicy.ExtraStore.AddRange(intermediates);
+#if NET8_0_OR_GREATER
+        chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+        chain.ChainPolicy.CustomTrustStore.AddRange(pinned);
+#else
+        // .NET Framework / netstandard2.0 has no custom trust mode: the pinned roots are offered, the "unknown authority" error
+        // of a root outside the store is let through, and the root the chain ends at must then be one of the pinned ones.
+        chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+        chain.ChainPolicy.ExtraStore.AddRange(pinned);
+#endif
+        if (!chain.Build(certificate) || chain.ChainElements.Count == 0)
         {
             return false;
         }
-        using var own = new X509Chain();
-        own.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        own.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
-        own.ChainPolicy.ExtraStore.AddRange(intermediates);
-        own.ChainPolicy.ExtraStore.AddRange(roots);
-        if (!own.Build(certificate))
-        {
-            return false;
-        }
-        var root = own.ChainElements[own.ChainElements.Count - 1].Certificate;
-        return roots.Cast<X509Certificate2>().Any(r => r.Thumbprint == root.Thumbprint);
+        var root = chain.ChainElements[chain.ChainElements.Count - 1].Certificate;
+        return pinned.Cast<X509Certificate2>().Any(r => Enumerable.SequenceEqual(r.RawData, root.RawData));
     }
 
     /// <summary>Whether a signed <c>TSTInfo</c> covers the hash with the nonce.</summary>

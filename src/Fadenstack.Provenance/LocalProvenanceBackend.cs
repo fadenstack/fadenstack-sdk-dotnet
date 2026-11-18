@@ -35,8 +35,9 @@ public sealed record LocalProvenanceOptions
     public TimeSpan TimestampTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    /// Roots trusted for the authority's certificate besides this computer's own store: an organisation's own time-stamp
-    /// server. A token whose signer chains to neither does not count.
+    /// Roots trusted for the authority's certificate besides DigiCert's, which the SDK carries: the roots an organisation's own
+    /// time-stamp server (the machine policy's <c>timestamping</c>) chains to. The computer's certificate store is not asked. A
+    /// token whose signer chains to none of them does not count; the TypeScript SDK's <c>timestampRoots</c> works the same.
     /// </summary>
     public X509Certificate2Collection? TimestampRoots { get; init; }
 
