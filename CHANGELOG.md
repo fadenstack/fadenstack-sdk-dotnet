@@ -14,6 +14,7 @@ this file says where it does.
 ### Security
 
 - A time-stamp token now counts only when its certificate chains to a root the SDK carries (DigiCert Trusted Root G4, the same certificate as in the TypeScript SDK) or to one in `TimestampRoots`. Before, any root in the computer's own certificate store was enough, so a root added to that store could vouch for a forged time-stamp. An organisation's own time-stamp server (the machine policy's `timestamping`) has to name its root in `TimestampRoots`, as in the TypeScript SDK (OWASP ASVS 5.0 V11, V13).
+- On .NET Framework, the delegation client now checks that the pipe's server runs as the current user before it sends anything, as it already did on .NET 8. It reads the server's process from the connected pipe, then that process's owner, and compares it with the current user; a different owner or a failed check refuses the connection. Before, another local user could take the pipe's name for the moment it is re-created and receive the launch's secret (OWASP ASVS 5.0 V8).
 
 ## [0.3.0] - 2026-11-18
 
