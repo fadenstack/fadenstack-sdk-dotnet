@@ -11,6 +11,10 @@ this file says where it does.
 - A model endpoint at `http://localhost` with a key now connects when the server listens on `127.0.0.1` only (or on `::1` only). The SDK used to connect to the first address the name resolved to, which on Windows is `::1`. It now tries each address in order until one connects, and every address still has to be this computer (OWASP ASVS 5.0 V12).
 - A redirect to a relative address on the same server (`Location: /v1/models`) is followed on Linux and macOS too. There the SDK read it as `file:///v1/models` and refused it as another origin. A relative `Location` is now resolved against the request's address on every OS, and `//other.example/x` still counts as another origin (OWASP ASVS 5.0 V12).
 
+### Security
+
+- A time-stamp token now counts only when its certificate chains to a root the SDK carries (DigiCert Trusted Root G4, the same certificate as in the TypeScript SDK) or to one in `TimestampRoots`. Before, any root in the computer's own certificate store was enough, so a root added to that store could vouch for a forged time-stamp. An organisation's own time-stamp server (the machine policy's `timestamping`) has to name its root in `TimestampRoots`, as in the TypeScript SDK (OWASP ASVS 5.0 V11, V13).
+
 ## [0.3.0] - 2026-11-18
 
 ### Data fields
