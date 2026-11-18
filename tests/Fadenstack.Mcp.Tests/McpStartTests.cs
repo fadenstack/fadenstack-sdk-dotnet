@@ -303,6 +303,33 @@ public sealed class McpStartTests : IDisposable
     }
 
     [WindowsFact]
+    public async Task The_test_button_of_the_host_reports_a_refused_start_with_its_kind_and_starts_nothing()
+    {
+        var (cmd, _, started) = Install(Path.Combine(_root, "hosttest"));
+        using var host = new McpHost();
+
+        var result = await host.TestAsync(new McpServerEntry { Label = "batch", Command = cmd, Arguments = ["a&calc"] }, allowed: true);
+
+        Assert.Equal((false, true, McpStartRefusal.ShellCharacter), (result.Started, result.NotAllowed, result.StartRefusal));
+        Assert.DoesNotContain("calc", result.Error);
+        Assert.False(File.Exists(started));
+    }
+
+    [WindowsFact]
+    public async Task A_cancelled_connect_ends_in_the_cancellation_and_leaves_no_process()
+    {
+        var ping = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "PING.EXE");
+        var transport = ((McpProcessTransport)McpStart.Open("c", ping, ["-n", "60", "127.0.0.1"], null, null, windows: true));
+        var before = System.Diagnostics.Process.GetProcessesByName("PING").Select(p => p.Id).ToHashSet();
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => transport.ConnectAsync(cancelled.Token));
+
+        Assert.All(System.Diagnostics.Process.GetProcessesByName("PING"), p => Assert.Contains(p.Id, before)); // none new is left
+    }
+
+    [WindowsFact]
     public async Task A_command_that_is_not_found_is_not_started_and_says_so_without_the_command()
     {
         var server = LocalMcpServer.Stdio("gone", "faden-no-such-program-" + Guid.NewGuid().ToString("N"), ["--token=s3cret"]);

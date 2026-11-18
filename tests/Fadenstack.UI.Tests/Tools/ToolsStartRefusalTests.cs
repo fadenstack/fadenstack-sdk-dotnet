@@ -38,4 +38,20 @@ public class ToolsStartRefusalTests
 
         Assert.Equal((UiStrings.For(CultureInfo.GetCultureInfo("en")).McpStartShellCharacter, ServerStatusKind.Warning), (card.StatusText, card.StatusKind));
     }
+
+    [Fact]
+    public async Task The_test_button_says_a_refused_start_in_the_language_of_the_view()
+    {
+        var catalog = FakeLocalToolsCatalog.Scene();
+        catalog.Drafts["demo"] = new ServerDraft { Label = "demo", Command = "tool.cmd" };
+        catalog.TestAnswer = new ServerTestInfo(TestOutcome.NotAllowed, [], "English only", startRefusal: LocalStartRefusal.ShellCharacter);
+        var german = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+        using var page = new ToolsViewModel(catalog, new FakeFiles(), new FakeUi(), () => german);
+        Server(page, "demo").OpenCommand.Execute(null);
+
+        await page.Details!.TestCommand.ExecuteAsync(null);
+
+        Assert.Equal(german.McpStartShellCharacter, page.Details.TestText);
+        Assert.StartsWith("Nicht gestartet", page.Details.TestText);
+    }
 }

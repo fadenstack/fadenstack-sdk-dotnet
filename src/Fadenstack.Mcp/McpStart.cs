@@ -221,9 +221,15 @@ internal sealed class McpProcessTransport : IClientTransport
                 throw new IOException("Failed to start MCP server process.");
             }
             process.BeginErrorReadLine();
+            cancellationToken.ThrowIfCancellationRequested(); // cancelled while it started: the process is stopped below
             var inner = await new StreamClientTransport(process.StandardInput.BaseStream, process.StandardOutput.BaseStream)
                 .ConnectAsync(cancellationToken).ConfigureAwait(false);
             return new Session(inner, process);
+        }
+        catch (OperationCanceledException)
+        {
+            Stop(process);
+            throw;
         }
         catch (Exception e)
         {

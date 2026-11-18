@@ -19,6 +19,9 @@ public sealed record McpTestResult(bool Started, IReadOnlyList<string> Tools, st
 {
     /// <summary>Why plain http to it was refused (sdk/51 F05), when it was: nothing was sent.</summary>
     public McpPlainHttpRefusal? PlainHttp { get; init; }
+
+    /// <summary>Why the program was not started (sdk 0.3.1), when it was refused: nothing ran.</summary>
+    public McpStartRefusal? StartRefusal { get; init; }
 }
 
 /// <summary>
@@ -549,6 +552,10 @@ public sealed class McpHost : IDisposable
         catch (McpPlainHttpRefusedException e)
         {
             return new McpTestResult(false, [], e.Message) { PlainHttp = e.Reason };
+        }
+        catch (McpStartRefusedException e)
+        {
+            return new McpTestResult(false, [], e.Message, NotAllowed: true) { StartRefusal = e.Reason };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

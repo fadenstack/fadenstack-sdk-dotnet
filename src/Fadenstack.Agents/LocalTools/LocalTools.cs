@@ -319,8 +319,10 @@ public enum TestOutcome
 /// <summary>The result of a test. <see cref="Error"/> is a short cleaned line, never a secret.</summary>
 public sealed class ServerTestInfo
 {
-    public ServerTestInfo(TestOutcome outcome, IReadOnlyList<string> tools, string? error, LocalPlainHttpRefusal? plainHttp = null)
+    public ServerTestInfo(TestOutcome outcome, IReadOnlyList<string> tools, string? error, LocalPlainHttpRefusal? plainHttp = null,
+        LocalStartRefusal? startRefusal = null)
     {
+        StartRefusal = startRefusal;
         Outcome = outcome;
         Tools = tools;
         Error = error;
@@ -328,6 +330,9 @@ public sealed class ServerTestInfo
     }
 
     public TestOutcome Outcome { get; }
+
+    /// <summary>Why the program was not started, when it was refused: the view says it in its own words.</summary>
+    public LocalStartRefusal? StartRefusal { get; }
 
     public IReadOnlyList<string> Tools { get; }
 

@@ -286,6 +286,10 @@ public sealed partial class ServerSheetViewModel : ObservableObject, IToolsTexts
         {
             return LocalServerViewModel.RefusalText(s, refusal);
         }
+        if (result.StartRefusal is not null)
+        {
+            return s.McpStartShellCharacter;
+        }
         switch (result.Outcome)
         {
             case TestOutcome.NotAllowed:
