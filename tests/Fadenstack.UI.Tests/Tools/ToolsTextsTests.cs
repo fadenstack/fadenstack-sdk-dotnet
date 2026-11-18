@@ -51,7 +51,7 @@ public class ToolsTextsTests
             foreach (var name in new[]
             {
                 "McpPlainHttpSwitch", "McpPlainHttpSwitchHelp", "McpPlainHttpWarningTitle", "McpPlainHttpWarning", "McpPlainHttpConfirm", "McpPlainHttpCancel",
-                "McpPlainHttpNoOptIn", "McpPlainHttpNotLocal", "McpPlainHttpSecret", "McpPlainHttpNotAllowed",
+                "McpPlainHttpNoOptIn", "McpPlainHttpNotLocal", "McpPlainHttpSecret", "McpPlainHttpNotAllowed", "McpStartShellCharacter",
                 "ToolsProblemPlainHttpWithHeaders", "ToolsProblemPlainHttpNotLocal", "ToolsTrusted", "ToolsTrustedHelp", "ToolsClassDestructive", "ToolsAdvanced",
             })
             {

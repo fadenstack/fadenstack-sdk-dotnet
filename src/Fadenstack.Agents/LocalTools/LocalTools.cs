@@ -115,6 +115,13 @@ public enum LocalPlainHttpRefusal
     NotAllowed,
 }
 
+/// <summary>Why a program server was not started (the MCP module's reason, in the view's terms).</summary>
+public enum LocalStartRefusal
+{
+    /// <summary>A <c>.cmd</c> or <c>.bat</c> program runs through <c>cmd.exe</c>, and an argument holds a character it reads as a command.</summary>
+    ShellCharacter,
+}
+
 /// <summary>What a server says about one of its tools, with the class the tool has now and the person's raise.</summary>
 public sealed class LocalToolInfo
 {
@@ -203,6 +210,9 @@ public sealed class LocalServerInfo
 
     /// <summary>Why a connection over plain http was refused; null when it was not.</summary>
     public LocalPlainHttpRefusal? PlainHttpRefusal { get; set; }
+
+    /// <summary>Why the program was not started; null when it was not refused.</summary>
+    public LocalStartRefusal? StartRefusal { get; set; }
 
     /// <summary>What differs about the program (<see cref="LocalServerState.ProgramChanged"/>); null otherwise.</summary>
     public LocalProgramChange? ProgramChange { get; set; }
@@ -309,8 +319,10 @@ public enum TestOutcome
 /// <summary>The result of a test. <see cref="Error"/> is a short cleaned line, never a secret.</summary>
 public sealed class ServerTestInfo
 {
-    public ServerTestInfo(TestOutcome outcome, IReadOnlyList<string> tools, string? error, LocalPlainHttpRefusal? plainHttp = null)
+    public ServerTestInfo(TestOutcome outcome, IReadOnlyList<string> tools, string? error, LocalPlainHttpRefusal? plainHttp = null,
+        LocalStartRefusal? startRefusal = null)
     {
+        StartRefusal = startRefusal;
         Outcome = outcome;
         Tools = tools;
         Error = error;
@@ -318,6 +330,9 @@ public sealed class ServerTestInfo
     }
 
     public TestOutcome Outcome { get; }
+
+    /// <summary>Why the program was not started, when it was refused: the view says it in its own words.</summary>
+    public LocalStartRefusal? StartRefusal { get; }
 
     public IReadOnlyList<string> Tools { get; }
 

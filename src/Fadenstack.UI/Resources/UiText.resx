@@ -2684,6 +2684,9 @@
   <data name="McpPlainHttpSecret" xml:space="preserve">
     <value>A server with a header value needs https.</value>
   </data>
+  <data name="McpStartShellCharacter" xml:space="preserve">
+    <value>Not started: an argument holds a character that Windows would run as a command (&amp; | &lt; &gt; ^ % ! &quot; ( ) or a line break). A .cmd or .bat program cannot take it. Remove it, or point to the program itself.</value>
+  </data>
   <data name="McpPlainHttpNotAllowed" xml:space="preserve">
     <value>Plain http is not allowed here.</value>
   </data>

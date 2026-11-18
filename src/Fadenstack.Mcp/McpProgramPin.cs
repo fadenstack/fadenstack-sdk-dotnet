@@ -67,9 +67,15 @@ public static class McpProgramPinner
 
     /// <summary>The same with the path, the extensions and the platform given (tests).</summary>
     internal static McpProgramPin? Observe(string command, IReadOnlyList<string> arguments, string? workingFolder, string? pathVariable,
-        string? pathExt, bool windows, DateTimeOffset now)
+        string? pathExt, bool windows, DateTimeOffset now) =>
+        ObserveResolved(Resolve(command, workingFolder, pathVariable, pathExt, windows), arguments, workingFolder, now);
+
+    /// <summary>
+    /// The pin of a program that was already resolved (null: it was not found). The start and the pin use one resolution, so the
+    /// file that is hashed is the file that starts.
+    /// </summary>
+    internal static McpProgramPin? ObserveResolved(string? program, IReadOnlyList<string> arguments, string? workingFolder, DateTimeOffset now)
     {
-        var program = Resolve(command, workingFolder, pathVariable, pathExt, windows);
         if (program is null || Hash(program) is not { } sha)
         {
             return null;
@@ -139,6 +145,14 @@ public static class McpProgramPinner
         var dot = name.LastIndexOf('.');
         return Runners.Contains(dot > 0 ? name.Substring(0, dot) : name);
     }
+
+    /// <summary>
+    /// The file <paramref name="command"/> starts, with this machine's <c>PATH</c> (or <paramref name="pathVariable"/>) and, on
+    /// Windows, <c>PATHEXT</c>. The one resolution of a start: the policy, the pin and the process all use its result.
+    /// </summary>
+    internal static string? Resolve(string command, string? workingFolder, string? pathVariable) =>
+        Resolve(command, workingFolder, pathVariable ?? Environment.GetEnvironmentVariable("PATH"),
+            IsWindows ? Environment.GetEnvironmentVariable("PATHEXT") : null, IsWindows);
 
     /// <summary>
     /// The full path of the file <paramref name="command"/> starts, the way the host starts it: a command with a folder in it is that

@@ -50,7 +50,7 @@ var agent = FadenstackAgent.CreateBuilder()
   Plain http forbidden takes the endpoint's LAN opt-in away (`EndpointPlainHttpRefusedException`, `ForbiddenByPolicy`).
 - **`chatRetention` is read as a whole:** a value that is not understood (not an object, `autoDelete` not true or false, a limit that is not a whole number within its bounds, an unknown member) is reported in `policy.Warnings` and the default for it applies (on, 90 days, 50 chats), so chats are never kept longer than the default because of a typo. It is `policy.ChatRetention` (a `ChatRetentionChoice`; null when the key is absent) and shows in `agent.ChatRetention` with `Control` = `MachinePolicy`. See [Sessions: Retention](sessions.md#retention).
 - **Content logging:** `contentLogging` is `policy.ContentLogging` (`PolicyAccess`). A policy that cannot be read forbids it. See [Interop: Content logging](interop.md#content-logging).
-- **Lists are the modules' to apply:** `agent.MachinePolicy` gives a module the listed MCP sources and skill folders.
+- **Lists are the modules' to apply:** `agent.MachinePolicy` gives a module the listed MCP sources and skill folders. For a program source the module matches the file that will really start (the command resolved through `PATH`/`PATHEXT`), by its full path or its file name ([Local MCP servers](local-mcp.md#how-a-program-starts)).
 - **Locked values:** `policy.Locked` names the keys the policy set; the app locks them in its UI and never writes them into
   the person's settings file.
 - **Enrolment keeps data apart:** an agent on the person's own endpoint keeps its chats under `users/standalone/`, never

@@ -243,6 +243,7 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
             PlainHttpApplies = PlainHttpApplies(entry),
             PlainHttpInLan = entry.PlainHttpInLan,
             PlainHttpRefusal = row.Status?.PlainHttp is { } refusal ? Refusal(refusal) : null,
+            StartRefusal = row.Status?.StartRefusal is not null ? LocalStartRefusal.ShellCharacter : null,
             ProgramChange = row.Status?.ProgramChange is { } change ? ProgramChangeOf(change) : null,
             OnlyRunnerChecked = McpProgramPinner.OnlyRunnerChecked(entry),
             ProgramPinned = entry.ProgramPin is not null,
@@ -402,7 +403,8 @@ public sealed class McpToolsCatalog : ILocalToolsCatalog, IDisposable
         }
         var result = await _host.TestAsync(ToEntry(draft, originalLabel), allowed, cancellationToken, PlainHttpPermitted).ConfigureAwait(false);
         return new ServerTestInfo(result.NotAllowed ? TestOutcome.NotAllowed : result.Started ? TestOutcome.Started : TestOutcome.Failed, result.Tools,
-            result.Error, result.PlainHttp is { } refusal ? Refusal(refusal) : null);
+            result.Error, result.PlainHttp is { } refusal ? Refusal(refusal) : null,
+            result.StartRefusal is not null ? LocalStartRefusal.ShellCharacter : null);
     }
 
     // The draft is a saved program, as saved, whose file is not the pinned one now.

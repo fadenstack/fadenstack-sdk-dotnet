@@ -59,10 +59,14 @@ public static class McpSources
         }
     }
 
-    /// <summary>The names a policy item can match: the program as given, its file name (and without an extension), or the address.</summary>
+    /// <summary>
+    /// The names a policy item can match: the program, its file name (and without an extension), or the address. The program is the
+    /// file that will really start (<see cref="LocalMcpServer.ResolvedProgram"/>) when the command was found, so an item naming a
+    /// program matches that file and not only the word the person typed; when it was not found, the command as given.
+    /// </summary>
     internal static IEnumerable<string> Names(LocalMcpServer server)
     {
-        if (server.Command is { Length: > 0 } command)
+        if ((server.ResolvedProgram ?? server.Command) is { Length: > 0 } command)
         {
             yield return command;
             var name = System.IO.Path.GetFileName(command.TrimEnd('/', '\\').Replace('\\', '/'));

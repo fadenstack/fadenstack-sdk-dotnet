@@ -191,7 +191,11 @@ public sealed partial class LocalServerViewModel : ObservableObject, IToolsTexts
             var told = rootCount == 0 ? "" : rootCount == 1 ? s.ToolsToldFoldersOne : s.ToolsToldFoldersMany(rootCount);
             StatusTip = "";
             PlainHttpRefusal = Refusal(info);
-            if (PlainHttpRefusal is { } refusal)
+            if (info.State != LocalServerState.Off && info.StartRefusal is not null)
+            {
+                (StatusText, StatusKind) = (s.McpStartShellCharacter, ServerStatusKind.Warning);
+            }
+            else if (PlainHttpRefusal is { } refusal)
             {
                 (StatusText, StatusKind) = (RefusalText(s, refusal), ServerStatusKind.Warning);
             }

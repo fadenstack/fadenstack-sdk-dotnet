@@ -509,6 +509,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     {
         Detail = e.Detail,
         PlainHttp = e.PlainHttp,
+        StartRefusal = e.StartRefusal,
         ProgramChange = e.State == McpServerState.ProgramChanged ? e.ProgramChange : null,
         Instructions = e.Instructions,
         ProtocolVersion = e.ProtocolVersion,
@@ -535,6 +536,9 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         var context = _context!;
         var log = context.LoggerFactory.CreateLogger(Log.Category);
         var server = entry.Server;
+        // One resolution of the command for this start: the policy judges this file, the pin hashes it, and it is what starts.
+        var resolved = server.Command is null ? null : McpProgramPinner.Resolve(server.Command, server.WorkingDirectory, server.PathVariable);
+        server.ResolvedProgram = resolved;
         var decision = Policy.Decide(server, context.Profile);
         if (decision.Allowed)
         {
@@ -552,7 +556,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
             RaiseStatus(entry);
             return false;
         }
-        if (!CheckProgram(entry, log))
+        if (!CheckProgram(entry, log, resolved))
         {
             return false;
         }
@@ -566,7 +570,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, entry.Stop.Token);
             limit.CancelAfter(ConnectTimeout);
-            var connection = new McpConnection(PlainHttpPermitted(context), Resolve);
+            var connection = new McpConnection(PlainHttpPermitted(context), Resolve) { ProgramResolved = server.Command is not null, Program = resolved };
             client = await CreateClientAsync(server, entry, connection, limit.Token).ConfigureAwait(false);
             var listed = await client.ListToolsAsync(cancellationToken: limit.Token).ConfigureAwait(false);
             var first = entry.Tools.Count == 0 && !entry.EverListed;
@@ -580,6 +584,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 entry.Detail = null;
                 entry.Error = null;
                 entry.PlainHttp = null;
+                entry.StartRefusal = null;
                 entry.ProgramChange = null;
                 entry.UsedLocalNetwork = connection.UsedLocalNetwork;
                 entry.Instructions = McpText.FirstLine(client.ServerInstructions, McpText.MaxIndexChars);
@@ -604,6 +609,19 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
                 entry.UsedLocalNetwork = false;
             }
             Log.PlainHttpRefused(log, server.Label, e.Reason);
+            RaiseStatus(entry);
+            return false;
+        }
+        catch (McpStartRefusedException e)
+        {
+            // Refused before the program ran: a rule, not a failure to retry. The message and the log never hold an argument.
+            lock (_gate)
+            {
+                entry.State = McpServerState.NotAllowed;
+                entry.StartRefusal = e.Reason;
+                entry.Detail = e.Message;
+            }
+            Log.StartRefused(log, server.Label, server.Transport, e.Reason);
             RaiseStatus(entry);
             return false;
         }
@@ -636,7 +654,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
     /// stops the start, with the reason "The program of {label} changed since you added it." (the label, never a path). A server
     /// with no pin starts, and is pinned once it has started (<see cref="PinUnpinned"/>). Servers that are no program are not checked.
     /// </summary>
-    private bool CheckProgram(ServerEntry entry, ILogger log)
+    private bool CheckProgram(ServerEntry entry, ILogger log, string? resolved)
     {
         var server = entry.Server;
         entry.UnpinnedObservation = null;
@@ -644,7 +662,7 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
         {
             return true;
         }
-        var observed = McpProgramPinner.Observe(server.Command, server.Arguments, server.WorkingDirectory, server.PathVariable, DateTimeOffset.UtcNow);
+        var observed = McpProgramPinner.ObserveResolved(resolved, server.Arguments, server.WorkingDirectory, DateTimeOffset.UtcNow);
         if (server.ProgramPin is null)
         {
             entry.UnpinnedObservation = observed;
@@ -1629,6 +1647,9 @@ public sealed class LocalMcpModule : IFadenstackModule, IChangingToolSource, ICo
 
         /// <summary>Why plain http was refused, when it was.</summary>
         public McpPlainHttpRefusal? PlainHttp { get; set; }
+
+        /// <summary>Why the program was not started (an argument cmd.exe would read as a command), when it was refused.</summary>
+        public McpStartRefusal? StartRefusal { get; set; }
 
         /// <summary>What differs about the program, while <see cref="McpServerState.ProgramChanged"/>.</summary>
         public McpProgramChange? ProgramChange { get; set; }

@@ -23,6 +23,13 @@ public sealed class LocalMcpServer
 
     public IReadOnlyList<string> Arguments { get; private set; } = Array.Empty<string>();
 
+    /// <summary>
+    /// The absolute file <see cref="Command"/> resolved to at the last start (through <c>PATH</c> and, on Windows, <c>PATHEXT</c>; a
+    /// bare name is never looked for in the working folder); null when it was not found or nothing was started yet. The module sets
+    /// it before the policy decides, so a policy may judge the file that will really start. The pin hashes it, and it is what starts.
+    /// </summary>
+    public string? ResolvedProgram { get; internal set; }
+
     /// <summary>The folder a stdio program starts in; null: the app's.</summary>
     internal string? WorkingDirectory { get; private set; }
 
@@ -91,14 +98,16 @@ public sealed class LocalMcpServer
         IDictionary<string, string?>? environment = null, string? workingDirectory = null)
     {
         var args = arguments?.ToList() ?? new List<string>();
-        return new LocalMcpServer(label, (_, _) => Task.FromResult<IClientTransport>(new StdioClientTransport(new StdioClientTransportOptions
+        var env = environment is null ? null : new Dictionary<string, string?>(environment);
+        // The command is resolved once, to an absolute file, and that file is what starts, with the arguments as a list and no shell
+        // (see McpStart). The module resolves it before the policy and the pin and hands it on; any other start resolves it here.
+        return new LocalMcpServer(label, (connection, _) =>
         {
-            Name = label,
-            Command = command,
-            Arguments = args,
-            EnvironmentVariables = environment is null ? null : new Dictionary<string, string?>(environment),
-            WorkingDirectory = workingDirectory,
-        })))
+            var program = connection.ProgramResolved
+                ? connection.Program
+                : McpProgramPinner.Resolve(command, workingDirectory, McpProgramPinner.PathOf(env));
+            return Task.FromResult(McpStart.Open(label, program, args, env, workingDirectory, McpProgramPinner.IsWindows));
+        })
         {
             Command = command,
             Arguments = args,

@@ -11,6 +11,21 @@ this file says where it does.
 - The CSV export of the record of tool calls now puts a cell with a semicolon in quotes, and puts a leading apostrophe before `=`, `+`, `-`, `@`, tab or carriage return not only at the start of a cell but also after a `;` or `,` inside it. Excel in a German, French or Spanish locale splits a double-clicked CSV at `;`, so text after one could start a cell with `=` and run as a formula. OWASP ASVS 5.0 V1 (output encoding, 1.2.10).
 - A governed server that names a user `standalone` (in any letter case) no longer gets the folder of the person's own AI, `users/standalone/`, with its chats, keys and skills, and can no longer make "Remove my data" delete it. Such a user's folder is now `users/governed.standalone/`; the standalone folder does not move, and no other user's folder changes. OWASP ASVS 5.0 V8 (data protection: separation of one person's data from another's).
 - The provenance records kept on the device (`users/standalone/provenance/records/`) are read back with a check: a record's id must be a GUID before it becomes part of a file path, and a record with any other id (for example `../x` planted in a file) is skipped and logged as event 4010, without the id. Before, a changed file could make the SDK write a record outside the records folder when it stamped a waiting record. OWASP ASVS 5.0 V5 (file handling) and V1 (injection prevention).
+- **A local MCP server over stdio starts as the file that was checked, and Windows no longer reads its arguments as a shell line.**
+  The MCP C# SDK's stdio transport runs every command through `cmd.exe /c` on Windows, so an argument such as `a&calc` could
+  start a second program, past the machine policy's `mcp` list and the program pin, and a `node.cmd` in the server's working
+  folder could run while the pin hashed the one on `PATH`. Now (OWASP ASVS 5.0 V1 injection, V13 configuration):
+  - the command is resolved once, to an absolute file (`PATH`, and `PATHEXT` on Windows; a bare name is never looked up in the
+    working folder), and that file is what starts; the policy, the pin and the process all use that one result. A command that
+    is not found is not started;
+  - a Windows `.exe` starts directly, without a shell, with a properly quoted command line; Linux and macOS never used a shell
+    and now also start the resolved absolute path;
+  - a `.cmd` or `.bat` starts through the system's `cmd.exe /d /s /c`, and only when no argument holds `& | < > ^ % ! " ( )` or a
+    control character. Otherwise it is not started: the status is `NotAllowed` with `McpServerStatus.StartRefusal`
+    (`McpStartRefusal.ShellCharacter`), log event 3012 (label and kind, never an argument), and the Tools view says so in
+    English, German, French, Spanish and Simplified Chinese;
+  - the machine policy's `mcp` list now judges the file that will start (`LocalMcpServer.ResolvedProgram`): an item names its
+    full path or its file name; an item that names the typed command without the extension `PATHEXT` adds no longer matches.
 
 ## [0.3.0] - 2026-11-18
 
