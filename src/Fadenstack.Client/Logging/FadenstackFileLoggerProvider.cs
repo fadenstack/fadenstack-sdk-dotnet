@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.RegularExpressions;
+using Fadenstack.Auth;
 using Fadenstack.Storage;
 using Microsoft.Extensions.Logging;
 
@@ -40,6 +41,11 @@ public sealed class FadenstackFileLoggerOptions
 /// full an entry is dropped and counted (<see cref="Dropped"/>, and a line in the file). Dispose writes what is queued.
 /// </para>
 /// <para>
+/// On macOS and Linux the files are created with mode 0600 and the folder is 0700 (checked, not only set). A file that cannot be made
+/// owner-only is not written: its entries are dropped and counted, never thrown at the caller; a folder that stays wider than 0700
+/// gets one warning entry (the files are owner-only anyway). On Windows the user profile's permissions apply.
+/// </para>
+/// <para>
 /// The SDK's own entries carry no content: no prompts, answers, reasoning, attachments, tool arguments or results, tokens,
 /// secrets, and not who the user is. What a host logs through the same <see cref="ILoggerFactory"/> is the host's
 /// responsibility: this provider writes every entry it is given as it is.
@@ -71,8 +77,11 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
     // Held by the writer for one entry at a time and by a removal of the app's files, so the two never overlap.
     private readonly object _fileGate = new();
     private long _generation;
+    private readonly Action<string> _ownerOnly;
     private long _dropped;
     private long _reported;
+    private long _refused;
+    private long _refusedReported;
     private int _disposed;
     private FileStream? _file;
     private string? _path;
@@ -95,8 +104,10 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
     /// <param name="options">Folder, size and age limits.</param>
     /// <param name="clock">The time, for tests.</param>
     /// <param name="writerGate">Holds the writer until set, for tests that fill the queue.</param>
+    /// <param name="ownerOnly">The step that makes a file owner-only and checks it (tests simulate its failure); default <c>SecretProtection.RequireOwnerOnly</c>.</param>
+    /// <param name="folderIsOwnerOnly">Whether the folder is owner-only (0700) after the chmod (tests simulate a wider one); default a check of its mode.</param>
     internal FadenstackFileLoggerProvider(string app, FadenstackFileLoggerOptions? options, Func<DateTimeOffset>? clock,
-        ManualResetEventSlim? writerGate)
+        ManualResetEventSlim? writerGate, Action<string>? ownerOnly = null, Func<string, bool>? folderIsOwnerOnly = null)
     {
         options ??= new FadenstackFileLoggerOptions();
         if (string.IsNullOrWhiteSpace(app))
@@ -111,18 +122,47 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         _ownFiles = new Regex($@"^{Regex.Escape(_app)}-\d{{8}}\.log(\.\d+)?$", RegexOptions.CultureInvariant);
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _gate = writerGate;
+        _ownerOnly = ownerOnly ?? SecretProtection.RequireOwnerOnly;
         _queue = new BlockingCollection<Entry>(Math.Max(1, options.QueueCapacity));
         DeleteOld();
+        var folderOwnerOnly = folderIsOwnerOnly ?? FolderIsOwnerOnly;
         _writer = new Thread(Run) { IsBackground = true, Name = "Fadenstack file logger" };
         _writer.Start();
+        if (!folderOwnerOnly(_folder))
+        {
+            var now = _clock();
+            _queue.TryAdd(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 The log folder is open to other users (its mode is wider than 0700); the files are owner-only anyway", 0));
+        }
         lock (RegistryGate)
         {
             Registry.Add(this);
         }
     }
 
+    /// <summary>Whether the folder is owner-only (0700) after <see cref="FadenstackPaths"/> tightened it; always true on Windows, and where the mode cannot be read.</summary>
+    private static bool FolderIsOwnerOnly(string folder)
+    {
+#if NET
+        if (OperatingSystem.IsWindows())
+        {
+            return true;
+        }
+        try
+        {
+            return (File.GetUnixFileMode(folder) & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute
+                | UnixFileMode.OtherRead | UnixFileMode.OtherWrite | UnixFileMode.OtherExecute)) == 0;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            return true; // no mode to read (a file system without Unix modes): nothing to say
+        }
+#else
+        return true; // .NET Standard cannot read a mode without libc calls; the files are made 0600 all the same
+#endif
+    }
+
     /// <summary>How many entries were dropped because the queue was full.</summary>
-    public long Dropped => Interlocked.Read(ref _dropped);
+    public long Dropped => Interlocked.Read(ref _dropped) + Interlocked.Read(ref _refused);
 
     public ILogger CreateLogger(string categoryName) => new FileLogger(this, categoryName);
 
@@ -207,16 +247,27 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
     /// <summary>A line in the file for the entries dropped since the last one.</summary>
     private void NoteDropped()
     {
-        var dropped = Dropped;
+        var dropped = Interlocked.Read(ref _dropped);
         if (dropped > _reported)
         {
             var now = _clock();
-            Write(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 {dropped - _reported} entries were dropped: the queue was full", 0));
+            Write(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 {dropped - _reported} entries were dropped: the queue was full", 0), note: true);
             _reported = dropped;
+        }
+        var refused = Interlocked.Read(ref _refused);
+        if (refused > _refusedReported)
+        {
+            var now = _clock();
+            var count = refused - _refusedReported;
+            // Said once a file can be written; a note that is refused too is not counted again, and tried with the next entry.
+            if (Write(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 {count} entries were dropped: the log file could not be made owner-only", 0), note: true))
+            {
+                _refusedReported = refused;
+            }
         }
     }
 
-    private void Write(Entry entry)
+    private bool Write(Entry entry, bool note = false)
     {
         try
         {
@@ -224,41 +275,107 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
             var path = Path.Combine(_folder, $"{_app}-{entry.At.UtcDateTime:yyyyMMdd}.log");
             if (_file is null || _path != path)
             {
-                Open(path);
+                if (!Open(path))
+                {
+                    Refused(note);
+                    return false;
+                }
                 DeleteOld();
             }
             else if (_size > 0 && _size + bytes.Length > _maxFileBytes)
             {
-                Roll();
+                if (!Roll())
+                {
+                    Refused(note);
+                    return false;
+                }
             }
             _file!.Write(bytes, 0, bytes.Length);
             _file.Flush();
             _size += bytes.Length;
+            return true;
         }
         catch (Exception)
         {
             CloseFile(); // the next entry tries again; a log never fails its caller
+            return false;
         }
     }
 
-    private void Open(string path)
+    /// <summary>An entry that could not be written because its file cannot be made owner-only: dropped and counted; the next one tries again.</summary>
+    private void Refused(bool note)
+    {
+        if (!note)
+        {
+            Interlocked.Increment(ref _refused);
+        }
+    }
+
+    /// <summary>
+    /// Opens the file for appending, owner-only on macOS and Linux (created 0600; on .NET Standard created and then made 0600 before the first
+    /// write); false, with nothing written and no file left that this call created, when it cannot be made so.
+    /// </summary>
+    private bool Open(string path)
     {
         CloseFile();
-        _file = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        var existed = File.Exists(path);
+        FileStream stream;
+#if NET
+        if (!OperatingSystem.IsWindows())
+        {
+            stream = new FileStream(path, new FileStreamOptions
+            {
+                Mode = FileMode.Append,
+                Access = FileAccess.Write,
+                Share = FileShare.ReadWrite | FileShare.Delete,
+                UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite,
+            });
+        }
+        else
+#endif
+        {
+            stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        }
+        try
+        {
+            _ownerOnly(path); // also tightens a file an older SDK left with the umask's mode
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            stream.Dispose();
+            if (!existed)
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (Exception d) when (d is IOException or UnauthorizedAccessException)
+                {
+                    // an empty file stays
+                }
+            }
+            return false;
+        }
+        _file = stream;
         _path = path;
         _size = _file.Length;
+        return true;
     }
 
     /// <summary>Closes the file under the next free number (<c>.1</c> is the oldest) and starts a new one.</summary>
-    private void Roll()
+    private bool Roll()
     {
         var path = _path!;
         CloseFile();
         var last = new DirectoryInfo(_folder).EnumerateFiles(Path.GetFileName(path) + ".*")
             .Select(f => int.TryParse(f.Extension.TrimStart('.'), out var n) ? n : 0).DefaultIfEmpty(0).Max();
         File.Move(path, $"{path}.{last + 1}");
-        Open(path);
+        if (!Open(path))
+        {
+            return false;
+        }
         DeleteOld();
+        return true;
     }
 
     private void CloseFile()

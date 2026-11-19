@@ -12,7 +12,7 @@ The SDK keeps everything in the operating system user's own folders, never in a 
 | The settings folder (`SettingsRoot`) | `%APPDATA%\Fadenstack` | the data folder | `$XDG_CONFIG_HOME/Fadenstack` (default `~/.config/Fadenstack`) |
 | The log folder (`LogRoot`) | `logs` in the data folder | `~/Library/Logs/Fadenstack` | `$XDG_STATE_HOME/Fadenstack/logs` (default `~/.local/state/Fadenstack/logs`) |
 
-An XDG variable counts only when it is an absolute path. On macOS and Linux the SDK creates the folders in the data folder and the log folder so that only their owner may open them (mode 0700), and writes its protected files with mode 0600; on Windows the user profile's permissions apply. No setting moves a folder: a store you create yourself takes another folder (`new FileSessionStore(directory)`, `new FileTokenStore(directory)` and so on).
+An XDG variable counts only when it is an absolute path. On macOS and Linux the SDK creates the folders in the data folder and the log folder so that only their owner may open them (mode 0700), and writes its protected files with mode 0600, the file log's files included (`FadenstackFileLoggerProvider` creates them 0600; a file that cannot be made owner-only is not written, its entries are dropped and counted in `Dropped`, and a log folder that stays wider than 0700 gets one warning entry); on Windows the user profile's permissions apply. No setting moves a folder: a store you create yourself takes another folder (`new FileSessionStore(directory)`, `new FileTokenStore(directory)` and so on).
 
 What the SDK writes, by folder (shown with `/`; Windows uses `\`):
 
