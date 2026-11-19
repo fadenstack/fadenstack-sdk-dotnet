@@ -212,7 +212,10 @@ public class FileLoggerTests : IDisposable
         var log = provider.CreateLogger("c");
 
         var thrown = Record.Exception(() => { for (var i = 0; i < 3; i++) { log.Log(LogLevel.Information, Id(i), "secret entry", null, (s, _) => s); } });
-        SpinWait.SpinUntil(() => provider.Dropped == 3, TimeSpan.FromSeconds(10));
+        // After each refused entry the writer also tries its "entries were dropped" note, which creates the file and deletes it
+        // again when it is refused too: wait for that attempt to end, not only for the count. A file really left behind keeps
+        // the folder from emptying, and the assertion below fails.
+        SpinWait.SpinUntil(() => provider.Dropped == 3 && (!Directory.Exists(Logs) || Directory.GetFiles(Logs).Length == 0), TimeSpan.FromSeconds(10));
         var before = Directory.Exists(Logs) ? Directory.GetFiles(Logs) : Array.Empty<string>();
         refuse = false;
         log.Log(LogLevel.Information, Id(9), "later entry", null, (s, _) => s);
