@@ -2578,6 +2578,9 @@
   <data name="ContentLoggingIntroDays" xml:space="preserve">
     <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App. Was geschrieben wurde, bleibt bis zu {0} Tage in den Protokollen der App.</value>
   </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App. Was geschrieben wurde, bleibt bis zu einen Tag in den Protokollen der App.</value>
+  </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Einschalten für</value>
   </data>

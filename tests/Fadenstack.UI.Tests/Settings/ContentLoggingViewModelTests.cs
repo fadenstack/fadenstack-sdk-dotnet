@@ -252,6 +252,12 @@ public class ContentLoggingViewModelTests
         logs.Add("three", TimeSpan.FromDays(3));
         Assert.Contains("for up to 3 days.", model.IntroText);
 
+        logs.DisposeAll();
+        logs.Add("four", TimeSpan.FromDays(1)); // one day reads "up to a day", not "1 days"
+        Assert.Equal(English.ContentLoggingIntroOneDay, model.IntroText);
+        Assert.Contains("for up to a day.", model.IntroText);
+        Assert.DoesNotContain("1 days", model.IntroText);
+
         logs.DisposeAll(); // the logger goes: nothing says how long it stays any more
         Assert.Equal(English.ContentLoggingIntro, model.IntroText);
     }
@@ -288,6 +294,10 @@ public class ContentLoggingViewModelTests
             Assert.DoesNotContain("{", s.ContentLoggingIntroDays(14));
             Assert.DoesNotContain("{", s.ContentLoggingIntro);
             Assert.NotEqual(s.ContentLoggingIntro, s.ContentLoggingIntroDays(14));
+            Assert.False(string.IsNullOrWhiteSpace(s.ContentLoggingIntroOneDay), tag);
+            Assert.NotEqual(s.ContentLoggingIntroDays(1), s.ContentLoggingIntroOneDay);
+            Assert.DoesNotContain("{", s.ContentLoggingIntroOneDay);
+            Assert.Equal(s.ContentLoggingIntro.Substring(0, 30), s.ContentLoggingIntroOneDay.Substring(0, 30));
             // The common start is the same words in both.
             Assert.Equal(s.ContentLoggingIntro.Substring(0, 30), s.ContentLoggingIntroDays(14).Substring(0, 30));
         }

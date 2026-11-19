@@ -2578,6 +2578,9 @@
   <data name="ContentLoggingIntroDays" xml:space="preserve">
     <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación. Lo que se escribió permanece en los registros de la aplicación durante un máximo de {0} días.</value>
   </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación. Lo que se escribió permanece en los registros de la aplicación durante un máximo de un día.</value>
+  </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Activar durante</value>
   </data>

@@ -2578,6 +2578,9 @@
   <data name="ContentLoggingIntroDays" xml:space="preserve">
     <value>Tant qu'elle est activée, les prompts et les réponses sont écrits dans les journaux de cette application. Elle s'arrête d'elle-même à la fin du délai et au redémarrage de l'application. Ce qui a été écrit reste dans les journaux de l'application pendant {0} jours au plus.</value>
   </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>Tant qu'elle est activée, les prompts et les réponses sont écrits dans les journaux de cette application. Elle s'arrête d'elle-même à la fin du délai et au redémarrage de l'application. Ce qui a été écrit reste dans les journaux de l'application pendant un jour au plus.</value>
+  </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Activer pour</value>
   </data>

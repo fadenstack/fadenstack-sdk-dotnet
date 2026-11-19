@@ -2209,6 +2209,9 @@ public sealed class UiStrings
     /// <summary>The same with "What was written stays in the app's logs for up to {0} days." ({0}: the retention of the file log in the process, in whole days)</summary>
     public string ContentLoggingIntroDays(int days) => Fill(days);
 
+    /// <summary>The same with "What was written stays in the app's logs for up to a day." (a retention of one day)</summary>
+    public string ContentLoggingIntroOneDay => Text();
+
     /// <summary>"Switch on for"</summary>
     public string ContentLoggingDuration => Text();
 
