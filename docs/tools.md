@@ -282,7 +282,7 @@ hidden. If a call is refused anyway, the agent:
 2. raises one notice per turn: outcome `images_disabled`, stage `tool`, category `images`;
 3. sets `ImagesAvailable` to false, so the picture tools are hidden from the next round on.
 
-The chat panel shows that notice with the title "Image generation is off" and the owner's note, in the person's language
+The chat panel shows that notice with the title "Image generation is off" and the organisation's note, in the person's language
 (English, German, French, Spanish, Simplified Chinese), instead of the server's message:
 "Image generation is turned off in this version. From 2 December 2026 the EU AI Act (Article 5) requires safeguards against
 generating harmful images, and this version does not have them yet. Image generation will return in a later version, with

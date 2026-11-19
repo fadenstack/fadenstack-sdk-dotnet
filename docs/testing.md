@@ -207,10 +207,8 @@ instructions, padding, prompt-leak requests) is the same file in the .NET and th
 
 Four gates hold for every case and channel: the content reaches the model only inside one fence of ours (G1); a call the content
 asks for meets the rules any call meets and never runs without approval where the rules say ask (G2); below Auto an open-world
-call to an address from the content asks (G3, and in Auto it runs today: a known limit until the tainted-turn marker, sdk/51
-item 8.4); a remote image in an answer is never loaded (G4). It lives in `tests/Fadenstack.Agents.Tests/Injection` (and
-`tests/Fadenstack.UI.Tests/Injection`), carries the trait `Category=Injection`, and runs as its own step, "Injection suite
-(sdk/51 7.1)", in the release workflow:
+call to an address from the content asks (G3, and in Auto it runs today: a known limit, since turns that read untrusted content are not yet marked); a remote image in an answer is never loaded (G4). It lives in `tests/Fadenstack.Agents.Tests/Injection` (and
+`tests/Fadenstack.UI.Tests/Injection`), carries the trait `Category=Injection`, and runs as its own step, "Injection suite", in the release workflow:
 
 ```
 dotnet test Fadenstack.slnx --filter "Category=Injection"

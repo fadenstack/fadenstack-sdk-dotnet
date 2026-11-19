@@ -24,19 +24,20 @@ The SDK never receives the agent's instructions. Every model call goes through t
 | `Fadenstack.Client` | The server connection: the gateway as a Microsoft.Extensions.AI `IChatClient`, agent sign-in, the agent's profile, the REST resources and typed errors. |
 | `Fadenstack.Agents` | The agent: the builder, the tool loop, tool classes and modes, approvals, sessions on the device, outcomes, modules and stages. |
 | `Fadenstack.Mcp` | Local MCP servers as agent tools, under the agent's local MCP policy. |
+| `Fadenstack.Skills` | Agent Skills on the device: the person's own skills and the app's bundled ones, as the tools `load_skill` and `read_skill_resource`, under the agent's local skills policy. Scripts never run ([Skills](skills.md)). |
 | `Fadenstack.Secrets` | Encryption at rest on macOS and Linux: the data key lives in the Keychain or the Secret Service. One call at start-up, `FadenstackSecrets.UseOsKeyStore()`, before any store is created; Windows keeps DPAPI. Without a key store the agent keeps session transcripts in memory only; approvals and tokens stay in owner-only files. |
 | `Fadenstack.Provenance` | Content provenance: what tools place where people read it is marked as AI-generated where the host can carry a mark, signed by the server and recorded ([Content provenance](provenance.md)). |
 | `Fadenstack.UI` | Platform-neutral view models for a chat with an agent, built on CommunityToolkit.Mvvm, with its texts in English, German, French, Spanish and Simplified Chinese ([Languages](chat-panel.md#languages)). |
 | `Fadenstack.UI.Wpf` | The WPF skin for `Fadenstack.UI`: a chat panel for WPF applications and add-ins. |
 | `Fadenstack.UI.Avalonia` | The Avalonia 12 skin for `Fadenstack.UI`: the same chat panel for cross-platform desktop applications ([The Avalonia skin](chat-panel.md#the-avalonia-skin)). |
 
-Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.Provenance` includes `Fadenstack.UI` (for the words its marks show people); `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia` include `Fadenstack.UI`; `Fadenstack.Secrets` includes `Fadenstack.Client`.
+Each package's namespace is its name; `Fadenstack.Client` holds `Fadenstack` and the namespaces under it (see [Namespaces](#namespaces)). Each package brings the packages it builds on. `Fadenstack.Agents` includes `Fadenstack.Client`; `Fadenstack.Mcp`, `Fadenstack.Skills` and `Fadenstack.UI` include `Fadenstack.Agents`; `Fadenstack.Provenance` includes `Fadenstack.UI` (for the words its marks show people); `Fadenstack.UI.Wpf` and `Fadenstack.UI.Avalonia` include `Fadenstack.UI`; `Fadenstack.Secrets` includes `Fadenstack.Client`.
 
 ## Target frameworks
 
 | Package | Targets | Runs on |
 |---|---|---|
-| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.Provenance`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
+| `Fadenstack.Client`, `Fadenstack.Agents`, `Fadenstack.Mcp`, `Fadenstack.Skills`, `Fadenstack.Provenance`, `Fadenstack.UI` | `netstandard2.0`, `net8.0` | .NET Framework 4.7.2 and later, .NET 8 and later |
 | `Fadenstack.Secrets` | `net8.0` | .NET 8 and later, on macOS and Linux (Windows hosts use DPAPI without it) |
 | `Fadenstack.UI.Wpf` | `net472`, `net8.0-windows` | .NET Framework 4.7.2 and later, .NET 8 and later, on Windows |
 | `Fadenstack.UI.Avalonia` | `net8.0` | .NET 8 and later, wherever Avalonia 12 runs |
@@ -51,7 +52,7 @@ Add the package you need from nuget.org. It brings the packages it builds on:
 dotnet add package Fadenstack.Agents
 ```
 
-For local MCP servers, add `Fadenstack.Mcp`. For the WPF chat panel, add `Fadenstack.UI.Wpf`; for the Avalonia one, `Fadenstack.UI.Avalonia`. On macOS and Linux, add `Fadenstack.Secrets` to encrypt what the SDK keeps ([Sessions on the device](sessions.md#where-they-are-stored)). Your project can target any of the frameworks in the table above.
+For local MCP servers, add `Fadenstack.Mcp`; for skills, `Fadenstack.Skills`. For the WPF chat panel, add `Fadenstack.UI.Wpf`; for the Avalonia one, `Fadenstack.UI.Avalonia`. On macOS and Linux, add `Fadenstack.Secrets` to encrypt what the SDK keeps ([Sessions on the device](sessions.md#where-they-are-stored)). Your project can target any of the frameworks in the table above.
 
 ### From source
 
@@ -129,6 +130,7 @@ public sealed class PageTools
 | `Fadenstack.Agents.Registry` | `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence`, `AgentStatus`, `IProcessSource`, `SystemProcessSource` |
 | `Fadenstack.Secrets` | `FadenstackSecrets` |
 | `Fadenstack.Mcp` | `LocalMcpServer`, `LocalMcpModule`, `AddLocalMcp` |
+| `Fadenstack.Skills` | `SkillsModule`, `SkillsOptions`, `BundledSkill`, `SkillWorkshop` |
 | `Fadenstack.Provenance` | `ProvenanceModule`, `IProvenance`, `MarkableContent`, `SinkInfo`, `IContentMarker`, the built-in markers, `ProvenanceReader` |
 | `Fadenstack.UI.ViewModels`, `Fadenstack.UI.Parts`, `Fadenstack.UI.Services` | The chat view models, the answer parts, `ApprovalBroker`, `IUiDispatcher` |
 | `Fadenstack.UI.Wpf.Views`, `Fadenstack.UI.Wpf.Services` | `ChatView`, `ChatTheme`, `WpfDispatcher`, `WpfClipboard` |
@@ -144,6 +146,10 @@ public sealed class PageTools
 - **Tools:** [the organisation's tools list](agent.md#the-organisations-tools), [tool sources that change](extending.md#tool-sources-that-change) and [`find_tool` for local MCP servers](local-mcp.md#tools-on-request).
 - **Logging:** [content-free logs, traces and metrics, and a file sink](agent.md#logging).
 - **Chat panel:** [the Avalonia skin](chat-panel.md#the-avalonia-skin), nested Markdown with a preview and Mermaid blocks, card details, [a gate on running turns](chat-panel.md#a-gate-on-running-turns), and the [notice for answers without an AI mark](chat-panel.md#answers-without-an-ai-mark).
+- **Standalone mode:** [an agent on the person's own model](standalone.md), with [the connection wizard](connecting.md) and the [machine policy](machine-policy.md) that an organisation sets for it.
+- **Skills, local MCP and the web:** [skills](skills.md) with their editor, [local MCP servers](local-mcp.md) with the Tools view, and [pictures and web search](web-search.md).
+- **Interop:** [AG-UI events, hooks and OpenTelemetry](interop.md), and [delegating to agents](delegation.md) (a preview).
+- **Approvals:** [what no level skips, standing approvals and reasons](approvals.md), and [stop everything and the off-switch](stop-everything.md).
 - **Around the SDK:** [Testing](testing.md) and the [parity table](parity.md) with the TypeScript SDK.
 
 ### Breaking change: the device agent registry moved
@@ -172,7 +178,13 @@ The moved types are `DeviceAgentRegistry`, `AgentRegistration`, `AgentPresence` 
 - [Content provenance](provenance.md): marking what tools place as AI-generated.
 - [Chat panel](chat-panel.md): a ready chat UI for WPF and Avalonia hosts.
 - [Connecting an agent](connecting.md): the connection wizard, to a server or the person's own AI.
+- [Standalone mode](standalone.md): an agent on the person's own model: endpoints, the check, keys and transport rules.
+- [Machine policy](machine-policy.md): what an organisation fixes for the agents on its computers.
 - [Skills](skills.md): skills on the device, the rules that pick them, the editor and its security rules.
+- [Local MCP servers](local-mcp.md): servers as tools, the hint rule, import and the Tools view.
+- [Pictures and web search](web-search.md): pictures, the `web_search` tool and its settings.
+- [Interop](interop.md): AG-UI events, hooks and OpenTelemetry.
+- [Delegating to agents](delegation.md): tasks between agents on one device (a preview).
 - [Server-held grants and Bypass](server-grants.md): what the server holds so the agent need not ask again.
 - [Stop everything and the off-switch](stop-everything.md): the emergency stop, and what happens when the organisation turns an agent off.
 - [Testing](testing.md): how to test an app against the SDK.

@@ -106,7 +106,7 @@ A tool call that the policy refused (the tool mode hides it, the gateway or the 
 - `ToolHookVerdict.Ask(reason)`: ask the person. A call the policy would run unasked then shows the approval card, once only: no earlier "allow always", no grant answers it. A call the policy already asks about is asked as before.
 - `ToolHookVerdict.Deny(reason)`: refuse. The reason is cut to 500 characters and reaches the model as a declined call (`'name' was declined by the app (reason).`). The turn ends as `ToolDenied`.
 
-There is no answer that approves a call the policy would ask about or refuse. The types make that impossible: `ToolHookVerdict` has no public constructor and no "approve", everything a hook is given (`ToolCallContext`, `ToolCallResult`) has get-only properties, so a hook cannot lower or change a tool's class or the policy's decision. A destructive or unclassified call still shows its card after any hook; a hook that denies stops the call, and a hook that throws counts as "go on". The tests in `HookTests` pin each of these.
+There is no answer that approves a call the policy would ask about or refuse. The types make that impossible: `ToolHookVerdict` has no public constructor and no "approve", everything a hook is given (`ToolCallContext`, `ToolCallResult`) has get-only properties, so a hook cannot lower or change a tool's class or the policy's decision. A destructive or unclassified call still shows its card after any hook; a hook that denies stops the call, and a hook that throws counts as "go on".
 
 ### Notes
 

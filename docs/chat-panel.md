@@ -250,7 +250,7 @@ The choice is kept per user in the panel's preferences, under the key `tell-unma
 - the app the agent runs in, when you described it with `DescribeApp`: `Runs in the app "<name>" <version>`, only the name in the language's quotation marks and the version after it; the name is the display name of the panel's language when you gave one (`AppDescription.DisplayNames`), else `Name`;
 - the SDK: *Fadenstack SDK 0.3.0 (.NET)*, the version of the package;
 - the server's address, shown only;
-- links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website), *Help and contact*
+- links, one per line: *Help* (only for an agent on an organisation's server: `<server>/help/`; a model endpoint has none), *Fadenstack* (the website), *Help and contact*
   (Fadenstack's help and contact page, `https://fadenstack.com/support/`) and *Developer docs*;
 - *Copy details*, which copies the agent, its version and model, the app, the SDK and the server as lines of text, for a support request;
 - *Report a problem*, which opens [the sheet below](#report-a-problem).

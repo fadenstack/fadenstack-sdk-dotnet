@@ -28,7 +28,7 @@ var agent = FadenstackAgent.CreateBuilder()
 
 `AgentDefinition` reads the agent's definition as your app ships it: the body a Fadenstack server's `POST /api/agents`
 takes, the same file you give a server. It reads `slug`, `name`, `version.instructions`, `version.host_tool_contract`,
-`local_mcp_mode`, `local_skills_mode` and `version.ui` (greeting, suggestions, languages). Unknown fields are kept
+`version.local_mcp_mode`, `version.local_skills_mode` and `version.ui` (greeting, suggestions, languages). Unknown fields are kept
 (`Json`, `ToJson()`); `model_alias` is ignored.
 
 It fails closed. A contract entry whose `risk` is missing or unknown is unclassified, so the tool asks every time; a mode
@@ -116,7 +116,7 @@ if (report.ChatOnly) { /* the model calls no tools: the agent can only talk */ }
 ### The text watermark status
 
 Some servers mark the text a model writes with an invisible watermark; the agent cannot add one itself. The report's
-`Watermark` says, from a table of each server's own documentation (read 14 November 2026), whether this connection
+`Watermark` says, from a table of each server's own documentation, whether this connection
 marks text:
 
 | Server | `TextWatermark` |
