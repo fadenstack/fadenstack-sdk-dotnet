@@ -25,12 +25,13 @@ public class MachinePolicyTests
         var policy = MachinePolicy.FromJson("""
             {"server":"https://ai.example.test","standalone":"allowed","endpoints":["http://localhost:11434","https://llm.example.test/v1"],
              "plainHttp":"forbidden","mcp":["notes-db"],"skills":"allowed","webSearch":"forbidden","timestamping":"off",
-             "chatRetention":{"autoDelete":false,"maxAgeDays":30,"maxSessions":100},"contentLogging":"forbidden","auditRetentionDays":90}
+             "chatRetention":{"autoDelete":false,"maxAgeDays":30,"maxSessions":100},"contentLogging":"forbidden","auditRetentionDays":90,"supportEmail":"it-help@example.org"}
             """);
 
         Assert.Equal(PolicyAccess.Forbidden, policy.ContentLogging);
         Assert.Equal(new Uri("https://ai.example.test"), policy.Server);
         Assert.Equal(90, policy.AuditRetentionDays);
+        Assert.Equal("it-help@example.org", policy.SupportEmail);
         Assert.Equal(PolicyAccess.Allowed, policy.Standalone);
         Assert.Equal(new[] { "http://localhost:11434", "https://llm.example.test/v1" }, policy.Endpoints);
         Assert.Equal(PolicyAccess.Forbidden, policy.PlainHttp);

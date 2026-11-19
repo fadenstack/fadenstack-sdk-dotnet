@@ -64,7 +64,7 @@ public sealed record MachinePolicy
 {
     /// <summary>The known keys, as a policy file names them (declared first: the policies below read it).</summary>
     public static IReadOnlyList<string> Keys { get; } =
-        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention", "contentLogging", "auditRetentionDays"];
+        ["server", "standalone", "endpoints", "plainHttp", "mcp", "skills", "webSearch", "timestamping", "chatRetention", "contentLogging", "auditRetentionDays", "supportEmail"];
 
     /// <summary>No policy at all: everything the person may choose stays theirs.</summary>
     public static MachinePolicy None { get; } = new();
@@ -121,6 +121,14 @@ public sealed record MachinePolicy
     /// 180 days. A value out of bounds or not a whole number is reported and becomes 180. TS: <c>auditRetentionDays</c>.
     /// </summary>
     public int? AuditRetentionDays { get; init; }
+
+    /// <summary>
+    /// Whom the "Report a problem" sheet writes to (<c>supportEmail</c>): the organisation's own address, one plain address
+    /// (<see cref="SupportAddress.IsValid"/>), in governed and standalone mode. A value that is not one is reported and counts as
+    /// absent: null. In governed mode no address means no mail (the sheet says to ask IT); only standalone falls back to the
+    /// host's address and then the SDK's own. TS: <c>supportEmail</c>.
+    /// </summary>
+    public string? SupportEmail { get; init; }
 
     /// <summary>The keys the policy set itself (the app locks them in its UI and never writes them into the person's settings).</summary>
     public IReadOnlyCollection<string> Locked { get; init; } = Array.Empty<string>();
@@ -272,9 +280,21 @@ public sealed record MachinePolicy
             ChatRetention = values.TryGetValue("chatRetention", out var retention) ? Retention(retention, warnings) : null,
             ContentLogging = Access(values, "contentLogging", PolicyAccess.Allowed, warnings),
             AuditRetentionDays = values.TryGetValue("auditRetentionDays", out var audit) ? AuditDays(audit, warnings) : null,
+            SupportEmail = values.TryGetValue("supportEmail", out var support) ? SupportMail(support, warnings) : null,
             Locked = locked,
             Warnings = warnings,
         };
+    }
+
+    /// <summary>One plain address; anything else is refused and reported (never the value), as if the key were absent.</summary>
+    private static string? SupportMail(JsonElement value, List<string> warnings)
+    {
+        if (value.ValueKind == JsonValueKind.String && value.GetString() is { } text && SupportAddress.IsValid(text))
+        {
+            return text;
+        }
+        warnings.Add("'supportEmail' is not one plain mail address: ignored.");
+        return null;
     }
 
     private static PolicyAccess Access(Dictionary<string, JsonElement> values, string key, PolicyAccess fallback, List<string> warnings)
