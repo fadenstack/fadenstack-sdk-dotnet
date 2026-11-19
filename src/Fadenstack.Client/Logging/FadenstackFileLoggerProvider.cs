@@ -65,6 +65,12 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
     private readonly ManualResetEventSlim? _gate;
     private readonly BlockingCollection<Entry> _queue;
     private readonly Thread _writer;
+    private static readonly object RegistryGate = new();
+    private static readonly List<FadenstackFileLoggerProvider> Registry = new();
+
+    // Held by the writer for one entry at a time and by a removal of the app's files, so the two never overlap.
+    private readonly object _fileGate = new();
+    private long _generation;
     private long _dropped;
     private long _reported;
     private int _disposed;
@@ -72,7 +78,7 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
     private string? _path;
     private long _size;
 
-    private readonly record struct Entry(DateTimeOffset At, string Line);
+    private readonly record struct Entry(DateTimeOffset At, string Line, long Generation);
 
     /// <param name="app">
     /// The app's name, in the file names (<c>&lt;app&gt;-20261028.log</c>); made safe as a file name with
@@ -109,6 +115,10 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         DeleteOld();
         _writer = new Thread(Run) { IsBackground = true, Name = "Fadenstack file logger" };
         _writer.Start();
+        lock (RegistryGate)
+        {
+            Registry.Add(this);
+        }
     }
 
     /// <summary>How many entries were dropped because the queue was full.</summary>
@@ -121,6 +131,10 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
             return;
+        }
+        lock (RegistryGate)
+        {
+            Registry.Remove(this);
         }
         _queue.CompleteAdding();
         if (_writer.Join(TimeSpan.FromSeconds(5)))
@@ -142,7 +156,7 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         }
         try
         {
-            if (!_queue.TryAdd(new Entry(at, line.ToString())))
+            if (!_queue.TryAdd(new Entry(at, line.ToString(), Interlocked.Read(ref _generation))))
             {
                 Interlocked.Increment(ref _dropped);
             }
@@ -174,11 +188,20 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
             {
                 break;
             }
-            Write(entry);
-            NoteDropped();
+            lock (_fileGate)
+            {
+                if (entry.Generation == Interlocked.Read(ref _generation))
+                {
+                    Write(entry);
+                }
+                NoteDropped();
+            }
         }
-        NoteDropped();
-        CloseFile();
+        lock (_fileGate)
+        {
+            NoteDropped();
+            CloseFile();
+        }
     }
 
     /// <summary>A line in the file for the entries dropped since the last one.</summary>
@@ -188,7 +211,7 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         if (dropped > _reported)
         {
             var now = _clock();
-            Write(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 {dropped - _reported} entries were dropped: the queue was full"));
+            Write(new Entry(now, $"{now.UtcDateTime:O} WRN Fadenstack.Logging 0 {dropped - _reported} entries were dropped: the queue was full", 0));
             _reported = dropped;
         }
     }
@@ -266,6 +289,85 @@ public sealed class FadenstackFileLoggerProvider : ILoggerProvider
         catch (Exception)
         {
             // what stays is deleted next time
+        }
+    }
+
+    /// <summary>
+    /// Removes this app's files (<c>&lt;app&gt;-*.log</c> and the numbered parts) from its folder: what is queued is dropped (nothing
+    /// of it is written afterwards), the open file is closed, and the next entry starts a new file.
+    /// </summary>
+    internal LogRemoval RemoveOwnFiles()
+    {
+        lock (_fileGate)
+        {
+            Interlocked.Increment(ref _generation);
+            while (_queue.TryTake(out _))
+            {
+            }
+            _reported = Dropped; // the entries dropped for a full queue before the removal are not reported after it
+            CloseFile();
+            try
+            {
+                return LogRemoval.Delete(new DirectoryInfo(_folder).EnumerateFiles().Where(f => _ownFiles.IsMatch(f.Name)).ToList());
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                return default; // the folder is gone, or cannot be read
+            }
+        }
+    }
+
+    /// <summary>Removes the files of every provider alive in this process (<see cref="RemoveOwnFiles"/>).</summary>
+    internal static LogRemoval RemoveFilesOfRegisteredProviders()
+    {
+        FadenstackFileLoggerProvider[] providers;
+        lock (RegistryGate)
+        {
+            providers = Registry.ToArray();
+        }
+        var result = default(LogRemoval);
+        foreach (var provider in providers)
+        {
+            result += provider.RemoveOwnFiles();
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Removes the files of every provider alive in this process, then every other file in <see cref="FadenstackPaths.LogRoot"/>
+    /// and the folders below it (other apps' logs; the person's data too). A file another process holds open goes where the OS
+    /// allows it and is counted as left otherwise.
+    /// </summary>
+    internal static LogRemoval RemoveEveryLogFile()
+    {
+        var result = RemoveFilesOfRegisteredProviders();
+        try
+        {
+            var root = new DirectoryInfo(FadenstackPaths.LogRoot);
+            if (root.Exists)
+            {
+                result += LogRemoval.DeleteTree(root);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // the folder cannot be read: what is in it stays
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The longest <see cref="FadenstackFileLoggerOptions.MaxAge"/> among the providers alive in this process, in whole days
+    /// (at least 1); null when there is none: then nothing here says how long the logs stay.
+    /// </summary>
+    public static int? RetentionDays
+    {
+        get
+        {
+            lock (RegistryGate)
+            {
+                return Registry.Count == 0 ? null : Math.Max(1, (int)Math.Min(int.MaxValue, Registry.Max(p => p._maxAge).TotalDays));
+            }
         }
     }
 

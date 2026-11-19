@@ -977,6 +977,15 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         var deletion = DeleteSdkData(scope);
+        // The app's own log files go with the person's data (the desktop's, Office's, every host's that logs with the SDK); with
+        // AllApps every other file in the user's log folder too. Never throws: a file that stays is counted and logged.
+        var logs = scope == DataScope.AllApps ? Logging.FadenstackFileLoggerProvider.RemoveEveryLogFile() : Logging.FadenstackFileLoggerProvider.RemoveFilesOfRegisteredProviders();
+        deletion = deletion with { LogFilesRemoved = logs.Removed, LogFilesLeft = logs.Left };
+        Log.LogFilesRemoved(Logger, logs.Removed);
+        if (logs.Left > 0)
+        {
+            Log.LogFilesLeft(Logger, logs.Left);
+        }
         // The host's own data (AgentBuilder.UseHostData) goes after the SDK's, whichever the scope, so a host's removal that fails
         // never keeps the SDK's data; it is counted with the SDK's own.
         if (_settings.HostData is { } host)

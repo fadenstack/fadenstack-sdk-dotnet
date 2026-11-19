@@ -40,6 +40,15 @@ public sealed record DataDeletion(int FoldersRemoved, bool HostSessionStoreLeft,
 
     /// <summary>This app's agents whose data stayed because another app uses the same agent.</summary>
     public IReadOnlyList<string> AgentsKept { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// How many log files the removal deleted (<see cref="Fadenstack.Logging.FadenstackFileLoggerProvider"/>'s: this app's own, or with
+    /// <see cref="DataScope.AllApps"/> every file in the user's log folder). Files, not folders: it is not part of <see cref="FoldersRemoved"/>.
+    /// </summary>
+    public int LogFilesRemoved { get; init; }
+
+    /// <summary>Log files that stayed because another process holds them open or the OS refused; the host may ask the person to close that app.</summary>
+    public int LogFilesLeft { get; init; }
 }
 
 /// <summary>What an export wrote.</summary>
