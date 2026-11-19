@@ -390,13 +390,21 @@ public sealed class McpScannerTests : IDisposable
     {
         Write(".cursor/mcp.json", """{"mcpServers":{"a":{"command":"x"}}}""");
         var silent = Silent();
-        var timings = new McpScanTimings(TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(30), TimeSpan.FromMilliseconds(700), 64);
+        // The scan reads the files first and then probes the ports, all inside one clock (Total). The clock is the SDK's own and cannot
+        // be gated from here, so the test makes it irrelevant for the file part: a scanner with a long limit reads the files once beforehand (the
+        // code and the files are warm, and that run is checked to have found the file), and the cut then comes seconds after a file
+        // part that takes milliseconds, not within the same few hundred milliseconds. The silent port holds the handshake (30 s), so
+        // the scan can only end at the cut.
+        var timings = new McpScanTimings(TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(4), 64);
+        var warm = await Scanner().ScanAsync(AppsOnly, [], null, CancellationToken.None);
+        Assert.False(warm.CutShort);
+        Assert.Equal("a", Assert.Single(warm.Findings).Label);
 
         var watch = Stopwatch.StartNew();
         var result = await Scanner(timings).ScanAsync(new McpScanOptions(true, true, [new McpPortRange(silent, silent)]), [], null, CancellationToken.None);
 
         Assert.True(result.CutShort);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(25));
         Assert.Equal("a", Assert.Single(result.Findings).Label);
     }
 
