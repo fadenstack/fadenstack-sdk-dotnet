@@ -3100,4 +3100,100 @@
     <value>Export the record of tool calls… (as a web page)</value>
     <comment>Accessible name of that button</comment>
   </data>
+  <data name="ReportProblem" xml:space="preserve">
+    <value>Report a problem</value>
+    <comment>About's button and the sheet's title; also the link on a failed turn</comment>
+  </data>
+  <data name="ReportSubjectApp" xml:space="preserve">
+    <value>Problem with {0}</value>
+    <comment>{0}: the app's name and version (Word add-in 1.2.0); the mail's subject, followed by (Fadenstack SDK 0.3.1)</comment>
+  </data>
+  <data name="ReportSubjectNoApp" xml:space="preserve">
+    <value>Problem with Fadenstack SDK {0}</value>
+    <comment>{0}: Fadenstack SDK and its version; the subject when the host described no app</comment>
+  </data>
+  <data name="ReportLabelWhatHappened" xml:space="preserve">
+    <value>What happened</value>
+    <comment>The mail's first line, followed by a colon; the person writes below it</comment>
+  </data>
+  <data name="ReportLabelApp" xml:space="preserve">
+    <value>App</value>
+  </data>
+  <data name="ReportLabelSdk" xml:space="preserve">
+    <value>SDK</value>
+  </data>
+  <data name="ReportLabelSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="ReportLabelMode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="ReportLabelAgent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="ReportLabelServer" xml:space="preserve">
+    <value>Server</value>
+  </data>
+  <data name="ReportLabelEndpoint" xml:space="preserve">
+    <value>Endpoint</value>
+  </data>
+  <data name="ReportLabelTime" xml:space="preserve">
+    <value>Time</value>
+  </data>
+  <data name="ReportLabelError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="ReportLabelTo" xml:space="preserve">
+    <value>To</value>
+    <comment>Copy details: the address line</comment>
+  </data>
+  <data name="ReportLabelSubject" xml:space="preserve">
+    <value>Subject</value>
+    <comment>Copy details: the subject line</comment>
+  </data>
+  <data name="ReportModeGoverned" xml:space="preserve">
+    <value>Organisation</value>
+    <comment>The mail's Mode line: the agent runs through the organisation's server</comment>
+  </data>
+  <data name="ReportModeOwnAi" xml:space="preserve">
+    <value>Own AI</value>
+    <comment>The mail's Mode line: the agent runs on the person's own AI</comment>
+  </data>
+  <data name="ReportPlaceThisComputer" xml:space="preserve">
+    <value>on this computer</value>
+    <comment>The mail's Endpoint line, after the server's name: where the address points</comment>
+  </data>
+  <data name="ReportPlaceLocalNetwork" xml:space="preserve">
+    <value>in the local network</value>
+  </data>
+  <data name="ReportPlaceInternet" xml:space="preserve">
+    <value>on the internet</value>
+  </data>
+  <data name="ReportGoesTo" xml:space="preserve">
+    <value>This goes to {0}.</value>
+    <comment>{0}: the mail address the report goes to</comment>
+  </data>
+  <data name="ReportAskIt" xml:space="preserve">
+    <value>Ask your organisation's IT for help. You can copy the details below for them.</value>
+    <comment>The sheet, when the organisation named no address</comment>
+  </data>
+  <data name="ReportContains" xml:space="preserve">
+    <value>This report contains:</value>
+    <comment>The heading of the preview of what the mail says (also its accessible name)</comment>
+  </data>
+  <data name="ReportNoChats" xml:space="preserve">
+    <value>Nothing from your chats is included.</value>
+  </data>
+  <data name="ReportWriteMail" xml:space="preserve">
+    <value>Write mail</value>
+    <comment>Opens the person's mail app with the report</comment>
+  </data>
+  <data name="ReportOpenLogFolder" xml:space="preserve">
+    <value>Open the log folder</value>
+    <comment>Opens the folder where the app's log files are</comment>
+  </data>
+  <data name="ReportLabelRecentLog" xml:space="preserve">
+    <value>Recent log</value>
+    <comment>The heading of the log entries a copy may carry (the TypeScript SDK's browser log)</comment>
+  </data>
 </root>

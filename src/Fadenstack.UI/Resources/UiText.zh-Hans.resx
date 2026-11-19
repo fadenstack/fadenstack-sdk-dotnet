@@ -2761,4 +2761,85 @@
   <data name="MyDataAuditExportName" xml:space="preserve">
     <value>导出工具调用记录…（网页格式）</value>
   </data>
+  <data name="ReportProblem" xml:space="preserve">
+    <value>报告问题</value>
+  </data>
+  <data name="ReportSubjectApp" xml:space="preserve">
+    <value>关于 {0} 的问题</value>
+  </data>
+  <data name="ReportSubjectNoApp" xml:space="preserve">
+    <value>关于 Fadenstack SDK {0} 的问题</value>
+  </data>
+  <data name="ReportLabelWhatHappened" xml:space="preserve">
+    <value>发生了什么</value>
+  </data>
+  <data name="ReportLabelApp" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="ReportLabelSdk" xml:space="preserve">
+    <value>SDK</value>
+  </data>
+  <data name="ReportLabelSystem" xml:space="preserve">
+    <value>系统</value>
+  </data>
+  <data name="ReportLabelMode" xml:space="preserve">
+    <value>模式</value>
+  </data>
+  <data name="ReportLabelAgent" xml:space="preserve">
+    <value>智能体</value>
+  </data>
+  <data name="ReportLabelServer" xml:space="preserve">
+    <value>服务器</value>
+  </data>
+  <data name="ReportLabelEndpoint" xml:space="preserve">
+    <value>端点</value>
+  </data>
+  <data name="ReportLabelTime" xml:space="preserve">
+    <value>时间</value>
+  </data>
+  <data name="ReportLabelError" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="ReportLabelTo" xml:space="preserve">
+    <value>收件人</value>
+  </data>
+  <data name="ReportLabelSubject" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="ReportModeGoverned" xml:space="preserve">
+    <value>组织</value>
+  </data>
+  <data name="ReportModeOwnAi" xml:space="preserve">
+    <value>自有 AI</value>
+  </data>
+  <data name="ReportPlaceThisComputer" xml:space="preserve">
+    <value>在此计算机上</value>
+  </data>
+  <data name="ReportPlaceLocalNetwork" xml:space="preserve">
+    <value>在本地网络中</value>
+  </data>
+  <data name="ReportPlaceInternet" xml:space="preserve">
+    <value>在互联网上</value>
+  </data>
+  <data name="ReportGoesTo" xml:space="preserve">
+    <value>此报告将发送到 {0}。</value>
+  </data>
+  <data name="ReportAskIt" xml:space="preserve">
+    <value>请向贵组织的 IT 部门寻求帮助。您可以复制下面的详细信息提供给他们。</value>
+  </data>
+  <data name="ReportContains" xml:space="preserve">
+    <value>此报告包含：</value>
+  </data>
+  <data name="ReportNoChats" xml:space="preserve">
+    <value>不包含您的任何聊天内容。</value>
+  </data>
+  <data name="ReportWriteMail" xml:space="preserve">
+    <value>撰写邮件</value>
+  </data>
+  <data name="ReportOpenLogFolder" xml:space="preserve">
+    <value>打开日志文件夹</value>
+  </data>
+  <data name="ReportLabelRecentLog" xml:space="preserve">
+    <value>最近的日志</value>
+  </data>
 </root>

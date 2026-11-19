@@ -961,6 +961,90 @@ public sealed class UiStrings
     /// <summary>Copies what About shows, for a support request.</summary>
     public string CopyDetails => Text();
 
+    // -- Report a problem (SDK 0.3.1) --------------------------------------------------------------------
+
+    /// <summary>"Report a problem": About's button, the sheet's title, and the link on a failed turn.</summary>
+    public string ReportProblem => Text();
+
+    /// <summary>"Problem with {0}" for the mail's subject ({0}: the app's name and version); the raw text, a format.</summary>
+    public string ReportSubjectApp => Text();
+
+    /// <summary>"Problem with Fadenstack SDK {0}" for the subject when the host described no app ({0}: the SDK's version); the raw text, a format.</summary>
+    public string ReportSubjectNoApp => Text();
+
+    public string ReportLabelWhatHappened => Text();
+
+    public string ReportLabelApp => Text();
+
+    public string ReportLabelSdk => Text();
+
+    public string ReportLabelSystem => Text();
+
+    public string ReportLabelMode => Text();
+
+    public string ReportLabelAgent => Text();
+
+    public string ReportLabelServer => Text();
+
+    public string ReportLabelEndpoint => Text();
+
+    public string ReportLabelTime => Text();
+
+    public string ReportLabelError => Text();
+
+    public string ReportLabelTo => Text();
+
+    public string ReportLabelSubject => Text();
+
+    /// <summary>The mail's Mode line for an agent on the organisation's server.</summary>
+    public string ReportModeGoverned => Text();
+
+    /// <summary>The mail's Mode line for an agent on the person's own AI.</summary>
+    public string ReportModeOwnAi => Text();
+
+    public string ReportPlaceThisComputer => Text();
+
+    public string ReportPlaceLocalNetwork => Text();
+
+    public string ReportPlaceInternet => Text();
+
+    /// <summary>"This goes to support@fadenstack.com."</summary>
+    public string ReportGoesTo(string address) => Fill(address);
+
+    /// <summary>The sheet's text when the organisation named no address.</summary>
+    public string ReportAskIt => Text();
+
+    /// <summary>"This report contains:", the preview's heading.</summary>
+    public string ReportContains => Text();
+
+    public string ReportNoChats => Text();
+
+    public string ReportWriteMail => Text();
+
+    public string ReportOpenLogFolder => Text();
+
+    public string ReportLabelRecentLog => Text();
+
+    /// <summary>The words of the report's mail in this language (<see cref="ReportMailBuilder"/>).</summary>
+    public ReportLabels ReportLabels() => new()
+    {
+        Subject = ReportSubjectApp,
+        SubjectNoApp = ReportSubjectNoApp,
+        WhatHappened = ReportLabelWhatHappened,
+        App = ReportLabelApp,
+        Sdk = ReportLabelSdk,
+        System = ReportLabelSystem,
+        Mode = ReportLabelMode,
+        Agent = ReportLabelAgent,
+        Server = ReportLabelServer,
+        Endpoint = ReportLabelEndpoint,
+        Time = ReportLabelTime,
+        Error = ReportLabelError,
+        To = ReportLabelTo,
+        SubjectLabel = ReportLabelSubject,
+        RecentLog = ReportLabelRecentLog,
+    };
+
     /// <summary>"Help (opens in your browser)": a link's name for screen readers.</summary>
     public string OpensInBrowser(string link) => Fill(link);
 

@@ -31,6 +31,8 @@
     <None Include="..\..\src\Fadenstack.UI.Avalonia\Views\MarkdownView.cs" Link="Skins\Views\MarkdownView.cs" CopyToOutputDirectory="PreserveNewest" />
     <!-- The cases both SDKs test their Markdown-to-HTML against: the TypeScript SDK has the same file. -->
     <None Include="vectors\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The "Report a problem" mail as a table: the TypeScript SDK holds the same file (subject, body, link and copy for given inputs). -->
+    <None Include="ReportProblem\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <!-- The WPF skin's colours, for ThemeContrastTests (read as text: these tests do not load WPF). -->

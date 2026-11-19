@@ -38,6 +38,9 @@ public class UiStringsTests
         "MyDataDismiss", "MyDataListSeparator",
         // "Stop everything": "1 chat" is the same word in Spanish.
         "StopEverythingChatsOne",
+        // "Report a problem": the mail's labels that are the same word in a language (SDK, Mode, Agent, App, System, Server, Error) and "Organisation".
+        "ReportLabelSdk", "ReportLabelMode", "ReportLabelAgent", "ReportLabelApp", "ReportLabelSystem", "ReportLabelServer", "ReportLabelError",
+        "ReportModeGoverned",
     };
 
     public static TheoryData<string> Translations() => new() { "de", "fr", "es", "zh-Hans" };

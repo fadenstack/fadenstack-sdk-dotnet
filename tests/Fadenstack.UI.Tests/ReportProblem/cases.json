@@ -1,0 +1,380 @@
+{
+  "about": "Shared with the .NET SDK (tests/Fadenstack.UI.Tests/ReportProblem/cases.json): both must build these mails byte for byte. `labels` holds the five-language panel texts for the two languages the table covers ({0} is the app or the version); `facts` are the values the mail shows; `body` and `mailBody` have CRLF, `copy` has LF.",
+  "labels": {
+    "en": {
+      "subject": "Problem with {0}",
+      "subjectNoApp": "Problem with Fadenstack SDK {0}",
+      "whatHappened": "What happened",
+      "app": "App",
+      "sdk": "SDK",
+      "system": "System",
+      "mode": "Mode",
+      "agent": "Agent",
+      "server": "Server",
+      "endpoint": "Endpoint",
+      "time": "Time",
+      "error": "Error",
+      "to": "To",
+      "subjectLabel": "Subject",
+      "recentLog": "Recent log"
+    },
+    "de": {
+      "subject": "Problem mit {0}",
+      "subjectNoApp": "Problem mit Fadenstack SDK {0}",
+      "whatHappened": "Was ist passiert",
+      "app": "App",
+      "sdk": "SDK",
+      "system": "System",
+      "mode": "Modus",
+      "agent": "Agent",
+      "server": "Server",
+      "endpoint": "Endpunkt",
+      "time": "Zeit",
+      "error": "Fehler",
+      "to": "An",
+      "subjectLabel": "Betreff",
+      "recentLog": "Letzte Protokolleinträge"
+    }
+  },
+  "cases": [
+    {
+      "name": "standalone, every field",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "system": "Chrome 131, Windows",
+        "mode": "Own AI",
+        "agent": "Docs, Version 3, Model: qwen3-32b",
+        "endpoint": "ollama, on this computer"
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nMode: Own AI\r\nAgent: Docs, Version 3, Model: qwen3-32b\r\nEndpoint: ollama, on this computer\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nMode: Own AI\r\nAgent: Docs, Version 3, Model: qwen3-32b\r\nEndpoint: ollama, on this computer\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Chrome%20131%2C%20Windows%0D%0AMode%3A%20Own%20AI%0D%0AAgent%3A%20Docs%2C%20Version%203%2C%20Model%3A%20qwen3-32b%0D%0AEndpoint%3A%20ollama%2C%20on%20this%20computer%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Chrome 131, Windows\nMode: Own AI\nAgent: Docs, Version 3, Model: qwen3-32b\nEndpoint: ollama, on this computer\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "governed, every field with an error and its request id",
+      "language": "en",
+      "address": "it-help@corp.example",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "system": "Edge 130, macOS",
+        "mode": "Organisation",
+        "agent": "Docs, Draft, Model: qwen3-32b",
+        "server": "https://ai.example.internal",
+        "error": {
+          "code": "picture_type_not_allowed",
+          "requestId": "req-8f3a21"
+        }
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Edge 130, macOS\r\nMode: Organisation\r\nAgent: Docs, Draft, Model: qwen3-32b\r\nServer: https://ai.example.internal\r\nTime: 2026-11-19 10:42 UTC\r\nError: picture_type_not_allowed (req-8f3a21)",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Edge 130, macOS\r\nMode: Organisation\r\nAgent: Docs, Draft, Model: qwen3-32b\r\nServer: https://ai.example.internal\r\nTime: 2026-11-19 10:42 UTC\r\nError: picture_type_not_allowed (req-8f3a21)",
+        "dropped": 0,
+        "mailto": "mailto:it-help@corp.example?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Edge%20130%2C%20macOS%0D%0AMode%3A%20Organisation%0D%0AAgent%3A%20Docs%2C%20Draft%2C%20Model%3A%20qwen3-32b%0D%0AServer%3A%20https%3A%2F%2Fai.example.internal%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC%0D%0AError%3A%20picture_type_not_allowed%20%28req-8f3a21%29",
+        "copy": "To: it-help@corp.example\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Edge 130, macOS\nMode: Organisation\nAgent: Docs, Draft, Model: qwen3-32b\nServer: https://ai.example.internal\nTime: 2026-11-19 10:42 UTC\nError: picture_type_not_allowed (req-8f3a21)"
+      }
+    },
+    {
+      "name": "the error without a request id",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Chrome extension 1.3.0",
+        "error": {
+          "code": "agent_disabled"
+        }
+      },
+      "expected": {
+        "subject": "Problem with Chrome extension 1.3.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Chrome extension 1.3.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nTime: 2026-11-19 10:42 UTC\r\nError: agent_disabled",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Chrome extension 1.3.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nTime: 2026-11-19 10:42 UTC\r\nError: agent_disabled",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Chrome%20extension%201.3.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Chrome%20extension%201.3.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC%0D%0AError%3A%20agent_disabled",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Chrome extension 1.3.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Chrome extension 1.3.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nTime: 2026-11-19 10:42 UTC\nError: agent_disabled"
+      }
+    },
+    {
+      "name": "the host did not describe its app",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "system": "Firefox 133, Linux",
+        "mode": "Own AI"
+      },
+      "expected": {
+        "subject": "Problem with Fadenstack SDK 0.3.1",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Firefox 133, Linux\r\nMode: Own AI\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Firefox 133, Linux\r\nMode: Own AI\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Fadenstack%20SDK%200.3.1&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Firefox%20133%2C%20Linux%0D%0AMode%3A%20Own%20AI%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Fadenstack SDK 0.3.1\n\nWhat happened:\n\n\n-- \nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Firefox 133, Linux\nMode: Own AI\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "lines whose value is unknown are left out",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "agent": "Docs"
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nAgent: Docs\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nAgent: Docs\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0AAgent%3A%20Docs%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nAgent: Docs\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "German, every field",
+      "language": "de",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word-Add-in 1.2.0",
+        "system": "Chrome 131, Windows",
+        "mode": "Eigene KI",
+        "agent": "Dokumente, Version 3, Modell: qwen3-32b",
+        "endpoint": "ollama, auf diesem Computer",
+        "error": {
+          "code": "picture_type_not_allowed",
+          "requestId": "req-8f3a21"
+        }
+      },
+      "expected": {
+        "subject": "Problem mit Word-Add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "Was ist passiert:\r\n\r\n\r\n-- \r\nApp: Word-Add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nModus: Eigene KI\r\nAgent: Dokumente, Version 3, Modell: qwen3-32b\r\nEndpunkt: ollama, auf diesem Computer\r\nZeit: 2026-11-19 10:42 UTC\r\nFehler: picture_type_not_allowed (req-8f3a21)",
+        "mailBody": "Was ist passiert:\r\n\r\n\r\n-- \r\nApp: Word-Add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nModus: Eigene KI\r\nAgent: Dokumente, Version 3, Modell: qwen3-32b\r\nEndpunkt: ollama, auf diesem Computer\r\nZeit: 2026-11-19 10:42 UTC\r\nFehler: picture_type_not_allowed (req-8f3a21)",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20mit%20Word-Add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=Was%20ist%20passiert%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word-Add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Chrome%20131%2C%20Windows%0D%0AModus%3A%20Eigene%20KI%0D%0AAgent%3A%20Dokumente%2C%20Version%203%2C%20Modell%3A%20qwen3-32b%0D%0AEndpunkt%3A%20ollama%2C%20auf%20diesem%20Computer%0D%0AZeit%3A%202026-11-19%2010%3A42%20UTC%0D%0AFehler%3A%20picture_type_not_allowed%20%28req-8f3a21%29",
+        "copy": "An: support@fadenstack.com\nBetreff: Problem mit Word-Add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWas ist passiert:\n\n\n-- \nApp: Word-Add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Chrome 131, Windows\nModus: Eigene KI\nAgent: Dokumente, Version 3, Modell: qwen3-32b\nEndpunkt: ollama, auf diesem Computer\nZeit: 2026-11-19 10:42 UTC\nFehler: picture_type_not_allowed (req-8f3a21)"
+      }
+    },
+    {
+      "name": "German, governed, without an app",
+      "language": "de",
+      "address": "it@firma.example",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "system": "Safari 18, macOS",
+        "mode": "Organisation",
+        "agent": "Dokumente, Entwurf",
+        "server": "https://ki.firma.example/faden"
+      },
+      "expected": {
+        "subject": "Problem mit Fadenstack SDK 0.3.1",
+        "body": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Safari 18, macOS\r\nModus: Organisation\r\nAgent: Dokumente, Entwurf\r\nServer: https://ki.firma.example/faden\r\nZeit: 2026-11-19 10:42 UTC",
+        "mailBody": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Safari 18, macOS\r\nModus: Organisation\r\nAgent: Dokumente, Entwurf\r\nServer: https://ki.firma.example/faden\r\nZeit: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:it@firma.example?subject=Problem%20mit%20Fadenstack%20SDK%200.3.1&body=Was%20ist%20passiert%3A%0D%0A%0D%0A%0D%0A--%20%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Safari%2018%2C%20macOS%0D%0AModus%3A%20Organisation%0D%0AAgent%3A%20Dokumente%2C%20Entwurf%0D%0AServer%3A%20https%3A%2F%2Fki.firma.example%2Ffaden%0D%0AZeit%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "An: it@firma.example\nBetreff: Problem mit Fadenstack SDK 0.3.1\n\nWas ist passiert:\n\n\n-- \nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Safari 18, macOS\nModus: Organisation\nAgent: Dokumente, Entwurf\nServer: https://ki.firma.example/faden\nZeit: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "characters that need encoding: umlauts, CJK, an emoji, and what a link would break on",
+      "language": "en",
+      "address": "a.b+c@sub.example.org",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Büro & Co? #1 100% \"quoted\" 日本語 😀",
+        "system": "Chrome 131, Windows"
+      },
+      "expected": {
+        "subject": "Problem with Büro & Co? #1 100% \"quoted\" 日本語 😀 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Büro & Co? #1 100% \"quoted\" 日本語 😀\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Büro & Co? #1 100% \"quoted\" 日本語 😀\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:a.b+c@sub.example.org?subject=Problem%20with%20B%C3%BCro%20%26%20Co%3F%20%231%20100%25%20%22quoted%22%20%E6%97%A5%E6%9C%AC%E8%AA%9E%20%F0%9F%98%80%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20B%C3%BCro%20%26%20Co%3F%20%231%20100%25%20%22quoted%22%20%E6%97%A5%E6%9C%AC%E8%AA%9E%20%F0%9F%98%80%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Chrome%20131%2C%20Windows%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: a.b+c@sub.example.org\nSubject: Problem with Büro & Co? #1 100% \"quoted\" 日本語 😀 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Büro & Co? #1 100% \"quoted\" 日本語 😀\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Chrome 131, Windows\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "a value with line breaks and control characters is one line",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word\r\nadd-in\t1.2.0\u0007",
+        "agent": "Docs\nBcc: x@y.example"
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nAgent: Docs Bcc: x@y.example\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nAgent: Docs Bcc: x@y.example\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0AAgent%3A%20Docs%20Bcc%3A%20x%40y.example%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nAgent: Docs Bcc: x@y.example\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "governed without an address: no mail, the copy starts with the subject",
+      "language": "en",
+      "address": null,
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "mode": "Organisation",
+        "server": "https://ai.example.internal",
+        "error": {
+          "code": "agent_disabled",
+          "requestId": "req-1"
+        }
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nMode: Organisation\r\nServer: https://ai.example.internal\r\nTime: 2026-11-19 10:42 UTC\r\nError: agent_disabled (req-1)",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nMode: Organisation\r\nServer: https://ai.example.internal\r\nTime: 2026-11-19 10:42 UTC\r\nError: agent_disabled (req-1)",
+        "dropped": 0,
+        "mailto": null,
+        "copy": "Subject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nMode: Organisation\nServer: https://ai.example.internal\nTime: 2026-11-19 10:42 UTC\nError: agent_disabled (req-1)"
+      }
+    },
+    {
+      "name": "German governed without an address",
+      "language": "de",
+      "address": null,
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "mode": "Organisation",
+        "server": "https://ki.firma.example"
+      },
+      "expected": {
+        "subject": "Problem mit Fadenstack SDK 0.3.1",
+        "body": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nModus: Organisation\r\nServer: https://ki.firma.example\r\nZeit: 2026-11-19 10:42 UTC",
+        "mailBody": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nModus: Organisation\r\nServer: https://ki.firma.example\r\nZeit: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": null,
+        "copy": "Betreff: Problem mit Fadenstack SDK 0.3.1\n\nWas ist passiert:\n\n\n-- \nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nModus: Organisation\nServer: https://ki.firma.example\nZeit: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "the link is over 2 000 characters: the last lines go first",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "system": "Chrome 131, Windows",
+        "mode": "Organisation",
+        "agent": "agentword0 agentword1 agentword2 agentword3 agentword4 agentword5 agentword6 agentword7 agentword8 agentword9 agentword10 agentword11 agentword12 agentword13 agentword14 agentword15 agentword16 agentword17 agentword18 agentword19 agentword20 agentword21 agentword22 agentword23 agentword24 agentword25 agentword26 agentword27 agentword28 agentword29 agentword30 agentword31 agentword32 agentword33 agentword34 agentword35 agentword36 agentword37 agentword38 agentword39 agentword40 agentword41 agentword42 agentword43 agentword44 agentword45 agentword46 agentword47 agentword48 agentword49 agentword50 agentword51 agentword52 agentword53 agentword54 agentword55 agentword56 agentword57 agentword58 agentword59 agentword60 agentword61 agentword62 agentword63 agentword64 agentword65 agentword66 agentword67 agentword68 agentword69 agentword70 agentword71 agentword72 agentword73 agentword74 agentword75 agentword76 agentword77 agentword78 agentword79 agentword80 agentword81 agentword82 agentword83 agentword84 agentword85 agentword86 agentword87 agentword88 agentword89 agentword90 agentword91 agentword92 agentword93 agentword94 agentword95 agentword96 agentword97 agentword98 agentword99 agentword100 agentword101 agentword102 agentword103 agentword104 agentword105 agentword106 agentword107 agentword108 agentword109 agentword110 agentword111 agentword112 agentword113 agentword114",
+        "server": "https://ai.example.internal",
+        "error": {
+          "code": "picture_type_not_allowed",
+          "requestId": "req-8f3a21"
+        }
+      },
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nMode: Organisation\r\nAgent: agentword0 agentword1 agentword2 agentword3 agentword4 agentword5 agentword6 agentword7 agentword8 agentword9 agentword10 agentword11 agentword12 agentword13 agentword14 agentword15 agentword16 agentword17 agentword18 agentword19 agentword20 agentword21 agentword22 agentword23 agentword24 agentword25 agentword26 agentword27 agentword28 agentword29 agentword30 agentword31 agentword32 agentword33 agentword34 agentword35 agentword36 agentword37 agentword38 agentword39 agentword40 agentword41 agentword42 agentword43 agentword44 agentword45 agentword46 agentword47 agentword48 agentword49 agentword50 agentword51 agentword52 agentword53 agentword54 agentword55 agentword56 agentword57 agentword58 agentword59 agentword60 agentword61 agentword62 agentword63 agentword64 agentword65 agentword66 agentword67 agentword68 agentword69 agentword70 agentword71 agentword72 agentword73 agentword74 agentword75 agentword76 agentword77 agentword78 agentword79 agentword80 agentword81 agentword82 agentword83 agentword84 agentword85 agentword86 agentword87 agentword88 agentword89 agentword90 agentword91 agentword92 agentword93 agentword94 agentword95 agentword96 agentword97 agentword98 agentword99 agentword100 agentword101 agentword102 agentword103 agentword104 agentword105 agentword106 agentword107 agentword108 agentword109 agentword110 agentword111 agentword112 agentword113 agentword114\r\nServer: https://ai.example.internal\r\nTime: 2026-11-19 10:42 UTC\r\nError: picture_type_not_allowed (req-8f3a21)",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nMode: Organisation\r\nAgent: agentword0 agentword1 agentword2 agentword3 agentword4 agentword5 agentword6 agentword7 agentword8 agentword9 agentword10 agentword11 agentword12 agentword13 agentword14 agentword15 agentword16 agentword17 agentword18 agentword19 agentword20 agentword21 agentword22 agentword23 agentword24 agentword25 agentword26 agentword27 agentword28 agentword29 agentword30 agentword31 agentword32 agentword33 agentword34 agentword35 agentword36 agentword37 agentword38 agentword39 agentword40 agentword41 agentword42 agentword43 agentword44 agentword45 agentword46 agentword47 agentword48 agentword49 agentword50 agentword51 agentword52 agentword53 agentword54 agentword55 agentword56 agentword57 agentword58 agentword59 agentword60 agentword61 agentword62 agentword63 agentword64 agentword65 agentword66 agentword67 agentword68 agentword69 agentword70 agentword71 agentword72 agentword73 agentword74 agentword75 agentword76 agentword77 agentword78 agentword79 agentword80 agentword81 agentword82 agentword83 agentword84 agentword85 agentword86 agentword87 agentword88 agentword89 agentword90 agentword91 agentword92 agentword93 agentword94 agentword95 agentword96 agentword97 agentword98 agentword99 agentword100 agentword101 agentword102 agentword103 agentword104 agentword105 agentword106 agentword107 agentword108 agentword109 agentword110 agentword111 agentword112 agentword113 agentword114",
+        "dropped": 3,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0ASystem%3A%20Chrome%20131%2C%20Windows%0D%0AMode%3A%20Organisation%0D%0AAgent%3A%20agentword0%20agentword1%20agentword2%20agentword3%20agentword4%20agentword5%20agentword6%20agentword7%20agentword8%20agentword9%20agentword10%20agentword11%20agentword12%20agentword13%20agentword14%20agentword15%20agentword16%20agentword17%20agentword18%20agentword19%20agentword20%20agentword21%20agentword22%20agentword23%20agentword24%20agentword25%20agentword26%20agentword27%20agentword28%20agentword29%20agentword30%20agentword31%20agentword32%20agentword33%20agentword34%20agentword35%20agentword36%20agentword37%20agentword38%20agentword39%20agentword40%20agentword41%20agentword42%20agentword43%20agentword44%20agentword45%20agentword46%20agentword47%20agentword48%20agentword49%20agentword50%20agentword51%20agentword52%20agentword53%20agentword54%20agentword55%20agentword56%20agentword57%20agentword58%20agentword59%20agentword60%20agentword61%20agentword62%20agentword63%20agentword64%20agentword65%20agentword66%20agentword67%20agentword68%20agentword69%20agentword70%20agentword71%20agentword72%20agentword73%20agentword74%20agentword75%20agentword76%20agentword77%20agentword78%20agentword79%20agentword80%20agentword81%20agentword82%20agentword83%20agentword84%20agentword85%20agentword86%20agentword87%20agentword88%20agentword89%20agentword90%20agentword91%20agentword92%20agentword93%20agentword94%20agentword95%20agentword96%20agentword97%20agentword98%20agentword99%20agentword100%20agentword101%20agentword102%20agentword103%20agentword104%20agentword105%20agentword106%20agentword107%20agentword108%20agentword109%20agentword110%20agentword111%20agentword112%20agentword113%20agentword114",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Chrome 131, Windows\nMode: Organisation\nAgent: agentword0 agentword1 agentword2 agentword3 agentword4 agentword5 agentword6 agentword7 agentword8 agentword9 agentword10 agentword11 agentword12 agentword13 agentword14 agentword15 agentword16 agentword17 agentword18 agentword19 agentword20 agentword21 agentword22 agentword23 agentword24 agentword25 agentword26 agentword27 agentword28 agentword29 agentword30 agentword31 agentword32 agentword33 agentword34 agentword35 agentword36 agentword37 agentword38 agentword39 agentword40 agentword41 agentword42 agentword43 agentword44 agentword45 agentword46 agentword47 agentword48 agentword49 agentword50 agentword51 agentword52 agentword53 agentword54 agentword55 agentword56 agentword57 agentword58 agentword59 agentword60 agentword61 agentword62 agentword63 agentword64 agentword65 agentword66 agentword67 agentword68 agentword69 agentword70 agentword71 agentword72 agentword73 agentword74 agentword75 agentword76 agentword77 agentword78 agentword79 agentword80 agentword81 agentword82 agentword83 agentword84 agentword85 agentword86 agentword87 agentword88 agentword89 agentword90 agentword91 agentword92 agentword93 agentword94 agentword95 agentword96 agentword97 agentword98 agentword99 agentword100 agentword101 agentword102 agentword103 agentword104 agentword105 agentword106 agentword107 agentword108 agentword109 agentword110 agentword111 agentword112 agentword113 agentword114\nServer: https://ai.example.internal\nTime: 2026-11-19 10:42 UTC\nError: picture_type_not_allowed (req-8f3a21)"
+      }
+    },
+    {
+      "name": "the link is over 2 000 characters with the first lines alone: all lines go, then the separator",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "appword0 appword1 appword2 appword3 appword4 appword5 appword6 appword7 appword8 appword9 appword10 appword11 appword12 appword13 appword14 appword15 appword16 appword17 appword18 appword19 appword20 appword21 appword22 appword23 appword24 appword25 appword26 appword27 appword28 appword29 appword30 appword31 appword32 appword33 appword34 appword35 appword36 appword37 appword38 appword39 appword40 appword41 appword42 appword43 appword44 appword45 appword46 appword47 appword48 appword49 appword50 appword51 appword52 appword53 appword54 appword55 appword56 appword57 appword58 appword59 appword60 appword61 appword62 appword63 appword64 appword65 appword66 appword67 appword68 appword69 appword70 appword71 appword72 appword73 appword74 appword75 appword76 appword77 appword78 appword79 appword80 appword81 appword82 appword83 appword84 appword85 appword86 appword87 appword88 appword89 appword90 appword91 appword92 appword93 appword94 appword95 appword96 appword97 appword98 appword99 appword100 appword101 appword102 appword103 appword104 appword105 appword106 appword107 appword108 appword109 appword110 appword111 appword112 appword113 appword114 appword115 appword116 appword117 appword118 appword119",
+        "system": "Chrome 131, Windows"
+      },
+      "expected": {
+        "subject": "Problem with appword0 appword1 appword2 appword3 appword4 appword5 appword6 appword7 appword8 appword9 appword10 appword11 appword12 appword13 appword14 appword15 appword16 appword17 appword18 appword19 appword20 appword21 appword22 appword23 appword24 appword25 appword26 appword27 appword28 appword29 appword30 appword31 appword32 appword33 appword34 appword35 appword36 appword37 appword38 appword39 appword40 appword41 appword42 appword43 appword44 appword45 appword46 appword47 appword48 appword49 appword50 appword51 appword52 appword53 appword54 appword55 appword56 appword57 appword58 appword59 appword60 appword61 appword62 appword63 appword64 appword65 appword66 appword67 appword68 appword69 appword70 appword71 appword72 appword73 appword74 appword75 appword76 appword77 appword78 appword79 appword80 appword81 appword82 appword83 appword84 appword85 appword86 appword87 appword88 appword89 appword90 appword91 appword92 appword93 appword94 appword95 appword96 appword97 appword98 appword99 appword100 appword101 appword102 appword103 appword104 appword105 appword106 appword107 appword108 appword109 appword110 appword111 appword112 appword113 appword114 appword115 appword116 appword117 appword118 appword119 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: appword0 appword1 appword2 appword3 appword4 appword5 appword6 appword7 appword8 appword9 appword10 appword11 appword12 appword13 appword14 appword15 appword16 appword17 appword18 appword19 appword20 appword21 appword22 appword23 appword24 appword25 appword26 appword27 appword28 appword29 appword30 appword31 appword32 appword33 appword34 appword35 appword36 appword37 appword38 appword39 appword40 appword41 appword42 appword43 appword44 appword45 appword46 appword47 appword48 appword49 appword50 appword51 appword52 appword53 appword54 appword55 appword56 appword57 appword58 appword59 appword60 appword61 appword62 appword63 appword64 appword65 appword66 appword67 appword68 appword69 appword70 appword71 appword72 appword73 appword74 appword75 appword76 appword77 appword78 appword79 appword80 appword81 appword82 appword83 appword84 appword85 appword86 appword87 appword88 appword89 appword90 appword91 appword92 appword93 appword94 appword95 appword96 appword97 appword98 appword99 appword100 appword101 appword102 appword103 appword104 appword105 appword106 appword107 appword108 appword109 appword110 appword111 appword112 appword113 appword114 appword115 appword116 appword117 appword118 appword119\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nSystem: Chrome 131, Windows\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n",
+        "dropped": 4,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20appword0%20appword1%20appword2%20appword3%20appword4%20appword5%20appword6%20appword7%20appword8%20appword9%20appword10%20appword11%20appword12%20appword13%20appword14%20appword15%20appword16%20appword17%20appword18%20appword19%20appword20%20appword21%20appword22%20appword23%20appword24%20appword25%20appword26%20appword27%20appword28%20appword29%20appword30%20appword31%20appword32%20appword33%20appword34%20appword35%20appword36%20appword37%20appword38%20appword39%20appword40%20appword41%20appword42%20appword43%20appword44%20appword45%20appword46%20appword47%20appword48%20appword49%20appword50%20appword51%20appword52%20appword53%20appword54%20appword55%20appword56%20appword57%20appword58%20appword59%20appword60%20appword61%20appword62%20appword63%20appword64%20appword65%20appword66%20appword67%20appword68%20appword69%20appword70%20appword71%20appword72%20appword73%20appword74%20appword75%20appword76%20appword77%20appword78%20appword79%20appword80%20appword81%20appword82%20appword83%20appword84%20appword85%20appword86%20appword87%20appword88%20appword89%20appword90%20appword91%20appword92%20appword93%20appword94%20appword95%20appword96%20appword97%20appword98%20appword99%20appword100%20appword101%20appword102%20appword103%20appword104%20appword105%20appword106%20appword107%20appword108%20appword109%20appword110%20appword111%20appword112%20appword113%20appword114%20appword115%20appword116%20appword117%20appword118%20appword119%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with appword0 appword1 appword2 appword3 appword4 appword5 appword6 appword7 appword8 appword9 appword10 appword11 appword12 appword13 appword14 appword15 appword16 appword17 appword18 appword19 appword20 appword21 appword22 appword23 appword24 appword25 appword26 appword27 appword28 appword29 appword30 appword31 appword32 appword33 appword34 appword35 appword36 appword37 appword38 appword39 appword40 appword41 appword42 appword43 appword44 appword45 appword46 appword47 appword48 appword49 appword50 appword51 appword52 appword53 appword54 appword55 appword56 appword57 appword58 appword59 appword60 appword61 appword62 appword63 appword64 appword65 appword66 appword67 appword68 appword69 appword70 appword71 appword72 appword73 appword74 appword75 appword76 appword77 appword78 appword79 appword80 appword81 appword82 appword83 appword84 appword85 appword86 appword87 appword88 appword89 appword90 appword91 appword92 appword93 appword94 appword95 appword96 appword97 appword98 appword99 appword100 appword101 appword102 appword103 appword104 appword105 appword106 appword107 appword108 appword109 appword110 appword111 appword112 appword113 appword114 appword115 appword116 appword117 appword118 appword119 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: appword0 appword1 appword2 appword3 appword4 appword5 appword6 appword7 appword8 appword9 appword10 appword11 appword12 appword13 appword14 appword15 appword16 appword17 appword18 appword19 appword20 appword21 appword22 appword23 appword24 appword25 appword26 appword27 appword28 appword29 appword30 appword31 appword32 appword33 appword34 appword35 appword36 appword37 appword38 appword39 appword40 appword41 appword42 appword43 appword44 appword45 appword46 appword47 appword48 appword49 appword50 appword51 appword52 appword53 appword54 appword55 appword56 appword57 appword58 appword59 appword60 appword61 appword62 appword63 appword64 appword65 appword66 appword67 appword68 appword69 appword70 appword71 appword72 appword73 appword74 appword75 appword76 appword77 appword78 appword79 appword80 appword81 appword82 appword83 appword84 appword85 appword86 appword87 appword88 appword89 appword90 appword91 appword92 appword93 appword94 appword95 appword96 appword97 appword98 appword99 appword100 appword101 appword102 appword103 appword104 appword105 appword106 appword107 appword108 appword109 appword110 appword111 appword112 appword113 appword114 appword115 appword116 appword117 appword118 appword119\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nSystem: Chrome 131, Windows\nTime: 2026-11-19 10:42 UTC"
+      }
+    },
+    {
+      "name": "the browser log is in the copy, never in the mail",
+      "language": "en",
+      "address": "support@fadenstack.com",
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "app": "Word add-in 1.2.0",
+        "mode": "Own AI"
+      },
+      "log": [
+        "2026-11-19T10:40:01.000Z information Fadenstack.Agents 2003 Turn ended: completed",
+        "2026-11-19T10:41:12.500Z warning Fadenstack.Client 1004 Request failed: 429"
+      ],
+      "expected": {
+        "subject": "Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)",
+        "body": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nMode: Own AI\r\nTime: 2026-11-19 10:42 UTC",
+        "mailBody": "What happened:\r\n\r\n\r\n-- \r\nApp: Word add-in 1.2.0\r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nMode: Own AI\r\nTime: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": "mailto:support@fadenstack.com?subject=Problem%20with%20Word%20add-in%201.2.0%20%28Fadenstack%20SDK%200.3.1%29&body=What%20happened%3A%0D%0A%0D%0A%0D%0A--%20%0D%0AApp%3A%20Word%20add-in%201.2.0%0D%0ASDK%3A%20Fadenstack%20SDK%200.3.1%20%28TypeScript%29%0D%0AMode%3A%20Own%20AI%0D%0ATime%3A%202026-11-19%2010%3A42%20UTC",
+        "copy": "To: support@fadenstack.com\nSubject: Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)\n\nWhat happened:\n\n\n-- \nApp: Word add-in 1.2.0\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nMode: Own AI\nTime: 2026-11-19 10:42 UTC\n-- \nRecent log:\n2026-11-19T10:40:01.000Z information Fadenstack.Agents 2003 Turn ended: completed\n2026-11-19T10:41:12.500Z warning Fadenstack.Client 1004 Request failed: 429"
+      }
+    },
+    {
+      "name": "the browser log in German, governed without an address",
+      "language": "de",
+      "address": null,
+      "facts": {
+        "sdkVersion": "0.3.1",
+        "sdk": "Fadenstack SDK 0.3.1 (TypeScript)",
+        "time": "2026-11-19 10:42 UTC",
+        "mode": "Organisation"
+      },
+      "log": [
+        "2026-11-19T10:40:01.000Z information Fadenstack.Agents 2003 Turn ended: completed"
+      ],
+      "expected": {
+        "subject": "Problem mit Fadenstack SDK 0.3.1",
+        "body": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nModus: Organisation\r\nZeit: 2026-11-19 10:42 UTC",
+        "mailBody": "Was ist passiert:\r\n\r\n\r\n-- \r\nSDK: Fadenstack SDK 0.3.1 (TypeScript)\r\nModus: Organisation\r\nZeit: 2026-11-19 10:42 UTC",
+        "dropped": 0,
+        "mailto": null,
+        "copy": "Betreff: Problem mit Fadenstack SDK 0.3.1\n\nWas ist passiert:\n\n\n-- \nSDK: Fadenstack SDK 0.3.1 (TypeScript)\nModus: Organisation\nZeit: 2026-11-19 10:42 UTC\n-- \nLetzte Protokolleinträge:\n2026-11-19T10:40:01.000Z information Fadenstack.Agents 2003 Turn ended: completed"
+      }
+    }
+  ]
+}

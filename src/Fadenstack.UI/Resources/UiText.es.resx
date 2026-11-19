@@ -2761,4 +2761,85 @@
   <data name="MyDataAuditExportName" xml:space="preserve">
     <value>Exportar el registro de llamadas a herramientas… (como página web)</value>
   </data>
+  <data name="ReportProblem" xml:space="preserve">
+    <value>Informar de un problema</value>
+  </data>
+  <data name="ReportSubjectApp" xml:space="preserve">
+    <value>Problema con {0}</value>
+  </data>
+  <data name="ReportSubjectNoApp" xml:space="preserve">
+    <value>Problema con Fadenstack SDK {0}</value>
+  </data>
+  <data name="ReportLabelWhatHappened" xml:space="preserve">
+    <value>Qué ocurrió</value>
+  </data>
+  <data name="ReportLabelApp" xml:space="preserve">
+    <value>Aplicación</value>
+  </data>
+  <data name="ReportLabelSdk" xml:space="preserve">
+    <value>SDK</value>
+  </data>
+  <data name="ReportLabelSystem" xml:space="preserve">
+    <value>Sistema</value>
+  </data>
+  <data name="ReportLabelMode" xml:space="preserve">
+    <value>Modo</value>
+  </data>
+  <data name="ReportLabelAgent" xml:space="preserve">
+    <value>Agente</value>
+  </data>
+  <data name="ReportLabelServer" xml:space="preserve">
+    <value>Servidor</value>
+  </data>
+  <data name="ReportLabelEndpoint" xml:space="preserve">
+    <value>Punto de conexión</value>
+  </data>
+  <data name="ReportLabelTime" xml:space="preserve">
+    <value>Hora</value>
+  </data>
+  <data name="ReportLabelError" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="ReportLabelTo" xml:space="preserve">
+    <value>Para</value>
+  </data>
+  <data name="ReportLabelSubject" xml:space="preserve">
+    <value>Asunto</value>
+  </data>
+  <data name="ReportModeGoverned" xml:space="preserve">
+    <value>Organización</value>
+  </data>
+  <data name="ReportModeOwnAi" xml:space="preserve">
+    <value>IA propia</value>
+  </data>
+  <data name="ReportPlaceThisComputer" xml:space="preserve">
+    <value>en este equipo</value>
+  </data>
+  <data name="ReportPlaceLocalNetwork" xml:space="preserve">
+    <value>en la red local</value>
+  </data>
+  <data name="ReportPlaceInternet" xml:space="preserve">
+    <value>en Internet</value>
+  </data>
+  <data name="ReportGoesTo" xml:space="preserve">
+    <value>Esto se envía a {0}.</value>
+  </data>
+  <data name="ReportAskIt" xml:space="preserve">
+    <value>Pida ayuda al departamento de TI de su organización. Puede copiar los detalles de abajo para dárselos.</value>
+  </data>
+  <data name="ReportContains" xml:space="preserve">
+    <value>Este informe contiene:</value>
+  </data>
+  <data name="ReportNoChats" xml:space="preserve">
+    <value>No se incluye nada de sus chats.</value>
+  </data>
+  <data name="ReportWriteMail" xml:space="preserve">
+    <value>Escribir correo</value>
+  </data>
+  <data name="ReportOpenLogFolder" xml:space="preserve">
+    <value>Abrir la carpeta de registros</value>
+  </data>
+  <data name="ReportLabelRecentLog" xml:space="preserve">
+    <value>Registro reciente</value>
+  </data>
 </root>
