@@ -21,7 +21,7 @@ public static class MarkdownText
     public static void SetInlines(DependencyObject element, IReadOnlyList<InlineRun>? value) => element.SetValue(InlinesProperty, value);
 
     /// <summary>Starts the operating system's handler for a link or folder; a test replaces it to see what would open.</summary>
-    public static Action<string> StartProcess { get; set; } = target => Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+    internal static Action<string> StartProcess { get; set; } = target => Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
 
     /// <summary>
     /// What <see cref="OpenLink"/> does until a host replaces it: web links (http, https) only. It is the hook links in answers reach, so a
