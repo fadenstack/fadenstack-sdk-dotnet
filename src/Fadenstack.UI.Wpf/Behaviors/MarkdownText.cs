@@ -20,15 +20,39 @@ public static class MarkdownText
 
     public static void SetInlines(DependencyObject element, IReadOnlyList<InlineRun>? value) => element.SetValue(InlinesProperty, value);
 
-    /// <summary>Opens a link; replace it to route links through the host (e.g. its own browser).</summary>
-    public static Action<Uri> OpenLink { get; set; } = uri =>
+    /// <summary>Starts the operating system's handler for a link or folder; a test replaces it to see what would open.</summary>
+    public static Action<string> StartProcess { get; set; } = target => Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+
+    /// <summary>
+    /// What <see cref="OpenLink"/> does until a host replaces it: web links (http, https) only. It is the hook links in answers reach, so a
+    /// link a model wrote (<c>mailto:</c> with a prefilled body, <c>file:</c>) never opens anything.
+    /// </summary>
+    public static readonly Action<Uri> DefaultOpenLink = uri =>
     {
-        // Web links, mailto: (Report a problem's "Write mail") and the SDK's own log folder; nothing else (PanelLinkPolicy).
-        if (PanelLinkPolicy.OpensByDefault(uri))
+        if (PanelLinkPolicy.OpensFromAnswer(uri))
         {
-            Process.Start(new ProcessStartInfo(PanelLinkPolicy.Target(uri)) { UseShellExecute = true });
+            StartProcess(PanelLinkPolicy.Target(uri));
         }
     };
+
+    /// <summary>Opens a link in an answer; replace it to route links through the host (e.g. its own browser).</summary>
+    public static Action<Uri> OpenLink { get; set; } = DefaultOpenLink;
+
+    /// <summary>
+    /// Opens a link the panel made itself (About's, the footer's, the report sheet's <c>mailto:</c> and log folder). A host's own
+    /// <see cref="OpenLink"/> gets all of them; the default one also opens those two, which a link in an answer never can.
+    /// </summary>
+    public static void OpenPanelLink(Uri uri)
+    {
+        if (!ReferenceEquals(OpenLink, DefaultOpenLink))
+        {
+            OpenLink(uri);
+        }
+        else if (PanelLinkPolicy.OpensByDefault(uri))
+        {
+            StartProcess(PanelLinkPolicy.Target(uri));
+        }
+    }
 
     private static void OnInlinesChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {

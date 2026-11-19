@@ -105,4 +105,53 @@ public class ReportProblemViewTests
 
         Assert.Contains("Error: http_503", Named<TextBox>(host, "ReportPreview")!.Text);
     }
+
+    [AvaloniaFact]
+    public async Task A_link_in_an_answer_opens_web_links_only_and_the_panels_own_links_open_through_the_panel()
+    {
+        var started = new List<string>();
+        var old = Fadenstack.UI.Avalonia.Behaviors.MarkdownText.StartProcess;
+        Fadenstack.UI.Avalonia.Behaviors.MarkdownText.StartProcess = started.Add;
+        var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "faden-av-links-" + Guid.NewGuid().ToString("N"));
+        using var root = Fadenstack.Storage.FadenstackPaths.UseRootForTests(folder);
+        try
+        {
+            using var host = await ChatHost.OpenAsync(2);
+            var hook = Fadenstack.UI.Avalonia.Behaviors.MarkdownText.OpenLink;
+            Assert.Same(Fadenstack.UI.Avalonia.Behaviors.MarkdownText.DefaultOpenLink, hook);
+            hook(new Uri("mailto:a@b.example?body=secret"));
+            hook(new Uri("file:///C:/Windows"));
+            hook(new Uri(System.IO.Path.GetFullPath(Fadenstack.Storage.FadenstackPaths.LogRoot) + System.IO.Path.DirectorySeparatorChar));
+            Assert.Empty(started);
+            hook(new Uri("https://fadenstack.com/"));
+            Assert.Equal(new[] { "https://fadenstack.com/" }, started);
+            started.Clear();
+
+            // the sheet's own commands go through the view's handler (LinkRequested)
+            Fadenstack.UI.Avalonia.Behaviors.MarkdownText.OpenPanelLink(new Uri("mailto:it@example.org?subject=x"));
+            Assert.Equal("mailto:it@example.org?subject=x", Assert.Single(started));
+            started.Clear();
+            host.Chat.OpenReportCommand.Execute(null);
+            await host.PumpAsync();
+            using (new Fadenstack.Logging.FadenstackFileLoggerProvider("av-links"))
+            {
+                host.Chat.Report.OpenLogFolderCommand.Execute(null);
+            }
+            Assert.Equal(System.IO.Path.GetFullPath(Fadenstack.Storage.FadenstackPaths.LogRoot).TrimEnd('\\', '/'), Assert.Single(started).TrimEnd('\\', '/'), StringComparer.OrdinalIgnoreCase);
+            started.Clear();
+            Fadenstack.UI.Avalonia.Behaviors.MarkdownText.OpenPanelLink(new Uri("file:///C:/Windows"));
+            Assert.Empty(started);
+        }
+        finally
+        {
+            Fadenstack.UI.Avalonia.Behaviors.MarkdownText.StartProcess = old;
+            try
+            {
+                System.IO.Directory.Delete(folder, true);
+            }
+            catch (System.IO.IOException)
+            {
+            }
+        }
+    }
 }

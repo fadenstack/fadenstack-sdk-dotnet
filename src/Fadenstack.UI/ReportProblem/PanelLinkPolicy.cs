@@ -5,11 +5,15 @@ namespace Fadenstack.UI;
 /// <summary>
 /// What a skin's default link hook opens (<c>MarkdownText.OpenLink</c>): web links, as before; <c>mailto:</c>, for "Report a problem"'s
 /// "Write mail"; and the SDK's own log folder as a <c>file:</c> link, for "Open the log folder". Any other <c>file:</c> link, and every
-/// other scheme, is left alone, so a link in an answer cannot start a program. A host that replaces the hook decides for itself.
+/// other scheme, is left alone, so a link in an answer opens web links only (<see cref="OpensFromAnswer"/>). A host that replaces the hook decides for itself.
 /// </summary>
 public static class PanelLinkPolicy
 {
-    /// <summary>Whether the default hook opens <paramref name="url"/>.</summary>
+    /// <summary>Whether the default hook opens a link in an answer: web links only, as before 0.3.1.</summary>
+    public static bool OpensFromAnswer(Uri? url) =>
+        url is { IsAbsoluteUri: true } && (url.Scheme == Uri.UriSchemeHttps || url.Scheme == Uri.UriSchemeHttp);
+
+    /// <summary>Whether the default hook opens <paramref name="url"/> when the panel itself made the link (its buttons and links, never an answer's).</summary>
     public static bool OpensByDefault(Uri? url)
     {
         if (url is null || !url.IsAbsoluteUri)

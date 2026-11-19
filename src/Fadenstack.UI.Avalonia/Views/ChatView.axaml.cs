@@ -250,7 +250,7 @@ public partial class ChatView : UserControl
     {
         try
         {
-            MarkdownText.OpenLink(url);
+            MarkdownText.OpenPanelLink(url);
         }
         catch (System.ComponentModel.Win32Exception)
         {

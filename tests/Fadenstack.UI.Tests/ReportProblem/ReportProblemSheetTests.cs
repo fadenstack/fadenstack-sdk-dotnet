@@ -474,6 +474,17 @@ public class ReportProblemSheetTests
         Assert.False(PanelLinkPolicy.OpensByDefault(null));
     }
 
+    [Fact]
+    public void A_link_in_an_answer_opens_web_links_only()
+    {
+        Assert.True(PanelLinkPolicy.OpensFromAnswer(new Uri("https://fadenstack.com/")));
+        Assert.True(PanelLinkPolicy.OpensFromAnswer(new Uri("http://faden.test/help/")));
+        Assert.False(PanelLinkPolicy.OpensFromAnswer(new Uri("mailto:a@b.example?body=secret")));
+        Assert.False(PanelLinkPolicy.OpensFromAnswer(new Uri("file:///C:/Windows")));
+        Assert.False(PanelLinkPolicy.OpensFromAnswer(new Uri("ftp://example.org/")));
+        Assert.False(PanelLinkPolicy.OpensFromAnswer(null));
+    }
+
     // ---- the sheet's own behaviour --------------------------------------------------------------------------
 
     [Fact]

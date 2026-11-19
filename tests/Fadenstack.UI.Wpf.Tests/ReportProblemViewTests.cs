@@ -323,4 +323,78 @@ public class ReportProblemViewTests
         Assert.Equal(writeMail, host.Named<Button>("ReportWriteMail")!.Content);
         Assert.Empty(host.BindingErrors);
     });
+
+    private static List<string> Recording(out Action restore)
+    {
+        var started = new List<string>();
+        var old = Fadenstack.UI.Wpf.Behaviors.MarkdownText.StartProcess;
+        Fadenstack.UI.Wpf.Behaviors.MarkdownText.StartProcess = started.Add;
+        restore = () => Fadenstack.UI.Wpf.Behaviors.MarkdownText.StartProcess = old;
+        return started;
+    }
+
+    [Fact]
+    public void A_link_in_an_answer_opens_web_links_only_and_the_sheets_own_links_open_through_the_panel() => Sta.Run(() =>
+    {
+        var started = Recording(out var restore);
+        var folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "faden-wpf-links-" + Guid.NewGuid().ToString("N"));
+        using var root = Fadenstack.Storage.FadenstackPaths.UseRootForTests(folder);
+        try
+        {
+            using var host = new Host(Mail);
+            var hook = Fadenstack.UI.Wpf.Behaviors.MarkdownText.OpenLink;
+            Assert.Same(Fadenstack.UI.Wpf.Behaviors.MarkdownText.DefaultOpenLink, hook);
+
+            hook(new Uri("mailto:a@b.example?body=secret"));
+            hook(new Uri("file:///C:/Windows"));
+            hook(new Uri(System.IO.Path.GetFullPath(Fadenstack.Storage.FadenstackPaths.LogRoot) + System.IO.Path.DirectorySeparatorChar));
+            Assert.Empty(started);
+            hook(new Uri("https://fadenstack.com/"));
+            Assert.Equal(new[] { "https://fadenstack.com/" }, started);
+            started.Clear();
+
+            // the sheet's own commands
+            host.Chat.OpenReportCommand.Execute(null);
+            host.Pump();
+            host.Chat.Report.WriteMailCommand.Execute(null);
+            Assert.Equal(host.Chat.Report.Mailto, Assert.Single(started));
+            started.Clear();
+            using (new Fadenstack.Logging.FadenstackFileLoggerProvider("wpf-links"))
+            {
+                host.Chat.Report.OpenLogFolderCommand.Execute(null);
+            }
+            Assert.Equal(System.IO.Path.GetFullPath(Fadenstack.Storage.FadenstackPaths.LogRoot).TrimEnd('\\', '/'), Assert.Single(started).TrimEnd('\\', '/'), StringComparer.OrdinalIgnoreCase);
+            started.Clear();
+
+            // a link the panel did not make is still refused by the panel's opener
+            Fadenstack.UI.Wpf.Behaviors.MarkdownText.OpenPanelLink(new Uri("file:///C:/Windows"));
+            Fadenstack.UI.Wpf.Behaviors.MarkdownText.OpenPanelLink(new Uri("ftp://example.org/"));
+            Assert.Empty(started);
+
+            // a host's own hook gets every panel link
+            var seen = new List<Uri>();
+            Fadenstack.UI.Wpf.Behaviors.MarkdownText.OpenLink = seen.Add;
+            try
+            {
+                host.Chat.Report.WriteMailCommand.Execute(null);
+            }
+            finally
+            {
+                Fadenstack.UI.Wpf.Behaviors.MarkdownText.OpenLink = Fadenstack.UI.Wpf.Behaviors.MarkdownText.DefaultOpenLink;
+            }
+            Assert.Equal(host.Chat.Report.Mailto, Assert.Single(seen).OriginalString);
+            Assert.Empty(started);
+        }
+        finally
+        {
+            restore();
+            try
+            {
+                System.IO.Directory.Delete(folder, true);
+            }
+            catch (System.IO.IOException)
+            {
+            }
+        }
+    });
 }
