@@ -182,8 +182,8 @@ public class MyDataViewTests
         }
         if (state == "confirm-shared")
         {
-            Assert.Contains("Desktop agent" + s.MyDataListSeparator + "Excel add-in", host.Find<TextBlock>("ConfirmLabel").Text);
-            Assert.Equal(s.MyDataConfirmThisAppShared("Desktop agent" + s.MyDataListSeparator + "Excel add-in"), host.Find<TextBlock>("ConfirmLabel").Text);
+            Assert.Contains(s.AppQuoted("Desktop agent") + s.MyDataListSeparator + s.AppQuoted("Excel add-in"), host.Find<TextBlock>("ConfirmLabel").Text);
+            Assert.Equal(s.MyDataConfirmThisAppShared(s.AppQuoted("Desktop agent") + s.MyDataListSeparator + s.AppQuoted("Excel add-in")), host.Find<TextBlock>("ConfirmLabel").Text);
             Assert.False(host.Find<ItemsControl>("AppList").IsVisible);
         }
         if (state == "confirm-everything")
@@ -194,9 +194,9 @@ public class MyDataViewTests
         {
             Assert.Equal(s.MyDataConfirmAll, host.Find<TextBlock>("ConfirmLabel").Text);
             Assert.True(host.Find<ItemsControl>("AppList").IsVisible);
-            Assert.Contains(s.MyDataThisApp("Word add-in"), texts);
-            Assert.Contains("Desktop agent", texts);
-            Assert.Contains("old-assistant", texts);
+            Assert.Contains(s.MyDataThisApp(s.AppQuoted("Word add-in")), texts);
+            Assert.Contains(s.AppQuoted("Desktop agent"), texts);
+            Assert.Contains(s.AppQuoted("old-assistant"), texts);
         }
         if (done)
         {
@@ -205,7 +205,7 @@ public class MyDataViewTests
         }
         if (state == "done-kept")
         {
-            Assert.Equal(s.MyDataRemovedKept("Desktop agent" + s.MyDataListSeparator + "Excel add-in"), host.Find<TextBlock>("DoneText").Text);
+            Assert.Equal(s.MyDataRemovedKept(s.AppQuoted("Desktop agent") + s.MyDataListSeparator + s.AppQuoted("Excel add-in")), host.Find<TextBlock>("DoneText").Text);
         }
         if (state is "done-everything" or "done-all")
         {
@@ -271,7 +271,7 @@ public class MyDataViewTests
 
         Assert.Equal(new[] { Fadenstack.Agents.DataScope.ThisApp }, host.Source.Deleted);
         Assert.True(host.Find<Border>("DoneBanner").IsVisible);
-        Assert.Equal("Removed. Shared data kept for: Desktop agent, Excel add-in.", host.Find<TextBlock>("DoneText").Text);
+        Assert.Equal("Removed. Shared data kept for: \"Desktop agent\", \"Excel add-in\".", host.Find<TextBlock>("DoneText").Text);
         Assert.Same(host.Find<Button>("DismissButton"), host.Focused);
         Assert.Empty(host.BindingErrors);
 

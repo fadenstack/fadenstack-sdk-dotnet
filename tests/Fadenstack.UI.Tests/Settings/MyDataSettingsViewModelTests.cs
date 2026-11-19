@@ -39,7 +39,7 @@ public class MyDataSettingsViewModelTests
         Assert.True(model.SharedDataStays);
         Assert.Equal(new[] { "Desktop agent", "Excel add-in" }, model.OtherApps);
         Assert.Equal(
-            "This removes this app's chats, approvals and preferences on this device. Your shared data (skills, the MCP list, keys and provenance records) stays, because other Fadenstack apps use it: Desktop agent, Excel add-in.",
+            "This removes this app's chats, approvals and preferences on this device. Your shared data (skills, the MCP list, keys and provenance records) stays, because other Fadenstack apps use it: \"Desktop agent\", \"Excel add-in\".",
             model.ConfirmText);
         Assert.Equal("Remove my data", model.ConfirmButtonText);
         Assert.Equal("This cannot be undone.", model.UndoText);
@@ -60,7 +60,7 @@ public class MyDataSettingsViewModelTests
         await model.RemoveCommand.ExecuteAsync(null);
 
         Assert.Equal(new[] { "old-assistant" }, model.OtherApps);
-        Assert.Contains("because other Fadenstack apps use it: old-assistant.", model.ConfirmText);
+        Assert.Contains("because other Fadenstack apps use it: \"old-assistant\".", model.ConfirmText);
     }
 
     [Fact]
@@ -87,10 +87,41 @@ public class MyDataSettingsViewModelTests
 
         Assert.Equal(MyDataState.ConfirmAll, model.State);
         Assert.True(model.IsConfirmAll && model.IsConfirming && !model.IsConfirmThisApp);
-        Assert.Equal(new[] { "Word add-in (this app)", "Desktop agent", "old-assistant" }, model.AppLines);
+        Assert.Equal(new[] { "\"Word add-in\" (this app)", "\"Desktop agent\"", "\"old-assistant\"" }, model.AppLines);
         Assert.True(model.HasAppLines);
         Assert.Equal("This removes all your Fadenstack data on this device, shared data included. These apps are affected:", model.ConfirmText);
         Assert.Equal("Remove everything", model.ConfirmButtonText);
+    }
+
+    private static readonly MyDataApp Chrome = new("Chrome extension", new[] { "chrome-assistant" }, null, IsThisApp: true, Recorded: true)
+        { DisplayNames = new Dictionary<string, string> { ["de"] = "Chrome-Erweiterung", ["zh-Hans"] = "Chrome 扩展" } };
+    private static readonly MyDataApp Word = new("Word add-in", new[] { "word-assistant" }, null, IsThisApp: false, Recorded: true)
+        { DisplayNames = new Dictionary<string, string> { ["de"] = "Word-Add-in", ["zh-Hans"] = "Word 加载项" } };
+    private static readonly MyDataApp WordWithout = new("Word add-in", new[] { "word-assistant" }, null, IsThisApp: false, Recorded: true);
+
+    [Theory]
+    [InlineData("de", true, "„Word-Add-in“", "„Chrome-Erweiterung“ (diese App)")]
+    [InlineData("de", false, "„Word add-in“", "„Chrome-Erweiterung“ (diese App)")]
+    [InlineData("zh-Hans", true, "“Word 加载项”", "“Chrome 扩展”（此应用）")]
+    [InlineData("zh-Hans", false, "“Word add-in”", "“Chrome 扩展”（此应用）")]
+    [InlineData("en", true, "\"Word add-in\"", "\"Chrome extension\" (this app)")]
+    public async Task The_lists_of_apps_say_each_name_quoted_in_the_panels_language_with_its_display_name_when_it_has_one(
+        string language, bool otherHasNames, string otherSaid, string thisSaid)
+    {
+        var fake = new FakeMyData { Apps = new[] { Chrome, otherHasNames ? Word : WordWithout } };
+        fake.Deletion = scope => new DataDeletion(2, false, false) { Scope = scope, OtherApps = new[] { "Word add-in" } };
+        var strings = UiStrings.For(new CultureInfo(language));
+        var model = Model(fake, () => strings);
+
+        await model.RemoveCommand.ExecuteAsync(null);
+        Assert.Contains(otherSaid, model.ConfirmText);
+        Assert.Equal(new[] { "Word add-in" }, model.OtherApps); // the list's name is the name
+        await model.ConfirmCommand.ExecuteAsync(null);
+        Assert.Contains(otherSaid, model.StatusText);
+
+        var all = Model(fake, () => strings);
+        await all.RemoveAllCommand.ExecuteAsync(null);
+        Assert.Equal(new[] { thisSaid, otherSaid }, all.AppLines);
     }
 
     [Fact]
@@ -104,7 +135,7 @@ public class MyDataSettingsViewModelTests
 
         Assert.Equal(new[] { DataScope.ThisApp }, fake.Deleted);
         Assert.Equal(MyDataState.Done, model.State);
-        Assert.Equal("Removed. Shared data kept for: Desktop agent, Excel add-in.", model.StatusText);
+        Assert.Equal("Removed. Shared data kept for: \"Desktop agent\", \"Excel add-in\".", model.StatusText);
         Assert.True(model.CancelCommand.CanExecute(null)); // closes the result
         Assert.False(model.HasStatusLine);
         Assert.Equal("", model.ConfirmText);
@@ -151,7 +182,7 @@ public class MyDataSettingsViewModelTests
         await model.ConfirmCommand.ExecuteAsync(null);
 
         Assert.Equal(
-            "Removed. Shared data kept for: Desktop agent. Data of these agents stays, because another app uses them too: docs-assistant, shared-agent. "
+            "Removed. Shared data kept for: \"Desktop agent\". Data of these agents stays, because another app uses them too: docs-assistant, shared-agent. "
             + "Chats or approvals that this app keeps in a store of its own were not removed here.",
             model.StatusText);
     }
@@ -339,10 +370,10 @@ public class MyDataSettingsViewModelTests
         Assert.Contains(nameof(MyDataSettingsViewModel.ConfirmButtonText), changed);
 
         await model.ConfirmCommand.ExecuteAsync(null);
-        Assert.Equal("Entfernt. Gemeinsame Daten bleiben erhalten für: Desktop agent, Excel add-in.", model.StatusText);
+        Assert.Equal("Entfernt. Gemeinsame Daten bleiben erhalten für: „Desktop agent“, „Excel add-in“.", model.StatusText);
         strings = UiStrings.For(new CultureInfo("fr"));
         model.Retext();
-        Assert.Equal("Supprimé. Données partagées conservées pour\u00a0: Desktop agent, Excel add-in.", model.StatusText);
+        Assert.Equal("Supprimé. Données partagées conservées pour\u00a0: «\u00a0Desktop agent\u00a0», «\u00a0Excel add-in\u00a0».", model.StatusText);
     }
 
     [Fact]

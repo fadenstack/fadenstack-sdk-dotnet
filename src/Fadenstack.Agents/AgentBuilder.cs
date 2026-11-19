@@ -659,6 +659,14 @@ public sealed record AppDescription
 
     public string Version { get; init; } = "";
 
+    /// <summary>
+    /// The name as the panel's texts say it, per language (<c>en</c>, <c>de</c>, <c>fr</c>, <c>es</c>, <c>zh-Hans</c>; any may be
+    /// missing, then <see cref="Name"/> is used; unknown keys and blank texts are dropped, the rest trimmed to 200 characters).
+    /// Only the panel's texts use it (About, "Your data"): the manifest, the records and the record of tool calls keep
+    /// <see cref="Name"/>. It is kept with the shared app list, so another app that lists the apps shows this one in its language.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? DisplayNames { get; init; }
+
     /// <summary>What the app offers the agent to read, by id.</summary>
     public IReadOnlyList<ManifestContext> Context { get; init; } = [];
 

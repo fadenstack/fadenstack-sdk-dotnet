@@ -50,8 +50,9 @@ public sealed class AboutInfo
         Model = string.IsNullOrWhiteSpace(profile?.Model) ? null : profile!.Model!.Trim();
         ModelText = Model is null ? "" : strings.AboutModel(Model);
         AgentDetail = string.Join(" · ", new[] { VersionText, ModelText }.Where(s => s.Length > 0));
-        var appName = string.Join(" ", new[] { app?.Name, app?.Version }.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!.Trim()));
-        AppText = appName.Length == 0 ? "" : strings.AboutApp(appName);
+        // The name in the panel's language (the app's display names, else its name), quoted; the version after it.
+        var appName = string.IsNullOrWhiteSpace(app?.Name) ? "" : AppNames.DisplayName(app!.Name.Trim(), app.DisplayNames, strings.Language);
+        AppText = appName.Length == 0 ? "" : strings.AboutApp(appName, app!.Version?.Trim());
         SdkVersion = sdkVersion ?? "";
         SdkText = SdkVersion.Length == 0 ? $"{Product} SDK (.NET)" : $"{Product} SDK {SdkVersion} (.NET)";
         Server = AboutLinks.ServerText(server);
@@ -128,7 +129,7 @@ public sealed class AboutInfo
     /// <summary>The line under the agent's name: "Version 3 · Model: qwen3-32b".</summary>
     public string AgentDetail { get; }
 
-    /// <summary>"Runs in Word add-in 1.2.0", when the host described its app; else empty.</summary>
+    /// <summary>"Runs in the app "Word add-in" 1.2.0" (the app's name in the panel's language, only the name quoted), when the host described its app; else empty.</summary>
     public string AppText { get; }
 
     public bool HasApp => AppText.Length > 0;

@@ -247,7 +247,7 @@ The choice is kept per user in the panel's preferences, under the key `tell-unma
 *About*, the last item in the settings, opens a card inside the panel with:
 
 - the agent: its name, *Version 3* or *Draft*, and its model when the profile names one;
-- the app the agent runs in, when you described it with `DescribeApp` (its name and version);
+- the app the agent runs in, when you described it with `DescribeApp`: `Runs in the app "<name>" <version>`, only the name in the language's quotation marks and the version after it; the name is the display name of the panel's language when you gave one (`AppDescription.DisplayNames`), else `Name`;
 - the SDK: *Fadenstack SDK 0.3.0 (.NET)*, the version of the package;
 - the server's address, shown only;
 - links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website), *Help and contact*

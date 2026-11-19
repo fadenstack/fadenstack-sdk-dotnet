@@ -940,8 +940,12 @@ public sealed class UiStrings
     /// <summary>"Model: qwen3-32b".</summary>
     public string AboutModel(string model) => Fill(model);
 
-    /// <summary>"Runs in Word add-in 1.2.0": the app the host described.</summary>
-    public string AboutApp(string app) => Fill(app);
+    /// <summary>"Runs in the app "{0}"{1}": the app the host described; only the name is quoted, the version (when there is one) follows it: <c>Runs in the app "Word add-in" 1.2.0</c>.</summary>
+    public string AboutApp(string app, string? version = null) =>
+        Fill2(app, string.IsNullOrWhiteSpace(version) ? "" : " " + version!.Trim());
+
+    /// <summary>An app's name in a list of apps, in the language's quotation marks: "{0}" (the name stays as the app wrote it).</summary>
+    public string AppQuoted(string app) => Fill(app);
 
     /// <summary>"Server: https://ai.example.internal".</summary>
     public string AboutServer(string address) => Fill(address);

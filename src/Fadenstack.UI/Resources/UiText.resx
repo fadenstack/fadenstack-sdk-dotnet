@@ -639,8 +639,12 @@
     <comment>{0}: the model the agent uses</comment>
   </data>
   <data name="AboutApp" xml:space="preserve">
-    <value>Runs in {0}</value>
-    <comment>{0}: the app the agent runs in, with its version (Word add-in 1.2.0)</comment>
+    <value>Runs in the app "{0}"{1}</value>
+    <comment>{0}: the app the agent runs in, as the panel names it, quoted; {1}: its version after a space, or nothing (Word add-in 1.2.0)</comment>
+  </data>
+  <data name="AppQuoted" xml:space="preserve">
+    <value>"{0}"</value>
+    <comment>{0}: an app's name in a list of apps, in the language's quotation marks</comment>
   </data>
   <data name="AboutServer" xml:space="preserve">
     <value>Server: {0}</value>

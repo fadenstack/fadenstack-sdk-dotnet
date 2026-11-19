@@ -491,7 +491,10 @@
     <value>模型：{0}</value>
   </data>
   <data name="AboutApp" xml:space="preserve">
-    <value>运行于 {0}</value>
+    <value>运行于应用“{0}”{1}</value>
+  </data>
+  <data name="AppQuoted" xml:space="preserve">
+    <value>“{0}”</value>
   </data>
   <data name="AboutServer" xml:space="preserve">
     <value>服务器：{0}</value>

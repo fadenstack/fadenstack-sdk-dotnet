@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Fadenstack.Auth;
 using Fadenstack.Storage;
 
@@ -28,7 +29,67 @@ public enum DataScope
 /// calling app, and whether it recorded itself (<see cref="Recorded"/> false: an app on an older SDK, known only by an agent's
 /// data, named by that agent).
 /// </summary>
-public sealed record MyDataApp(string Name, IReadOnlyList<string> Agents, DateTimeOffset? LastSeen, bool IsThisApp, bool Recorded);
+public sealed record MyDataApp(string Name, IReadOnlyList<string> Agents, DateTimeOffset? LastSeen, bool IsThisApp, bool Recorded)
+{
+    /// <summary>
+    /// The app's name in the panel's languages, when the app gave them (<see cref="AppDescription.DisplayNames"/>); only the
+    /// panel's texts use it, through <see cref="AppNames.DisplayName"/>. Null when the app gave none, or is on an older SDK.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? DisplayNames { get; init; }
+}
+
+/// <summary>An app's name as the panel's texts say it: the display names per language (<see cref="AppDescription.DisplayNames"/>) and the fallback to the name.</summary>
+public static class AppNames
+{
+    /// <summary>The languages the panel's texts come in, as the keys of <see cref="AppDescription.DisplayNames"/>.</summary>
+    public static IReadOnlyList<string> Languages { get; } = new[] { "en", "de", "fr", "es", "zh-Hans" };
+
+    /// <summary>The longest display name kept, in characters.</summary>
+    public const int MaxDisplayName = 200;
+
+    /// <summary>
+    /// The display names with only the known languages and non-blank text (trimmed, cut to <see cref="MaxDisplayName"/>
+    /// characters); null when none is left.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string>? CleanDisplayNames(IReadOnlyDictionary<string, string>? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+        var clean = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var language in Languages)
+        {
+            if (value.TryGetValue(language, out var text) && !string.IsNullOrWhiteSpace(text))
+            {
+                var trimmed = text.Trim();
+                if (trimmed.Length > MaxDisplayName)
+                {
+                    trimmed = trimmed.Substring(0, char.IsHighSurrogate(trimmed[MaxDisplayName - 1]) ? MaxDisplayName - 1 : MaxDisplayName);
+                }
+                clean[language] = trimmed;
+            }
+        }
+        return clean.Count > 0 ? clean : null;
+    }
+
+    /// <summary>
+    /// The app's name for the panel's texts in <paramref name="language"/> ("de", "zh-Hans"; a region such as "de-AT" counts as
+    /// "de"): its display name in that language, else <paramref name="name"/>. The manifest, the records and the record of tool
+    /// calls keep the name.
+    /// </summary>
+    public static string DisplayName(string name, IReadOnlyDictionary<string, string>? displayNames, string? language)
+    {
+        if (displayNames is null || string.IsNullOrWhiteSpace(language))
+        {
+            return name;
+        }
+        var wanted = language!.Trim();
+        var key = Languages.FirstOrDefault(l => string.Equals(l, wanted, StringComparison.OrdinalIgnoreCase))
+            ?? Languages.FirstOrDefault(l => wanted.StartsWith(l + "-", StringComparison.OrdinalIgnoreCase));
+        return key is not null && displayNames.TryGetValue(key, out var text) && !string.IsNullOrWhiteSpace(text) ? text : name;
+    }
+}
 
 /// <summary>What a removal of <see cref="DataScope.ThisApp"/> takes and leaves, worked out before anything is deleted.</summary>
 internal sealed record MyDataPlan(IReadOnlyList<string> OwnAgents, IReadOnlyList<string> KeptAgents, IReadOnlyList<MyDataApp> OtherApps)
@@ -63,6 +124,10 @@ internal static class MyDataApps
         public List<string> Agents { get; set; } = new();
         public DateTimeOffset FirstSeen { get; set; }
         public DateTimeOffset LastSeen { get; set; }
+
+        /// <summary>The app's names in the panel's languages (the latest start's); an older SDK reading the file ignores it.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public Dictionary<string, string>? DisplayNames { get; set; }
     }
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
@@ -74,7 +139,8 @@ internal static class MyDataApps
     /// Records that <paramref name="app"/> ran <paramref name="agent"/> for the person. Never fails the start: a record that
     /// cannot be written leaves the app to be inferred from its data, which keeps the shared data (the safe side).
     /// </summary>
-    internal static void TryRecord(string personFolder, string app, string agent, DateTimeOffset now)
+    internal static void TryRecord(string personFolder, string app, string agent, DateTimeOffset now,
+        IReadOnlyDictionary<string, string>? displayNames = null)
     {
         try
         {
@@ -86,6 +152,8 @@ internal static class MyDataApps
                 record.Agents.Add(agent);
             }
             record.LastSeen = now;
+            var names = AppNames.CleanDisplayNames(displayNames); // the latest start says what the app calls itself now
+            record.DisplayNames = names is null ? null : names.ToDictionary(n => n.Key, n => n.Value, StringComparer.Ordinal);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             SecretProtection.WriteOwnerOnly(path, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(record, Json)));
         }
@@ -99,7 +167,8 @@ internal static class MyDataApps
         Path.Combine(personFolder, Folder, FadenstackPaths.SafeName(app) + ".json");
 
     /// <summary>The apps that use the person's data, this app first: the records, then each agent with data that no record names.</summary>
-    internal static IReadOnlyList<MyDataApp> List(string personFolder, string thisApp, string thisAgent)
+    internal static IReadOnlyList<MyDataApp> List(string personFolder, string thisApp, string thisAgent,
+        IReadOnlyDictionary<string, string>? thisDisplayNames = null)
     {
         var records = Records(personFolder);
         var thisKey = FadenstackPaths.SafeName(thisApp);
@@ -110,12 +179,13 @@ internal static class MyDataApps
             var (key, record) = (pair.Key, pair.Value); // netstandard2.0 has no KeyValuePair.Deconstruct
             var agents = key == thisKey ? record.Agents.Union(new[] { thisAgent }, StringComparer.Ordinal).ToList() : record.Agents;
             named.UnionWith(agents.Select(FadenstackPaths.SafeName));
-            apps.Add(new MyDataApp(record.App, agents, record.LastSeen, key == thisKey, Recorded: true));
+            var displayNames = AppNames.CleanDisplayNames(key == thisKey ? AppNames.CleanDisplayNames(thisDisplayNames) ?? record.DisplayNames : record.DisplayNames); // this app's own, current
+            apps.Add(new MyDataApp(record.App, agents, record.LastSeen, key == thisKey, Recorded: true) { DisplayNames = displayNames });
         }
         if (!records.ContainsKey(thisKey))
         {
             named.Add(FadenstackPaths.SafeName(thisAgent));
-            apps.Insert(0, new MyDataApp(thisApp, new[] { thisAgent }, null, IsThisApp: true, Recorded: false));
+            apps.Insert(0, new MyDataApp(thisApp, new[] { thisAgent }, null, IsThisApp: true, Recorded: false) { DisplayNames = AppNames.CleanDisplayNames(thisDisplayNames) });
         }
         foreach (var agent in AgentsWithData(personFolder).Where(a => !named.Contains(a)).OrderBy(a => a, StringComparer.Ordinal))
         {

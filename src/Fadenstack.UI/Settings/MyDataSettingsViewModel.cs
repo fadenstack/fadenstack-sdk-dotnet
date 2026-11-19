@@ -201,7 +201,7 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
     public string ConfirmText => _state switch
     {
         MyDataState.ConfirmThisApp => SharedDataStays
-            ? Strings.MyDataConfirmThisAppShared(Join(OtherApps))
+            ? Strings.MyDataConfirmThisAppShared(Join(OtherApps.Select(QuotedName)))
             : Strings.MyDataConfirmThisAppEverything,
         MyDataState.ConfirmAll => Strings.MyDataConfirmAll,
         _ => "",
@@ -212,7 +212,7 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
 
     /// <summary>Every app a removal of everything affects, this app marked; empty in the other states.</summary>
     public IReadOnlyList<string> AppLines => IsConfirmAll
-        ? _apps.Select(a => a.IsThisApp ? Strings.MyDataThisApp(a.Name) : a.Name).ToList()
+        ? _apps.Select(a => a.IsThisApp ? Strings.MyDataThisApp(Quoted(a)) : Quoted(a)).ToList()
         : Array.Empty<string>();
 
     public bool HasAppLines => AppLines.Count > 0;
@@ -315,6 +315,13 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
 
     private bool CanStart() => IsIdle && !_picking;
 
+    /// <summary>An app's name as the texts say it: its display name in the texts' language, else its name, in quotation marks.</summary>
+    private string Quoted(MyDataApp app) => Strings.AppQuoted(AppNames.DisplayName(app.Name, app.DisplayNames, Strings.Language));
+
+    /// <summary>The same for an app named by <see cref="MyDataApp.Name"/> (the list of apps may not hold it: the name stands as it is).</summary>
+    private string QuotedName(string name) =>
+        _apps.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.Ordinal)) is { } app ? Quoted(app) : Strings.AppQuoted(name);
+
     private string Join(IEnumerable<string> names) => string.Join(Strings.MyDataListSeparator, names);
 
     private string DoneText()
@@ -326,7 +333,7 @@ public sealed class MyDataSettingsViewModel : ObservableObject, ISkillTexts
         var parts = new List<string>
         {
             deletion.Scope == DataScope.ThisApp && deletion.SharedDataKept
-                ? Strings.MyDataRemovedKept(Join(deletion.OtherApps))
+                ? Strings.MyDataRemovedKept(Join(deletion.OtherApps.Select(QuotedName)))
                 : Strings.MyDataRemovedEverything,
         };
         if (deletion.AgentsKept.Count > 0)

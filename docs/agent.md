@@ -167,7 +167,7 @@ using var agent = FadenstackAgent.CreateBuilder()
 | `UseHistoryBudget(tokens)` | About how many tokens of history a request carries (default 24 000). |
 | `UseReasoning(effort)` | How much the model reasons before it answers, on every request. |
 | `UseEventReporting(enabled)` | Whether the agent reports its activity and the app's manifest to the server (default on). |
-| `DescribeApp(app)` | Describes the app the agent runs in. |
+| `DescribeApp(app)` | Describes the app the agent runs in. `AppDescription.DisplayNames` (`en`, `de`, `fr`, `es`, `zh-Hans`; any may be missing, blank texts and other keys are dropped, at most 200 characters) is the name the panel's texts say in each language, in About and "Your data" only; `Name` stays as it is for the manifest, the records and the record of tool calls. |
 | `DescribePlugins(plugins)` | The plugins the app has loaded (name, version, SHA-256), for the device report. See [What your app reports about the device](#what-your-app-reports-about-the-device). |
 | `Use(module)`, `AddChatStage(...)`, `AddToolStage(...)`, `AddToolSource(...)` | Extensions. See [Extending](extending.md). |
 
@@ -184,6 +184,7 @@ builder.DescribeApp(new AppDescription
 {
     Name = "Viewer add-in",
     Version = "2.1.0",
+    DisplayNames = new Dictionary<string, string> { ["de"] = "Viewer-Add-in", ["zh-Hans"] = "查看器加载项" }, // optional, for the panel's texts only
     Ui = new ManifestUi
     {
         Greeting = "Ask me about the open project.",
@@ -228,6 +229,7 @@ builder.DescribePlugins(
 | `ResetApprovalsAsync(tool)` | Forgets what the user allowed always for this agent on this device: every tool, or one. |
 | `Slug`, `Client` | The agent's slug and its client. |
 | `App` | The app as you described it with `DescribeApp`, or `null`. The chat panel's About shows it. |
+| `AppDisplayNames` | The app's display names, cleaned (`AppNames.CleanDisplayNames`), or `null` when it gave none. `AppNames.DisplayName(name, displayNames, language)` picks the one for a language (`de-AT` counts as `de`), else the name. |
 
 `StartAsync` throws `FadenstackSignInRequiredException` when there is no sign-in, `FadenstackPermissionException` when the user may not use the agent, and `FadenstackException` when the agent requires a client module the builder does not have.
 

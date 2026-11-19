@@ -491,7 +491,10 @@
     <value>Modelo: {0}</value>
   </data>
   <data name="AboutApp" xml:space="preserve">
-    <value>Se ejecuta en {0}</value>
+    <value>Funciona en la aplicación «{0}»{1}</value>
+  </data>
+  <data name="AppQuoted" xml:space="preserve">
+    <value>«{0}»</value>
   </data>
   <data name="AboutServer" xml:space="preserve">
     <value>Servidor: {0}</value>

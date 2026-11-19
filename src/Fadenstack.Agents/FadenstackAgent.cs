@@ -333,7 +333,7 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
             if (profile.Principal is { } person && (_settings.Sessions is null || _settings.ApprovalStore is null))
             {
                 // Which apps use the person's data on this device, for "Remove my data" (owner, 16 Nov); names and times only.
-                MyDataApps.TryRecord(FadenstackPaths.UserFolder(person.UserId), AppName, Slug, Clock());
+                MyDataApps.TryRecord(FadenstackPaths.UserFolder(person.UserId), AppName, Slug, Clock(), AppDisplayNames);
             }
             _tools = tools;
             _profile = profile;
@@ -950,12 +950,15 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
     {
         await StartAsync(cancellationToken).ConfigureAwait(false);
         return Profile.Principal is { } principal
-            ? MyDataApps.List(FadenstackPaths.UserFolder(principal.UserId), AppName, Slug)
-            : new[] { new MyDataApp(AppName, new[] { Slug }, null, IsThisApp: true, Recorded: false) };
+            ? MyDataApps.List(FadenstackPaths.UserFolder(principal.UserId), AppName, Slug, AppDisplayNames)
+            : new[] { new MyDataApp(AppName, new[] { Slug }, null, IsThisApp: true, Recorded: false) { DisplayNames = AppDisplayNames } };
     }
 
     /// <summary>The app's name for the person's data: what the host described (<see cref="AgentBuilder.DescribeApp"/>), else the slug.</summary>
     internal string AppName => MyDataApps.NameOf(App, Slug);
+
+    /// <summary>The app's names in the panel's languages (<see cref="AppDescription.DisplayNames"/>), cleaned; null when it gave none. For the panel's texts only.</summary>
+    public IReadOnlyDictionary<string, string>? AppDisplayNames => AppNames.CleanDisplayNames(App?.DisplayNames);
 
     /// <summary>
     /// Deletes this app's part of the signed-in user's data on this device (an erasure request, GDPR Art. 17; since

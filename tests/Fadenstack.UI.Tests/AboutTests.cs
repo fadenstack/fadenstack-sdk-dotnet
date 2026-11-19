@@ -123,7 +123,7 @@ public class AboutTests
         var about = chat.About;
         Assert.Equal(("Docs", "Version 3", "qwen3-32b", "Version 3 · Model: qwen3-32b"), (about.AgentName, about.VersionText, about.Model, about.AgentDetail));
         Assert.False(about.IsDraft);
-        Assert.Equal("Runs in Viewer add-in 2.1.0", about.AppText);
+        Assert.Equal("Runs in the app \"Viewer add-in\" 2.1.0", about.AppText);
         Assert.Equal($"Fadenstack SDK {SdkInfo.Version} (.NET)", about.SdkText);
         Assert.Equal(("https://faden.test", "Server: https://faden.test"), (about.Server, about.ServerText));
         Assert.Equal(new[] { "Help", "Fadenstack", "Help and contact", "Developer docs" }, about.Links.Select(l => l.Label));
@@ -171,7 +171,7 @@ public class AboutTests
             "Agent: Docs",
             "Version 3",
             "Model: qwen3-32b",
-            "Runs in Viewer add-in 2.1.0",
+            "Runs in the app \"Viewer add-in\" 2.1.0",
             $"Fadenstack SDK {SdkInfo.Version} (.NET)",
             "Server: https://faden.test",
         }, clipboard.LastText!.Split(new[] { Environment.NewLine }, StringSplitOptions.None));
@@ -252,13 +252,60 @@ public class AboutTests
         Assert.All(outside, l => Assert.Equal("", l.Url.Fragment));
     }
 
+    private static readonly Dictionary<string, string> ChromeNames = new() { ["de"] = "Chrome-Erweiterung", ["zh-Hans"] = "Chrome 扩展" };
+    private static readonly Dictionary<string, string> WordNames = new() { ["de"] = "Word-Add-in", ["zh-Hans"] = "Word 加载项" };
+
+    [Theory]
+    [InlineData("en", "Chrome extension", "Runs in the app \"Chrome extension\" 1.3.0", "Runs in the app \"Chrome extension\"")]
+    [InlineData("de", "Chrome-Erweiterung", "Läuft in der App „Chrome-Erweiterung“ 1.3.0", "Läuft in der App „Chrome-Erweiterung“")]
+    [InlineData("de-AT", "Chrome-Erweiterung", "Läuft in der App „Chrome-Erweiterung“ 1.3.0", "Läuft in der App „Chrome-Erweiterung“")]
+    [InlineData("zh-Hans", "Chrome 扩展", "运行于应用“Chrome 扩展” 1.3.0", "运行于应用“Chrome 扩展”")]
+    [InlineData("fr", "Chrome extension", "Fonctionne dans l'application «\u00a0Chrome extension\u00a0» 1.3.0", "Fonctionne dans l'application «\u00a0Chrome extension\u00a0»")]
+    [InlineData("es", "Chrome extension", "Funciona en la aplicación «Chrome extension» 1.3.0", "Funciona en la aplicación «Chrome extension»")]
+    public void About_quotes_only_the_name_in_the_display_name_of_the_language_and_the_version_follows(string language, string shown, string withVersion, string withoutVersion)
+    {
+        var strings = UiStrings.For(CultureInfo.GetCultureInfo(language));
+        var chrome = new AppDescription { Name = "Chrome extension", Version = "1.3.0", DisplayNames = ChromeNames };
+
+        Assert.Equal(withVersion, AboutInfo.Create(null, chrome, "1", null, null, strings).AppText);
+        Assert.Equal(withoutVersion, AboutInfo.Create(null, chrome with { Version = "" }, "1", null, null, strings).AppText);
+        Assert.Contains(shown, withVersion);
+    }
+
+    [Fact]
+    public void About_says_the_name_when_there_is_no_display_name_for_the_language_or_none_at_all()
+    {
+        var de = UiStrings.For(CultureInfo.GetCultureInfo("de"));
+        var zh = UiStrings.For(CultureInfo.GetCultureInfo("zh-Hans"));
+        var word = new AppDescription { Name = "Word add-in", Version = "2.1" };
+
+        Assert.Equal("Läuft in der App „Word add-in“ 2.1", AboutInfo.Create(null, word, "1", null, null, de).AppText);
+        Assert.Equal("运行于应用“Word add-in” 2.1", AboutInfo.Create(null, word, "1", null, null, zh).AppText);
+        Assert.Equal("Läuft in der App „Word-Add-in“ 2.1", AboutInfo.Create(null, word with { DisplayNames = WordNames }, "1", null, null, de).AppText);
+        Assert.Equal("运行于应用“Word 加载项” 2.1", AboutInfo.Create(null, word with { DisplayNames = WordNames }, "1", null, null, zh).AppText);
+        Assert.Equal("Läuft in der App „Word add-in“ 2.1", AboutInfo.Create(null, word with { DisplayNames = new Dictionary<string, string> { ["fr"] = "Complément Word" } }, "1", null, null, de).AppText);
+        Assert.Equal("", AboutInfo.Create(null, new AppDescription { Version = "1" }, "1", null, null, de).AppText); // a version alone says nothing
+    }
+
+    [Fact]
+    public async Task The_chat_says_the_display_name_in_the_panels_language_and_the_manifest_app_stays_named()
+    {
+        var chat = Chat(new Gateway(), build: b => b.DescribeApp(new AppDescription { Name = "Chrome extension", Version = "1.3.0", DisplayNames = ChromeNames }));
+        await chat.InitializeAsync();
+        Assert.Equal("Runs in the app \"Chrome extension\" 1.3.0", chat.About.AppText);
+        await chat.SetLanguageAsync("de");
+        Assert.Equal("Läuft in der App „Chrome-Erweiterung“ 1.3.0", chat.About.AppText);
+        await chat.SetLanguageAsync("zh-Hans");
+        Assert.Equal("运行于应用“Chrome 扩展” 1.3.0", chat.About.AppText);
+    }
+
     [Fact]
     public async Task About_and_the_footer_link_follow_the_panels_language()
     {
         var chat = Chat(new Gateway(), build: b => b.DescribeApp(new AppDescription { Name = "Viewer add-in", Version = "2.1.0" }));
         await chat.InitializeAsync();
         await chat.SetLanguageAsync("de");
-        Assert.Equal(("Version 3 · Modell: qwen3-32b", "Läuft in Viewer add-in 2.1.0", "Server: https://faden.test"),
+        Assert.Equal(("Version 3 · Modell: qwen3-32b", "Läuft in der App „Viewer add-in“ 2.1.0", "Server: https://faden.test"),
             (chat.About.AgentDetail, chat.About.AppText, chat.About.ServerText));
         Assert.Equal(new[] { "Hilfe", "Fadenstack", "Hilfe und Kontakt", "Entwicklerdokumentation" }, chat.About.Links.Select(l => l.Label));
         Assert.Equal("Hilfe (öffnet sich im Browser)", chat.About.Links[0].Name);
