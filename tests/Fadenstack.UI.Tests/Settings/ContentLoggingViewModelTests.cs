@@ -1,6 +1,8 @@
 using System.Globalization;
 using Fadenstack.Agents;
 using Fadenstack.Agents.Tests;
+using Fadenstack.Logging;
+using Fadenstack.Storage;
 using Fadenstack.UI.Services;
 using Fadenstack.UI.Settings;
 using Fadenstack.UI.ViewModels;
@@ -194,6 +196,113 @@ public class ContentLoggingViewModelTests
             {
                 Assert.NotEqual(UiStrings.For(new CultureInfo("en")).ContentLoggingIntro, s.ContentLoggingIntro);
             }
+        }
+    }
+
+    /// <summary>A file logger alive in the process, in a folder of its own that goes with the test.</summary>
+    private sealed class Logger : IDisposable
+    {
+        private readonly string _folder = Path.Combine(Path.GetTempPath(), "faden-cl-" + Guid.NewGuid().ToString("N"));
+        private readonly IDisposable _root;
+        private readonly List<FadenstackFileLoggerProvider> _providers = new();
+
+        public Logger() => _root = FadenstackPaths.UseRootForTests(_folder);
+
+        public void Add(string app, TimeSpan? maxAge = null) =>
+            _providers.Add(new FadenstackFileLoggerProvider(app, maxAge is null ? null : new FadenstackFileLoggerOptions { MaxAge = maxAge.Value }));
+
+        public void DisposeAll()
+        {
+            foreach (var provider in _providers)
+            {
+                provider.Dispose();
+            }
+            _providers.Clear();
+        }
+
+        public void Dispose()
+        {
+            DisposeAll();
+            _root.Dispose();
+            try
+            {
+                Directory.Delete(_folder, true);
+            }
+            catch (IOException)
+            {
+            }
+        }
+    }
+
+    [Fact]
+    public void With_a_file_log_in_the_process_the_text_says_how_many_days_what_was_written_stays()
+    {
+        using var logs = new Logger();
+        logs.Add("one");
+        var model = new ContentLoggingSettingsViewModel(FakeContentLogging.Of("off"), strings: () => English);
+
+        Assert.Equal(English.ContentLoggingIntroDays(14), model.IntroText);
+        Assert.Contains("stays in the app's logs for up to 14 days.", model.IntroText);
+        Assert.Contains("by itself", model.IntroText);
+
+        logs.Add("two", TimeSpan.FromDays(30.9)); // the longest of them, in whole days
+        Assert.Contains("for up to 30 days.", model.IntroText);
+
+        logs.DisposeAll();
+        logs.Add("three", TimeSpan.FromDays(3));
+        Assert.Contains("for up to 3 days.", model.IntroText);
+
+        logs.DisposeAll();
+        logs.Add("four", TimeSpan.FromDays(1)); // one day reads "up to a day", not "1 days"
+        Assert.Equal(English.ContentLoggingIntroOneDay, model.IntroText);
+        Assert.Contains("for up to a day.", model.IntroText);
+        Assert.DoesNotContain("1 days", model.IntroText);
+
+        logs.DisposeAll(); // the logger goes: nothing says how long it stays any more
+        Assert.Equal(English.ContentLoggingIntro, model.IntroText);
+    }
+
+    [Fact]
+    public void Without_a_file_log_the_text_says_it_stays_until_the_app_deletes_it()
+    {
+        var model = new ContentLoggingSettingsViewModel(FakeContentLogging.Of("off"), strings: () => English);
+
+        Assert.Equal(English.ContentLoggingIntro, model.IntroText);
+        Assert.EndsWith("What was written stays in the app's logs until the app deletes it.", model.IntroText);
+        Assert.DoesNotContain("{0}", model.IntroText);
+    }
+
+    [Fact]
+    public void The_German_text_says_it_in_both_cases()
+    {
+        var german = UiStrings.For(new CultureInfo("de"));
+        var model = new ContentLoggingSettingsViewModel(FakeContentLogging.Of("off"), strings: () => german);
+        Assert.EndsWith("Was geschrieben wurde, bleibt in den Protokollen der App, bis die App es löscht.", model.IntroText);
+
+        using var logs = new Logger();
+        logs.Add("one");
+        Assert.EndsWith("Was geschrieben wurde, bleibt bis zu 14 Tage in den Protokollen der App.", model.IntroText);
+    }
+
+    [Fact]
+    public void Every_language_has_both_sentences_and_the_days_one_has_the_number()
+    {
+        foreach (var tag in new[] { "en", "de", "fr", "es", "zh-Hans" })
+        {
+            var s = UiStrings.For(new CultureInfo(tag));
+            Assert.Contains("14", s.ContentLoggingIntroDays(14));
+            Assert.DoesNotContain("{", s.ContentLoggingIntroDays(14));
+            Assert.DoesNotContain("{", s.ContentLoggingIntro);
+            Assert.NotEqual(s.ContentLoggingIntro, s.ContentLoggingIntroDays(14));
+            Assert.False(string.IsNullOrWhiteSpace(s.ContentLoggingIntroOneDay), tag);
+            if (tag != "zh-Hans") // Chinese has no plural: "1 天" is the natural singular too
+            {
+                Assert.NotEqual(s.ContentLoggingIntroDays(1), s.ContentLoggingIntroOneDay);
+            }
+            Assert.DoesNotContain("{", s.ContentLoggingIntroOneDay);
+            Assert.Equal(s.ContentLoggingIntro.Substring(0, 30), s.ContentLoggingIntroOneDay.Substring(0, 30));
+            // The common start is the same words in both.
+            Assert.Equal(s.ContentLoggingIntro.Substring(0, 30), s.ContentLoggingIntroDays(14).Substring(0, 30));
         }
     }
 }

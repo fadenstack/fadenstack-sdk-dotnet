@@ -74,6 +74,14 @@ internal static partial class Log
         Message = "The user's data on this device was deleted, but not in the stores the host passed (sessions {Sessions}, approvals {Approvals}): the host deletes its part")]
     internal static partial void DataLeftInHostStores(ILogger logger, bool sessions, bool approvals);
 
+    [LoggerMessage(EventId = 2092, Level = LogLevel.Information,
+        Message = "The user's log files on this device were removed: {Files} files")]
+    internal static partial void LogFilesRemoved(ILogger logger, int files);
+
+    [LoggerMessage(EventId = 2093, Level = LogLevel.Warning,
+        Message = "{Files} log files could not be removed: another process holds them open, or the system refused")]
+    internal static partial void LogFilesLeft(ILogger logger, int files);
+
     [LoggerMessage(EventId = 2008, Level = LogLevel.Warning,
         Message = "The user's data on this device could not be deleted ({ErrorType})")]
     internal static partial void DataDeletionFailed(ILogger logger, string errorType);

@@ -2573,7 +2573,13 @@
     <value>内容日志记录已开启，截止到 {0}。提示词和回答会写入应用的日志。</value>
   </data>
   <data name="ContentLoggingIntro" xml:space="preserve">
-    <value>开启期间，提示词和回答会写入此应用的日志。时间到或应用重启时，它会自动关闭。</value>
+    <value>开启期间，提示词和回答会写入此应用的日志。时间到或应用重启时，它会自动关闭。已写入的内容会保留在此应用的日志中，直到应用将其删除。</value>
+  </data>
+  <data name="ContentLoggingIntroDays" xml:space="preserve">
+    <value>开启期间，提示词和回答会写入此应用的日志。时间到或应用重启时，它会自动关闭。已写入的内容会保留在此应用的日志中，最长 {0} 天。</value>
+  </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>开启期间，提示词和回答会写入此应用的日志。时间到或应用重启时，它会自动关闭。已写入的内容会保留在此应用的日志中，最长 1 天。</value>
   </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>开启时长</value>

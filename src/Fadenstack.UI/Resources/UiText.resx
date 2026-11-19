@@ -2861,7 +2861,13 @@
     <value>Content logging is on until {0}. Prompts and answers are written to the app's logs.</value>
   </data>
   <data name="ContentLoggingIntro" xml:space="preserve">
-    <value>While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts.</value>
+    <value>While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts. What was written stays in the app's logs until the app deletes it.</value>
+  </data>
+  <data name="ContentLoggingIntroDays" xml:space="preserve">
+    <value>While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts. What was written stays in the app's logs for up to {0} days.</value>
+  </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts. What was written stays in the app's logs for up to a day.</value>
   </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Switch on for</value>

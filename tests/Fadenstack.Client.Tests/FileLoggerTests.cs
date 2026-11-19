@@ -1,3 +1,4 @@
+using Fadenstack.Auth;
 using Fadenstack.Logging;
 using Fadenstack.Storage;
 using Microsoft.Extensions.Logging;
@@ -200,5 +201,105 @@ public class FileLoggerTests : IDisposable
 
         Assert.Null(after);
         Assert.Equal(50, File.ReadAllLines(Directory.GetFiles(Logs).Single()).Length);
+    }
+
+    [Fact]
+    public void A_file_that_cannot_be_made_owner_only_is_not_written_and_its_entries_are_counted()
+    {
+        var refuse = true;
+        using var provider = new FadenstackFileLoggerProvider("addin", null, () => _now, null,
+            ownerOnly: _ => { if (refuse) { throw SecretProtection.OwnerOnlyFailed("test"); } });
+        var log = provider.CreateLogger("c");
+
+        var thrown = Record.Exception(() => { for (var i = 0; i < 3; i++) { log.Log(LogLevel.Information, Id(i), "secret entry", null, (s, _) => s); } });
+        SpinWait.SpinUntil(() => provider.Dropped == 3, TimeSpan.FromSeconds(10));
+        var before = Directory.Exists(Logs) ? Directory.GetFiles(Logs) : Array.Empty<string>();
+        refuse = false;
+        log.Log(LogLevel.Information, Id(9), "later entry", null, (s, _) => s);
+        provider.Dispose();
+
+        Assert.Null(thrown);
+        Assert.Equal(3, provider.Dropped);
+        Assert.Empty(before); // no file was left behind
+        var text = File.ReadAllText(Directory.GetFiles(Logs).Single());
+        Assert.DoesNotContain("secret entry", text);
+        Assert.Contains("later entry", text);
+        Assert.Contains("3 entries were dropped: the log file could not be made owner-only", text);
+    }
+
+    [Fact]
+    public void A_folder_that_stays_wider_than_owner_only_gets_one_warning_entry()
+    {
+        using (var provider = new FadenstackFileLoggerProvider("addin", null, () => _now, null, folderIsOwnerOnly: _ => false))
+        {
+            var log = provider.CreateLogger("c");
+            log.Log(LogLevel.Information, Id(1), "one", null, (s, _) => s);
+            log.Log(LogLevel.Information, Id(2), "two", null, (s, _) => s);
+        }
+
+        var lines = File.ReadAllLines(Directory.GetFiles(Logs).Single());
+        Assert.Equal(3, lines.Length);
+        Assert.Contains("open to other users", lines[0]);
+        Assert.Single(lines, l => l.Contains("open to other users"));
+    }
+
+    [UnixFact]
+    public void On_macOS_and_Linux_the_folder_is_0700_and_a_new_file_is_0600()
+    {
+#if NET
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        using (var provider = Provider())
+        {
+            provider.CreateLogger("c").Log(LogLevel.Information, Id(1), "x", null, (s, _) => s);
+        }
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(Logs));
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(Directory.GetFiles(Logs).Single()));
+#endif
+    }
+
+    [UnixFact]
+    public void On_macOS_and_Linux_a_file_an_older_SDK_left_wide_is_made_0600_before_it_is_written()
+    {
+#if NET
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        Directory.CreateDirectory(Logs);
+        var old = Path.Combine(Logs, "addin-20261028.log");
+        File.WriteAllText(old, "old line" + Environment.NewLine);
+        File.SetUnixFileMode(old, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+        using (var provider = Provider())
+        {
+            provider.CreateLogger("c").Log(LogLevel.Information, Id(1), "new line", null, (s, _) => s);
+        }
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(old));
+        Assert.Equal(2, File.ReadAllLines(old).Length);
+#endif
+    }
+
+    [UnixFact]
+    public void On_macOS_and_Linux_a_wide_folder_is_tightened_and_the_real_check_then_says_nothing()
+    {
+#if NET
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+        Directory.CreateDirectory(Logs);
+        File.SetUnixFileMode(Logs, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute);
+        using (var provider = Provider())
+        {
+            provider.CreateLogger("c").Log(LogLevel.Information, Id(1), "x", null, (s, _) => s);
+        }
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(Logs));
+        Assert.DoesNotContain("open to other users", File.ReadAllText(Directory.GetFiles(Logs).Single()));
+#endif
     }
 }

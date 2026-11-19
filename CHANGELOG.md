@@ -6,6 +6,15 @@ this file says where it does.
 
 ## [0.3.1] - Unreleased
 
+### Added
+
+- `DiagnosticText.MaskUserPaths(string)` (`Fadenstack.Logging`) for text a person copies out to send, such as the details of an error: it replaces the user's profile folder (`Environment.SpecialFolder.UserProfile`) with `%USERPROFILE%` on Windows and `~` elsewhere. On Windows it ignores the letter case, takes both slash forms and the `\\?\` prefix, and also masks `<drive>:\Users\<same user name>`; another user's path stays as it is.
+
+### Changed
+
+- The content-logging setting's text now says how long what was written stays: "What was written stays in the app's logs for up to {0} days." (the longest `MaxAge` among the `FadenstackFileLoggerProvider` objects alive in the process, in whole days; 14 by default) or, when there is none, "What was written stays in the app's logs until the app deletes it." In English, German, French, Spanish and Simplified Chinese (`UiStrings.ContentLoggingIntro` and the new `ContentLoggingIntroDays`; `FadenstackFileLoggerProvider.RetentionDays` for a host that shows the sentence itself). The TypeScript SDK says the second sentence only.
+- "Remove my data" now takes the app's own log files too. `DeleteMyDataAsync` asks every `FadenstackFileLoggerProvider` alive in the process to delete its files (`<app>-*.log` and the numbered parts): what was queued is dropped, the open file is closed, and logging goes on in a new file. With `DataScope.AllApps` every other file in the user's log folder, and the per-user folders below it, goes too. A file another process holds open goes where the OS allows it and is otherwise counted as left (log event 2093). `DataDeletion.LogFilesRemoved` and `LogFilesLeft` count the files. A host that removes its own logs through `UseHostData` (the desktop's `desktop-*.log`) can drop that; Office (`office-<app>-*.log`) needs nothing more. OWASP ASVS 5.0 V14.
+
 ### Fixed
 
 - A model endpoint at `http://localhost` with a key now connects when the server listens on `127.0.0.1` only (or on `::1` only). The SDK used to connect to the first address the name resolved to, which on Windows is `::1`. It now tries each address in order until one connects, and every address still has to be this computer (OWASP ASVS 5.0 V12).
@@ -13,6 +22,7 @@ this file says where it does.
 
 ### Security
 
+- On Linux and macOS the SDK's file log (`FadenstackFileLoggerProvider`) creates its files with mode 0600, as the secret files are (on .NET 8 with `UnixCreateMode`, on .NET Standard created and then made 0600 before the first write; a file an earlier SDK left with the umask's mode is tightened before it is written). A file that cannot be made owner-only is not written: its entries are dropped and counted (`Dropped`, and a line in the log once a file can be written), never thrown at the caller. The log folder's mode is now checked after the chmod, and a folder that stays wider than 0700 gets one warning entry. Before, the files got the umask's mode (usually 0644) and a failed chmod went unnoticed. OWASP ASVS 5.0 V14.2 (data at rest).
 - The CSV export of the record of tool calls now puts a cell with a semicolon in quotes, and puts a leading apostrophe before `=`, `+`, `-`, `@`, tab or carriage return not only at the start of a cell but also after a `;` or `,` inside it. Excel in a German, French or Spanish locale splits a double-clicked CSV at `;`, so text after one could start a cell with `=` and run as a formula. OWASP ASVS 5.0 V1 (output encoding, 1.2.10).
 - A governed server that names a user `standalone` (in any letter case) no longer gets the folder of the person's own AI, `users/standalone/`, with its chats, keys and skills, and can no longer make "Remove my data" delete it. Such a user's folder is now `users/governed.standalone/`; the standalone folder does not move, and no other user's folder changes. OWASP ASVS 5.0 V8 (data protection: separation of one person's data from another's).
 - The provenance records kept on the device (`users/standalone/provenance/records/`) are read back with a check: a record's id must be a GUID before it becomes part of a file path, and a record with any other id (for example `../x` planted in a file) is skipped and logged as event 4010, without the id. Before, a changed file could make the SDK write a record outside the records folder when it stamped a waiting record. OWASP ASVS 5.0 V5 (file handling) and V1 (injection prevention).

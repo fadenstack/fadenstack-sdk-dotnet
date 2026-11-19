@@ -2203,8 +2203,14 @@ public sealed class UiStrings
     /// <summary>"Content logging is on until {0}. Prompts and answers are written to the app's logs." ({0}: the end time in the person's locale)</summary>
     public string ContentLoggingBand(string time) => Fill(time);
 
-    /// <summary>"While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts."</summary>
+    /// <summary>"While it is on, prompts and answers are written to this app's logs. It switches off by itself when the time is up, and when the app restarts. What was written stays in the app's logs until the app deletes it." (the retention is not known)</summary>
     public string ContentLoggingIntro => Text();
+
+    /// <summary>The same with "What was written stays in the app's logs for up to {0} days." ({0}: the retention of the file log in the process, in whole days)</summary>
+    public string ContentLoggingIntroDays(int days) => Fill(days);
+
+    /// <summary>The same with "What was written stays in the app's logs for up to a day." (a retention of one day)</summary>
+    public string ContentLoggingIntroOneDay => Text();
 
     /// <summary>"Switch on for"</summary>
     public string ContentLoggingDuration => Text();

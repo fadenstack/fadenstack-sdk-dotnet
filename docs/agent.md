@@ -464,6 +464,8 @@ The files are `<app>-<yyyyMMdd>.log`, one line per entry: the time in UTC, the l
 
 Logging never holds up or fails the caller. Entries go to a queue and one background writer. When the queue is full, an entry is dropped and counted (`Dropped`). Disposing the provider writes what is queued. The provider touches only files of its own app name, because add-ins and a desktop agent share the folder. It writes every level its factory passes on, so set a minimum level on the factory.
 
+`DiagnosticText.MaskUserPaths(text)` (namespace `Fadenstack.Logging`) is for text a person copies out to send, such as the details of an error: it replaces the user's profile folder with `%USERPROFILE%` on Windows and `~` elsewhere (on Windows in any letter case, with either slash, and `<drive>:\Users\<same name>` too), and leaves another user's path as it is.
+
 ## Cancellation
 
 Pass a `CancellationToken` to `StreamAsync` or `SendAsync`. Cancelling it stops the turn: the request to the gateway is cancelled, a running tool gets the cancellation through its `CancellationToken` parameter, a pending approval's token is cancelled, and `OperationCanceledException` is thrown.

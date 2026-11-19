@@ -2573,7 +2573,13 @@
     <value>Die Inhaltsprotokollierung ist bis {0} eingeschaltet. Prompts und Antworten werden in die Protokolle der App geschrieben.</value>
   </data>
   <data name="ContentLoggingIntro" xml:space="preserve">
-    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App.</value>
+    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App. Was geschrieben wurde, bleibt in den Protokollen der App, bis die App es löscht.</value>
+  </data>
+  <data name="ContentLoggingIntroDays" xml:space="preserve">
+    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App. Was geschrieben wurde, bleibt bis zu {0} Tage in den Protokollen der App.</value>
+  </data>
+  <data name="ContentLoggingIntroOneDay" xml:space="preserve">
+    <value>Solange sie eingeschaltet ist, werden Prompts und Antworten in die Protokolle dieser App geschrieben. Sie schaltet sich von selbst aus, wenn die Zeit abgelaufen ist, und beim Neustart der App. Was geschrieben wurde, bleibt bis zu einem Tag in den Protokollen der App.</value>
   </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Einschalten für</value>
