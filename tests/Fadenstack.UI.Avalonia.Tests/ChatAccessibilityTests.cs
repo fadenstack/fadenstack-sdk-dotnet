@@ -138,7 +138,7 @@ public class ChatAccessibilityTests
         AssertNamed(host, "chips", failures, counted);
 
         // A failed turn and a problem banner
-        typeof(TurnViewModel).GetMethod("Fail", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(host.Chat.Turns[^1], new object[] { "The server answered 503.", DateTimeOffset.Now });
+        typeof(TurnViewModel).GetMethod("Fail", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(host.Chat.Turns[^1], new object?[] { "The server answered 503.", DateTimeOffset.Now, "http_503" });
         host.Chat.PictureNotRead("photo.heic");
         await host.PumpAsync();
         AssertNamed(host, "errors", failures, counted);
@@ -163,6 +163,9 @@ public class ChatAccessibilityTests
         host.Chat.OpenAboutCommand.Execute(null);
         await host.PumpAsync();
         AssertNamed(host, "about", failures, counted);
+        host.Chat.OpenReportCommand.Execute(null);
+        await host.PumpAsync();
+        AssertNamed(host, "report a problem", failures, counted);
 
         Assert.True(counted[0] > 60, $"only {counted[0]} controls were checked");
         Assert.True(failures.Count == 0, string.Join("\n", failures.Distinct()));

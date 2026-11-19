@@ -124,6 +124,16 @@
         <Setter Property="Margin" Value="8,4,8,8" />
         <Setter Property="Padding" Value="{DynamicResource Fadenstack.Space.4}" />
     </Style>
+    <!-- Report a problem: the sheet fills the space About has, over it. -->
+    <Style Selector="Border.menu.about.report">
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="WrapPanel.buttons > Button">
+        <Setter Property="Margin" Value="0,4,8,0" />
+    </Style>
+    <Style Selector="TextBox.report-preview">
+        <Setter Property="MaxHeight" Value="220" />
+    </Style>
     <Style Selector="DockPanel.about-head">
         <Setter Property="Margin" Value="0,0,0,8" />
     </Style>

@@ -246,7 +246,17 @@ public partial class ChatView : UserControl
         FlowDirection = strings.IsRightToLeft ? global::Avalonia.Media.FlowDirection.RightToLeft : global::Avalonia.Media.FlowDirection.LeftToRight;
     }
 
-    private static void OnLinkRequested(object? sender, Uri url) => MarkdownText.OpenLink(url);
+    private static void OnLinkRequested(object? sender, Uri url)
+    {
+        try
+        {
+            MarkdownText.OpenLink(url);
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // No app opens this kind of link on this computer (no mail app, no browser): "Copy details" is still there.
+        }
+    }
 
     private void OnComposerFocusRequested(object? sender, EventArgs e)
     {

@@ -253,7 +253,8 @@ public partial class ChatView : UserControl
     /// <summary>A press anywhere outside About closes it, and does what it does (a press on the composer types there).</summary>
     private void CloseAboutOnPressOutside(object sender, MouseButtonEventArgs e)
     {
-        if (_chat is { IsAboutOpen: true } chat && !AboutCard.IsMouseOver)
+        // The report sheet lies over About: a press in it is not a press outside About.
+        if (_chat is { IsAboutOpen: true, Report.IsOpen: false } chat && !AboutCard.IsMouseOver)
         {
             _aboutClosedByPress = true;
             chat.IsAboutOpen = false;

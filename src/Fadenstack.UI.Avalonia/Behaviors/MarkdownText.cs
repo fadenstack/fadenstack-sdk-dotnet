@@ -27,9 +27,10 @@ public static class MarkdownText
     /// <summary>Opens a link; replace it to route links through the host (e.g. its own browser).</summary>
     public static Action<Uri> OpenLink { get; set; } = uri =>
     {
-        if (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+        // Web links, mailto: (Report a problem's "Write mail") and the SDK's own log folder; nothing else (PanelLinkPolicy).
+        if (PanelLinkPolicy.OpensByDefault(uri))
         {
-            Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(PanelLinkPolicy.Target(uri)) { UseShellExecute = true });
         }
     };
 

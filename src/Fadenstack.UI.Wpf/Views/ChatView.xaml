@@ -489,12 +489,84 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                        <Button Style="{StaticResource Fadenstack.SecondaryButton}" HorizontalAlignment="Left" Margin="0,8,0,0"
-                                Command="{Binding CopyDetailsCommand}" Content="{local:Text CopyDetails}" />
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                    Command="{Binding CopyDetailsCommand}" Content="{local:Text CopyDetails}" />
+                            <Button x:Name="AboutReport" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                    Command="{Binding OpenReportCommand}" Content="{local:Text ReportProblem}" />
+                        </WrapPanel>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>
         </Border>
+
+        <!--
+            "Report a problem": a sheet over the conversation (and over About, which it was opened from). It is the content of a
+            control bound to the view model, so it is in the tree only while open: the focus moves into it, and back to the
+            button or link that opened it (b:DrawerFocus). Escape and Close close it.
+        -->
+        <ContentControl x:Name="ReportHost" Grid.Row="1" Margin="8,4,8,8" Focusable="False" IsTabStop="False"
+                        Content="{Binding Report.OpenSheet}">
+            <ContentControl.Resources>
+                <!-- By type, not as ContentTemplate: with no content (the sheet closed) a type's template is not made. -->
+                <DataTemplate DataType="{x:Type vm:ReportProblemViewModel}">
+                    <Border x:Name="ReportSheet" Padding="11,6,6,12" b:DrawerFocus.IsEnabled="True"
+                            Background="{DynamicResource Fadenstack.Surface}" BorderBrush="{DynamicResource Fadenstack.Border}" BorderThickness="1"
+                            CornerRadius="{StaticResource Fadenstack.Radius.Container}" KeyboardNavigation.TabNavigation="Cycle"
+                            AutomationProperties.Name="{local:Text ReportProblem}">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.3" />
+                        </Border.Effect>
+                        <Border.InputBindings>
+                            <KeyBinding Key="Escape" Command="{Binding CloseCommand}" />
+                        </Border.InputBindings>
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="3,0,0,6">
+                                <Button x:Name="ReportClose" DockPanel.Dock="Right" Style="{StaticResource Fadenstack.GhostButton}"
+                                        Command="{Binding CloseCommand}" ToolTip="{local:Text Close}" AutomationProperties.Name="{local:Text Close}">
+                                    <TextBlock Style="{StaticResource Fadenstack.Icon}" FontSize="11" Text="&#xE711;" />
+                                </Button>
+                                <TextBlock Text="{local:Text ReportProblem}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            </DockPanel>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                <StackPanel Margin="3,0,8,0">
+                                    <TextBlock x:Name="ReportGoesTo" Text="{Binding GoesTo}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                               Visibility="{Binding HasAddress, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                    <TextBlock x:Name="ReportAskIt" Text="{Binding AskIt}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                               Visibility="{Binding HasNoAddress, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                    <TextBlock Margin="0,0,0,8" Visibility="{Binding HasHelp, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                                        <Hyperlink x:Name="ReportHelpLink" Command="{Binding DataContext.OpenLinkCommand, RelativeSource={RelativeSource AncestorType=local:ChatView}}"
+                                                   CommandParameter="{Binding HelpLink}" ToolTip="{Binding HelpLink.Url.AbsoluteUri}"
+                                                   AutomationProperties.Name="{Binding HelpLink.Name}"
+                                                   FocusVisualStyle="{DynamicResource Fadenstack.LinkFocusVisual}"
+                                                   Foreground="{DynamicResource Fadenstack.Link}"><Run Text="{Binding HelpLink.Label, Mode=OneWay}" /></Hyperlink>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Contains}" Style="{StaticResource Fadenstack.Muted}" Margin="0,0,0,4" />
+                                    <TextBox x:Name="ReportPreview" Style="{StaticResource Fadenstack.TextBox}" Text="{Binding Preview, Mode=OneWay}" IsReadOnly="True"
+                                             IsReadOnlyCaretVisible="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="220"
+                                             VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Contains}" />
+                                    <TextBlock Style="{StaticResource Fadenstack.Muted}" Text="{Binding NoChats}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                    <WrapPanel Margin="0,10,0,0">
+                                        <Button x:Name="ReportWriteMail" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                                Command="{Binding WriteMailCommand}" Content="{local:Text ReportWriteMail}"
+                                                Visibility="{Binding HasAddress, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                        <Button x:Name="ReportCopy" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                                Command="{Binding CopyCommand}" Content="{local:Text CopyDetails}" />
+                                        <Button x:Name="ReportOpenLogs" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                                Command="{Binding OpenLogFolderCommand}" Content="{local:Text ReportOpenLogFolder}"
+                                                Visibility="{Binding CanOpenLogFolder, Converter={StaticResource Fadenstack.BoolToVisibility}}" />
+                                        <Button x:Name="ReportCloseButton" Style="{StaticResource Fadenstack.SecondaryButton}" Margin="0,0,8,4"
+                                                Command="{Binding CloseCommand}" Content="{local:Text Close}" />
+                                    </WrapPanel>
+                                    <TextBlock x:Name="ReportCopied" Style="{StaticResource Fadenstack.Muted}" Text="{Binding CopyStatus}" AutomationProperties.LiveSetting="Polite"
+                                               Visibility="{Binding CopyStatus, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </DataTemplate>
+            </ContentControl.Resources>
+        </ContentControl>
 
         <!-- Grant cards waiting for an answer: above the composer, like the approval card in the conversation -->
         <StackPanel Grid.Row="2" VerticalAlignment="Bottom">

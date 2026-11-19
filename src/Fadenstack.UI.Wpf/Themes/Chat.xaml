@@ -1223,6 +1223,11 @@
 
             <TextBlock Margin="30,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Fadenstack.Danger}" Text="{Binding ErrorMessage}"
                        Visibility="{Binding ErrorMessage, Converter={StaticResource Fadenstack.EmptyToCollapsed}}" />
+            <!-- "Report a problem": a link, like About's, that opens the sheet with this error's code. -->
+            <TextBlock Margin="30,2,0,0" FontSize="12" Visibility="{Binding CanReport, Converter={StaticResource Fadenstack.BoolToVisibility}}">
+                <Hyperlink x:Name="ReportErrorLink" Command="{Binding ReportCommand}" Foreground="{DynamicResource Fadenstack.Link}"
+                           FocusVisualStyle="{DynamicResource Fadenstack.LinkFocusVisual}"><Run Text="{v:Text ReportProblem}" /></Hyperlink>
+            </TextBlock>
 
             <StackPanel Orientation="Horizontal" Margin="26,2,0,0"
                         Visibility="{Binding IsRunning, Converter={StaticResource Fadenstack.InverseBoolToVisibility}}">

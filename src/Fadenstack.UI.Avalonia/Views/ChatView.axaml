@@ -487,6 +487,9 @@
                         <StackPanel Spacing="2">
                             <TextBlock Classes="strong" Text="{v:Text Failed}" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                            <!-- "Report a problem": opens the sheet with this error's code. -->
+                            <Button x:Name="ReportErrorLink" Classes="quiet link" HorizontalAlignment="Left" Command="{Binding ReportCommand}" Content="{v:Text ReportProblem}"
+                                    IsVisible="{Binding CanReport}" />
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -780,11 +783,64 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <Button Classes="secondary" HorizontalAlignment="Left" Command="{Binding CopyDetailsCommand}" Content="{v:Text CopyDetails}" />
+                            <WrapPanel Classes="buttons">
+                                <Button Classes="secondary" Command="{Binding CopyDetailsCommand}" Content="{v:Text CopyDetails}" />
+                                <Button x:Name="AboutReport" Classes="secondary" Command="{Binding OpenReportCommand}" Content="{v:Text ReportProblem}" />
+                            </WrapPanel>
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>
             </Border>
+
+            <!--
+                "Report a problem": a sheet over the conversation, and over About, which it was opened from. It is the content of a control
+                bound to the view model, so it is in the tree only while open: the focus moves into it and back to what opened it
+                (b:DrawerFocus). Escape and Close close it.
+            -->
+            <ContentControl x:Name="ReportHost" Focusable="False" IsTabStop="False" Content="{Binding Report.OpenSheet}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:ReportProblemViewModel">
+                        <Border x:Name="ReportSheet" Classes="menu about report" b:DrawerFocus.IsEnabled="True" AutomationProperties.Name="{v:Text ReportProblem}">
+                            <Border.KeyBindings>
+                                <KeyBinding Gesture="Escape" Command="{Binding CloseCommand}" />
+                            </Border.KeyBindings>
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Classes="about-head">
+                                    <Button x:Name="ReportClose" DockPanel.Dock="Right" Classes="icon small" Command="{Binding CloseCommand}" ToolTip.Tip="{v:Text Close}"
+                                            AutomationProperties.Name="{v:Text Close}">
+                                        <c:FsIcon Data="{DynamicResource Icon.Close}" />
+                                    </Button>
+                                    <TextBlock Classes="subtitle" Text="{v:Text ReportProblem}" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock x:Name="ReportGoesTo" Text="{Binding GoesTo}" TextWrapping="Wrap" IsVisible="{Binding HasAddress}" />
+                                        <TextBlock x:Name="ReportAskIt" Text="{Binding AskIt}" TextWrapping="Wrap" IsVisible="{Binding HasNoAddress}" />
+                                        <Button x:Name="ReportHelpLink" Classes="quiet link" HorizontalAlignment="Left" IsVisible="{Binding HasHelp}"
+                                                ToolTip.Tip="{Binding HelpLink.Url.AbsoluteUri}" AutomationProperties.Name="{Binding HelpLink.Name}"
+                                                Content="{Binding HelpLink.Label}" CommandParameter="{Binding HelpLink}"
+                                                Command="{Binding $parent[v:ChatView].((vm:AgentChatViewModel)DataContext).OpenLinkCommand}" />
+                                        <TextBlock Classes="caption muted" Text="{Binding Contains}" />
+                                        <TextBox x:Name="ReportPreview" Classes="report-preview" Text="{Binding Preview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                                                 TextWrapping="Wrap" AutomationProperties.Name="{Binding Contains}" />
+                                        <TextBlock Classes="caption muted" Text="{Binding NoChats}" TextWrapping="Wrap" />
+                                        <WrapPanel Classes="buttons">
+                                            <Button x:Name="ReportWriteMail" Classes="secondary" Command="{Binding WriteMailCommand}" Content="{v:Text ReportWriteMail}"
+                                                    IsVisible="{Binding HasAddress}" />
+                                            <Button x:Name="ReportCopy" Classes="secondary" Command="{Binding CopyCommand}" Content="{v:Text CopyDetails}" />
+                                            <Button x:Name="ReportOpenLogs" Classes="secondary" Command="{Binding OpenLogFolderCommand}" Content="{v:Text ReportOpenLogFolder}"
+                                                    IsVisible="{Binding CanOpenLogFolder}" />
+                                            <Button x:Name="ReportCloseButton" Classes="secondary" Command="{Binding CloseCommand}" Content="{v:Text Close}" />
+                                        </WrapPanel>
+                                        <TextBlock x:Name="ReportCopied" Classes="caption muted" Text="{Binding CopyStatus}" AutomationProperties.LiveSetting="Polite"
+                                                   IsVisible="{Binding HasCopyStatus}" />
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
 
             <!-- The chats: a menu under the header, as wide as the panel -->
             <Border Classes="menu history" IsVisible="{Binding IsHistoryOpen}">
