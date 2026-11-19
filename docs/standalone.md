@@ -154,6 +154,9 @@ deterministic (temperature 0, top-k 1), which defeats a watermark.
 | A .NET 8 app | the OS key store (`Fadenstack.Secrets`) |
 | Office (.NET Framework) | DPAPI (`SecretProtection`) |
 
+The wizard's key help says "The key is kept encrypted on this device, never in the settings or a log." A host's own
+`IEndpointKeyStore` must meet that sentence, or the host replaces the text.
+
 The SDK takes the key through an `ITokenProvider` and never stores it. Never put a key into a settings file, a log, an
 export or a crash report. A key never goes into the endpoint's address either: an address with a user name or password is
 refused.

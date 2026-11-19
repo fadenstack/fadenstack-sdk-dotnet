@@ -1169,7 +1169,7 @@
     <value>Clé d'API</value>
   </data>
   <data name="WizardKeyHelp" xml:space="preserve">
-    <value>La clé est conservée dans le magasin de clés de cet ordinateur, jamais dans un fichier.</value>
+    <value>La clé est conservée chiffrée sur cet appareil, jamais dans les paramètres ni dans un journal.</value>
   </data>
   <data name="WizardOwnChecking" xml:space="preserve">
     <value>Vérification de la connexion…</value>
@@ -1292,7 +1292,7 @@
     <value>Supprimer cette IA de cet ordinateur ?</value>
   </data>
   <data name="WizardRemoveBody" xml:space="preserve">
-    <value>Sa clé est supprimée du magasin de clés de cet ordinateur.</value>
+    <value>Sa clé est supprimée de cet appareil.</value>
   </data>
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>Supprimer aussi les conversations conservées sur cet ordinateur</value>
@@ -2495,7 +2495,7 @@
     <value>Utilisez une adresse https, ou http sur cet ordinateur uniquement, sans nom d’utilisateur ni mot de passe.</value>
   </data>
   <data name="WebSearchKeptStore" xml:space="preserve">
-    <value>La clé est conservée chiffrée dans le magasin de clés de cet appareil et n’est plus jamais affichée.</value>
+    <value>La clé est conservée chiffrée sur cet appareil et n’est plus jamais affichée.</value>
   </data>
   <data name="WebSearchKeptSession" xml:space="preserve">
     <value>La clé n’est conservée que pour cette session : cet appareil n’a pas de magasin de clés, elle est donc oubliée à la fermeture de l’appli.</value>

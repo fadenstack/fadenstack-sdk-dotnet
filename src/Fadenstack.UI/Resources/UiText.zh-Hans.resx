@@ -1169,7 +1169,7 @@
     <value>API 密钥</value>
   </data>
   <data name="WizardKeyHelp" xml:space="preserve">
-    <value>密钥保存在此计算机的密钥存储中，绝不保存在文件里。</value>
+    <value>密钥以加密形式保存在此设备上，绝不保存在设置或日志中。</value>
   </data>
   <data name="WizardOwnChecking" xml:space="preserve">
     <value>正在检查连接…</value>
@@ -1292,7 +1292,7 @@
     <value>从此计算机移除此 AI？</value>
   </data>
   <data name="WizardRemoveBody" xml:space="preserve">
-    <value>它的密钥会从此计算机的密钥存储中删除。</value>
+    <value>它的密钥会从此设备中删除。</value>
   </data>
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>同时删除保存在此计算机上的聊天</value>
@@ -2495,7 +2495,7 @@
     <value>请使用 https 地址，或仅限本机的 http 地址，且不含用户名和密码。</value>
   </data>
   <data name="WebSearchKeptStore" xml:space="preserve">
-    <value>密钥加密保存在此设备的密钥库中，不会再次显示。</value>
+    <value>密钥以加密形式保存在此设备上，不会再次显示。</value>
   </data>
   <data name="WebSearchKeptSession" xml:space="preserve">
     <value>密钥仅在本次会话中保留：此设备没有密钥库，因此应用关闭后即会遗忘。</value>

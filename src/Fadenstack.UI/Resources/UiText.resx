@@ -1418,7 +1418,7 @@
     <value>API key</value>
   </data>
   <data name="WizardKeyHelp" xml:space="preserve">
-    <value>The key is kept in this computer's key store, never in a file.</value>
+    <value>The key is kept encrypted on this device, never in the settings or a log.</value>
   </data>
   <data name="WizardOwnChecking" xml:space="preserve">
     <value>Checking the connection…</value>
@@ -1563,7 +1563,7 @@
     <value>Remove this AI from this computer?</value>
   </data>
   <data name="WizardRemoveBody" xml:space="preserve">
-    <value>Its key is deleted from this computer's key store.</value>
+    <value>Its key is deleted from this device.</value>
   </data>
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>Also delete the chats kept on this computer</value>
@@ -2766,7 +2766,7 @@
     <value>Use an https address, or http on this computer only, without a user name or password.</value>
   </data>
   <data name="WebSearchKeptStore" xml:space="preserve">
-    <value>The key is kept encrypted in this device’s key store and is never shown again.</value>
+    <value>The key is kept encrypted on this device and is never shown again.</value>
   </data>
   <data name="WebSearchKeptSession" xml:space="preserve">
     <value>The key is kept for this session only: this device has no key store, so it is forgotten when the app closes.</value>

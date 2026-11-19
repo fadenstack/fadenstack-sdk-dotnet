@@ -1305,7 +1305,7 @@ public sealed class UiStrings
     /// <summary>"API key"</summary>
     public string WizardKeyLabel => Text();
 
-    /// <summary>"The key is kept in this computer's key store, never in a file."</summary>
+    /// <summary>"The key is kept encrypted on this device, never in the settings or a log."</summary>
     public string WizardKeyHelp => Text();
 
     /// <summary>"Checking the connection…"</summary>
@@ -1374,7 +1374,7 @@ public sealed class UiStrings
     /// <summary>"Remove this AI from this computer?"</summary>
     public string WizardRemoveTitle => Text();
 
-    /// <summary>"Its key is deleted from this computer's key store."</summary>
+    /// <summary>"Its key is deleted from this device."</summary>
     public string WizardRemoveBody => Text();
 
     /// <summary>"Also delete the chats kept on this computer"</summary>
@@ -2205,7 +2205,7 @@ public sealed class UiStrings
     /// <summary>"Use an https address, or http on this computer only, without a user name or password."</summary>
     public string WebSearchUrlRefused => Text();
 
-    /// <summary>"The key is kept encrypted in this device’s key store and is never shown again."</summary>
+    /// <summary>"The key is kept encrypted on this device and is never shown again."</summary>
     public string WebSearchKeptStore => Text();
 
     /// <summary>"The key is kept for this session only: this device has no key store, so it is forgotten when the app closes."</summary>

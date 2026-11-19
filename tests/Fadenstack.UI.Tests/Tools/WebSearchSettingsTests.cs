@@ -373,7 +373,7 @@ public class WebSearchSettingsTests
     {
         using var disk = new WebSearchFixture(encrypts: true);
         using var onDisk = Sheet(disk);
-        Assert.Equal("The key is kept encrypted in this device\u2019s key store and is never shown again.", onDisk.KeptWhereText);
+        Assert.Equal("The key is kept encrypted on this device and is never shown again.", onDisk.KeptWhereText);
         Assert.Contains("outside your organisation", onDisk.PrivacyText);
         Assert.Contains("Auto", onDisk.PrivacyText);
 

@@ -56,7 +56,7 @@ The person picks the provider in a sheet: **Off**, **Brave Search** with their o
 - The Brave key goes in a password box. It is never filled from the store: a kept key shows as "A key is saved" with **Replace key** and **Remove key**. Remove key takes effect when the sheet is saved; Cancel keeps the key.
 - A SearXNG address is checked with `WebSearchSettings.IsAllowedSearXngUrl` before it is saved. A refused address says why: https, or http on this computer only, without a user name or password.
 - Save writes the settings (`WebSearchStore.Save`) and then the key (`SetBraveKey`). Choosing Off or SearXNG keeps a saved Brave key unless Remove key was pressed. Cancel writes nothing.
-- A line says where the key is kept: encrypted in the device's key store, or "for this session only" where `WebSearchStore.KeepsKeyOnDisk` is false. Another line says that a search sends the words of the query outside the organisation and that the assistant asks first, unless it is set to Auto.
+- A line says where the key is kept: encrypted on this device, or "for this session only" where `WebSearchStore.KeepsKeyOnDisk` is false. Another line says that a search sends the words of the query outside the organisation and that the assistant asks first, unless it is set to Auto.
 - The typed key lives in the view model only until the sheet is saved, cancelled or disposed.
 
 **In the Tools view.** Give the `ToolsViewModel` the person's store and "In this app" shows a "Web search" row with the state (Off, Brave, "SearXNG · host") and a **Set up** or **Change** button that opens the sheet as the view's modal sheet. Without a store there is no row. The row follows the store, so a change made elsewhere shows at once.

@@ -1169,7 +1169,7 @@
     <value>API-Schlüssel</value>
   </data>
   <data name="WizardKeyHelp" xml:space="preserve">
-    <value>Der Schlüssel wird im Schlüsselspeicher dieses Computers aufbewahrt, nie in einer Datei.</value>
+    <value>Der Schlüssel wird verschlüsselt auf diesem Gerät aufbewahrt, nie in den Einstellungen oder in einem Protokoll.</value>
   </data>
   <data name="WizardOwnChecking" xml:space="preserve">
     <value>Die Verbindung wird geprüft…</value>
@@ -1292,7 +1292,7 @@
     <value>Diese KI von diesem Computer entfernen?</value>
   </data>
   <data name="WizardRemoveBody" xml:space="preserve">
-    <value>Ihr Schlüssel wird aus dem Schlüsselspeicher dieses Computers gelöscht.</value>
+    <value>Ihr Schlüssel wird von diesem Gerät gelöscht.</value>
   </data>
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>Auch die auf diesem Computer gespeicherten Chats löschen</value>
@@ -2495,7 +2495,7 @@
     <value>Verwenden Sie eine https-Adresse, oder http nur auf diesem Computer, ohne Benutzername und Passwort.</value>
   </data>
   <data name="WebSearchKeptStore" xml:space="preserve">
-    <value>Der Schlüssel wird verschlüsselt im Schlüsselspeicher dieses Geräts aufbewahrt und nie wieder angezeigt.</value>
+    <value>Der Schlüssel wird verschlüsselt auf diesem Gerät aufbewahrt und nie wieder angezeigt.</value>
   </data>
   <data name="WebSearchKeptSession" xml:space="preserve">
     <value>Der Schlüssel wird nur für diese Sitzung aufbewahrt: Dieses Gerät hat keinen Schlüsselspeicher, daher wird er vergessen, sobald die App geschlossen wird.</value>

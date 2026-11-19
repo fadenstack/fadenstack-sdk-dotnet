@@ -99,7 +99,7 @@ public class WebSearchViewTests
         Assert.True(host.Has("WebSearchReplaceKeyButton"));
         Assert.True(host.Has("WebSearchRemoveKeyButton"));
         Assert.DoesNotContain(host.Texts(), t => t.Contains("brave-key-123", StringComparison.Ordinal));
-        Assert.Contains("The key is kept encrypted in this device\u2019s key store and is never shown again.", host.Texts());
+        Assert.Contains("The key is kept encrypted on this device and is never shown again.", host.Texts());
 
         host.Find<Button>("WebSearchReplaceKeyButton").Command.Execute(null);
         host.Pump();

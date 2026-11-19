@@ -47,7 +47,9 @@ its own step, and its own words in five languages:
 **Use my own AI.** The person reads where their data goes, the provider's terms and the standalone notice, and ticks
 the consent box, which starts unticked. The wizard keeps an acceptance record: terms version, time, language and mode.
 With the person's consent it searches this computer for Ollama, LM Studio, vLLM and llama.cpp. Otherwise the person
-picks a preset or types an address. A key goes straight into the key store. Plain http goes only:
+picks a preset or types an address. A key goes straight into the key store. The wizard's help text under the key field says "The key is kept encrypted on this device,
+never in the settings or a log." (in en, de, fr, es and zh-Hans: `WizardKeyHelp`). A host that supplies its own `IEndpointKeyStore`
+must meet that sentence, or replace the text with its own. Plain http goes only:
 - to this computer, where a key may go too (the check says it travels unencrypted);
 - to the local network after the person confirms it, and never with a key.
 
@@ -62,7 +64,7 @@ context length, ...) and whether it watermarks text. Last, the person picks the 
 | Contract | What it is |
 |---|---|
 | `IConnectionStore` | Where the app keeps the connection (settings file, Office settings): the server, the result, the acceptance record, and sign-out. Never a key or a token. |
-| `IEndpointKeyStore` | The key store for endpoint keys (DPAPI, Keychain, libsecret). `SaveAsync` returns a token provider that reads the key when a request needs it. |
+| `IEndpointKeyStore` | The key store for endpoint keys (DPAPI, Keychain, libsecret). It must keep the key encrypted on the device and out of the settings and logs, as the wizard's key help says; a store that cannot say so replaces `WizardKeyHelp`. `SaveAsync` returns a token provider that reads the key when a request needs it. |
 | `IWizardStep` | The app's own steps, at four points: before the choice (the desktop's licence), before the server check, before every endpoint check (a permission), after connecting. A step that says no stops the flow. |
 | `WizardOptions` | What the app offers (server, own AI, demo), its agents and the required ones, the password fallback, whether it restarts onto a new server (the desktop), whether it can search this computer, the terms version, the machine policy. |
 | `ServerSignIn`, `EndpointChecker` | The default server and endpoint sides over the SDK. Tests pass fakes of `IServerSignIn` and `IEndpointChecker`. |

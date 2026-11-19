@@ -1169,7 +1169,7 @@
     <value>Clave de API</value>
   </data>
   <data name="WizardKeyHelp" xml:space="preserve">
-    <value>La clave se guarda en el almacén de claves de este equipo, nunca en un archivo.</value>
+    <value>La clave se guarda cifrada en este dispositivo, nunca en los ajustes ni en un registro.</value>
   </data>
   <data name="WizardOwnChecking" xml:space="preserve">
     <value>Comprobando la conexión…</value>
@@ -1292,7 +1292,7 @@
     <value>¿Quitar esta IA de este equipo?</value>
   </data>
   <data name="WizardRemoveBody" xml:space="preserve">
-    <value>Su clave se elimina del almacén de claves de este equipo.</value>
+    <value>Su clave se elimina de este dispositivo.</value>
   </data>
   <data name="WizardDeleteChats" xml:space="preserve">
     <value>Eliminar también los chats guardados en este equipo</value>
@@ -2495,7 +2495,7 @@
     <value>Use una dirección https, o http solo en este equipo, sin nombre de usuario ni contraseña.</value>
   </data>
   <data name="WebSearchKeptStore" xml:space="preserve">
-    <value>La clave se guarda cifrada en el almacén de claves de este dispositivo y no se vuelve a mostrar.</value>
+    <value>La clave se guarda cifrada en este dispositivo y no se vuelve a mostrar.</value>
   </data>
   <data name="WebSearchKeptSession" xml:space="preserve">
     <value>La clave se guarda solo durante esta sesión: este dispositivo no tiene almacén de claves, así que se olvida al cerrar la app.</value>
