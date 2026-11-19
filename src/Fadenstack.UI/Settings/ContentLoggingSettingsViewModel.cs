@@ -158,7 +158,11 @@ public sealed class ContentLoggingSettingsViewModel : ObservableObject, ISkillTe
         ? Strings.ContentLoggingOnUntil(ContentLoggingText.Time(until, _clock(), Strings)) : "";
 
     /// <summary>What is logged, and that it ends by itself.</summary>
-    public string IntroText => Strings.ContentLoggingIntro;
+    public string IntroText => RetentionDays is { } days ? Strings.ContentLoggingIntroDays(days) : Strings.ContentLoggingIntro;
+
+    // The longest MaxAge of the file loggers alive in the process (the SDK's FadenstackFileLoggerProvider), in whole days; null when there
+    // is none: then nothing here says how long what was written stays, and the text says "until the app deletes it".
+    private static int? RetentionDays => Logging.FadenstackFileLoggerProvider.RetentionDays;
 
     public IRelayCommand StartCommand { get; }
 

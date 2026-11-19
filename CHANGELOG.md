@@ -12,6 +12,7 @@ this file says where it does.
 
 ### Changed
 
+- The content-logging setting's text now says how long what was written stays: "What was written stays in the app's logs for up to {0} days." (the longest `MaxAge` among the `FadenstackFileLoggerProvider` objects alive in the process, in whole days; 14 by default) or, when there is none, "What was written stays in the app's logs until the app deletes it." In English, German, French, Spanish and Simplified Chinese (`UiStrings.ContentLoggingIntro` and the new `ContentLoggingIntroDays`; `FadenstackFileLoggerProvider.RetentionDays` for a host that shows the sentence itself). The TypeScript SDK says the second sentence only.
 - "Remove my data" now takes the app's own log files too. `DeleteMyDataAsync` asks every `FadenstackFileLoggerProvider` alive in the process to delete its files (`<app>-*.log` and the numbered parts): what was queued is dropped, the open file is closed, and logging goes on in a new file. With `DataScope.AllApps` every other file in the user's log folder, and the per-user folders below it, goes too. A file another process holds open goes where the OS allows it and is otherwise counted as left (log event 2093). `DataDeletion.LogFilesRemoved` and `LogFilesLeft` count the files. A host that removes its own logs through `UseHostData` (the desktop's `desktop-*.log`) can drop that; Office (`office-<app>-*.log`) needs nothing more. OWASP ASVS 5.0 V14.
 
 ### Fixed

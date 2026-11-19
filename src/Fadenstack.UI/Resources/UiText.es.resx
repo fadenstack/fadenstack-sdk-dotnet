@@ -2573,7 +2573,10 @@
     <value>El registro de contenido está activado hasta {0}. Los prompts y las respuestas se escriben en los registros de la aplicación.</value>
   </data>
   <data name="ContentLoggingIntro" xml:space="preserve">
-    <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación.</value>
+    <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación. Lo que se escribió permanece en los registros de la aplicación hasta que la aplicación lo elimine.</value>
+  </data>
+  <data name="ContentLoggingIntroDays" xml:space="preserve">
+    <value>Mientras está activado, los prompts y las respuestas se escriben en los registros de esta aplicación. Se desactiva solo al terminar el tiempo y al reiniciar la aplicación. Lo que se escribió permanece en los registros de la aplicación durante un máximo de {0} días.</value>
   </data>
   <data name="ContentLoggingDuration" xml:space="preserve">
     <value>Activar durante</value>
