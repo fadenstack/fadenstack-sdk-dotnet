@@ -8,6 +8,13 @@ using Fadenstack.Tools;
 namespace Fadenstack.Mcp.Tests;
 
 /// <summary>
+/// The tests that point <see cref="FadenstackPaths"/> at a temporary folder run alone: the root is process-wide, and a test running
+/// beside them (an agent with default stores) would put its stores in a folder that is deleted under it.
+/// </summary>
+[CollectionDefinition("McpPaths", DisableParallelization = true)]
+public sealed class McpPathsCollection;
+
+/// <summary>
 /// The store keeps the desktop's format and folder (existing desktop users keep their server lists); the trust mark and the
 /// person's raises are optional keys of an entry; standalone has a folder of its own.
 /// </summary>

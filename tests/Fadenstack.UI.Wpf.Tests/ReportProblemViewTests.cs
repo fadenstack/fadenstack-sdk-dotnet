@@ -21,9 +21,17 @@ using Xunit;
 namespace Fadenstack.UI.Wpf.Tests;
 
 /// <summary>
+/// The tests that point <see cref="Fadenstack.Storage.FadenstackPaths"/> at a temporary folder run alone: the root is process-wide, and a
+/// test running beside them (an agent with default stores) would put its stores in a folder that is deleted under it.
+/// </summary>
+[CollectionDefinition("File logger in the process", DisableParallelization = true)]
+public sealed class FileLoggerInTheProcessCollection;
+
+/// <summary>
 /// "Report a problem" in the WPF skin (SDK 0.3.1): About's button, the sheet over the chat with its buttons and read-only preview, the
 /// focus that moves into it and back to what opened it, Escape and Close, and the link on a failed turn. The tests run in a window far off screen.
 /// </summary>
+[Collection("File logger in the process")]
 public class ReportProblemViewTests
 {
     private sealed class Host : IDisposable

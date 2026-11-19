@@ -9,7 +9,15 @@ using Xunit;
 
 namespace Fadenstack.UI.Avalonia.Tests;
 
+/// <summary>
+/// The tests that point <see cref="Fadenstack.Storage.FadenstackPaths"/> at a temporary folder run alone: the root is process-wide, and a
+/// test running beside them (an agent with default stores) would put its stores in a folder that is deleted under it.
+/// </summary>
+[CollectionDefinition("File logger in the process", DisableParallelization = true)]
+public sealed class FileLoggerInTheProcessCollection;
+
 /// <summary>"Report a problem" in the Avalonia skin (SDK 0.3.1): About's button, the sheet with its buttons and read-only preview, the focus into it, Escape and Close.</summary>
+[Collection("File logger in the process")]
 public class ReportProblemViewTests
 {
     private static T? Named<T>(ChatHost host, string name) where T : Control =>
