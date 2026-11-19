@@ -31,7 +31,9 @@ public class GrantViewModelTests
 
     private static async Task<T> Until<T>(Func<T?> find) where T : class
     {
-        for (var i = 0; i < 500; i++)
+        // A deadline in real time, long enough for a loaded machine (500 polls of 10 ms were 5 s on a quiet one and fewer on none).
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (watch.Elapsed < TimeSpan.FromSeconds(60))
         {
             if (find() is { } found)
             {

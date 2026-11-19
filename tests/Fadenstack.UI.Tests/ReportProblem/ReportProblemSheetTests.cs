@@ -16,6 +16,13 @@ using Xunit;
 namespace Fadenstack.UI.Tests;
 
 /// <summary>
+/// The tests that point <see cref="FadenstackPaths"/> at a temporary folder run alone: the root is process-wide, and a test running
+/// beside them (an agent with default stores) would put its stores in a folder that is deleted under it.
+/// </summary>
+[CollectionDefinition("File logger in the process", DisableParallelization = true)]
+public sealed class FileLoggerInTheProcessCollection;
+
+/// <summary>
 /// The "Report a problem" sheet in the chat (SDK 0.3.1): whom it writes to in each mode, what the mail and the copy say, the link on a failed
 /// turn, the secrets that must never be in it, the masked profile path, and "Open the log folder".
 /// </summary>

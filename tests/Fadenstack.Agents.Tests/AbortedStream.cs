@@ -24,6 +24,9 @@ public sealed class AbortedStream : Stream
     /// <summary>The first chunk was read: the turn is on its way.</summary>
     public TaskCompletionSource<bool> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    /// <summary>The reader asked for more after the first chunk and is parked on that read: a stop now is a stop under the read.</summary>
+    public TaskCompletionSource<bool> Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
     /// <summary>The answer of a gateway whose stream behaves this way.</summary>
     public static Func<Recorded, HttpResponseMessage> Answer(string firstChunk, out AbortedStream stream)
     {
@@ -46,6 +49,7 @@ public sealed class AbortedStream : Stream
             Started.TrySetResult(true);
             return n;
         }
+        Waiting.TrySetResult(true);
         return await _wait.Task.ConfigureAwait(false); // the cancellation token is ignored on purpose: a dead read cannot be cancelled
     }
 
