@@ -482,9 +482,11 @@ public sealed class McpScannerTests : IDisposable
     /// <summary>A port that accepts connections and never answers (or closes at once).</summary>
     private int Silent(bool close = false)
     {
-        var port = FreePort();
-        var listener = new TcpListener(IPAddress.Loopback, port);
+        // The system picks the port and the listener keeps it: no gap between finding a free port and binding it, in which a test
+        // running beside this one could take the same port.
+        var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         var held = new List<TcpClient>();
         _servers.Add(new Stop(new Disposer(() =>
         {
