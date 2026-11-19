@@ -29,7 +29,7 @@ public class AbortedStreamTests
             }
         });
         await stream.Started.Task;
-        await Task.Delay(100); // the reader is waiting on the next line
+        await stream.Waiting.Task; // the reader is parked on the next read, not still on its way to it
         Assert.True(session.Stop());
         await task;
 
