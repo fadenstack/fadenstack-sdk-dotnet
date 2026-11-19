@@ -295,7 +295,10 @@ public class ContentLoggingViewModelTests
             Assert.DoesNotContain("{", s.ContentLoggingIntro);
             Assert.NotEqual(s.ContentLoggingIntro, s.ContentLoggingIntroDays(14));
             Assert.False(string.IsNullOrWhiteSpace(s.ContentLoggingIntroOneDay), tag);
-            Assert.NotEqual(s.ContentLoggingIntroDays(1), s.ContentLoggingIntroOneDay);
+            if (tag != "zh-Hans") // Chinese has no plural: "1 天" is the natural singular too
+            {
+                Assert.NotEqual(s.ContentLoggingIntroDays(1), s.ContentLoggingIntroOneDay);
+            }
             Assert.DoesNotContain("{", s.ContentLoggingIntroOneDay);
             Assert.Equal(s.ContentLoggingIntro.Substring(0, 30), s.ContentLoggingIntroOneDay.Substring(0, 30));
             // The common start is the same words in both.
