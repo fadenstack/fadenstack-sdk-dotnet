@@ -104,8 +104,8 @@ public class BypassTemplateTests
 
         Assert.NotEmpty(bindings);
         Assert.DoesNotContain(bindings, k => (Attr(k, "Command") ?? "").Contains("Bypass") || (Attr(k, "Command") ?? "").Contains("Allow"));
-        // Esc stops the turn (or closes About); Enter sends from the composer.
+        // Esc stops the turn (or closes About, or the report sheet); Enter sends from the composer.
         Assert.All(bindings.Where(k => Attr(k, "Key") is "Escape" or "Enter"),
-            k => Assert.Contains(Attr(k, "Command"), new[] { "{Binding StopCommand}", "{Binding CloseAboutCommand}", "{Binding SendCommand}" }));
+            k => Assert.Contains(Attr(k, "Command"), new[] { "{Binding StopCommand}", "{Binding CloseAboutCommand}", "{Binding CloseCommand}", "{Binding SendCommand}" }));
     }
 }

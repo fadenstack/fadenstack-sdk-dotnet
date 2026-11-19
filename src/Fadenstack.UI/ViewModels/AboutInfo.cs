@@ -63,7 +63,8 @@ public sealed class AboutInfo
         // A model endpoint has no Fadenstack Help: the organisation's Help is a server's.
         if (connection == AgentConnection.Governed && AboutLinks.Help(server) is { } help)
         {
-            links.Add(new PanelLink(strings.Help, help, strings));
+            HelpLink = new PanelLink(strings.Help, help, strings);
+            links.Add(HelpLink);
         }
         links.Add(new PanelLink(Product, AboutLinks.AboutWebsite(refSource, SdkVersion), strings));
         links.Add(new PanelLink(strings.HelpAndContact, AboutLinks.AboutSupport(refSource, SdkVersion), strings));
@@ -148,6 +149,9 @@ public sealed class AboutInfo
     /// Developer docs.
     /// </summary>
     public IReadOnlyList<PanelLink> Links { get; }
+
+    /// <summary>The organisation's Help (its server's <c>/help/</c>), the first of <see cref="Links"/>; null for a model endpoint or no server.</summary>
+    public PanelLink? HelpLink { get; }
 
     /// <summary>What "Copy details" copies: the agent, its version and model, the app, the SDK and the server, one per line.</summary>
     public string Details { get; }

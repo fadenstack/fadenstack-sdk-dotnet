@@ -62,6 +62,7 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
     private AboutInfo _about;
     private PanelLink? _brandingLink;
     private bool _isAboutOpen;
+    private readonly ReportProblemViewModel _report;
 
     public AgentChatViewModel(FadenstackAgent agent, ApprovalBroker approvals, IUiDispatcher dispatcher, AgentChatOptions? options = null)
     {
@@ -146,6 +147,8 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         CloseAboutCommand = new RelayCommand(() => IsAboutOpen = false);
         CopyDetailsCommand = new RelayCommand(() => Clipboard.SetText(About.Details));
         OpenLinkCommand = new ItemCommand<PanelLink>(OpenLink, link => link is not null);
+        _report = new ReportProblemViewModel(this);
+        OpenReportCommand = new RelayCommand(() => OpenReport(null, null));
     }
 
     // -- state ---------------------------------------------------------------------------------------
@@ -281,6 +284,35 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
 
     /// <summary>Opens one of the panel's links (<see cref="PanelLink"/>) through <see cref="LinkRequested"/>.</summary>
     public IRelayCommand<PanelLink> OpenLinkCommand { get; }
+
+    /// <summary>
+    /// The "Report a problem" sheet: to whom a report goes and what the mail says. About's button opens it
+    /// (<see cref="OpenReportCommand"/>); so does the link on a failed turn.
+    /// </summary>
+    public ReportProblemViewModel Report => _report;
+
+    /// <summary>About's "Report a problem": opens the sheet over About, with no error.</summary>
+    public IRelayCommand OpenReportCommand { get; }
+
+    /// <summary>
+    /// Opens the "Report a problem" sheet; a failed turn's link passes its error's code (and the server's request id, where the error has one,
+    /// which the .NET errors do not yet).
+    /// </summary>
+    public void OpenReport(string? errorCode, string? requestId) => _report.Open(errorCode, requestId);
+
+    internal FadenstackAgent Agent => _agent;
+
+    internal AgentProfile? CurrentProfile => _profile;
+
+    /// <summary>The host's own support address (<see cref="AgentChatOptions.SupportEmail"/>): standalone only.</summary>
+    internal string? HostSupportEmail => _options.SupportEmail;
+
+    internal DateTimeOffset Now() => _options.Clock();
+
+    internal void Post(Action action) => _dispatcher.Post(action);
+
+    /// <summary>Hands a link (the sheet's <c>mailto:</c> or <c>file:</c>) to <see cref="LinkRequested"/>.</summary>
+    internal void RequestLink(Uri url) => LinkRequested?.Invoke(this, url);
 
     /// <summary>
     /// A link of the panel's is to open: the skin opens it in the browser (the WPF skin through <c>MarkdownText.OpenLink</c>,
@@ -1216,6 +1248,33 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         _ => e.Message,
     };
 
+    private static readonly System.Text.RegularExpressions.Regex CodePattern =
+        new(@"^[A-Za-z0-9_.:-]{1,64}\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// The code "Report a problem" gives for a failed turn: the first SDK error of the chain (as the TypeScript SDK reads it): a server error's
+    /// <c>code</c>, else <c>http_&lt;status&gt;</c>; any other SDK exception, the name of its type. Only plain tokens (<c>A-Za-z0-9_.:-</c>, at
+    /// most 64 characters) are taken, so what a server or a type says is never written into a mail unchecked. Never the error's message, which
+    /// can carry a name, a path or what the person wrote. Null for anything else.
+    /// </summary>
+    internal static string? ErrorCodeOf(Exception? error)
+    {
+        for (var depth = 0; error is not null && depth < 8; error = error.InnerException, depth++)
+        {
+            if (error is FadenstackApiException api)
+            {
+                return Token(api.Code) ?? "http_" + (int)api.Status;
+            }
+            if (error is FadenstackException && Token(error.GetType().Name) is { } name)
+            {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    private static string? Token(string? value) => value is not null && CodePattern.IsMatch(value) ? value : null;
+
     /// <summary>Says that a file the user added could not be read as a picture (<see cref="Error"/>).</summary>
     public void PictureNotRead(string name) => Error = Strings.PictureNotRead(name);
 
@@ -1393,7 +1452,11 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
         return (about, branding);
     }
 
-    private void RefreshAbout() => (About, BrandingLink) = BuildAbout();
+    private void RefreshAbout()
+    {
+        (About, BrandingLink) = BuildAbout();
+        _report?.Refresh();
+    }
 
     /// <summary>The texts for the language: the host's fixed ones, the organisation's, the user's pick, or the host's language.</summary>
     private UiStrings Resolve()
@@ -1729,12 +1792,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             _batcher.Enqueue(() =>
             {
                 SignInRequired = true;
-                turn.Fail(e.Message, _options.Clock());
+                turn.Fail(e.Message, _options.Clock(), ErrorCodeOf(e));
             });
         }
         catch (Exception e)
         {
-            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock()));
+            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock(), ErrorCodeOf(e)));
         }
     }
 
@@ -1769,12 +1832,12 @@ public sealed class AgentChatViewModel : ObservableObject, IDisposable
             _batcher.Enqueue(() =>
             {
                 SignInRequired = true;
-                turn.Fail(e.Message, _options.Clock());
+                turn.Fail(e.Message, _options.Clock(), ErrorCodeOf(e));
             });
         }
         catch (Exception e)
         {
-            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock()));
+            _batcher.Enqueue(() => turn.Fail(ErrorText(e), _options.Clock(), ErrorCodeOf(e)));
         }
         return result;
     }

@@ -83,6 +83,9 @@ internal sealed class LocalAgentBackend : IAgentBackend
     /// <summary>The endpoint's base, when the agent talks to one (not for a host's own chat client).</summary>
     public Uri? EndpointUrl => _endpoint?.BaseUrl;
 
+    /// <summary>The endpoint's dialect by name (<c>ollama</c>, <c>vllm</c>, <c>openai</c>); null for a host's own chat client.</summary>
+    public string? DialectName => _endpoint?.Dialect.Name;
+
     /// <summary>
     /// Whether the connection marks text (F03 item 8): the check's word when the app gave its report, else the sourced table by
     /// the endpoint's host and dialect; unknown for a host's own chat client.

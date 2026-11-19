@@ -11,6 +11,7 @@ using Xunit;
 namespace Fadenstack.UI.Tests.Settings;
 
 /// <summary>Content logging's setting and band (8.1): only when offered and allowed, a time to choose, the end time, Start and Stop.</summary>
+[Collection("File logger in the process")]
 public class ContentLoggingViewModelTests
 {
     private static readonly UiStrings English = UiStrings.For(new CultureInfo("en"));

@@ -63,6 +63,7 @@ public sealed class TurnViewModel : ObservableObject
         _previewLength = previewLength;
         _state = state;
         CopyCommand = new AsyncRelayCommand(CopyAsync, () => AnswerText.Length > 0);
+        ReportCommand = new RelayCommand(() => _chat?.OpenReport(ErrorCode, null), () => CanReport);
         EditCommand = new RelayCommand(() => _chat?.Edit(UserText), () => _chat is not null && !IsCommand && !IsRunning);
         RetryCommand = new AsyncRelayCommand(() => _chat?.SendAsync(UserText) ?? Task.CompletedTask,
             () => _chat is not null && !IsCommand && !IsRunning && (_state is TurnState.Failed or TurnState.Stopped || (_state == TurnState.Completed && _unanswered)));
@@ -131,8 +132,24 @@ public sealed class TurnViewModel : ObservableObject
     public string? ErrorMessage
     {
         get => _error;
-        private set => SetProperty(ref _error, value);
+        private set
+        {
+            if (SetProperty(ref _error, value))
+            {
+                OnPropertyChanged(nameof(CanReport));
+                ReportCommand.NotifyCanExecuteChanged();
+            }
+        }
     }
+
+    /// <summary>The failed turn's error code ("picture_type_not_allowed"), for "Report a problem"; null when it has none.</summary>
+    public string? ErrorCode { get; private set; }
+
+    /// <summary>The failed turn offers "Report a problem": it has an error to say and a chat to report in.</summary>
+    public bool CanReport => _chat is not null && !string.IsNullOrEmpty(_error);
+
+    /// <summary>The link on the error: opens the report sheet with this error's code.</summary>
+    public IRelayCommand ReportCommand { get; }
 
     public string UsageText => _tokens is { } tokens ? _strings.Tokens(tokens) : "";
 
@@ -333,8 +350,9 @@ public sealed class TurnViewModel : ObservableObject
 
     internal void Stop(DateTimeOffset now) => Finish(TurnState.Stopped, now);
 
-    internal void Fail(string message, DateTimeOffset now)
+    internal void Fail(string message, DateTimeOffset now, string? errorCode = null)
     {
+        ErrorCode = errorCode;
         ErrorMessage = message;
         Finish(TurnState.Failed, now);
     }

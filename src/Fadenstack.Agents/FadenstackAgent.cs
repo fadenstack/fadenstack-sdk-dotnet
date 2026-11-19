@@ -106,6 +106,12 @@ public sealed partial class FadenstackAgent : AIAgent, IDisposable, IAgentSwitch
     public Uri? EndpointUrl => (_settings.Backend as LocalAgentBackend)?.EndpointUrl;
 
     /// <summary>
+    /// For a standalone agent on a model endpoint, the endpoint's dialect by name (<c>ollama</c>, <c>vllm</c>, <c>openai</c>); null with a
+    /// server or with a host's own chat client. A name, never an address: "Report a problem" says it.
+    /// </summary>
+    public string? EndpointDialectName => (_settings.Backend as LocalAgentBackend)?.DialectName;
+
+    /// <summary>
     /// For a standalone agent, whether its connection marks text with the server's watermark (sdk/51 F03 item 8, F10): the
     /// endpoint check's report, else the sourced table. Null with a Fadenstack server, whose receipts say it per answer.
     /// </summary>

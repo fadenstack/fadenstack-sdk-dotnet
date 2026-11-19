@@ -103,6 +103,29 @@ public sealed class AgentChatOptions
     /// and the default, is <c>sdk</c>. Never a user's, organisation's or server's name.
     /// </summary>
     public string RefSource { get; set; } = AboutLinks.DefaultSource;
+
+    private string? _supportEmail;
+
+    /// <summary>
+    /// Your own support address for "Report a problem", used in <b>standalone</b> mode only (an agent on the person's own model
+    /// endpoint): it comes after the machine policy's <c>supportEmail</c> and before the SDK's default
+    /// (<see cref="SupportAddress.Default"/>). A governed agent writes to the organisation's address only, never to this one. One
+    /// plain address (<see cref="SupportAddress.IsValid"/>): anything else, such as a second address or a <c>?subject=</c>, throws
+    /// when it is set, so a host's setting cannot add a recipient or a body to the draft. Null: not set.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is not one plain mail address.</exception>
+    public string? SupportEmail
+    {
+        get => _supportEmail;
+        set
+        {
+            if (value is not null && !SupportAddress.IsValid(value))
+            {
+                throw new ArgumentException("SupportEmail must be one plain mail address, such as help@example.com.", nameof(value));
+            }
+            _supportEmail = value;
+        }
+    }
 }
 
 /// <summary>A message on its way, for <see cref="AgentChatOptions.BeforeSend"/> and <see cref="AgentChatOptions.AfterSend"/>.</summary>
