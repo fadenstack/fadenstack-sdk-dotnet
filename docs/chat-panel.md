@@ -252,13 +252,24 @@ The choice is kept per user in the panel's preferences, under the key `tell-unma
 - the server's address, shown only;
 - links, one per line: *Help* (your organisation's server, `<server>/help/`), *Fadenstack* (the website), *Help and contact*
   (Fadenstack's help and contact page, `https://fadenstack.com/support/`) and *Developer docs*;
-- *Copy details*, which copies the agent, its version and model, the app, the SDK and the server as lines of text, for a support request.
+- *Copy details*, which copies the agent, its version and model, the app, the SDK and the server as lines of text, for a support request;
+- *Report a problem*, which opens [the sheet below](#report-a-problem).
 
 *Escape*, *Close* or a press anywhere outside the card closes it. About is there before the agent starts, too, so the SDK and the server show when the panel cannot connect.
 
 The links open in the browser through `MarkdownText.OpenLink`, as links in answers do; replace it to route them through your host. Another skin handles `chat.LinkRequested`.
 
 **What a link sends.** A link to fadenstack.com or developers.fadenstack.com carries two values and nothing else: `ref`, where it was opened (`sdk-panel` for the line under the composer, `sdk-about` for About), and `v`, the SDK's major and minor version (`0.3`). It never carries the user, the organisation, the server, the agent, the app, a model, an id or anything typed in the panel. The *Help* link goes to your own server and carries nothing.
+
+## Report a problem
+
+*Report a problem* (SDK 0.3.1) is a sheet over the panel, opened by About's button and by the *Report a problem* link on a failed turn (which adds that error's code). It says to whom the report goes, shows exactly what the mail will contain, and sends nothing itself: *Write mail* hands a `mailto:` link to the panel's link hook (`LinkRequested`, in the skins `MarkdownText.OpenLink`), and *Copy details* puts the same text on the clipboard for webmail ("Copied" shows for a moment). *Open the log folder* is there when the app logs with `FadenstackFileLoggerProvider`; it opens `FadenstackPaths.LogRoot` through the same hook as a `file:` link. *Escape* and *Close* close the sheet; the keyboard focus moves into it and back to what opened it.
+
+**To whom**, in this order: the machine policy's `supportEmail` ([Machine policy](machine-policy.md)), in both modes; then, **standalone only**, `AgentChatOptions.SupportEmail` (your own address), then `support@fadenstack.com`. A governed agent writes to the organisation's address only, never to yours or ours: without the key the sheet offers no mail, says to ask the organisation's IT, shows the organisation's *Help* link and keeps *Copy details* (a copy with no `To` line). An address must be one plain address (`^[A-Za-z0-9._+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$`, at most 254 characters): a `?`, `&`, `%`, `,`, a space or a line break is refused, so a setting cannot add a recipient, a bcc or a body to the draft. A bad policy value counts as absent and is reported in `policy.Warnings`; a bad `SupportEmail` throws `ArgumentException` when it is set.
+
+**The mail.** The subject is `Problem with Word add-in 1.2.0 (Fadenstack SDK 0.3.1)` (`Problem with Fadenstack SDK 0.3.1` when you did not `DescribeApp`), in the panel's language. The body is `What happened:`, two empty lines for the person, `-- `, then one `Label: value` line each for the app, the SDK (`(.NET)`), the system (`Windows 10.0.26300`: the OS family and version, no machine or user name), the mode (*Organisation* or *Own AI*), the agent (name, version or draft, model), the server (governed) or the endpoint's dialect and where it points (`ollama, on this computer`; standalone, never its address), the time in UTC and, from a failed turn, the error's code (the server's code, else `http_<status>`, else the exception type's name). A line whose value is unknown is left out. The link is at most 2,000 characters: the last lines go first, never the subject or the first line. *Copy details* always carries every line, with the profile path masked (`DiagnosticText.MaskUserPaths`). Never in the mail or the copy: prompts, answers, reasoning, attachments, file or page names, tool names or arguments, keys, tokens, the person's name, mail address or user id.
+
+`ReportMailBuilder.Build(address, labels, facts)` is the pure function behind it; `tests/Fadenstack.UI.Tests/ReportProblem/cases.json` is the table the TypeScript SDK tests the same way. The skins' default link hook opens web links, `mailto:` and the SDK's own log folder only (`PanelLinkPolicy`).
 
 | Option | What it is |
 |---|---|
@@ -340,6 +351,7 @@ Your renderers are tried before the built-in ones; the first that returns true w
 | `PreviewLength` | How many characters of a tool's arguments or result are shown. |
 | `AutomaticLanguage`, `Languages`, `TextOverrides`, `LockedLanguage`, `Preferences` | The language the user picks in the settings, and where it is kept. See [Languages](#languages). |
 | `Strings` | Texts you fix instead of a language the user picks. |
+| `SupportEmail` | Your support address for [Report a problem](#report-a-problem), standalone only; one plain address, else `ArgumentException`. |
 | `Branding`, `RefSource` | The *Fadenstack* link under the composer, and your app's name in the links' `ref`. See [About and the Fadenstack link](#about-and-the-fadenstack-link). |
 | `BeforeSend`, `AfterSend` | What your add-in does around each message. See below. |
 | `Clock` | The time, for tests. |
@@ -411,6 +423,7 @@ For your own skin, or to drive the chat from the host:
 | `IsReady`, `IsBusy`, `CanSend`, `IsEmpty`, `HasEarlierTurns`, `SignInRequired`, `Error` | State. |
 | `Strings` | The texts the panel shows, for a skin's labels; they change when the user picks another language. |
 | `Language`, `LanguageOptions`, `CanChangeLanguage`, `IsLanguageLocked`, `SetLanguage(id)`, `IsSettingsOpen` | The settings. |
+| `Report` (`ReportProblemViewModel`), `OpenReportCommand`, `OpenReport(code, requestId)`, `TurnViewModel.ReportCommand` | "Report a problem": the sheet, and its two ways in. |
 | `About`, `IsAboutOpen`, `OpenAboutCommand`, `CloseAboutCommand`, `CopyDetailsCommand` | About: what it shows (`AboutInfo`, in the panel's language), and opening, closing and copying it. |
 | `BrandingLink`, `OpenLinkCommand`, `LinkRequested` | The link under the composer (null when `Branding` is off), and the panel's links: the command raises `LinkRequested` with the address, and the skin opens it. |
 | `SendCommand`, `StopCommand`, `NewChatCommand`, `LoadEarlierCommand`, and others | Commands for the skin. |
